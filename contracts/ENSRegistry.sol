@@ -1,4 +1,4 @@
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity >=0.6.0 <=0.8.0;
 
 import "hardhat/console.sol";
 import "../interfaces/ENS.sol";
@@ -146,7 +146,7 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return address of the owner.
      */
-    function owner(bytes32 node) public override view returns (address) {
+    function owner(bytes32 node) public view override returns (address) {
         address addr = records[node].owner;
         if (addr == address(this)) {
             return address(0x0);
@@ -160,7 +160,7 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return address of the resolver.
      */
-    function resolver(bytes32 node) public override view returns (address) {
+    function resolver(bytes32 node) public view override returns (address) {
         return records[node].resolver;
     }
 
@@ -169,7 +169,7 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return ttl of the node.
      */
-    function ttl(bytes32 node) public override view returns (uint64) {
+    function ttl(bytes32 node) public view override returns (uint64) {
         return records[node].ttl;
     }
 
@@ -178,7 +178,7 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return Bool if record exists
      */
-    function recordExists(bytes32 node) public override view returns (bool) {
+    function recordExists(bytes32 node) public view override returns (bool) {
         return records[node].owner != address(0x0);
     }
 
@@ -190,8 +190,8 @@ contract ENSRegistry is ENS {
      */
     function isApprovedForAll(address owner, address operator)
         external
-        override
         view
+        override
         returns (bool)
     {
         return operators[owner][operator];

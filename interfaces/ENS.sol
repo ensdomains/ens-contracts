@@ -1,4 +1,4 @@
-pragma solidity >=0.6.0 <0.8.0;
+pragma solidity >=0.6.0 <=0.8.0;
 
 //TODO: remove and pull in from npm
 interface ENS {

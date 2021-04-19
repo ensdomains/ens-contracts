@@ -4,7 +4,7 @@ import "../interfaces/Resolver.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
-import "@openzeppelin/contracts/introspection/ERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../interfaces/INFTFuseWrapper.sol";
 import "hardhat/console.sol";
 
@@ -56,18 +56,18 @@ contract NFTFuseWrapper is INFTFuseWrapper, ERC165 {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    // function supportsInterface(bytes4 interfaceId)
-    //     public
-    //     view
-    //     virtual
-    //     override(ERC165, IERC165)
-    //     returns (bool)
-    // {
-    //     return
-    //         interfaceId == type(IERC1155).interfaceId ||
-    //         interfaceId == type(IERC1155MetadataURI).interfaceId ||
-    //         super.supportsInterface(interfaceId);
-    // }
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC165, IERC165)
+        returns (bool)
+    {
+        return
+            interfaceId == type(IERC1155).interfaceId ||
+            interfaceId == type(IERC1155MetadataURI).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
 
     /**
      * @dev See {IERC1155Metadata-uri}.

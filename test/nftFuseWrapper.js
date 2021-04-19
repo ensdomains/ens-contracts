@@ -35,7 +35,6 @@ describe('NFT fuse wrapper', () => {
   let ENSRegistry
   let BaseRegistrar
   let NFTFuseWrapper
-  let PublicResolver
   let signers
   let account
 
@@ -73,11 +72,6 @@ describe('NFT fuse wrapper', () => {
     NFTFuseWrapper = await deploy('NFTFuseWrapper', [
       EnsRegistry.address,
       BaseRegistrar.address,
-    ])
-
-    PublicResolver = await deploy('PublicResolver', [
-      EnsRegistry.address,
-      addresses['NFTFuseWrapper'],
     ])
 
     // setup .eth
@@ -466,84 +460,3 @@ describe('NFT fuse wrapper', () => {
     ).to.equal(account)
   })
 })
-// TODO move these tests to separate repo
-// describe('SubDomainRegistrar configureDomain', () => {
-//   it('Should be able to configure a new domain', async () => {
-//     const [owner] = await ethers.getSigners()
-//     const account = await owner.getAddress()
-//     await BaseRegistrar.register(labelhash('vitalik'), account, 84600)
-//     await SubDomainRegistrar.configureDomain(
-//       namehash('eth'),
-//       labelhash('vitalik'),
-//       '1000000',
-//       0
-//     )
-
-//     // TODO: assert vitalik.eth has been configured
-//   })
-
-//   it('Should be able to configure a new domain and then register', async () => {
-//     const [signer] = await ethers.getSigners()
-//     const account = await signer.getAddress()
-
-//     await BaseRegistrar.register(labelhash('ens'), account, 84600)
-
-//     await SubDomainRegistrar.configureDomain(
-//       namehash('eth'),
-//       labelhash('ens'),
-//       '1000000',
-//       0
-//     )
-
-//     const tx = PublicResolver.interface.encodeFunctionData(
-//       'setAddr(bytes32,uint256,bytes)',
-//       [namehash('awesome.ens.eth'), 60, account]
-//     )
-
-//     await SubDomainRegistrar.register(
-//       namehash('ens.eth'),
-//       'awesome',
-//       account,
-//       account,
-//       addresses['PublicResolver'],
-//       [tx],
-//       {
-//         value: '1000000',
-//       }
-//     )
-//   })
-
-//   it('Should be able to configure a new domain and then register fails because namehash does not match', async () => {
-//     const [signer] = await ethers.getSigners()
-//     const account = await signer.getAddress()
-
-//     const tx = PublicResolver.interface.encodeFunctionData(
-//       'setAddr(bytes32,uint256,bytes)',
-//       [namehash('awesome.ens.eth'), 60, account]
-//     )
-
-//     //should fail as tx is not correct
-//     await expect(
-//       SubDomainRegistrar.register(
-//         namehash('ens.eth'),
-//         'othername',
-//         account,
-//         account,
-//         addresses['PublicResolver'],
-//         [tx],
-//         {
-//           value: '1000000',
-//         }
-//       )
-//     ).to.be.revertedWith('revert invalid node for multicall')
-//   })
-// })
-//         addresses['PublicResolver'],
-//         [tx],
-//         {
-//           value: '1000000',
-//         }
-//       )
-//     ).to.be.revertedWith('revert invalid node for multicall')
-//   })
-// })
