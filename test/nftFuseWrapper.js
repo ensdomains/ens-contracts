@@ -227,6 +227,50 @@ describe('NFT fuse wrapper', () => {
     expect(ownerInWrapper).to.equal(account)
   })
 
+  it('can set fuses and then burn ability to burn fuses', async () => {
+    const label = 'burnabilitytoburn'
+    const tokenId = labelhash(label)
+    const wrappedTokenId = namehash(label + '.eth')
+    const CAN_DO_EVERYTHING = 0
+    const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+    await BaseRegistrar.register(tokenId, account, 84600)
+
+    await NFTFuseWrapper.wrapETH2LD(
+      label,
+      CAN_DO_EVERYTHING | CANNOT_UNWRAP,
+      account
+    )
+
+    const CANNOT_BURN_FUSES = await NFTFuseWrapper.CANNOT_BURN_FUSES()
+
+    await NFTFuseWrapper.burnFuses(
+      namehash('eth'),
+      tokenId,
+      CAN_DO_EVERYTHING | CANNOT_BURN_FUSES
+    )
+
+    const ownerInWrapper = await NFTFuseWrapper.ownerOf(wrappedTokenId)
+
+    expect(ownerInWrapper).to.equal(account)
+
+    // check flag in the wrapper
+    const canBurnFuses = await NFTFuseWrapper.canBurnFuses(wrappedTokenId)
+
+    expect(canBurnFuses).to.equal(false)
+
+    const CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
+
+    //try to set the resolver and ttl
+    expect(
+      NFTFuseWrapper.burnFuses(
+        namehash('eth'),
+        tokenId,
+        CANNOT_REPLACE_SUBDOMAIN
+      )
+    ).to.be.reverted
+  })
+
   it('can set fuses and burn transfer', async () => {
     const [signer2] = await ethers.getSigners()
     const account2 = await signer2.getAddress()

@@ -69,6 +69,11 @@ contract NFTFuseWrapper is ERC1155 {
         return fuses & CANNOT_UNWRAP == 0;
     }
 
+    function canBurnFuses(bytes32 node) public view returns (bool) {
+        (, uint96 fuses) = getData(uint256(node));
+        return fuses & CANNOT_BURN_FUSES == 0;
+    }
+
     function canTransfer(bytes32 node) public view returns (bool) {
         (, uint96 fuses) = getData(uint256(node));
         return fuses & CANNOT_TRANSFER == 0;
@@ -235,6 +240,11 @@ contract NFTFuseWrapper is ERC1155 {
         uint96 _fuses
     ) public ownerOnly(makeNode(parentNode, label)) {
         bytes32 node = makeNode(parentNode, label);
+
+        require(
+            canBurnFuses(node),
+            "NFTFuseWrapper: Fuse has been burned for burning fuses"
+        );
 
         // check that the parent has the CAN_REPLACE_SUBDOMAIN fuse burned, and the current domain has the CAN_UNWRAP fuse burned
 
