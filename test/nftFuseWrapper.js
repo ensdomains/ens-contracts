@@ -37,6 +37,7 @@ describe('NFT fuse wrapper', () => {
   let NFTFuseWrapper
   let signers
   let account
+  let result
 
   before(async () => {
     signers = await ethers.getSigners()
@@ -114,6 +115,13 @@ describe('NFT fuse wrapper', () => {
     const ownerOfEth = await EnsRegistry.owner(namehash('eth'))
 
     expect(ownerOfEth).to.equal(BaseRegistrar.address)
+  })
+
+  beforeEach(async () => {
+    ;({ result } = await ethers.provider.send('evm_snapshot'))
+  })
+  afterEach(async () => {
+    await ethers.provider.send('evm_snapshot', result)
   })
 
   it('wrap() wraps a name with the ERC721 standard and fuses', async () => {
