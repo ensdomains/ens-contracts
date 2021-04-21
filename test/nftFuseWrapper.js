@@ -183,19 +183,18 @@ describe('NFT fuse wrapper', () => {
     await NFTFuseWrapper.wrapETH2LD(label, 255, account)
 
     //make sure reclaim claimed ownership for the wrapper in registry
-    const ownerInRegistry = await EnsRegistry.owner(nameHash)
 
-    expect(ownerInRegistry).to.equal(NFTFuseWrapper.address)
+    expect(await EnsRegistry.owner(nameHash)).to.equal(NFTFuseWrapper.address)
 
     //make sure owner in the wrapper is the user
-    const ownerOfWrappedEth = await NFTFuseWrapper.ownerOf(nameHash)
 
-    expect(ownerOfWrappedEth).to.equal(account)
+    expect(await NFTFuseWrapper.ownerOf(nameHash)).to.equal(account)
 
     // make sure registrar ERC721 is owned by Wrapper
-    const ownerInRegistrar = await BaseRegistrar.ownerOf(labelHash)
 
-    expect(ownerInRegistrar).to.equal(NFTFuseWrapper.address)
+    expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+      NFTFuseWrapper.address
+    )
 
     // make sure it can't be unwrapped
     const canUnwrap = await NFTFuseWrapper.canUnwrap(nameHash)
@@ -250,12 +249,10 @@ describe('NFT fuse wrapper', () => {
       account
     )
 
-    const CANNOT_BURN_FUSES = await NFTFuseWrapper.CANNOT_BURN_FUSES()
-
     await NFTFuseWrapper.burnFuses(
       namehash('eth'),
       tokenId,
-      CAN_DO_EVERYTHING | CANNOT_BURN_FUSES
+      CAN_DO_EVERYTHING | (await NFTFuseWrapper.CANNOT_BURN_FUSES())
     )
 
     const ownerInWrapper = await NFTFuseWrapper.ownerOf(wrappedTokenId)
@@ -263,9 +260,8 @@ describe('NFT fuse wrapper', () => {
     expect(ownerInWrapper).to.equal(account)
 
     // check flag in the wrapper
-    const canBurnFuses = await NFTFuseWrapper.canBurnFuses(wrappedTokenId)
 
-    expect(canBurnFuses).to.equal(false)
+    expect(await NFTFuseWrapper.canBurnFuses(wrappedTokenId)).to.equal(false)
 
     const CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
 
@@ -296,22 +292,17 @@ describe('NFT fuse wrapper', () => {
       account
     )
 
-    const CANNOT_TRANSFER = await NFTFuseWrapper.CANNOT_TRANSFER()
-
     await NFTFuseWrapper.burnFuses(
       namehash('eth'),
       tokenId,
-      CAN_DO_EVERYTHING | CANNOT_TRANSFER
+      CAN_DO_EVERYTHING | (await NFTFuseWrapper.CANNOT_TRANSFER())
     )
 
-    const ownerInWrapper = await NFTFuseWrapper.ownerOf(wrappedTokenId)
-
-    expect(ownerInWrapper).to.equal(account)
+    expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
 
     // check flag in the wrapper
-    const canTransfer = await NFTFuseWrapper.canTransfer(wrappedTokenId)
 
-    expect(canTransfer).to.equal(false)
+    expect(await NFTFuseWrapper.canTransfer(wrappedTokenId)).to.equal(false)
 
     //try to set the resolver and ttl
     expect(
@@ -340,22 +331,16 @@ describe('NFT fuse wrapper', () => {
       account
     )
 
-    const CANNOT_SET_DATA = await NFTFuseWrapper.CANNOT_SET_DATA()
-
     await NFTFuseWrapper.burnFuses(
       namehash('eth'),
       tokenId,
-      CAN_DO_EVERYTHING | CANNOT_SET_DATA
+      CAN_DO_EVERYTHING | (await NFTFuseWrapper.CANNOT_SET_DATA())
     )
 
-    const ownerInWrapper = await NFTFuseWrapper.ownerOf(wrappedTokenId)
-
-    expect(ownerInWrapper).to.equal(account)
+    expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
 
     // check flag in the wrapper
-    const canSetData = await NFTFuseWrapper.canSetData(wrappedTokenId)
-
-    expect(canSetData).to.equal(false)
+    expect(await NFTFuseWrapper.canSetData(wrappedTokenId)).to.equal(false)
 
     //try to set the resolver and ttl
     expect(NFTFuseWrapper.setResolver(wrappedTokenId, account)).to.be.reverted
@@ -367,10 +352,19 @@ describe('NFT fuse wrapper', () => {
     const label = 'fuses2'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
-    const CAN_DO_EVERYTHING = await NFTFuseWrapper.CAN_DO_EVERYTHING()
-    const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
-    const CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
-    const CANNOT_CREATE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_CREATE_SUBDOMAIN()
+    const fuses = [
+      NFTFuseWrapper.CAN_DO_EVERYTHING(),
+      NFTFuseWrapper.CANNOT_UNWRAP(),
+      NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN(),
+      NFTFuseWrapper.CANNOT_CREATE_SUBDOMAIN(),
+    ]
+
+    const [
+      CAN_DO_EVERYTHING,
+      CANNOT_UNWRAP,
+      CANNOT_REPLACE_SUBDOMAIN,
+      CANNOT_CREATE_SUBDOMAIN,
+    ] = await Promise.all(fuses)
 
     await BaseRegistrar.register(tokenId, account, 84600)
 
