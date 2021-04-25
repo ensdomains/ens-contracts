@@ -33,10 +33,12 @@ async function deploy(name, _args) {
 
 describe('NFT fuse wrapper', () => {
   let ENSRegistry
+  let ENSRegistry2
   let BaseRegistrar
   let NFTFuseWrapper
   let signers
   let account
+  let account2
   let result
 
   /* Utility funcs */
@@ -54,6 +56,9 @@ describe('NFT fuse wrapper', () => {
   before(async () => {
     signers = await ethers.getSigners()
     account = await signers[0].getAddress()
+    account2 = await signers[1].getAddress()
+
+    console.log('account2', account2)
 
     const registryJSON = loadENSContract('ens', 'ENSRegistry')
 
@@ -64,6 +69,7 @@ describe('NFT fuse wrapper', () => {
     )
 
     EnsRegistry = await registryContractFactory.deploy()
+    EnsRegistry2 = EnsRegistry.connect(signers[1])
 
     try {
       const rootOwner = await EnsRegistry.owner(ROOT_NODE)
@@ -150,23 +156,106 @@ describe('NFT fuse wrapper', () => {
   })
 
   it('wrap() - Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry.', async () => {
-    const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
-
-    await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
-    await NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', fuses, account)
-    const ownerOfWrappedXYZ = await NFTFuseWrapper.ownerOf(namehash('xyz'))
-    expect(ownerOfWrappedXYZ).to.equal(account)
+    expect(NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', 0, account)).to.be.reverted
   })
 
-  it('wrap() - Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {})
+  it('wrap() - Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
+    expect(NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', 0, '0x0')).to.be.reverted
+  })
 
-  it('wrap() - Allows an account approved by the owner on the ENS registry to wrap a name.', async () => {})
+  it('wrap() - Allows an account approved by the owner on the ENS registry to wrap a name.', async () => {
+    const labelhash = utils.keccak256(utils.toUtf8Bytes('abc'))
 
-  it('wrap() - Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {})
+    // setup .abc with account2 as owner
+    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash, account2)
+    // allow account to deal with all account2's names
+    await EnsRegistry2.setApprovalForAll(account, true)
+    await EnsRegistry2.setApprovalForAll(NFTFuseWrapper.address, true)
 
-  it('wrap() - Does not allow wrapping .eth 2LDs.', async () => {})
+    //confirm abc is owner by account2 not account 1
+    expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
+    // wrap using account
+    await NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)
+    const ownerOfWrappedXYZ = await NFTFuseWrapper.ownerOf(namehash('abc'))
+    expect(ownerOfWrappedXYZ).to.equal(account2)
+  })
 
-  it('wrap() - Only allows fuses to be burned if the parent name has CANNOT_REPLACE_SUBDOMAIN burned. Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {})
+  it('wrap() - Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+    const labelhash = utils.keccak256(utils.toUtf8Bytes('abc'))
+
+    // setup .abc with account2 as owner
+    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash, account2)
+    await EnsRegistry2.setApprovalForAll(NFTFuseWrapper.address, true)
+
+    //confirm abc is owner by account2 not account 1
+    expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
+    // wrap using account
+    expect(NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)).to.be.reverted
+  })
+
+  it('wrap() - Does not allow wrapping .eth 2LDs.', async () => {
+    const label = 'wrapped'
+    const labelHash = labelhash(label)
+    await BaseRegistrar.register(labelHash, account, 84600)
+    await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+    expect(NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)).to.be.reverted
+  })
+
+  it('wrap() - Fuses cannot be burned if CANNOT_REPLACE_SUBDOMAIN has not burned', async () => {
+    const fuses = [
+      NFTFuseWrapper.CANNOT_UNWRAP(),
+      NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN(),
+    ]
+
+    const [CANNOT_UNWRAP, CANNOT_REPLACE_SUBDOMAIN] = await Promise.all(fuses)
+
+    // register sub.xyz before we wrap xyz
+    await EnsRegistry.setSubnodeOwner(
+      namehash('xyz'),
+      labelhash('sub'),
+      account
+    )
+
+    await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
+    await NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', CANNOT_UNWRAP, account)
+
+    //attempt to burn fuse
+    expect(
+      NFTFuseWrapper.wrap(
+        namehash('xyz'),
+        'sub',
+        CANNOT_REPLACE_SUBDOMAIN,
+        account
+      )
+    ).to.be.revertedWith(
+      'revert NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain'
+    )
+  })
+
+  it('wrap() - Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {
+    const fuses = [
+      NFTFuseWrapper.CANNOT_UNWRAP(),
+      NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN(),
+    ]
+
+    const [CANNOT_UNWRAP, CANNOT_REPLACE_SUBDOMAIN] = await Promise.all(fuses)
+
+    // register sub.xyz before we wrap xyz
+    await EnsRegistry.setSubnodeOwner(
+      namehash('xyz'),
+      labelhash('sub'),
+      account
+    )
+
+    await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
+
+    //attempt to burn fuse
+    expect(
+      NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', CANNOT_REPLACE_SUBDOMAIN, account)
+    ).to.be.revertedWith(
+      'revert NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped'
+    )
+  })
 
   it('unwrap() - Allows owner to unwrap name', async () => {
     const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
