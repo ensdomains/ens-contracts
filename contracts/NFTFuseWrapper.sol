@@ -110,7 +110,7 @@ contract NFTFuseWrapper is ERC1155 {
         uint256 tokenId,
         address newOwner,
         uint96 fuses
-    ) public {
+    ) internal {
         address owner = ownerOf(tokenId);
         require(owner == address(0), "ERC1155: mint of existing token");
         require(newOwner != address(0), "ERC1155: mint to the zero address");
