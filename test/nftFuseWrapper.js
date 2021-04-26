@@ -143,17 +143,24 @@ describe('NFT fuse wrapper', () => {
   })
 
   describe('wrap()', () => {
-    it('wrap() - Wraps a name with the ERC721 standard and fuses', async () => {
+    it('wrap() - Wraps a name if you are the owner', async () => {
       const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
 
       await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
       await NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', fuses, account)
       const ownerOfWrappedXYZ = await NFTFuseWrapper.ownerOf(namehash('xyz'))
       expect(ownerOfWrappedXYZ).to.equal(account)
+    })
 
-      // TODO: Emits the Wrapped event.
+    it('wrap() - emits correct events', async () => {
+      const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
 
-      // TODO: Emits the TransferSingle event from 0x0.
+      await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      const tx = NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', fuses, account)
+      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+
+      await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
 
     it('wrap() - Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry.', async () => {
@@ -259,39 +266,43 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  it('unwrap() - Allows owner to unwrap name', async () => {
-    const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
+  describe('unwrap()', () => {
+    it('unwrap() - Allows owner to unwrap name', async () => {
+      const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
 
-    await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
-    await NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', fuses, account)
-    await NFTFuseWrapper.setSubnodeOwner(
-      namehash('xyz'),
-      labelhash('unwrapped'),
-      account
-    )
-    await NFTFuseWrapper.wrap(namehash('xyz'), 'unwrapped', 0, account)
-    const ownerOfWrappedXYZ = await NFTFuseWrapper.ownerOf(
-      namehash('unwrapped.xyz')
-    )
-    expect(ownerOfWrappedXYZ).to.equal(account)
-    await NFTFuseWrapper.unwrap(namehash('unwrapped.xyz'), account)
+      await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
+      await NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', fuses, account)
+      await NFTFuseWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('unwrapped'),
+        account
+      )
+      await NFTFuseWrapper.wrap(namehash('xyz'), 'unwrapped', 0, account)
+      const ownerOfWrappedXYZ = await NFTFuseWrapper.ownerOf(
+        namehash('unwrapped.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+      await NFTFuseWrapper.unwrap(namehash('unwrapped.xyz'), account)
 
-    //Transfers ownership in the ENS registry to the target address.
-    expect(await EnsRegistry.owner(namehash('unwrapped.xyz'))).to.equal(account)
+      //Transfers ownership in the ENS registry to the target address.
+      expect(await EnsRegistry.owner(namehash('unwrapped.xyz'))).to.equal(
+        account
+      )
 
-    //TODO: Emits the Unwrapped event.
-    //TODO: Emits the TransferSingle event to 0x0.
+      //TODO: Emits the Unwrapped event.
+      //TODO: Emits the TransferSingle event to 0x0.
+    })
+
+    it('unwrap() - Allows an account authorised by the owner on the ENS registry to unwrap a name', async () => {})
+
+    it('unwrap() - Does not allow anyone else to unwrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {})
+
+    it('unwrap() - Will not unwrap .eth 2LDs.', async () => {})
+
+    it('unwrap() - Will not allow a target address of 0x0 or the wrapper contract address.', async () => {})
+
+    it('unwrap() - Clears fuses for the name', async () => {})
   })
-
-  it('unwrap() - Allows an account authorised by the owner on the ENS registry to unwrap a name', async () => {})
-
-  it('unwrap() - Does not allow anyone else to unwrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {})
-
-  it('unwrap() - Will not unwrap .eth 2LDs.', async () => {})
-
-  it('unwrap() - Will not allow a target address of 0x0 or the wrapper contract address.', async () => {})
-
-  it('unwrap() - Clears fuses for the name', async () => {})
 
   it('unwrapETH2LD() - Allows the owner to unwrap a name.', async () => {
     const label = 'unwrapped'
