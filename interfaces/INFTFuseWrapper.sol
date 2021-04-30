@@ -31,7 +31,11 @@ abstract contract INFTFuseWrapper {
         address wrappedOwner
     ) public virtual;
 
-    function unwrap(bytes32 node, address owner) public virtual;
+    function unwrap(
+        bytes32 node,
+        bytes32 label,
+        address owner
+    ) public virtual;
 
     function setSubnodeRecordAndWrap(
         bytes32 node,
