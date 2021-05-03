@@ -11,6 +11,12 @@ abstract contract INFTFuseWrapper {
         address owner
     );
 
+    event Unwrap(
+        bytes32 indexed parentNode,
+        bytes32 indexed labelhash,
+        address owner
+    );
+
     function ownerOf(uint256 id) public virtual returns (address);
 
     function getData(uint256 tokenId)
