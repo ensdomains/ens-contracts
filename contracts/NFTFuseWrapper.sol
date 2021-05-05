@@ -3,9 +3,11 @@ import "../interfaces/ENS.sol";
 import "../interfaces/BaseRegistrar.sol";
 import "../interfaces/Resolver.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
 contract NFTFuseWrapper is ERC1155 {
+    using BytesUtils for bytes;
     ENS public ens;
     BaseRegistrar public registrar;
     bytes4 private constant _ERC721_RECEIVED = 0x150b7a02;
@@ -152,8 +154,6 @@ contract NFTFuseWrapper is ERC1155 {
 
         // transfer the ens record back to the new owner (this contract)
         _wrapETH2LD(labelhash, node, _fuses, wrappedOwner);
-
-        emit Wrap(ETH_NODE, label, _fuses, owner);
     }
 
     function _wrapETH2LD(
@@ -389,13 +389,28 @@ contract NFTFuseWrapper is ERC1155 {
         bytes calldata data
     ) public returns (bytes4) {
         //check if it's the eth registrar ERC721
+        uint96 fuses = 0;
         require(
             msg.sender == address(registrar),
             "NFTFuseWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
+        console.logBytes(data);
+        console.log(data.length);
+
+        require(
+            data.length == 0 || data.length == 12,
+            "NFTFuseWrapper: Data is not of length 0 or 12"
+        );
+
+        if (data.length == 12) {
+            fuses = uint96(data.readUint96(0));
+        }
+
         bytes32 node = makeNode(ETH_NODE, bytes32(tokenId));
-        _wrapETH2LD(bytes32(tokenId), node, uint96(0), from);
+        _wrapETH2LD(bytes32(tokenId), node, fuses, from);
+        //TODO replace with WrapETH2LD event ? since can't access plain text string of label
+        emit Wrap(ETH_NODE, "blah", fuses, from);
         return _ERC721_RECEIVED;
     }
 }

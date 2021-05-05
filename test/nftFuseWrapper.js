@@ -8,6 +8,7 @@ const n = require('eth-ens-namehash')
 const namehash = n.hash
 const { loadENSContract } = require('../utils/contracts')
 const baseRegistrarJSON = require('./baseRegistrarABI')
+const buffer = require('buffer')
 
 use(solidity)
 
@@ -269,7 +270,7 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  describe('unwrap()', () => {
+  xdescribe('unwrap()', () => {
     it('unwrap() - Allows owner to unwrap name', async () => {
       const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
 
@@ -617,14 +618,11 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  describe('onERC721Received', () => {
-    it('can send ERC721 token to restricted wrapper', async () => {
-      const tokenId = labelhash('send2contract')
-      const wrappedTokenId = namehash('send2contract.eth')
-
+  describe.only('onERC721Received', () => {
+    const tokenId = labelhash('send2contract')
+    const wrappedTokenId = namehash('send2contract.eth')
+    it('Wraps a name transferred to it and sets the owner to the from address', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
-
-      const ownerInRegistrar = await BaseRegistrar.ownerOf(tokenId)
 
       await BaseRegistrar['safeTransferFrom(address,address,uint256)'](
         account,
@@ -636,16 +634,129 @@ describe('NFT fuse wrapper', () => {
 
       expect(ownerInWrapper).to.equal(account)
     })
-    // Reverts if called by anything other than the ENS registry address.
-    // Wraps a name transferred to it and sets the owner to the from address.
-    // Accepts fuse values from the data field.
-    // Accepts a zero-length data field for no fuses.
-    // Rejects transfers where the data field is not 0 or 96 bits.
-    // Sets the controller in the ENS registry to the wrapper contract.
-    // Can wrap a name even if the controller address is different to the registrant address.
-    // Only allows fuses to be burned if CANNOT_UNWRAP is burned.
-    // Emits the Wrapped event.
-    // Emits the TransferSingle event from 0x0.
+
+    it('Reverts if called by anything other than the ENS registrar address', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await expect(
+        NFTFuseWrapper.onERC721Received(account, account, tokenId, '0x')
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Wrapper only supports .eth ERC721 token transfers'
+      )
+    })
+
+    it('Accepts fuse values from the data field', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NFTFuseWrapper.address,
+        tokenId,
+        '0x000000000000000000000001'
+      )
+
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(1)
+      expect(await NFTFuseWrapper.canUnwrap(wrappedTokenId)).to.equal(false)
+    })
+
+    it('Accepts a zero-length data field for no fuses', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NFTFuseWrapper.address,
+        tokenId,
+        '0x'
+      )
+    })
+    it('Rejects transfers where the data field is not 0 or 96 bits.', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await expect(
+        BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+          account,
+          NFTFuseWrapper.address,
+          tokenId,
+          '0x000000'
+        )
+      ).to.be.revertedWith('NFTFuseWrapper: Data is not of length 0 or 12')
+    })
+
+    it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+      await EnsRegistry.setOwner(wrappedTokenId, account2)
+
+      await expect(
+        BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+          account,
+          NFTFuseWrapper.address,
+          tokenId,
+          '0x000000000000000000000002'
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped'
+      )
+    })
+
+    it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+      await EnsRegistry.setOwner(wrappedTokenId, account2)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NFTFuseWrapper.address,
+        tokenId,
+        '0x000000000000000000000005'
+      )
+
+      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
+        NFTFuseWrapper.address
+      )
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(5)
+      expect(await NFTFuseWrapper.canUnwrap(wrappedTokenId)).to.equal(false)
+    })
+
+    it('Sets the controller in the ENS registry to the wrapper contract', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NFTFuseWrapper.address,
+        tokenId,
+        '0x'
+      )
+
+      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
+        NFTFuseWrapper.address
+      )
+    })
+    it('Can wrap a name even if the controller address is different to the registrant address', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+      await EnsRegistry.setOwner(wrappedTokenId, account2)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NFTFuseWrapper.address,
+        tokenId,
+        '0x'
+      )
+
+      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
+        NFTFuseWrapper.address
+      )
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+    })
+
+    it('emits Wrapped Event and TransferSingle Event', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+      const tx = await BaseRegistrar[
+        'safeTransferFrom(address,address,uint256,bytes)'
+      ](account, NFTFuseWrapper.address, tokenId, '0x')
+
+      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+      await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
+    })
   })
 
   describe('Fuses', () => {
