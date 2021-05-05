@@ -233,14 +233,6 @@ contract NFTFuseWrapper is ERC1155 {
             parentNode != ETH_NODE,
             "NFTFuseWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
-        bytes32 node = makeNode(parentNode, label);
-        address ownerOnRegistry = ens.owner(node);
-        require(
-            isOwnerOrApproved(node, msg.sender) ||
-                ownerOnRegistry == msg.sender ||
-                ens.isApprovedForAll(ownerOnRegistry, msg.sender),
-            "NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
-        );
         _unwrap(parentNode, label, owner);
     }
 
@@ -266,18 +258,12 @@ contract NFTFuseWrapper is ERC1155 {
         emit Unwrap(parentNode, label, owner);
     }
 
-    function unwrapETH2LD(bytes32 label, address newOwner) public {
-        bytes32 node = makeNode(ETH_NODE, label);
-        address ownerOnRegistrar = registrar.ownerOf(uint256(label));
-        address owner = ownerOf(uint256(node));
-        require(
-            isOwnerOrApproved(node, msg.sender) ||
-                ownerOnRegistrar == msg.sender ||
-                registrar.isApprovedForAll(owner, msg.sender),
-            "NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
-        );
+    function unwrapETH2LD(bytes32 label, address newOwner)
+        public
+        ownerOnly(makeNode(ETH_NODE, label))
+    {
         _unwrap(ETH_NODE, label, newOwner);
-        registrar.transferFrom(address(this), owner, uint256(label));
+        registrar.transferFrom(address(this), newOwner, uint256(label));
     }
 
     function burnFuses(

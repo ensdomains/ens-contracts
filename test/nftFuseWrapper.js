@@ -309,7 +309,7 @@ describe('NFT fuse wrapper', () => {
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
 
-    it('unwrap() - Allows an account authorised by the owner on the NFT Wrapper to unwrap a name', async () => {
+    it('unwrap() - Does not allows an account authorised by the owner on the NFT Wrapper to unwrap a name', async () => {
       const labelHash = labelhash('abc')
 
       // setup .abc with account2 as owner
@@ -572,14 +572,16 @@ describe('NFT fuse wrapper', () => {
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
 
-    it('unwrapETH2LD() - Allows an account authorised by the owner on the ENS registrar to unwrap a name', async () => {
+    it('unwrapETH2LD() - Does not allows an account authorised by the owner on the ENS registrar to unwrap a name', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.setApprovalForAll(account2, true)
       await NFTFuseWrapper.wrapETH2LD(label, 0, account)
-      await NFTFuseWrapper2.unwrapETH2LD(labelHash, account2)
-      expect(await EnsRegistry.owner(nameHash)).to.equal(account2)
-      //expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(account2)
+      await expect(
+        NFTFuseWrapper2.unwrapETH2LD(labelHash, account2)
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: msg.sender is not the owner or approved'
+      )
     })
 
     it('unwrapETH2LD() - Does not allow anyone else to unwrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -590,7 +592,7 @@ describe('NFT fuse wrapper', () => {
       await expect(
         NFTFuseWrapper2.unwrapETH2LD(labelHash, account2)
       ).to.be.revertedWith(
-        'revert NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar'
+        'revert NFTFuseWrapper: msg.sender is not the owner or approved'
       )
     })
   })
