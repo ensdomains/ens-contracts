@@ -618,7 +618,7 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  describe.only('onERC721Received', () => {
+  describe('onERC721Received', () => {
     const tokenId = labelhash('send2contract')
     const wrappedTokenId = namehash('send2contract.eth')
     it('Wraps a name transferred to it and sets the owner to the from address', async () => {
@@ -759,10 +759,58 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  describe('Fuses', () => {
+  describe.only('burnfuses()', () => {
+    const label = 'fuses'
+    const tokenId = labelhash('fuses')
+    const wrappedTokenId = namehash('fuses.eth')
     //burnFuses()
-    it('Will not allow burning fuses unless the parent domain has CANNOT_REPLACE_SUBDOMAIN burned.', () => {})
-    it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', () => {})
+    it.only('Will not allow burning fuses unless the parent domain has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
+      const CAN_DO_EVERYTHING = 0
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+      await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('abc'), account)
+
+      await EnsRegistry.setSubnodeOwner(
+        namehash('abc'),
+        labelhash('sub'),
+        account
+      )
+
+      await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
+      await NFTFuseWrapper.wrap(ROOT_NODE, 'abc', CAN_DO_EVERYTHING, account)
+
+      await NFTFuseWrapper.wrap(namehash('abc'), 'sub', 0, account)
+
+      await expect(
+        NFTFuseWrapper.burnFuses(
+          namehash('abc'),
+          labelhash('sub'),
+          CAN_DO_EVERYTHING | (await NFTFuseWrapper.CANNOT_TRANSFER())
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse'
+      )
+    })
+    it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
+      const CAN_DO_EVERYTHING = 0
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
+
+      await expect(
+        NFTFuseWrapper.burnFuses(
+          namehash('eth'),
+          tokenId,
+          CAN_DO_EVERYTHING | (await NFTFuseWrapper.CANNOT_TRANSFER())
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Domain has not burned unwrap fuse'
+      )
+    })
     it('Can be called by the owner.', () => {})
 
     //  (Do we want more granular permissions - ability to create subdomains etc, but not burn fuses?).

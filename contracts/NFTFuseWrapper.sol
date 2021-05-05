@@ -186,6 +186,8 @@ contract NFTFuseWrapper is ERC1155 {
         _wrap(parentNode, labelhash, _fuses, wrappedOwner);
         address owner = ens.owner(node);
 
+        console.log(msg.sender, owner);
+
         require(
             owner == msg.sender ||
                 ens.isApprovedForAll(owner, msg.sender) ||
