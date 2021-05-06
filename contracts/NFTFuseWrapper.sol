@@ -173,6 +173,8 @@ contract NFTFuseWrapper is ERC1155 {
                 "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
             );
         }
+
+        emit WrapETH2LD(label, _fuses, wrappedOwner);
     }
 
     function wrap(
@@ -412,7 +414,7 @@ contract NFTFuseWrapper is ERC1155 {
         bytes32 node = makeNode(ETH_NODE, bytes32(tokenId));
         _wrapETH2LD(bytes32(tokenId), node, fuses, from);
         //TODO replace with WrapETH2LD event ? since can't access plain text string of label
-        emit Wrap(ETH_NODE, "blah", fuses, from);
+        emit WrapETH2LD(bytes32(tokenId), fuses, from);
         return _ERC721_RECEIVED;
     }
 }

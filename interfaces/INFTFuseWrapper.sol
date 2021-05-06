@@ -11,6 +11,8 @@ abstract contract INFTFuseWrapper {
         address owner
     );
 
+    event WrapETH2LD(bytes32 indexed labelhash, uint96 fuses, address owner);
+
     event Unwrap(
         bytes32 indexed parentNode,
         bytes32 indexed labelhash,

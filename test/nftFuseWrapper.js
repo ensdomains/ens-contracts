@@ -270,7 +270,7 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  xdescribe('unwrap()', () => {
+  describe('unwrap()', () => {
     it('unwrap() - Allows owner to unwrap name', async () => {
       const fuses = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
 
@@ -460,7 +460,7 @@ describe('NFT fuse wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       const tx = await NFTFuseWrapper.wrapETH2LD(label, 0, account)
-      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+      await expect(tx).to.emit(NFTFuseWrapper, 'WrapETH2LD')
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
 
@@ -754,7 +754,7 @@ describe('NFT fuse wrapper', () => {
         'safeTransferFrom(address,address,uint256,bytes)'
       ](account, NFTFuseWrapper.address, tokenId, '0x')
 
-      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+      await expect(tx).to.emit(NFTFuseWrapper, 'WrapETH2LD')
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
   })
@@ -763,8 +763,7 @@ describe('NFT fuse wrapper', () => {
     const label = 'fuses'
     const tokenId = labelhash('fuses')
     const wrappedTokenId = namehash('fuses.eth')
-    //burnFuses()
-    it.only('Will not allow burning fuses unless the parent domain has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
+    it('Will not allow burning fuses unless the parent domain has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
       const CAN_DO_EVERYTHING = 0
       const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
 
@@ -811,15 +810,116 @@ describe('NFT fuse wrapper', () => {
         'revert NFTFuseWrapper: Domain has not burned unwrap fuse'
       )
     })
-    it('Can be called by the owner.', () => {})
+
+    it('Can be called by the owner.', async () => {
+      const CAN_DO_EVERYTHING = 0
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
+
+      await NFTFuseWrapper.burnFuses(
+        namehash('eth'),
+        tokenId,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP
+      )
+
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(1)
+    })
 
     //  (Do we want more granular permissions - ability to create subdomains etc, but not burn fuses?).
-    it('Can be called by an account authorised by the owner', () => {})
-    it('Cannot be called by an unauthorised account', () => {})
+    it('Can be called by an account authorised by the owner', async () => {
+      const CAN_DO_EVERYTHING = NFTFuseWrapper.CAN_DO_EVERYTHING()
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
 
-    it('Allows burning unknown fuses', () => {})
+      await BaseRegistrar.register(tokenId, account, 84600)
 
-    it('Logically ORs passed in fuses with already-burned fuses.', () => {})
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
+
+      await NFTFuseWrapper.setApprovalForAll(account2, true)
+
+      await NFTFuseWrapper2.burnFuses(
+        namehash('eth'),
+        tokenId,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP
+      )
+
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(1)
+    })
+    it('Cannot be called by an unauthorised account', async () => {
+      const CAN_DO_EVERYTHING = NFTFuseWrapper.CAN_DO_EVERYTHING()
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
+
+      await expect(
+        NFTFuseWrapper2.burnFuses(
+          namehash('eth'),
+          tokenId,
+          CAN_DO_EVERYTHING | CANNOT_UNWRAP
+        )
+      ).to.be.reverted
+    })
+
+    it('Allows burning unknown fuses', async () => {
+      const CAN_DO_EVERYTHING = 0
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(
+        label,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP,
+        account
+      )
+
+      await NFTFuseWrapper.burnFuses(
+        namehash('eth'),
+        tokenId,
+        CAN_DO_EVERYTHING | 64
+      )
+
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(
+        CANNOT_UNWRAP | 64
+      )
+    })
+
+    it('Logically ORs passed in fuses with already-burned fuses.', async () => {
+      const CAN_DO_EVERYTHING = 0
+      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+      const CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
+
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+      await NFTFuseWrapper.wrapETH2LD(
+        label,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN,
+        account
+      )
+
+      await NFTFuseWrapper.burnFuses(
+        namehash('eth'),
+        tokenId,
+        CAN_DO_EVERYTHING | 64
+      )
+
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(
+        CANNOT_UNWRAP | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN | 64
+      )
+    })
 
     it('can set fuses and then burn ability to burn fuses', async () => {
       const label = 'burnabilitytoburn'
