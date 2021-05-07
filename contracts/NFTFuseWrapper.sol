@@ -149,7 +149,8 @@ contract NFTFuseWrapper is ERC1155 {
             "NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
         // transfer the token from the user to this contract
-        registrar.transferFrom(owner, address(this), tokenId);
+        address currentOwner = registrar.ownerOf(tokenId);
+        registrar.transferFrom(currentOwner, address(this), tokenId);
 
         // transfer the ens record back to the new owner (this contract)
         _wrapETH2LD(labelhash, node, _fuses, wrappedOwner);
@@ -349,7 +350,8 @@ contract NFTFuseWrapper is ERC1155 {
     ) public override returns (bytes32) {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeOwner(parentNode, labelhash, address(this));
-        _andWrap(parentNode, labelhash, label, newOwner, _fuses);
+        _wrap(parentNode, labelhash, _fuses, newOwner);
+        emit Wrap(parentNode, label, _fuses, newOwner);
     }
 
     function setSubnodeRecordAndWrap(
@@ -362,33 +364,8 @@ contract NFTFuseWrapper is ERC1155 {
     ) public override returns (bytes32) {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _andWrap(parentNode, labelhash, label, newOwner, _fuses);
-    }
-
-    function _andWrap(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        string calldata label,
-        address newOwner,
-        uint96 _fuses
-    ) internal {
-        bytes32 node = makeNode(parentNode, labelhash);
-        if (parentNode == ETH_NODE) {
-            address owner = registrar.ownerOf(uint256(labelhash));
-            require(
-                owner == msg.sender ||
-                    registrar.isApprovedForAll(owner, msg.sender) ||
-                    isApprovedForAll(owner, msg.sender),
-                "NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
-            );
-            registrar.transferFrom(owner, address(this), uint256(labelhash));
-            _wrapETH2LD(labelhash, node, _fuses, newOwner);
-            // emit event is inside _wrapETH2LD
-        } else {
-            // No need for permissions since the ENS Registry checks
-            _wrap(parentNode, labelhash, _fuses, newOwner);
-            emit Wrap(parentNode, label, _fuses, newOwner);
-        }
+        _wrap(parentNode, labelhash, _fuses, newOwner);
+        emit Wrap(parentNode, label, _fuses, newOwner);
     }
 
     function setResolver(bytes32 node, address resolver)
@@ -417,11 +394,15 @@ contract NFTFuseWrapper is ERC1155 {
         uint256 tokenId,
         bytes calldata data
     ) public returns (bytes4) {
+        //check if it's the eth registrar ERC721
         uint96 fuses = 0;
         require(
             msg.sender == address(registrar),
             "NFTFuseWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
+
+        console.logBytes(data);
+        console.log(data.length);
 
         require(
             data.length == 0 || data.length == 12,
@@ -434,6 +415,7 @@ contract NFTFuseWrapper is ERC1155 {
 
         bytes32 node = makeNode(ETH_NODE, bytes32(tokenId));
         _wrapETH2LD(bytes32(tokenId), node, fuses, from);
+        //TODO replace with WrapETH2LD event ? since can't access plain text string of label
         emit WrapETH2LD(bytes32(tokenId), fuses, from);
         return _ERC721_RECEIVED;
     }
