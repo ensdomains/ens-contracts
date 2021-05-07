@@ -47,7 +47,7 @@ abstract contract INFTFuseWrapper {
 
     function setSubnodeRecordAndWrap(
         bytes32 node,
-        bytes32 label,
+        string calldata label,
         address owner,
         address resolver,
         uint64 ttl,
@@ -62,7 +62,7 @@ abstract contract INFTFuseWrapper {
 
     function setSubnodeOwnerAndWrap(
         bytes32 node,
-        bytes32 label,
+        string calldata label,
         address newOwner,
         uint96 _fuses
     ) public virtual returns (bytes32);
