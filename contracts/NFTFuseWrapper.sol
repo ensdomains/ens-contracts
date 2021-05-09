@@ -302,7 +302,7 @@ contract NFTFuseWrapper is ERC1155 {
         address owner,
         address resolver,
         uint64 ttl
-    ) external {
+    ) public ownerOnly(node) {
         require(
             canTransfer(node),
             "NFTFuseWrapper: Fuse is burned for transferring"
@@ -317,7 +317,7 @@ contract NFTFuseWrapper is ERC1155 {
     function setSubnodeRecord(
         bytes32 node,
         bytes32 label,
-        address addr,
+        address owner,
         address resolver,
         uint64 ttl
     ) public ownerOnly(node) {
@@ -326,7 +326,7 @@ contract NFTFuseWrapper is ERC1155 {
             "NFTFuseWrapper: Fuse has been burned for creating or replacing a subdomain"
         );
 
-        return ens.setSubnodeRecord(node, label, addr, resolver, ttl);
+        return ens.setSubnodeRecord(node, label, owner, resolver, ttl);
     }
 
     function setSubnodeOwner(
