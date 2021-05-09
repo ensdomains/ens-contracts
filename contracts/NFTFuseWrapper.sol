@@ -348,6 +348,10 @@ contract NFTFuseWrapper is ERC1155 {
         address newOwner,
         uint96 _fuses
     ) public override returns (bytes32) {
+        require(
+            newOwner != address(this),
+            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
+        );
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(parentNode, labelhash, _fuses, newOwner);
@@ -362,6 +366,10 @@ contract NFTFuseWrapper is ERC1155 {
         uint64 ttl,
         uint96 _fuses
     ) public override returns (bytes32) {
+        require(
+            newOwner != address(this),
+            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
+        );
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(parentNode, labelhash, _fuses, newOwner);
@@ -401,9 +409,6 @@ contract NFTFuseWrapper is ERC1155 {
             "NFTFuseWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
-        console.logBytes(data);
-        console.log(data.length);
-
         require(
             data.length == 0 || data.length == 12,
             "NFTFuseWrapper: Data is not of length 0 or 12"
@@ -415,7 +420,6 @@ contract NFTFuseWrapper is ERC1155 {
 
         bytes32 node = makeNode(ETH_NODE, bytes32(tokenId));
         _wrapETH2LD(bytes32(tokenId), node, fuses, from);
-        //TODO replace with WrapETH2LD event ? since can't access plain text string of label
         emit WrapETH2LD(bytes32(tokenId), fuses, from);
         return _ERC721_RECEIVED;
     }

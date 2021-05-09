@@ -61,8 +61,6 @@ describe('NFT fuse wrapper', () => {
     account = await signers[0].getAddress()
     account2 = await signers[1].getAddress()
 
-    console.log('account2', account2)
-
     const registryJSON = loadENSContract('ens', 'ENSRegistry')
 
     const registryContractFactory = new ethers.ContractFactory(
@@ -121,16 +119,10 @@ describe('NFT fuse wrapper', () => {
     )
 
     const ethOwner = await EnsRegistry.owner(namehash('eth'))
+    console.log('ethOwner', ethOwner)
     const ensEthOwner = await EnsRegistry.owner(namehash('ens.eth'))
 
-    console.log('ethOwner', ethOwner)
     console.log('ensEthOwner', ensEthOwner)
-
-    console.log(
-      'ens.setApprovalForAll NFTFuseWrapper',
-      account,
-      addresses['NFTFuseWrapper']
-    )
 
     //make sure base registrar is owner of eth TLD
 
@@ -1109,8 +1101,8 @@ describe('NFT fuse wrapper', () => {
     })
   })
 
-  describe.only('setSubnodeOwnerAndWrap()', async () => {
-    const label = 'subdomain'
+  describe('setSubnodeOwnerAndWrap()', async () => {
+    const label = 'ownerandwrap'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
     let CAN_DO_EVERYTHING,
@@ -1130,8 +1122,9 @@ describe('NFT fuse wrapper', () => {
       )
     })
 
-    it('Can be called by the owner of a name', async () => {
+    it('Can be called by the owner of a name and sets this contract as owner on the ENS registry.', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
       await NFTFuseWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
         'setsubnodeownerandwrap',
@@ -1151,12 +1144,12 @@ describe('NFT fuse wrapper', () => {
     })
     it('Can be called by an account authorised by the owner.', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      NFTFuseWrapper.setApprovalForAll(account2, true)
+      await NFTFuseWrapper.setApprovalForAll(account2, true)
       await NFTFuseWrapper2.setSubnodeOwnerAndWrap(
         wrappedTokenId,
         'setsubnodeownerandwrap',
         account,
-        255
+        0
       )
 
       expect(
@@ -1175,7 +1168,7 @@ describe('NFT fuse wrapper', () => {
         wrappedTokenId,
         'setsubnodeownerandwrap',
         account2,
-        255
+        0
       )
 
       expect(
@@ -1188,83 +1181,330 @@ describe('NFT fuse wrapper', () => {
         )
       ).to.equal(account2)
     })
-    it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
+    it('Will not allow wrapping with a target address of 0x0.', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await expect(
         NFTFuseWrapper.setSubnodeOwnerAndWrap(
           wrappedTokenId,
           'setsubnodeownerandwrap',
           EMPTY_ADDRESS,
-          255
+          0
         )
       ).to.be.revertedWith('revert ERC1155: mint to the zero address')
     })
-    it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {})
-    it('Only allows fuses to be burned if the parent name has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {})
-    it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {})
-    it('Emits the Wrapped event.', async () => {})
-    it('Emits the TransferSingle event from 0x0.', async () => {})
-    it('Sets the appropriate values on the ENS registry.', async () => {})
-  })
-  describe('setSubnodeRecordAndWrap()', async () => {
-    it('Can be called by the owner of a name', async () => {})
-    it('Can be called by an account authorised by the owner.', async () => {})
-    it('Transfers the wrapped token to the target address.', async () => {})
-    it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {})
-    it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {})
-    it('Only allows fuses to be burned if the parent name has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {})
-    it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {})
-    it('Emits the Wrapped event.', async () => {})
-    it('Emits the TransferSingle event from 0x0.', async () => {})
-    it('Sets the appropriate values on the ENS registry.', async () => {})
-    it('Delete later', async () => {
-      const label = 'subdomains2'
+    it('Will not allow wrapping with a target address of the wrapper contract address', async () => {
+      await expect(
+        NFTFuseWrapper.setSubnodeOwnerAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          NFTFuseWrapper.address,
+          0
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract'
+      )
+    })
+    it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      await EnsRegistry.setApprovalForAll(account2, true)
+      await expect(
+        NFTFuseWrapper2.setSubnodeOwnerAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          0
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: msg.sender is not the owner or approved'
+      )
+    })
+    it('Does not allow fuses to be burned if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned', async () => {
+      const label = 'subdomain2'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      const CAN_DO_EVERYTHING = 0
-      const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
-      const CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
-
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
+      await expect(
+        NFTFuseWrapper.setSubnodeOwnerAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          CANNOT_UNWRAP
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain'
+      )
+    })
+    it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned.', async () => {
+      const label = 'subdomain2'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(
         label,
         account,
         CAN_DO_EVERYTHING | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       )
+      await expect(
+        NFTFuseWrapper.setSubnodeOwnerAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          CANNOT_REPLACE_SUBDOMAIN
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped'
+      )
+    })
 
-      // can create before burn
-
-      //revert not approved and isn't sender because subdomain isnt owned by contract?
-      await NFTFuseWrapper.setSubnodeRecordAndWrap(
+    it('Allows fuses to be burned if CANNOT_UNWRAP is burned and parent CANNOT_REPLACE_SUBDOMAINS is burned', async () => {
+      const label = 'subdomain2'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(
+        label,
+        account,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      )
+      await NFTFuseWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnoderecordandwrap',
+        'setsubnodeownerandwrap',
         account,
-        account,
-        0,
-        255
+        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       )
 
       expect(
-        await EnsRegistry.owner(
-          namehash('setsubnoderecordandwrap.subdomains2.eth')
+        await NFTFuseWrapper.canReplaceSubdomain(
+          namehash(`setsubnodeownerandwrap.${label}.eth`)
         )
+      ).to.equal(false)
+    })
+    it('Emits the Wrapped and TransferSingle events.', async () => {
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      const tx = await NFTFuseWrapper.setSubnodeOwnerAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account2,
+        0
+      )
+      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+      await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
+    })
+  })
+  describe('setSubnodeRecordAndWrap()', async () => {
+    const label = 'subdomain2'
+    const tokenId = labelhash(label)
+    const wrappedTokenId = namehash(label + '.eth')
+    let resolver
+    let CAN_DO_EVERYTHING,
+      CANNOT_UNWRAP,
+      CANNOT_REPLACE_SUBDOMAIN,
+      MINIMUM_PARENT_FUSES
+
+    before(async () => {
+      resolver = account // dummy address for resolver
+      CAN_DO_EVERYTHING = await NFTFuseWrapper.CAN_DO_EVERYTHING()
+      CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
+      CANNOT_REPLACE_SUBDOMAIN = await NFTFuseWrapper.CANNOT_REPLACE_SUBDOMAIN()
+      MINIMUM_PARENT_FUSES = await NFTFuseWrapper.MINIMUM_PARENT_FUSES()
+      await registerSetupAndWrapName(
+        label,
+        account,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      )
+    })
+
+    it('Can be called by the owner of a name', async () => {
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      await NFTFuseWrapper.setSubnodeRecordAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account,
+        resolver,
+        0,
+        0
+      )
+
+      expect(
+        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
       ).to.equal(NFTFuseWrapper.address)
 
       expect(
         await NFTFuseWrapper.ownerOf(
-          namehash('setsubnoderecordandwrap.subdomains2.eth')
+          namehash(`setsubnodeownerandwrap.${label}.eth`)
         )
       ).to.equal(account)
     })
+    it('Can be called by an account authorised by the owner.', async () => {
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      await NFTFuseWrapper.setApprovalForAll(account2, true)
+      await NFTFuseWrapper2.setSubnodeRecordAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account,
+        resolver,
+        0,
+        0
+      )
+
+      expect(
+        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+      ).to.equal(NFTFuseWrapper.address)
+
+      expect(
+        await NFTFuseWrapper.ownerOf(
+          namehash(`setsubnodeownerandwrap.${label}.eth`)
+        )
+      ).to.equal(account)
+    })
+    it('Transfers the wrapped token to the target address.', async () => {
+      await NFTFuseWrapper.setSubnodeRecordAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account2,
+        resolver,
+        0,
+        0
+      )
+
+      expect(
+        await NFTFuseWrapper.ownerOf(
+          namehash(`setsubnodeownerandwrap.${label}.eth`)
+        )
+      ).to.equal(account2)
+    })
+    it('Will not allow wrapping with a target address of 0x0', async () => {
+      await expect(
+        NFTFuseWrapper.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          EMPTY_ADDRESS,
+          resolver,
+          0,
+          0
+        )
+      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+    })
+
+    it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
+      await expect(
+        NFTFuseWrapper.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          NFTFuseWrapper.address,
+          resolver,
+          0,
+          0
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract'
+      )
+    })
+    it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      await EnsRegistry.setApprovalForAll(account2, true)
+      await expect(
+        NFTFuseWrapper2.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          resolver,
+          0,
+          0
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: msg.sender is not the owner or approved'
+      )
+    })
+    it('Does not allow fuses to be burned if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
+      const label = 'subdomain3'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
+      await expect(
+        NFTFuseWrapper.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          resolver,
+          0,
+          CANNOT_UNWRAP
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain'
+      )
+    })
+    it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {
+      const label = 'subdomain3'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(
+        label,
+        account,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      )
+      await expect(
+        NFTFuseWrapper.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          'setsubnodeownerandwrap',
+          account,
+          resolver,
+          0,
+          CANNOT_REPLACE_SUBDOMAIN
+        )
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped'
+      )
+    })
+    it('Emits the Wrapped event and TransferSingle event from 0x0', async () => {
+      const tx = await NFTFuseWrapper.setSubnodeRecordAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account2,
+        resolver,
+        0,
+        0
+      )
+      await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
+      await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
+    })
+    it('Sets the appropriate values on the ENS registry.', async () => {
+      await NFTFuseWrapper.setSubnodeRecordAndWrap(
+        wrappedTokenId,
+        'setsubnodeownerandwrap',
+        account2,
+        resolver,
+        100,
+        0
+      )
+
+      const node = namehash(`setsubnodeownerandwrap.${label}.eth`)
+
+      expect(await EnsRegistry.owner(node)).to.equal(NFTFuseWrapper.address)
+      expect(await EnsRegistry.resolver(node)).to.equal(resolver)
+      expect(await EnsRegistry.ttl(node)).to.equal(100)
+    })
   })
 
-  describe('setRecord/setSubnodeRecord/setSubnodeOwner/setResolver/setTTL', () => {
-    //     setRecord/setSubnodeRecord/setSubnodeOwner/setResolver/setTTL
-    // Can be called by the owner or authorised caller.
-    // Performs the appropriate function on the ENS registry.
-    // Can be called by an account authorised by the owner.
-    // Cannot be called by anyone else.
-    // Cannot be called if the appropriate fuse is burned.
-  })
+  // describe('setRecord', () => {
+  //   const label = 'setrecord'
+  //   const tokenId = labelhash(label)
+  //   const wrappedTokenId = namehash(label + '.eth')
+  //   before(async () => {
+  //     await registerSetupAndWrapName(label, account, 0)
+  //   })
+  //   it('Can be called by the owner or authorised caller', async () => {
+  //     await NFTFuseWrapper.setRecord(wrappedTokenId, account2, account, 50)
+  //   })
+
+  //   it('Performs the appropriate function on the ENS registry.', async () => {})
+
+  //   it('Can be called by an account authorised by the owner.', async () => {})
+
+  //   it('Cannot be called by anyone else.', async () => {})
+
+  //   it('Cannot be called if the appropriate fuse is burned.', async () => {})
+  // })
+
+  //     setRecord/setSubnodeRecord/setSubnodeOwner/setResolver/setTTL
 
   describe('Transfer', () => {
     //     Transfer methods
