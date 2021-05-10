@@ -125,7 +125,7 @@ contract NFTFuseWrapper is ERC1155 {
         emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
     }
 
-    function _burn(uint256 tokenId) internal {
+    function _burn(uint256 tokenId) private {
         address owner = ownerOf(tokenId);
         // Clear fuses and set owner to 0
         setData(tokenId, address(0x0), 0);
@@ -242,7 +242,7 @@ contract NFTFuseWrapper is ERC1155 {
         bytes32 parentNode,
         bytes32 label,
         address owner
-    ) internal {
+    ) private {
         bytes32 node = makeNode(parentNode, label);
         require(
             owner != address(0x0),
