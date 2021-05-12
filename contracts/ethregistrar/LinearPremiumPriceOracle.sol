@@ -22,13 +22,13 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
 
     function _premium(string memory name, uint expires, uint /*duration*/) internal view returns(uint) {
         expires = expires.add(GRACE_PERIOD);
-        if(expires > now) {
+        if(expires > block.timestamp) {
             // No premium for renewals
             return 0;
         }
 
         // Calculate the discount off the maximum premium
-        uint discount = premiumDecreaseRate.mul(now.sub(expires));
+        uint discount = premiumDecreaseRate.mul(block.timestamp.sub(expires));
 
         // If we've run out the premium period, return 0.
         if(discount > initialPremium) {

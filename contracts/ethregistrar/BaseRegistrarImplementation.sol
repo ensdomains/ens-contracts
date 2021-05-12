@@ -1,7 +1,8 @@
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
 import "./BaseRegistrar.sol";
 
 contract BaseRegistrarImplementation is BaseRegistrar, ERC721 {
@@ -44,7 +45,7 @@ contract BaseRegistrarImplementation is BaseRegistrar, ERC721 {
      * @return address currently marked as the owner of the given token ID
      */
     function ownerOf(uint256 tokenId) public view returns (address) {
-        require(expiries[tokenId] > now);
+        require(expiries[tokenId] > block.timestamp);
         return super.ownerOf(tokenId);
     }
 
@@ -73,7 +74,7 @@ contract BaseRegistrarImplementation is BaseRegistrar, ERC721 {
     // Returns true iff the specified name is available for registration.
     function available(uint256 id) public view returns(bool) {
         // Not available if it's registered here or in its grace period.
-        return expiries[id] + GRACE_PERIOD < now;
+        return expiries[id] + GRACE_PERIOD < block.timestamp;
     }
 
     /**
@@ -98,9 +99,9 @@ contract BaseRegistrarImplementation is BaseRegistrar, ERC721 {
 
     function _register(uint256 id, address owner, uint duration, bool updateRegistry) internal live onlyController returns(uint) {
         require(available(id));
-        require(now + duration + GRACE_PERIOD > now + GRACE_PERIOD); // Prevent future overflow
+        require(block.timestamp + duration + GRACE_PERIOD > block.timestamp + GRACE_PERIOD); // Prevent future overflow
 
-        expiries[id] = now + duration;
+        expiries[id] = block.timestamp + duration;
         if(_exists(id)) {
             // Name was previously owned, and expired
             _burn(id);
@@ -110,13 +111,13 @@ contract BaseRegistrarImplementation is BaseRegistrar, ERC721 {
             ens.setSubnodeOwner(baseNode, bytes32(id), owner);
         }
 
-        emit NameRegistered(id, owner, now + duration);
+        emit NameRegistered(id, owner, block.timestamp + duration);
 
-        return now + duration;
+        return block.timestamp + duration;
     }
 
     function renew(uint256 id, uint duration) external live onlyController returns(uint) {
-        require(expiries[id] + GRACE_PERIOD >= now); // Name must be registered here or in grace period
+        require(expiries[id] + GRACE_PERIOD >= block.timestamp); // Name must be registered here or in grace period
         require(expiries[id] + duration + GRACE_PERIOD > duration + GRACE_PERIOD); // Prevent future overflow
 
         expiries[id] += duration;

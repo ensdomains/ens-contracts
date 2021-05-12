@@ -3,7 +3,7 @@ pragma solidity >=0.8.4;
 import "./PriceOracle.sol";
 import "./BaseRegistrar.sol";
 import "./StringUtils.sol";
-import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../resolvers/Resolver.sol";
 
 /**
@@ -77,8 +77,8 @@ contract ETHRegistrarController is Ownable {
     }
 
     function commit(bytes32 commitment) public {
-        require(commitments[commitment] + maxCommitmentAge < now);
-        commitments[commitment] = now;
+        require(commitments[commitment] + maxCommitmentAge < block.timestamp);
+        commitments[commitment] = block.timestamp;
     }
 
     function register(string calldata name, address owner, uint duration, bytes32 secret) external payable {
@@ -161,10 +161,10 @@ contract ETHRegistrarController is Ownable {
 
     function _consumeCommitment(string memory name, uint duration, bytes32 commitment) internal returns (uint256) {
         // Require a valid commitment
-        require(commitments[commitment] + minCommitmentAge <= now);
+        require(commitments[commitment] + minCommitmentAge <= block.timestamp);
 
         // If the commitment is too old, or the name is registered, stop
-        require(commitments[commitment] + maxCommitmentAge > now);
+        require(commitments[commitment] + maxCommitmentAge > block.timestamp);
         require(available(name));
 
         delete(commitments[commitment]);
