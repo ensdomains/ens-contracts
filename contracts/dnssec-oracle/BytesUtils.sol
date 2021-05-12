@@ -64,7 +64,7 @@ library BytesUtils {
                 // Mask out irrelevant bytes and check again
                 uint mask;
                 if (shortest > 32) {
-                    mask = uint256(- 1); // aka 0xffffff....
+                    mask = type(uint256).max;
                 } else {
                     mask = ~(2 ** (8 * (32 - shortest + idx)) - 1);
                 }

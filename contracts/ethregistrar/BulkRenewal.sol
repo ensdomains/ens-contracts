@@ -36,10 +36,10 @@ contract BulkRenewal {
         ETHRegistrarController controller = getController();
         for(uint i = 0; i < names.length; i++) {
             uint cost = controller.rentPrice(names[i], duration);
-            controller.renew.value(cost)(names[i], duration);
+            controller.renew{value:cost}(names[i], duration);
         }
         // Send any excess funds back
-        msg.sender.transfer(address(this).balance);
+        payable(msg.sender).transfer(address(this).balance);
     }
 
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {

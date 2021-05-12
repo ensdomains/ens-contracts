@@ -1,7 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "./PriceOracle.sol";
-import "./BaseRegistrar.sol";
+import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../resolvers/Resolver.sol";
@@ -29,7 +29,7 @@ contract ETHRegistrarController is Ownable {
         keccak256("makeCommitmentWithConfig(string,address,bytes32,address,address)")
     );
 
-    BaseRegistrar base;
+    BaseRegistrarImplementation base;
     PriceOracle prices;
     uint public minCommitmentAge;
     uint public maxCommitmentAge;
@@ -40,7 +40,7 @@ contract ETHRegistrarController is Ownable {
     event NameRenewed(string name, bytes32 indexed label, uint cost, uint expires);
     event NewPriceOracle(address indexed oracle);
 
-    constructor(BaseRegistrar _base, PriceOracle _prices, uint _minCommitmentAge, uint _maxCommitmentAge) public {
+    constructor(BaseRegistrarImplementation _base, PriceOracle _prices, uint _minCommitmentAge, uint _maxCommitmentAge) public {
         require(_maxCommitmentAge > _minCommitmentAge);
 
         base = _base;
@@ -121,7 +121,7 @@ contract ETHRegistrarController is Ownable {
 
         // Refund any extra payment
         if(msg.value > cost) {
-            msg.sender.transfer(msg.value - cost);
+            payable(msg.sender).transfer(msg.value - cost);
         }
     }
 
@@ -133,7 +133,7 @@ contract ETHRegistrarController is Ownable {
         uint expires = base.renew(uint256(label), duration);
 
         if(msg.value > cost) {
-            msg.sender.transfer(msg.value - cost);
+            payable(msg.sender).transfer(msg.value - cost);
         }
 
         emit NameRenewed(name, label, cost, expires);
@@ -150,7 +150,7 @@ contract ETHRegistrarController is Ownable {
     }
 
     function withdraw() public onlyOwner {
-        msg.sender.transfer(address(this).balance);
+        payable(msg.sender).transfer(address(this).balance);        
     }
 
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {

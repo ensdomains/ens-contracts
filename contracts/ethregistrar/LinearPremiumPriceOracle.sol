@@ -20,7 +20,7 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
         premiumDecreaseRate = _premiumDecreaseRate;
     }
 
-    function _premium(string memory name, uint expires, uint /*duration*/) internal view returns(uint) {
+    function _premium(string memory name, uint expires, uint /*duration*/) override internal view returns(uint) {
         expires = expires.add(GRACE_PERIOD);
         if(expires > block.timestamp) {
             // No premium for renewals
@@ -56,7 +56,7 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
         return expires.add(duration);
     }
 
-    function supportsInterface(bytes4 interfaceID) public view returns (bool) {
+    function supportsInterface(bytes4 interfaceID) public view virtual override returns (bool) {
         return (interfaceID == TIME_UNTIL_PREMIUM_ID) || super.supportsInterface(interfaceID);
     }
 }

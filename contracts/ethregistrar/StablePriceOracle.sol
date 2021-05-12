@@ -33,7 +33,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
         setPrices(_rentPrices);
     }
 
-    function price(string calldata name, uint expires, uint duration) external view returns(uint) {
+    function price(string calldata name, uint expires, uint duration) external view override returns(uint) {
         uint len = name.strlen();
         if(len > rentPrices.length) {
             len = rentPrices.length;
@@ -78,7 +78,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
     /**
      * @dev Returns the pricing premium in internal base units.
      */
-    function _premium(string memory name, uint expires, uint duration) internal view returns(uint) {
+    function _premium(string memory name, uint expires, uint duration) virtual internal view returns(uint) {
         return 0;
     }
 
@@ -92,7 +92,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
         return amount.mul(ethPrice).div(1e8);
     }
 
-    function supportsInterface(bytes4 interfaceID) public view returns (bool) {
+    function supportsInterface(bytes4 interfaceID) public view virtual returns (bool) {
         return interfaceID == INTERFACE_META_ID || interfaceID == ORACLE_ID;
     }
 }

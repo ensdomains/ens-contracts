@@ -29,7 +29,7 @@ abstract contract AddrResolver is ResolverBase {
     function addr(bytes32 node) public view returns (address payable) {
         bytes memory a = addr(node, COIN_TYPE_ETH);
         if(a.length == 0) {
-            return address(0);
+            return payable(0);
         }
         return bytesToAddress(a);
     }
