@@ -1,6 +1,7 @@
-const DummyResolver = artifacts.require('./mocks/DummyResolver.sol');
-const ReverseRegistrar = artifacts.require('ReverseRegistrar.sol');
-const ENS = artifacts.require('ENSRegistry.sol');
+
+const DummyResolver = artifacts.require('./registry/ReverseRegistrar.sol');
+const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol');
+const ENS = artifacts.require('./registry/ENSRegistry.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;

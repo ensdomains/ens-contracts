@@ -9,7 +9,7 @@ const BulkRenewal = artifacts.require('./BulkRenewal');
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 const toBN = require('web3-utils').toBN;	
-const { exceptions } = require("@ensdomains/test-utils");
+const { exceptions } = require("../../test-utils");
 
 const ETH_LABEL = sha3('eth');
 const ETH_NAMEHASH = namehash.hash('eth');

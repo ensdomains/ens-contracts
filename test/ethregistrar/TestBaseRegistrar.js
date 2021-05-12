@@ -1,10 +1,11 @@
-const ENS = artifacts.require('@ensdomains/ens/ENSRegistry');
-const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation');
+const ENS = artifacts.require('./registry/ENSRegistry');
+const BaseRegistrar = artifacts.require('./registrar/BaseRegistrarImplementation');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 const toBN = require('web3-utils').toBN;
-const { evm, exceptions } = require("@ensdomains/test-utils");
+
+const { evm, exceptions } = require("../../test-utils");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_HASH = "0x0000000000000000000000000000000000000000000000000000000000000000";
