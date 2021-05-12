@@ -6,5 +6,3 @@ pragma solidity >=0.4.24;
 import "@ensdomains/ens/contracts/ENSRegistry.sol";
 import "@ensdomains/ens/contracts/ENSRegistryWithFallback.sol";
 import "@ensdomains/ens/contracts/HashRegistrar.sol";
-import "@ensdomains/subdomain-registrar/contracts/EthRegistrarSubdomainRegistrar.sol";
-import "@ensdomains/subdomain-registrar/contracts/ENSMigrationSubdomainRegistrar.sol";
