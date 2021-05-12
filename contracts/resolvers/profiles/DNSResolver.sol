@@ -1,6 +1,6 @@
-pragma solidity ^0.7.4;
+pragma solidity >=0.7.4;
 import "../ResolverBase.sol";
-import "@ensdomains/dnssec-oracle/contracts/RRUtils.sol";
+import "../../dnssec-oracle/RRUtils.sol";
 
 abstract contract DNSResolver is ResolverBase {
     using RRUtils for *;

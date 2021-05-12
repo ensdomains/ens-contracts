@@ -1,8 +1,7 @@
-pragma solidity ^0.5.0;
+pragma solidity >=0.8.4;
 
-import "@ensdomains/ens/contracts/ENS.sol";
-import "@ensdomains/ens/contracts/Registrar.sol";
-import "@ensdomains/ens/contracts/HashRegistrar.sol";
+import "../registry/ENS.sol";
+import "../registry/FIFSRegistrar.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 import "./BaseRegistrar.sol";
 

@@ -1,8 +1,8 @@
-pragma solidity >=0.4.25;
+pragma solidity >=0.8.4;
 
 // USED TO HAVE COMPILED CONTRACTS THAT AREN'T FROM THIS PACKAGE OR USED
 
-import "@ensdomains/ens/contracts/ENSRegistry.sol";
+import "../registry/ENSRegistry.sol";
 
 contract dummy {
     constructor() {}

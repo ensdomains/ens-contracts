@@ -1,9 +1,9 @@
-pragma solidity >=0.5.0;
+pragma solidity >=0.8.4;
 
 import "./PriceOracle.sol";
 import "./SafeMath.sol";
 import "./StringUtils.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 interface AggregatorInterface {
   function latestAnswer() external view returns (int256);

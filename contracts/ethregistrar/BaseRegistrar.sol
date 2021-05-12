@@ -1,8 +1,8 @@
-pragma solidity >=0.4.24;
+pragma solidity >=0.8.4;
 
-import "@ensdomains/ens/contracts/ENS.sol";
+import "../registry/ENS.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/IERC721.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
 
 contract BaseRegistrar is IERC721, Ownable {
     uint constant public GRACE_PERIOD = 90 days;

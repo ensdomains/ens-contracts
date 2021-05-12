@@ -1,7 +1,7 @@
-pragma solidity >=0.4.25;
+pragma solidity >=0.8.4;
 
-import "@ensdomains/ens/contracts/ENS.sol";
-import "@ensdomains/ens/contracts/ReverseRegistrar.sol";
+import "../registry/ENS.sol";
+import "../registry/ReverseRegistrar.sol";
 
 /**
  * @dev Provides a default implementation of a resolver for reverse records,

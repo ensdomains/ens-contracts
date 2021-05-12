@@ -1,10 +1,10 @@
-pragma solidity ^0.5.0;
+pragma solidity >=0.8.4;
 
 import "./PriceOracle.sol";
 import "./BaseRegistrar.sol";
 import "./StringUtils.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "@ensdomains/resolver/contracts/Resolver.sol";
+import "openzeppelin-solidity/contracts/access/Ownable.sol";
+import "../resolvers/Resolver.sol";
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.

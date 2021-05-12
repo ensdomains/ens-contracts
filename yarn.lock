@@ -2,6 +2,11 @@
 # yarn lockfile v1
 
 
+"@ensdomains/buffer@^0.0.10":
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/@ensdomains/buffer/-/buffer-0.0.10.tgz#3b9f8b6a34c6160ae8a8cb8f0f033aa35c1a9970"
+  integrity sha512-EOFqiWnN36EyyBAgHFTsabFcFICUALt41SiDm/4pAw4V36R4lD4wHcnZcqCYki9m1fMaeWGHrdqxmrMa8iiSTQ==
+
 "@ensdomains/dnssec-oracle@^0.2.0":
   version "0.2.0"
   resolved "https://registry.yarnpkg.com/@ensdomains/dnssec-oracle/-/dnssec-oracle-0.2.0.tgz#eb3eac72230bbe76729a0bb0fc67c0af1ef62001"
@@ -5398,6 +5403,11 @@ open@^7.4.2:
   dependencies:
     is-docker "^2.0.0"
     is-wsl "^2.1.1"
+
+openzeppelin-solidity@^4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/openzeppelin-solidity/-/openzeppelin-solidity-4.1.0.tgz#6f514efa71feb582920c7836184beed2bfc13319"
+  integrity sha512-eOTwAu5q909S+Lqi4QnTQClY8KLpdnpiddrrrCuDSDaOgohBbl4VMcJj325k67m2qyalqvHu/2Fj5qqj5V9oLw==
 
 os-homedir@^1.0.0:
   version "1.0.2"

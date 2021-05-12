@@ -1,6 +1,6 @@
-pragma solidity ^0.5.0;
+pragma solidity >=0.8.4;
 
-import "@ensdomains/ens/contracts/ENSRegistry.sol";
+import "../../registry/ENSRegistry.sol";
 
 contract DummyDNSSEC {
 

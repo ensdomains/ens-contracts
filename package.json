@@ -11,5 +11,9 @@
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
     "hardhat": "^2.2.1"
+  },
+  "dependencies": {
+    "@ensdomains/buffer": "^0.0.10",
+    "openzeppelin-solidity": "^4.1.0"
   }
 }

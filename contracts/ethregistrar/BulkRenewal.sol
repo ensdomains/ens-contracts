@@ -1,9 +1,9 @@
-pragma solidity >=0.5.0;
+pragma solidity >=0.8.4;
 pragma experimental ABIEncoderV2;
 
-import "@ensdomains/ens/contracts/ENS.sol";
+import "../registry/ENS.sol";
 import "./ETHRegistrarController.sol";
-import "@ensdomains/resolver/contracts/Resolver.sol";
+import "../resolvers/Resolver.sol";
 
 contract BulkRenewal {
     bytes32 constant private ETH_NAMEHASH = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;

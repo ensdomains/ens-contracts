@@ -1,4 +1,4 @@
-pragma solidity ^0.7.4;
+pragma solidity >=0.8.4;
 abstract contract ResolverBase {
     bytes4 private constant INTERFACE_META_ID = 0x01ffc9a7;
 

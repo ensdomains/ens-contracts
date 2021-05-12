@@ -26,6 +26,15 @@ module.exports = {
   },
   mocha: {
   },
-  solidity: "0.7.3",
+  solidity: {
+    compilers: [
+      {
+        version: "0.8.4"
+      },
+      {
+        version: "0.7.4",
+      }
+    ]
+  }
 };
 
