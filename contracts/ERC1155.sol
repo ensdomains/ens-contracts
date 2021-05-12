@@ -2,15 +2,9 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
-import "../interfaces/INFTFuseWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-abstract contract ERC1155 is
-    ERC165,
-    IERC1155,
-    IERC1155MetadataURI,
-    INFTFuseWrapper
-{
+abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
     mapping(uint256 => uint256) public _tokens;
 
@@ -21,7 +15,7 @@ abstract contract ERC1155 is
      * ERC721 methods
      *************************************************************************/
 
-    function ownerOf(uint256 id) public view override returns (address) {
+    function ownerOf(uint256 id) public view returns (address) {
         (address owner, ) = getData(id);
         return owner;
     }
@@ -138,7 +132,6 @@ abstract contract ERC1155 is
     function getData(uint256 tokenId)
         public
         view
-        override
         returns (address owner, uint96 fuses)
     {
         uint256 t = _tokens[tokenId];
@@ -175,7 +168,7 @@ abstract contract ERC1155 is
 
         (address oldOwner, uint96 fuses) = getData(id);
         require(
-            fuses & CANNOT_TRANSFER == 0,
+            _canTransfer(fuses),
             "NFTFuseWrapper: Fuse already burned for setting owner"
         );
         require(
@@ -188,6 +181,8 @@ abstract contract ERC1155 is
 
         _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
     }
+
+    function _canTransfer(uint96 fuses) internal virtual returns (bool);
 
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
@@ -214,8 +209,9 @@ abstract contract ERC1155 is
             uint256 amount = amounts[i];
 
             (address oldOwner, uint96 fuses) = getData(id);
+
             require(
-                fuses & CANNOT_TRANSFER == 0,
+                _canTransfer(fuses),
                 "NFTFuseWrapper: Fuse already burned for setting owner"
             );
             require(

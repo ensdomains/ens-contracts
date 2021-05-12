@@ -19,13 +19,6 @@ abstract contract INFTFuseWrapper {
         address owner
     );
 
-    function ownerOf(uint256 id) public virtual returns (address);
-
-    function getData(uint256 tokenId)
-        public
-        virtual
-        returns (address owner, uint96 fuses);
-
     function wrapETH2LD(
         string calldata label,
         uint96 _fuses,
