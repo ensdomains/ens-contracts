@@ -519,6 +519,11 @@
     "@types/sinon-chai" "^3.2.3"
     "@types/web3" "1.0.19"
 
+"@openzeppelin/contracts@^4.1.0":
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.1.0.tgz#baec89a7f5f73e3d8ea582a78f1980134b605375"
+  integrity sha512-TihZitscnaHNcZgXGj9zDLDyCqjziytB4tMCwXq0XimfWkAjBYyk5/pOsDbbwcavhlc79HhpTEpQcrMnPVa1mw==
+
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"
   resolved "https://registry.yarnpkg.com/@resolver-engine/core/-/core-0.3.3.tgz#590f77d85d45bc7ecc4e06c654f41345db6ca967"
@@ -2834,7 +2839,7 @@ ethereum-bloom-filters@^1.0.6:
   resolved "https://registry.yarnpkg.com/ethereum-bloom-filters/-/ethereum-bloom-filters-1.0.9.tgz#4a59dead803af0c9e33834170bd7695df67061ec"
   integrity sha512-GiK/RQkAkcVaEdxKVkPcG07PQ5vD7v2MFSHgZmBJSfMzNRHimntdBithsHAT89tAXnIpzVDWt8iaCD1DvkaxGg==
   dependencies:
-    js-sha3 "^0.8.0"
+    js-sha3 ">=0.8.4"
 
 ethereum-common@0.2.0:
   version "0.2.0"
@@ -4337,7 +4342,7 @@ js-sha3@0.5.7, js-sha3@^0.5.7:
   resolved "https://registry.yarnpkg.com/js-sha3/-/js-sha3-0.5.7.tgz#0d4ffd8002d5333aabaf4a23eed2f6374c9f28e7"
   integrity sha1-DU/9gALVMzqrr0oj7tL2N0yfKOc=
 
-js-sha3@0.8.0, js-sha3@^0.8.0:
+js-sha3@0.8.0, js-sha3@>=0.8.4:
   version "0.8.0"
   resolved "https://registry.yarnpkg.com/js-sha3/-/js-sha3-0.8.0.tgz#b9b7a5da73afad7dedd0f8c463954cbde6818840"
   integrity sha512-gF1cRrHhIzNfToc802P800N8PpXS+evLLXfsVpowqmAFR9uwbi89WvXg2QspOmXL8QL86J4T1EpFu+yUkwJY3Q==
@@ -5403,11 +5408,6 @@ open@^7.4.2:
   dependencies:
     is-docker "^2.0.0"
     is-wsl "^2.1.1"
-
-openzeppelin-solidity@^4.1.0:
-  version "4.1.0"
-  resolved "https://registry.yarnpkg.com/openzeppelin-solidity/-/openzeppelin-solidity-4.1.0.tgz#6f514efa71feb582920c7836184beed2bfc13319"
-  integrity sha512-eOTwAu5q909S+Lqi4QnTQClY8KLpdnpiddrrrCuDSDaOgohBbl4VMcJj325k67m2qyalqvHu/2Fj5qqj5V9oLw==
 
 os-homedir@^1.0.0:
   version "1.0.2"
@@ -6944,7 +6944,7 @@ typechain@^3.0.0:
     command-line-args "^4.0.7"
     debug "^4.1.1"
     fs-extra "^7.0.0"
-    js-sha3 "^0.8.0"
+    js-sha3 ">=0.8.4"
     lodash "^4.17.15"
     ts-essentials "^6.0.3"
     ts-generator "^0.1.1"

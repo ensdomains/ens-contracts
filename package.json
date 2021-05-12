@@ -14,6 +14,6 @@
   },
   "dependencies": {
     "@ensdomains/buffer": "^0.0.10",
-    "openzeppelin-solidity": "^4.1.0"
+    "@openzeppelin/contracts": "^4.1.0"
   }
 }
