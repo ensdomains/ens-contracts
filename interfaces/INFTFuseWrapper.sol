@@ -74,12 +74,15 @@ abstract contract INFTFuseWrapper {
 
     function setResolver(bytes32 node, address resolver) public virtual;
 
+    function setTTL(bytes32 node, uint64 ttl) public virtual;
+
     uint96 public constant CANNOT_UNWRAP = 1;
     uint96 public constant CANNOT_BURN_FUSES = 2;
-    uint96 public constant CANNOT_TRANSFER = 4; // for DNSSEC names
-    uint96 public constant CANNOT_SET_DATA = 8;
-    uint96 public constant CANNOT_CREATE_SUBDOMAIN = 16;
-    uint96 public constant CANNOT_REPLACE_SUBDOMAIN = 32;
+    uint96 public constant CANNOT_TRANSFER = 4;
+    uint96 public constant CANNOT_SET_RESOLVER = 8;
+    uint96 public constant CANNOT_SET_TTL = 16;
+    uint96 public constant CANNOT_CREATE_SUBDOMAIN = 32;
+    uint96 public constant CANNOT_REPLACE_SUBDOMAIN = 64;
     uint96 public constant CAN_DO_EVERYTHING = 0;
     uint96 public constant MINIMUM_PARENT_FUSES =
         CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN;

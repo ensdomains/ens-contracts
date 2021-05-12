@@ -6,6 +6,24 @@ The other part of the wrapper is to allow for permissions to be burned. This all
 
 The NFT Fuse Wrapper's interface is as follows:
 
+// Definition of fuses
+// Data structure of getData setData
+
+//EXPLAIN THIS
+//if (\_fuses != CAN_DO_EVERYTHING) {
+
+```
+          require(
+              !canReplaceSubdomain(parentNode),
+              "NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain"
+          );
+
+          require(
+              !canUnwrap(node),
+              "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
+          );
+```
+
 ```sol
 function makeNode(bytes32 node, bytes32 label)
 ```
@@ -75,6 +93,8 @@ function canCallSetSubnodeOwner(bytes32 node, bytes32 label)
         public
         returns (bool)
 ```
+
+Returns whether or not setSubnodeOwner or setSubnodeRecord can be called. If the domain does not has an owner, it is considered a `creation` of the subdomain. If the domain does have an owner, it is considered to be a `replacement` of the subdomain.
 
 ```
 function _mint(
