@@ -96,7 +96,7 @@ contract('BaseRegistrar', function (accounts) {
 		// Advance to the grace period
 		var ts = (await web3.eth.getBlock('latest')).timestamp;
 		await evm.advanceTime((await registrar.nameExpires(sha3("newname"))).toNumber() - ts + 3600);
-
+		await evm.mine()
 		await exceptions.expectFailure(registrar.transferFrom(registrantAccount, otherAccount, sha3("newname"), {from: registrantAccount}));
 		await exceptions.expectFailure(registrar.reclaim(sha3("newname"), registrantAccount, {from: registrantAccount}));
 	});
