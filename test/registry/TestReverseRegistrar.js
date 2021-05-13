@@ -1,5 +1,5 @@
 
-const DummyResolver = artifacts.require('./registry/ReverseRegistrar.sol');
+const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol');
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol');
 const ENS = artifacts.require('./registry/ENSRegistry.sol');
 
@@ -14,7 +14,7 @@ contract('ReverseRegistar', function (accounts) {
     beforeEach(async () => {
         node = namehash.hash(accounts[0].slice(2).toLowerCase() + ".addr.reverse");
         ens = await ENS.new();
-        resolver = await DummyResolver.new();
+        resolver = await PublicResolver.new(ens.address);
         registrar = await ReverseRegistrar.new(ens.address, resolver.address);
 
         await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {from: accounts[0]});
