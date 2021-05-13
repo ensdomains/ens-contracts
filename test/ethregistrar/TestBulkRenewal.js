@@ -1,5 +1,5 @@
-const ENS = artifacts.require('@ensdomains/ens/ENSRegistry');
-const PublicResolver = artifacts.require('@ensdomains/resolver/PublicResolver');
+const ENS = artifacts.require('./registry/ENSRegistry');
+const PublicResolver = artifacts.require('./resolvers/PublicResolver');
 const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation');
 const ETHRegistrarController = artifacts.require('./ETHRegistrarController');
 const DummyOracle = artifacts.require('./DummyOracle');
@@ -9,7 +9,7 @@ const BulkRenewal = artifacts.require('./BulkRenewal');
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 const toBN = require('web3-utils').toBN;	
-const { exceptions } = require("../../test-utils");
+const { exceptions } = require("../test-utils");
 
 const ETH_LABEL = sha3('eth');
 const ETH_NAMEHASH = namehash.hash('eth');

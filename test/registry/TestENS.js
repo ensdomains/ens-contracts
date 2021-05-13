@@ -1,10 +1,10 @@
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 
-const { exceptions } = require("@ensdomains/test-utils")
+const { exceptions } = require("../test-utils")
 
 let contracts = [
-    [artifacts.require('registry/ENSRegistry.sol'), 'Solidity']
+    [artifacts.require('./registry/ENSRegistry.sol'), 'Solidity']
 ];
 
 contracts.forEach(function ([ENS, lang]) {

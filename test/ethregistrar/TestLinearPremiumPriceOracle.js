@@ -1,4 +1,4 @@
-const ENS = artifacts.require('@ensdomains/ens/ENSRegistry');
+const ENS = artifacts.require('./registry/ENSRegistry');
 const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation');
 const DummyOracle = artifacts.require('./DummyOracle');
 const LinearPremiumPriceOracle = artifacts.require('./LinearPremiumPriceOracle');

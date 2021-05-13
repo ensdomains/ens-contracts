@@ -1,10 +1,10 @@
-const ENS = artifacts.require('@ensdomains/ens/contracts/ENSRegistry.sol');
+const ENS = artifacts.require('./registry/ENSRegistry.sol');
 const PublicResolver = artifacts.require('PublicResolver.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 
-const { exceptions } = require('@ensdomains/test-utils');
+const { exceptions } = require("../test-utils");
 
 contract('PublicResolver', function (accounts) {
 

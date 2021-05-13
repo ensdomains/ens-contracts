@@ -1,12 +1,12 @@
-const ENS = artifacts.require('@ensdomains/ens/contracts/ENSRegistry.sol');
-const ReverseRegistrar = artifacts.require('@ensdomains/ens/contracts/ReverseRegistrar.sol');
-const PublicResolver = artifacts.require('PublicResolver.sol');
-const ReverseResolver = artifacts.require('DefaultReverseResolver.sol');
+const ENS = artifacts.require('./registry/ENSRegistry.sol');
+const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol');
+const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol');
+const DefaultReverseResolver = artifacts.require('./resolvers/DefaultReverseResolver.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 
-const { exceptions } = require('@ensdomains/test-utils');
+const { exceptions } = require("../test-utils");
 
 contract('PublicResolver', function (accounts) {
 
@@ -45,8 +45,7 @@ contract('PublicResolver', function (accounts) {
 
     describe('name', async () => {
 
-        it.only('permits setting name by owner', async () => {
-            console.log('hello')
+        it('permits setting name by owner', async () => {
             // assert.equal(await ens.owner(node), accounts[1]);
             // assert.equal(await ens.resolver(node), accounts[2]);
 

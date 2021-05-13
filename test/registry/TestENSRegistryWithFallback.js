@@ -3,7 +3,7 @@ const sha3 = require('web3-utils').sha3;
 
 const ENS = artifacts.require('ENSRegistryWithFallback.sol');
 
-const ENSWithoutFallback = artifacts.require("ENSRegistry.sol");
+const ENSWithoutFallback = artifacts.require("./registry/ENSRegistry.sol");
 
 contract('ENSRegistryWithFallback', function (accounts) {
 

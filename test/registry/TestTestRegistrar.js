@@ -1,7 +1,7 @@
-const TestRegistrar = artifacts.require('TestRegistrar.sol');
-const ENS = artifacts.require('ENSRegistry.sol');
+const TestRegistrar = artifacts.require('./registry/TestRegistrar.sol');
+const ENS = artifacts.require('./registry/ENSRegistry.sol');
 
-const { exceptions, evm } = require('@ensdomains/test-utils');
+const { exceptions, evm } = require("../test-utils");
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 
