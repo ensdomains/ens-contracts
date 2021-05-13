@@ -22,23 +22,12 @@ contract('PublicResolver', function (accounts) {
         await ens.setSubnodeOwner(namehash.hash('eth'), sha3('foo'), accounts[0], {from: accounts[0]});
         await ens.setSubnodeOwner(namehash.hash('eth'), sha3('bar'), accounts[1], {from: accounts[0]});
         await ens.setSubnodeOwner(namehash.hash('eth'), sha3('baz'), accounts[2], {from: accounts[0]});
-        const fooOwner = await ens.owner(namehash.hash('foo.eth'))
-        console.log(8, {fooOwner, resolverAddress:resolver.address})
         await ens.setResolver(namehash.hash('foo.eth'), resolver.address, {from: accounts[0]})
         await ens.setResolver(namehash.hash('bar.eth'), resolver.address, {from: accounts[1]})
         await ens.setResolver(namehash.hash('baz.eth'), resolver.address, {from: accounts[2]})
-        console.log(9)
         await resolver.methods['setAddr(bytes32,address)'](namehash.hash('foo.eth'), accounts[0], {from: accounts[0]});
-        console.log(10)
-        const fooAddress = await resolver.addr(namehash.hash('foo.eth'))
-        console.log(11, fooAddress)
-
-
-        console.log(15, ens.address, resolver.address)
         reverseRegistrar = await ReverseRegistrar.new(ens.address, resolver.address);
-        console.log(16)
         await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {from: accounts[0]});
-        console.log(16.1)
         await ens.setSubnodeOwner(namehash.hash('reverse'), sha3('addr'), reverseRegistrar.address, {from: accounts[0]});
 
     });
