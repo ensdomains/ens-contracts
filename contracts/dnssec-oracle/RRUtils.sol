@@ -329,6 +329,13 @@ library RRUtils {
         return self.compare(prevoff + 1, self.readUint8(prevoff), other, otherprevoff + 1, other.readUint8(otherprevoff));
     }
 
+    /**
+     * @dev Compares two serial numbers using RFC1982 serial number math.
+     */
+    function serialNumberGte(uint32 i1, uint32 i2) internal pure returns(bool) {
+        return int32(i1 - i2) >= 0;
+    }
+
     function progress(bytes memory body, uint off) internal pure returns(uint) {
         return off + 1 + body.readUint8(off);
     }
