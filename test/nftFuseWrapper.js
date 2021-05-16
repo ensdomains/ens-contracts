@@ -33,10 +33,19 @@ async function deploy(name, _args) {
   return contract
 }
 
+function increaseTime(delay) {
+  return ethers.provider.send('evm_increaseTime', [delay])
+}
+
+function mine() {
+  return ethers.provider.send('evm_mine')
+}
+
 describe('NFT fuse wrapper', () => {
   let ENSRegistry
   let ENSRegistry2
   let BaseRegistrar
+  let BaseRegistrar2
   let NFTFuseWrapper
   let NFTFuseWrapper2
   let signers
@@ -94,9 +103,12 @@ describe('NFT fuse wrapper', () => {
       signers[0]
     ).deploy(EnsRegistry.address, namehash('eth'))
 
+    BaseRegistrar2 = BaseRegistrar.connect(signers[1])
+
     console.log(`*** BaseRegistrar deployed at ${BaseRegistrar.address} *** `)
 
     await BaseRegistrar.addController(account)
+    await BaseRegistrar.addController(account2)
 
     NFTFuseWrapper = await deploy('NFTFuseWrapper', [
       EnsRegistry.address,
@@ -453,13 +465,34 @@ describe('NFT fuse wrapper', () => {
       // make sure it can't be unwrapped
       const canUnwrap = await NFTFuseWrapper.canUnwrap(nameHash)
 
-      // TODO: Emits the Wrapped event.
-      // TODO: Emits the TransferSingle event from 0x0.
+      expect(canUnwrap).to.equal(false)
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the .eth registrar.', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       expect(NFTFuseWrapper.wrapETH2LD(label, 255, account)).to.be.reverted
+    })
+
+    it('Can wrap a name that has already expired', async () => {
+      const DAY = 60 * 60 * 24
+      const GRACE_PERIOD = 90
+      await BaseRegistrar.register(labelHash, account, DAY)
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+      await NFTFuseWrapper.wrapETH2LD(label, 255, account)
+      await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
+      await mine()
+
+      expect(await BaseRegistrar.available(labelHash)).to.equal(true)
+
+      await BaseRegistrar2.register(labelHash, account2, DAY)
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(account2)
+      await BaseRegistrar2.setApprovalForAll(NFTFuseWrapper.address, true)
+      await NFTFuseWrapper2.wrapETH2LD(label, 255, account2)
+
+      expect(await NFTFuseWrapper2.ownerOf(nameHash)).to.equal(account2)
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NFTFuseWrapper.address
+      )
     })
 
     it('emits Wrap and TransferSingle events', async () => {

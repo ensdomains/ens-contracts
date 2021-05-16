@@ -589,6 +589,11 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(uint256(label), address(this));
         // mint a new ERC1155 token with fuses
+
+        address oldWrappedOwner = ownerOf(uint256(node));
+        if (oldWrappedOwner != address(0)) {
+            _burn(uint256(node));
+        }
         _mint(uint256(node), wrappedOwner, _fuses);
 
         if (_fuses != CAN_DO_EVERYTHING) {
