@@ -534,14 +534,28 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     }
 
     function _mint(
-        uint256 tokenId,
+        bytes32 parentNode,
+        bytes32 node,
         address newOwner,
-        uint96 fuses
+        uint96 _fuses
     ) private {
+        uint256 tokenId = uint256(node);
         address owner = ownerOf(tokenId);
         require(owner == address(0), "ERC1155: mint of existing token");
         require(newOwner != address(0), "ERC1155: mint to the zero address");
-        setData(tokenId, newOwner, fuses);
+        setData(tokenId, newOwner, _fuses);
+
+        if (_fuses != CAN_DO_EVERYTHING) {
+            require(
+                !canReplaceSubdomain(parentNode),
+                "NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain"
+            );
+
+            require(
+                !canUnwrap(node),
+                "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
+            );
+        }
         emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
     }
 
@@ -565,19 +579,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
 
         bytes32 node = _makeNode(parentNode, label);
 
-        _mint(uint256(node), wrappedOwner, _fuses);
-
-        if (_fuses != CAN_DO_EVERYTHING) {
-            require(
-                !canReplaceSubdomain(parentNode),
-                "NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain"
-            );
-
-            require(
-                !canUnwrap(node),
-                "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
-            );
-        }
+        _mint(parentNode, node, wrappedOwner, _fuses);
     }
 
     function _wrapETH2LD(
@@ -594,14 +596,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         if (oldWrappedOwner != address(0)) {
             _burn(uint256(node));
         }
-        _mint(uint256(node), wrappedOwner, _fuses);
-
-        if (_fuses != CAN_DO_EVERYTHING) {
-            require(
-                !canUnwrap(node),
-                "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
-            );
-        }
+        _mint(ETH_NODE, node, wrappedOwner, _fuses);
 
         emit WrapETH2LD(label, _fuses, wrappedOwner);
     }
