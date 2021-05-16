@@ -542,7 +542,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         require(owner == address(0), "ERC1155: mint of existing token");
         require(newOwner != address(0), "ERC1155: mint to the zero address");
         setData(tokenId, newOwner, fuses);
-        emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
+        emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
     }
 
     function _burn(uint256 tokenId) private {
