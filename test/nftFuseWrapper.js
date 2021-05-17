@@ -90,13 +90,6 @@ describe('NFT fuse wrapper', () => {
     EnsRegistry = await registryContractFactory.deploy()
     EnsRegistry2 = EnsRegistry.connect(signers[1])
 
-    try {
-      const rootOwner = await EnsRegistry.owner(ROOT_NODE)
-    } catch (e) {
-      console.log('failing on rootOwner', e)
-    }
-    console.log('succeeded on root owner')
-
     BaseRegistrar = await new ethers.ContractFactory(
       baseRegistrarJSON.abi,
       baseRegistrarJSON.bytecode,
@@ -120,7 +113,7 @@ describe('NFT fuse wrapper', () => {
     await EnsRegistry.setSubnodeOwner(
       ROOT_NODE,
       utils.keccak256(utils.toUtf8Bytes('eth')),
-      account
+      BaseRegistrar.address
     )
 
     // setup .xyz
@@ -128,15 +121,6 @@ describe('NFT fuse wrapper', () => {
       ROOT_NODE,
       utils.keccak256(utils.toUtf8Bytes('xyz')),
       account
-    )
-
-    // give .eth back to registrar
-
-    // make base registrar owner of eth
-    await EnsRegistry.setSubnodeOwner(
-      ROOT_NODE,
-      labelhash('eth'),
-      BaseRegistrar.address
     )
 
     const ethOwner = await EnsRegistry.owner(namehash('eth'))
@@ -344,7 +328,7 @@ describe('NFT fuse wrapper', () => {
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
 
-    it('Does not allows an account authorised by the owner on the NFT Wrapper to unwrap a name', async () => {
+    it('Allows an account authorised by the owner on the NFT Wrapper to unwrap a name', async () => {
       const labelHash = labelhash('abc')
 
       // setup .abc with account2 as owner
@@ -446,7 +430,7 @@ describe('NFT fuse wrapper', () => {
       //allow the restricted name wrappper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
 
-      await NFTFuseWrapper.wrapETH2LD(label, 255, account)
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
 
       //make sure reclaim claimed ownership for the wrapper in registry
 
@@ -461,16 +445,12 @@ describe('NFT fuse wrapper', () => {
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
         NFTFuseWrapper.address
       )
-
-      // make sure it can't be unwrapped
-      const canUnwrap = await NFTFuseWrapper.canUnwrap(nameHash)
-
-      expect(canUnwrap).to.equal(false)
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the .eth registrar.', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
-      expect(NFTFuseWrapper.wrapETH2LD(label, 255, account)).to.be.reverted
+      expect(NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)).to.be
+        .reverted
     })
 
     it('Can wrap a name that has already expired', async () => {
@@ -478,7 +458,7 @@ describe('NFT fuse wrapper', () => {
       const GRACE_PERIOD = 90
       await BaseRegistrar.register(labelHash, account, DAY)
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
-      await NFTFuseWrapper.wrapETH2LD(label, 255, account)
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account)
       await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
       await mine()
 
@@ -487,7 +467,7 @@ describe('NFT fuse wrapper', () => {
       await BaseRegistrar2.register(labelHash, account2, DAY)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(account2)
       await BaseRegistrar2.setApprovalForAll(NFTFuseWrapper.address, true)
-      await NFTFuseWrapper2.wrapETH2LD(label, 255, account2)
+      await NFTFuseWrapper2.wrapETH2LD(label, CAN_DO_EVERYTHING, account2)
 
       expect(await NFTFuseWrapper2.ownerOf(nameHash)).to.equal(account2)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
@@ -506,17 +486,22 @@ describe('NFT fuse wrapper', () => {
     it('Transfers the wrapped token to the target address.', async () => {
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
-      await NFTFuseWrapper.wrapETH2LD(label, 255, account2)
+      await NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, account2)
       expect(await NFTFuseWrapper.ownerOf(nameHash)).to.equal(account2)
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
-      expect(NFTFuseWrapper.wrapETH2LD(label, 255, EMPTY_ADDRESS)).to.be
-        .reverted
-      expect(NFTFuseWrapper.wrapETH2LD(label, 255, NFTFuseWrapper.address)).to
-        .be.reverted
+      expect(NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, EMPTY_ADDRESS))
+        .to.be.reverted
+      expect(
+        NFTFuseWrapper.wrapETH2LD(
+          label,
+          CAN_DO_EVERYTHING,
+          NFTFuseWrapper.address
+        )
+      ).to.be.reverted
     })
 
     it('Allows an account approved by the owner on the .eth registrar to wrap a name.', async () => {
@@ -1126,7 +1111,7 @@ describe('NFT fuse wrapper', () => {
         wrappedTokenId,
         'creatable',
         account,
-        255
+        CAN_DO_EVERYTHING
       )
 
       expect(
@@ -1195,7 +1180,7 @@ describe('NFT fuse wrapper', () => {
         wrappedTokenId,
         'setsubnodeownerandwrap',
         account,
-        255
+        CAN_DO_EVERYTHING
       )
 
       expect(
@@ -1399,6 +1384,7 @@ describe('NFT fuse wrapper', () => {
         )
       ).to.equal(account)
     })
+
     it('Can be called by an account authorised by the owner.', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setApprovalForAll(account2, true)
@@ -1421,6 +1407,7 @@ describe('NFT fuse wrapper', () => {
         )
       ).to.equal(account)
     })
+
     it('Transfers the wrapped token to the target address.', async () => {
       await NFTFuseWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
@@ -1437,6 +1424,7 @@ describe('NFT fuse wrapper', () => {
         )
       ).to.equal(account2)
     })
+
     it('Will not allow wrapping with a target address of 0x0', async () => {
       await expect(
         NFTFuseWrapper.setSubnodeRecordAndWrap(
@@ -1464,6 +1452,7 @@ describe('NFT fuse wrapper', () => {
         'revert NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract'
       )
     })
+
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await EnsRegistry.setApprovalForAll(account2, true)
@@ -1480,6 +1469,7 @@ describe('NFT fuse wrapper', () => {
         'revert NFTFuseWrapper: msg.sender is not the owner or approved'
       )
     })
+
     it('Does not allow fuses to be burned if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
@@ -1498,6 +1488,7 @@ describe('NFT fuse wrapper', () => {
         'revert NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain'
       )
     })
+
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
@@ -1520,6 +1511,7 @@ describe('NFT fuse wrapper', () => {
         'revert NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
+
     it('Emits the Wrapped event and TransferSingle event from 0x0', async () => {
       const tx = await NFTFuseWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
@@ -1532,6 +1524,7 @@ describe('NFT fuse wrapper', () => {
       await expect(tx).to.emit(NFTFuseWrapper, 'Wrap')
       await expect(tx).to.emit(NFTFuseWrapper, 'TransferSingle')
     })
+
     it('Sets the appropriate values on the ENS registry.', async () => {
       await NFTFuseWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
@@ -1554,9 +1547,11 @@ describe('NFT fuse wrapper', () => {
     const label = 'setrecord'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
+
     it('Can be called by the owner', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setRecord(wrappedTokenId, account2, account, 50)
@@ -1629,9 +1624,11 @@ describe('NFT fuse wrapper', () => {
     const subLabel = 'sub'
     const subLabelHash = labelhash(subLabel)
     const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
+
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
+
     it('Can be called by the owner', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setSubnodeRecord(
@@ -1752,6 +1749,7 @@ describe('NFT fuse wrapper', () => {
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
+
     it('Can be called by the owner', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setSubnodeOwner(
@@ -1831,9 +1829,11 @@ describe('NFT fuse wrapper', () => {
     const label = 'setresolver'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
+
     it('Can be called by the owner', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setResolver(wrappedTokenId, account2)
@@ -1878,9 +1878,11 @@ describe('NFT fuse wrapper', () => {
     const label = 'setttl'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
+
     it('Can be called by the owner', async () => {
       expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NFTFuseWrapper.setTTL(wrappedTokenId, 100)
@@ -1921,6 +1923,7 @@ describe('NFT fuse wrapper', () => {
     const label = 'transfer'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+
     before(async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })

@@ -36,6 +36,18 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         );
     }
 
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceId == type(INFTFuseWrapper).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
     /**
      * @notice Checks if msg.sender is the owner or approved by the owner of a name
      * @param node namehash of the name to check

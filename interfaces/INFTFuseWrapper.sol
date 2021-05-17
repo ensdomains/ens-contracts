@@ -4,6 +4,8 @@ pragma solidity >=0.6.0 <0.9.0;
 import "./Resolver.sol";
 
 abstract contract INFTFuseWrapper {
+    bytes4 constant interfaceId = 0x01ffc9a7; //TODO calculate actual interfaceID
+
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
