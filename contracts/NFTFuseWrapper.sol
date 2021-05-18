@@ -392,10 +392,6 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         address newOwner,
         uint96 _fuses
     ) public override returns (bytes32) {
-        require(
-            newOwner != address(this),
-            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
-        );
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(parentNode, labelhash, _fuses, newOwner);
@@ -420,10 +416,6 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         uint64 ttl,
         uint96 _fuses
     ) public override returns (bytes32) {
-        require(
-            newOwner != address(this),
-            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
-        );
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(parentNode, labelhash, _fuses, newOwner);
@@ -555,6 +547,10 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         address owner = ownerOf(tokenId);
         require(owner == address(0), "ERC1155: mint of existing token");
         require(newOwner != address(0), "ERC1155: mint to the zero address");
+        require(
+            newOwner != address(this),
+            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
+        );
         setData(tokenId, newOwner, _fuses);
 
         if (_fuses != CAN_DO_EVERYTHING) {

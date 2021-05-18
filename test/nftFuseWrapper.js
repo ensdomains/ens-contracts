@@ -1,6 +1,6 @@
 const fs = require('fs')
 const chalk = require('chalk')
-const { config, ethers } = require('hardhat')
+const { ethers } = require('hardhat')
 const { utils, BigNumber: BN } = ethers
 const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
@@ -8,7 +8,6 @@ const n = require('eth-ens-namehash')
 const namehash = n.hash
 const { loadENSContract } = require('../utils/contracts')
 const baseRegistrarJSON = require('./baseRegistrarABI')
-const buffer = require('buffer')
 
 use(solidity)
 
@@ -190,7 +189,17 @@ describe('NFT fuse wrapper', () => {
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
-      expect(NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', 0, '0x0')).to.be.reverted
+      await expect(
+        NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', 0, EMPTY_ADDRESS)
+      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+    })
+
+    it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
+      await expect(
+        NFTFuseWrapper.wrap(ROOT_NODE, 'xyz', 0, NFTFuseWrapper.address)
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract'
+      )
     })
 
     it('Allows an account approved by the owner on the ENS registry to wrap a name.', async () => {
@@ -220,7 +229,11 @@ describe('NFT fuse wrapper', () => {
       //confirm abc is owner by account2 not account 1
       expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
       // wrap using account
-      expect(NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)).to.be.reverted
+      await expect(
+        NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Domain is not owned by the sender'
+      )
     })
 
     it('Does not allow wrapping .eth 2LDs.', async () => {
@@ -228,7 +241,11 @@ describe('NFT fuse wrapper', () => {
       const labelHash = labelhash(label)
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
-      expect(NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)).to.be.reverted
+      await expect(
+        NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account2)
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Domain is not owned by the sender'
+      )
     })
 
     it('Fuses cannot be burned if CANNOT_REPLACE_SUBDOMAIN has not burned', async () => {
@@ -411,12 +428,15 @@ describe('NFT fuse wrapper', () => {
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
       await EnsRegistry.setApprovalForAll(NFTFuseWrapper.address, true)
       await NFTFuseWrapper.wrap(ROOT_NODE, 'abc', 0, account)
-      await expect(NFTFuseWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS))
-        .to.be.reverted
+      await expect(
+        NFTFuseWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS)
+      ).to.be.revertedWith('revert NFTFuseWrapper: Target owner cannot be 0x0')
 
       await expect(
         NFTFuseWrapper.unwrap(ROOT_NODE, labelHash, NFTFuseWrapper.address)
-      ).to.be.reverted
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: Target owner cannot be the NFTFuseWrapper contract'
+      )
     })
   })
 
@@ -490,18 +510,27 @@ describe('NFT fuse wrapper', () => {
       expect(await NFTFuseWrapper.ownerOf(nameHash)).to.equal(account2)
     })
 
-    it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
+    it('Will not allow wrapping with a target address of 0x0', async () => {
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
-      expect(NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, EMPTY_ADDRESS))
-        .to.be.reverted
-      expect(
+      await expect(
+        NFTFuseWrapper.wrapETH2LD(label, CAN_DO_EVERYTHING, EMPTY_ADDRESS)
+      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+    })
+
+    it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
+      await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      await expect(
         NFTFuseWrapper.wrapETH2LD(
           label,
           CAN_DO_EVERYTHING,
           NFTFuseWrapper.address
         )
-      ).to.be.reverted
+      ).to.be.revertedWith(
+        'revert NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract'
+      )
     })
 
     it('Allows an account approved by the owner on the .eth registrar to wrap a name.', async () => {
