@@ -1,5 +1,6 @@
 require("@nomiclabs/hardhat-truffle5");
 require("@nomiclabs/hardhat-waffle");
+require("hardhat-abi-exporter");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -26,6 +27,12 @@ module.exports = {
     }
   },
   mocha: {
+  },
+  abiExporter: {
+    path: './build/contracts',
+    clear: true,
+    flat: true,
+    spacing: 2
   },
   solidity: {
     compilers: [

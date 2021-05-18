@@ -1,6 +1,6 @@
 {
-  "name": "ensdomains-ens-contracts",
-  "version": "0.0.2",
+  "name": "@ensdomains/ens-contracts",
+  "version": "0.0.1",
   "description": "ENS contracts",
   "scripts": {
     "test": "npx hardhat test",
@@ -9,6 +9,8 @@
     "pub": "yarn publish --access public"
   },
   "files": [
+    "build/contracts/*json",
+    "contracts/*",
     "./artifacts/contracts/*/*/*.json"
   ],
   "main": "index.js",
