@@ -1,0 +1,8 @@
+{
+  "extends": "solhint:default",
+  "rules": {
+    "indent": 2,
+    "max-line-length": false,
+    "quotes": "double"
+  }
+}
