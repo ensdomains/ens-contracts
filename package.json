@@ -44,7 +44,7 @@
     "url": "git+https://github.com/ensdomains/ens-contracts.git"
   },
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/ensdomains/ens-contracts/issues"
   },
