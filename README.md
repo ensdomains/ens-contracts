@@ -51,53 +51,7 @@ import 'ensdomains-ens-contracts/contracts/resolvers/PublicResolver.sol';
 import 'ensdomains-ens-contracts/contracts/resolvers/Resolver.sol';
 ```
 
-## Contract structure
-
-```
-contracts/
-├── buffer
-│   └── Buffer.sol
-├── dnssec-oracle
-│   ├── BytesUtils.sol
-│   └── RRUtils.sol
-├── ethregistrar
-│   ├── BaseRegistrar.sol
-│   ├── BaseRegistrarImplementation.sol
-│   ├── BulkRenewal.sol
-│   ├── DummyOracle.sol
-│   ├── ETHRegistrarController.sol
-│   ├── LinearPremiumPriceOracle.sol
-│   ├── PriceOracle.sol
-│   ├── SafeMath.sol
-│   ├── StablePriceOracle.sol
-│   ├── StringUtils.sol
-│   ├── TestResolver.sol
-│   └── mocks
-│       ├── DummyDNSSEC.sol
-│       └── DummyProxyRegistry.sol
-├── registry
-│   ├── ENS.sol
-│   ├── ENSRegistry.sol
-│   ├── ENSRegistryWithFallback.sol
-│   ├── FIFSRegistrar.sol
-│   ├── ReverseRegistrar.sol
-│   └── TestRegistrar.sol
-└── resolvers
-    ├── DefaultReverseResolver.sol
-    ├── OwnedResolver.sol
-    ├── PublicResolver.sol
-    ├── Resolver.sol
-    ├── ResolverBase.sol
-    └── profiles
-        ├── ABIResolver.sol
-        ├── AddrResolver.sol
-        ├── ContentHashResolver.sol
-        ├── DNSResolver.sol
-        ├── InterfaceResolver.sol
-        ├── NameResolver.sol
-        ├── PubkeyResolver.sol
-        └── TextResolver.sol
-```
+## Contracts
 
 ## Registry
 
