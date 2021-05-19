@@ -7,11 +7,11 @@ abstract contract INFTFuseWrapper {
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
-        uint96 fuses,
-        address owner
+        address owner,
+        uint96 fuses
     );
 
-    event WrapETH2LD(bytes32 indexed labelhash, uint96 fuses, address owner);
+    event WrapETH2LD(bytes32 indexed labelhash, address owner, uint96 fuses);
 
     event Unwrap(
         bytes32 indexed parentNode,
@@ -19,17 +19,23 @@ abstract contract INFTFuseWrapper {
         address owner
     );
 
-    function wrapETH2LD(
-        string calldata label,
-        uint96 _fuses,
-        address wrappedOwner
-    ) public virtual;
+    event UnwrapETH2LD(
+        bytes32 indexed labelhash,
+        address registrant,
+        address controller
+    );
 
     function wrap(
         bytes32 node,
         string calldata label,
-        uint96 _fuses,
-        address wrappedOwner
+        address wrappedOwner,
+        uint96 _fuses
+    ) public virtual;
+
+    function wrapETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        uint96 _fuses
     ) public virtual;
 
     function unwrap(

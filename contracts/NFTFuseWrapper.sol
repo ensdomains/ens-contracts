@@ -211,8 +211,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
 
     function wrapETH2LD(
         string calldata label,
-        uint96 _fuses,
-        address wrappedOwner
+        address wrappedOwner,
+        uint96 _fuses
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
@@ -230,7 +230,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         registrar.transferFrom(currentOwner, address(this), tokenId);
 
         // transfer the ens record back to the new owner (this contract)
-        _wrapETH2LD(labelhash, node, _fuses, wrappedOwner);
+        _wrapETH2LD(labelhash, node, wrappedOwner, _fuses);
     }
 
     /**
@@ -245,12 +245,12 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     function wrap(
         bytes32 parentNode,
         string calldata label,
-        uint96 _fuses,
-        address wrappedOwner
+        address wrappedOwner,
+        uint96 _fuses
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        _wrap(parentNode, labelhash, _fuses, wrappedOwner);
+        _wrap(parentNode, labelhash, wrappedOwner, _fuses);
         address owner = ens.owner(node);
 
         require(
@@ -260,7 +260,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
             "NFTFuseWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
-        emit Wrap(parentNode, label, _fuses, wrappedOwner);
+        emit Wrap(parentNode, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -278,6 +278,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     ) public ownerOnly(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
+        emit UnwrapETH2LD(label, newRegistrant, newController);
     }
 
     /**
@@ -298,6 +299,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
             "NFTFuseWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
         _unwrap(parentNode, label, newController);
+        emit Unwrap(parentNode, label, newController);
     }
 
     /**
@@ -394,8 +396,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     ) public override returns (bytes32) {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeOwner(parentNode, labelhash, address(this));
-        _wrap(parentNode, labelhash, _fuses, newOwner);
-        emit Wrap(parentNode, label, _fuses, newOwner);
+        _wrap(parentNode, labelhash, newOwner, _fuses);
+        emit Wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -418,8 +420,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     ) public override returns (bytes32) {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _wrap(parentNode, labelhash, _fuses, newOwner);
-        emit Wrap(parentNode, label, _fuses, newOwner);
+        _wrap(parentNode, labelhash, newOwner, _fuses);
+        emit Wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -518,8 +520,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         }
 
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
-        _wrapETH2LD(bytes32(tokenId), node, fuses, from);
-        emit WrapETH2LD(bytes32(tokenId), fuses, from);
+        _wrapETH2LD(bytes32(tokenId), node, from, fuses);
+        emit WrapETH2LD(bytes32(tokenId), from, fuses);
         return ERC721_RECEIVED;
     }
 
@@ -577,8 +579,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     function _wrap(
         bytes32 parentNode,
         bytes32 label,
-        uint96 _fuses,
-        address wrappedOwner
+        address wrappedOwner,
+        uint96 _fuses
     ) private {
         require(
             parentNode != ETH_NODE,
@@ -593,8 +595,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     function _wrapETH2LD(
         bytes32 label,
         bytes32 node,
-        uint96 _fuses,
-        address wrappedOwner
+        address wrappedOwner,
+        uint96 _fuses
     ) private {
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(uint256(label), address(this));
@@ -606,7 +608,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         }
         _mint(ETH_NODE, node, wrappedOwner, _fuses);
 
-        emit WrapETH2LD(label, _fuses, wrappedOwner);
+        emit WrapETH2LD(label, wrappedOwner, _fuses);
     }
 
     function _unwrap(
@@ -628,6 +630,5 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         // burn token and fuse data
         _burn(uint256(node));
         ens.setOwner(node, newOwner);
-        emit Unwrap(parentNode, label, newOwner);
     }
 }
