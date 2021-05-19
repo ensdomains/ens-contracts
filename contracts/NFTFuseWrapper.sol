@@ -582,7 +582,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     ) private {
         require(
             parentNode != ETH_NODE,
-            "NFTFuseWrapper: .eth domains need to use the wrapETH2LD"
+            "NFTFuseWrapper: .eth domains need to use wrapETH2LD()"
         );
 
         bytes32 node = _makeNode(parentNode, label);

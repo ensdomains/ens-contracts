@@ -11,9 +11,12 @@ npm install
 ```
 
 ## Testing
+
 First you need to run the hardhat chain and then run the tests
 
 ```bash
 npm run chain
 npm test
 ```
+
+Any contract with `2` at the end, is referring to the contract being called by `account2`, rather than `account1`. This is for tests that require authorisating another user.
