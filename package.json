@@ -27,11 +27,6 @@
   "scripts": {
     "chain": "hardhat node",
     "test": "hardhat test",
-    "compile": "hardhat compile",
-    "deploy": "hardhat run scripts/deploy.js && hardhat run scripts/publish.js",
-    "watch": "node scripts/watch.js",
-    "accounts": "hardhat accounts",
-    "balance": "hardhat balance",
-    "send": "hardhat send"
+    "compile": "hardhat compile"
   }
 }
