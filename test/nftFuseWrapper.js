@@ -559,7 +559,7 @@ describe('NFT fuse wrapper', () => {
       expect(await NFTFuseWrapper.ownerOf(nameHash)).to.equal(account2)
     })
 
-    it('Will not allow wrapping with a target address of 0x0', async () => {
+    it('Does not allow wrapping with a target address of 0x0', async () => {
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
       await expect(
@@ -567,7 +567,7 @@ describe('NFT fuse wrapper', () => {
       ).to.be.revertedWith('revert ERC1155: mint to the zero address')
     })
 
-    it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
+    it('Does not allow wrapping with a target address of the wrapper contract address.', async () => {
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
 
@@ -583,7 +583,6 @@ describe('NFT fuse wrapper', () => {
     })
 
     it('Allows an account approved by the owner on the .eth registrar to wrap a name.', async () => {
-      // setup .abc with account2 as owner
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
       await BaseRegistrar.setApprovalForAll(account2, true)
@@ -632,7 +631,7 @@ describe('NFT fuse wrapper', () => {
       )
     })
 
-    it('Does not allows fuse to be burned if CANNOT_UNWRAP has not been burned.', async () => {
+    it('Allows fuse to be burned if CANNOT_UNWRAP has been burned.', async () => {
       const CANNOT_UNWRAP = await NFTFuseWrapper.CANNOT_UNWRAP()
       const CANNOT_SET_RESOLVER = await NFTFuseWrapper.CANNOT_SET_RESOLVER()
       const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
@@ -742,9 +741,10 @@ describe('NFT fuse wrapper', () => {
         tokenId
       )
 
-      const ownerInWrapper = await NFTFuseWrapper.ownerOf(wrappedTokenId)
-
-      expect(ownerInWrapper).to.equal(account)
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await BaseRegistrar.ownerOf(tokenId)).to.equal(
+        NFTFuseWrapper.address
+      )
     })
 
     it('Reverts if called by anything other than the ENS registrar address', async () => {
@@ -780,6 +780,11 @@ describe('NFT fuse wrapper', () => {
         tokenId,
         '0x'
       )
+
+      expect(await NFTFuseWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await BaseRegistrar.ownerOf(tokenId)).to.equal(
+        NFTFuseWrapper.address
+      )
     })
     it('Rejects transfers where the data field is not 0 or 96 bits.', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
@@ -789,7 +794,7 @@ describe('NFT fuse wrapper', () => {
           account,
           NFTFuseWrapper.address,
           tokenId,
-          '0x000000'
+          '0x000000' // This should revert as this is not the correct format for fuses
         )
       ).to.be.revertedWith('NFTFuseWrapper: Data is not of length 0 or 12')
     })
@@ -818,7 +823,7 @@ describe('NFT fuse wrapper', () => {
         account,
         NFTFuseWrapper.address,
         tokenId,
-        '0x000000000000000000000005'
+        '0x000000000000000000000005' // CANNOT_UNWRAP | CANNOT_TRANSFER
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
@@ -951,13 +956,11 @@ describe('NFT fuse wrapper', () => {
 
       await NFTFuseWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
 
-      await NFTFuseWrapper.burnFuses(
-        namehash('eth'),
-        tokenId,
-        CAN_DO_EVERYTHING | CANNOT_UNWRAP
-      )
+      await NFTFuseWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_UNWRAP)
 
-      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(1)
+      expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(
+        CANNOT_UNWRAP
+      )
     })
 
     //  (Do we want more granular permissions - ability to create subdomains etc, but not burn fuses?).
@@ -1014,11 +1017,9 @@ describe('NFT fuse wrapper', () => {
         CAN_DO_EVERYTHING | CANNOT_UNWRAP
       )
 
-      await NFTFuseWrapper.burnFuses(
-        namehash('eth'),
-        tokenId,
-        CAN_DO_EVERYTHING | 64
-      )
+      // Each fuse is represented by the next bit, 64 is the next undefined fuse
+
+      await NFTFuseWrapper.burnFuses(namehash('eth'), tokenId, 64)
 
       expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(
         CANNOT_UNWRAP | 64
@@ -1043,7 +1044,7 @@ describe('NFT fuse wrapper', () => {
       await NFTFuseWrapper.burnFuses(namehash('eth'), tokenId, 64)
 
       expect(await NFTFuseWrapper.getFuses(wrappedTokenId)).to.equal(
-        CANNOT_UNWRAP | CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN | 64
+        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN | 64
       )
     })
 
@@ -1167,19 +1168,13 @@ describe('NFT fuse wrapper', () => {
 
       await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
 
-      await NFTFuseWrapper.wrapETH2LD(
-        label,
-        account,
-        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
-      )
+      await NFTFuseWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
       const canCreateSubdomain1 = await NFTFuseWrapper.canCreateSubdomain(
         wrappedTokenId
       )
 
-      expect(canCreateSubdomain1, 'createSubdomain is set to false').to.equal(
-        true
-      )
+      expect(canCreateSubdomain1).to.equal(true)
 
       // can create before burn
 
