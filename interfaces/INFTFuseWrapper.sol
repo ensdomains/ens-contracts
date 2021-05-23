@@ -1,7 +1,4 @@
-pragma solidity >=0.6.0 <0.9.0;
-//import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-
-import "./Resolver.sol";
+pragma solidity ^0.8.4;
 
 abstract contract INFTFuseWrapper {
     event Wrap(

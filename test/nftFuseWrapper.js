@@ -6,8 +6,6 @@ const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
 const n = require('eth-ens-namehash')
 const namehash = n.hash
-const { loadENSContract } = require('../utils/contracts')
-const baseRegistrarJSON = require('./baseRegistrarABI')
 
 use(solidity)
 
@@ -78,23 +76,10 @@ describe('NFT fuse wrapper', () => {
     account = await signers[0].getAddress()
     account2 = await signers[1].getAddress()
 
-    const registryJSON = loadENSContract('ens', 'ENSRegistry')
-
-    const registryContractFactory = new ethers.ContractFactory(
-      registryJSON.abi,
-      registryJSON.bytecode,
-      signers[0]
-    )
-
-    EnsRegistry = await registryContractFactory.deploy()
+    EnsRegistry = await deploy('ENSRegistry');
     EnsRegistry2 = EnsRegistry.connect(signers[1])
 
-    BaseRegistrar = await new ethers.ContractFactory(
-      baseRegistrarJSON.abi,
-      baseRegistrarJSON.bytecode,
-      signers[0]
-    ).deploy(EnsRegistry.address, namehash('eth'))
-
+    BaseRegistrar = await deploy('BaseRegistrarImplementation', [EnsRegistry.address, namehash('eth')]);
     BaseRegistrar2 = BaseRegistrar.connect(signers[1])
 
     console.log(`*** BaseRegistrar deployed at ${BaseRegistrar.address} *** `)

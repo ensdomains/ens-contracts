@@ -1,16 +1,19 @@
+pragma solidity ^0.8.4;
+
 import "./ERC1155.sol";
 import "../interfaces/INFTFuseWrapper.sol";
-import "../interfaces/ENS.sol";
-import "../interfaces/BaseRegistrar.sol";
-import "../interfaces/Resolver.sol";
+import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
+import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
+abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
+
 contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     using BytesUtils for bytes;
     ENS public ens;
-    BaseRegistrar public registrar;
+    BaseRegistrarEx public registrar;
     bytes4 public constant ERC721_RECEIVED = 0x150b7a02;
 
     bytes32 public constant ETH_NODE =
@@ -18,7 +21,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     bytes32 public constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    constructor(ENS _ens, BaseRegistrar _registrar) {
+    constructor(ENS _ens, BaseRegistrarEx _registrar) {
         ens = _ens;
         registrar = _registrar;
 
