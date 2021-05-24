@@ -215,11 +215,13 @@ library BytesUtils {
         }
 
         // Copy remaining bytes
-        uint mask = 256 ** ((32 - len) - 1);
-        assembly {
-            let srcpart := and(mload(src), not(mask))
-            let destpart := and(mload(dest), mask)
-            mstore(dest, or(destpart, srcpart))
+        unchecked {
+            uint mask = (256 ** (32 - len)) - 1;
+            assembly {
+                let srcpart := and(mload(src), not(mask))
+                let destpart := and(mload(dest), mask)
+                mstore(dest, or(destpart, srcpart))
+            }
         }
     }
 
