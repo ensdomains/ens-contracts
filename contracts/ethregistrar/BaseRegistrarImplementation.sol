@@ -57,7 +57,7 @@ contract BaseRegistrarImplementation is ERC721, BaseRegistrar  {
      * @param tokenId uint256 ID of the token to query the owner of
      * @return address currently marked as the owner of the given token ID
      */
-    function ownerOf(uint256 tokenId) public view override returns (address) {
+    function ownerOf(uint256 tokenId) public view override(IERC721, ERC721) returns (address) {
         require(expiries[tokenId] > block.timestamp);
         return super.ownerOf(tokenId);
     }
@@ -146,7 +146,7 @@ contract BaseRegistrarImplementation is ERC721, BaseRegistrar  {
         ens.setSubnodeOwner(baseNode, bytes32(id), owner);
     }
 
-    function supportsInterface(bytes4 interfaceID) public override view returns (bool) {
+    function supportsInterface(bytes4 interfaceID) public override(ERC721, IERC165) view returns (bool) {
         return interfaceID == INTERFACE_META_ID ||
                interfaceID == ERC721_ID ||
                interfaceID == RECLAIM_ID;
