@@ -15,9 +15,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: TASK=lint
-before_script:
-  - ganache-cli > /dev/null &
-  - sleep 5
+
 script:
   - npm run $TASK
 
