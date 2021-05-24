@@ -1,0 +1,27 @@
+sudo: required
+
+dist: trusty
+
+language: node_js
+
+node_js:
+  - '10'
+install:
+  - npm install -g truffle
+  - npm install -g ganache-cli
+  - npm install
+env:
+  - TASK=test
+  - TASK=lint
+matrix:
+  fast_finish: true
+  allow_failures:
+    - env: TASK=lint
+before_script:
+  - ganache-cli > /dev/null &
+  - sleep 5
+script:
+  - npm run $TASK
+
+notifications:
+  email: false

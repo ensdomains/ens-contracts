@@ -1,9 +1,17 @@
-pragma solidity >=0.6.0 <0.9.0;
-//import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+pragma solidity ^0.8.4;
 
-import "./Resolver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-abstract contract INFTFuseWrapper {
+uint96 constant CANNOT_UNWRAP = 1;
+uint96 constant CANNOT_BURN_FUSES = 2;
+uint96 constant CANNOT_TRANSFER = 4;
+uint96 constant CANNOT_SET_RESOLVER = 8;
+uint96 constant CANNOT_SET_TTL = 16;
+uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
+uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
+uint96 constant CAN_DO_EVERYTHING = 0;
+
+interface INFTFuseWrapper is IERC1155 {
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
@@ -30,19 +38,19 @@ abstract contract INFTFuseWrapper {
         string calldata label,
         address wrappedOwner,
         uint96 _fuses
-    ) public virtual;
+    ) external;
 
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
         uint96 _fuses
-    ) public virtual;
+    ) external;
 
     function unwrap(
         bytes32 node,
         bytes32 label,
         address owner
-    ) public virtual;
+    ) external;
 
     function setSubnodeRecordAndWrap(
         bytes32 node,
@@ -51,41 +59,27 @@ abstract contract INFTFuseWrapper {
         address resolver,
         uint64 ttl,
         uint96 _fuses
-    ) public virtual returns (bytes32);
+    ) external returns (bytes32);
 
     function setSubnodeOwner(
         bytes32 node,
         bytes32 label,
         address owner
-    ) public virtual returns (bytes32);
+    ) external returns (bytes32);
 
     function setSubnodeOwnerAndWrap(
         bytes32 node,
         string calldata label,
         address newOwner,
         uint96 _fuses
-    ) public virtual returns (bytes32);
+    ) external returns (bytes32);
 
     function isOwnerOrApproved(bytes32 node, address addr)
-        public
-        virtual
+        external 
+      
         returns (bool);
 
-    function setResolver(bytes32 node, address resolver) public virtual;
+    function setResolver(bytes32 node, address resolver) external;
 
-    function setTTL(bytes32 node, uint64 ttl) public virtual;
-
-    uint96 public constant CANNOT_UNWRAP = 1;
-    uint96 public constant CANNOT_BURN_FUSES = 2;
-    uint96 public constant CANNOT_TRANSFER = 4;
-    uint96 public constant CANNOT_SET_RESOLVER = 8;
-    uint96 public constant CANNOT_SET_TTL = 16;
-    uint96 public constant CANNOT_CREATE_SUBDOMAIN = 32;
-    uint96 public constant CANNOT_REPLACE_SUBDOMAIN = 64;
-    uint96 public constant CAN_DO_EVERYTHING = 0;
-    uint96 public constant MINIMUM_PARENT_FUSES =
-        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN;
+    function setTTL(bytes32 node, uint64 ttl) external;
 }
-
-// events for wrapping names, unwrap, setFuses
-// Then log the event. parentNode, label (string), fuses, owner
