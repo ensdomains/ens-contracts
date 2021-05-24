@@ -2,6 +2,15 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
+uint96 constant CANNOT_UNWRAP = 1;
+uint96 constant CANNOT_BURN_FUSES = 2;
+uint96 constant CANNOT_TRANSFER = 4;
+uint96 constant CANNOT_SET_RESOLVER = 8;
+uint96 constant CANNOT_SET_TTL = 16;
+uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
+uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
+uint96 constant CAN_DO_EVERYTHING = 0;
+
 abstract contract INFTFuseWrapper is IERC1155 {
     event Wrap(
         bytes32 indexed parentNode,
@@ -73,17 +82,6 @@ abstract contract INFTFuseWrapper is IERC1155 {
     function setResolver(bytes32 node, address resolver) public virtual;
 
     function setTTL(bytes32 node, uint64 ttl) public virtual;
-
-    uint96 public constant CANNOT_UNWRAP = 1;
-    uint96 public constant CANNOT_BURN_FUSES = 2;
-    uint96 public constant CANNOT_TRANSFER = 4;
-    uint96 public constant CANNOT_SET_RESOLVER = 8;
-    uint96 public constant CANNOT_SET_TTL = 16;
-    uint96 public constant CANNOT_CREATE_SUBDOMAIN = 32;
-    uint96 public constant CANNOT_REPLACE_SUBDOMAIN = 64;
-    uint96 public constant CAN_DO_EVERYTHING = 0;
-    uint96 public constant MINIMUM_PARENT_FUSES =
-        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN;
 }
 
 // events for wrapping names, unwrap, setFuses
