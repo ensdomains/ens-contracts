@@ -83,6 +83,3 @@ interface INFTFuseWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 }
-
-// events for wrapping names, unwrap, setFuses
-// Then log the event. parentNode, label (string), fuses, owner
