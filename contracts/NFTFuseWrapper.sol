@@ -43,7 +43,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         public
         view
         virtual
-        override
+        override(ERC1155, IERC165)
         returns (bool)
     {
         return

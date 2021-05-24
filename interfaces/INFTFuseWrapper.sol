@@ -1,6 +1,8 @@
 pragma solidity ^0.8.4;
 
-abstract contract INFTFuseWrapper {
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+
+abstract contract INFTFuseWrapper is IERC1155 {
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
