@@ -51,6 +51,11 @@ import 'ensdomains-ens-contracts/contracts/resolvers/PublicResolver.sol';
 import 'ensdomains-ens-contracts/contracts/resolvers/Resolver.sol';
 ```
 
+##  Accessing to binary file.
+
+If your environment does not have compiler, you can access to the raw hardhat artifacts files at `node_modules/@ensdomains/ens-contracts/artifacts/contracts/${modName}/${contractName}.sol/${contractName}.json`
+
+
 ## Contracts
 
 ## Registry
