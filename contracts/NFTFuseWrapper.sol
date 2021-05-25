@@ -12,8 +12,8 @@ abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
 
 contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     using BytesUtils for bytes;
-    ENS public ens;
-    BaseRegistrarEx public registrar;
+    ENS public immutable ens;
+    BaseRegistrarEx public immutable registrar;
     bytes4 public constant ERC721_RECEIVED = 0x150b7a02;
 
     bytes32 public constant ETH_NODE =
@@ -21,7 +21,11 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     bytes32 public constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    constructor(ENS _ens, BaseRegistrarEx _registrar) {
+    constructor(
+        ENS _ens,
+        BaseRegistrarEx _registrar,
+        string memory uri_
+    ) {
         ens = _ens;
         registrar = _registrar;
 
@@ -37,6 +41,8 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
+
+        _setURI(uri_);
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -530,7 +536,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
 
     /***** Internal functions */
 
-    function _canTransfer(uint96 fuses) internal override returns (bool) {
+    function _canTransfer(uint96 fuses) internal pure override returns (bool) {
         return fuses & CANNOT_TRANSFER == 0;
     }
 

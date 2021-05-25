@@ -13,6 +13,9 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
+    // Used as the URI for all token types by relying on ID substitution, e.g. https://token-cdn-domain/{id}.json
+    string private _uri;
+
     /**************************************************************************
      * ERC721 methods
      *************************************************************************/
@@ -42,7 +45,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
      * @dev See {IERC1155Metadata-uri}.
      */
     function uri(uint256) public view virtual override returns (string memory) {
-        return "";
+        return _uri;
     }
 
     /**
@@ -184,8 +187,6 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
         _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
     }
 
-    function _canTransfer(uint96 fuses) internal virtual returns (bool);
-
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
      */
@@ -238,6 +239,31 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     /**************************************************************************
      * Internal/private methods
      *************************************************************************/
+
+    /**
+     * @dev Sets a new URI for all token types, by relying on the token type ID
+     * substitution mechanism
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
+     *
+     * By this mechanism, any occurrence of the `\{id\}` substring in either the
+     * URI or any of the amounts in the JSON file at said URI will be replaced by
+     * clients with the token type ID.
+     *
+     * For example, the `https://token-cdn-domain/\{id\}.json` URI would be
+     * interpreted by clients as
+     * `https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json`
+     * for token type ID 0x4cce0.
+     *
+     * See {uri}.
+     *
+     * Because these URIs cannot be meaningfully represented by the {URI} event,
+     * this function emits no events.
+     */
+    function _setURI(string memory newuri) internal virtual {
+        _uri = newuri;
+    }
+
+    function _canTransfer(uint96 fuses) internal virtual returns (bool);
 
     function _doSafeTransferAcceptanceCheck(
         address operator,

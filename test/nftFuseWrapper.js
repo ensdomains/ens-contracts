@@ -14,8 +14,6 @@ const ROOT_NODE =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-const addresses = {}
-
 async function deploy(name, _args) {
   const args = _args || []
 
@@ -26,7 +24,6 @@ async function deploy(name, _args) {
   fs.writeFileSync(`artifacts/${name}.address`, contract.address)
   console.log('\n')
   contract.name = name
-  addresses[name] = contract.address
   return contract
 }
 
@@ -94,6 +91,7 @@ describe('NFT fuse wrapper', () => {
     NFTFuseWrapper = await deploy('NFTFuseWrapper', [
       EnsRegistry.address,
       BaseRegistrar.address,
+      'https://ens.domains',
     ])
     NFTFuseWrapper2 = NFTFuseWrapper.connect(signers[1])
 
