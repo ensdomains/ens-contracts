@@ -6,7 +6,9 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
+/* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. */
+
+abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
     mapping(uint256 => uint256) public _tokens;
 
@@ -147,7 +149,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev Sets the Name's owner address and fuses
      */
-    function setData(
+    function _setData(
         uint256 tokenId,
         address owner,
         uint96 fuses
@@ -174,13 +176,13 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
         (address oldOwner, uint96 fuses) = getData(id);
         require(
             _canTransfer(fuses),
-            "NameWrapper: Fuse already burned for setting owner"
+            "NameWrapper: Fuse already burned for transferring owner"
         );
         require(
             amount == 1 && oldOwner == from,
             "ERC1155: Insufficient balance for transfer"
         );
-        setData(id, to, fuses);
+        _setData(id, to, fuses);
 
         emit TransferSingle(msg.sender, from, to, id, amount);
 
@@ -221,7 +223,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
                 amount == 1 && oldOwner == from,
                 "ERC1155: insufficient balance for transfer"
             );
-            setData(id, to, fuses);
+            _setData(id, to, fuses);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, amounts);

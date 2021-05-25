@@ -518,7 +518,11 @@ describe('NFT fuse wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await expect(NameWrapper2.wrapETH2LD(label, account, 0)).to.be.reverted
+      await expect(
+        NameWrapper2.wrapETH2LD(label, account, 0)
+      ).to.be.revertedWith(
+        'revert NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar'
+      )
     })
 
     it('Can wrap a name even if the controller address is different to the registrant address.', async () => {
@@ -860,7 +864,6 @@ describe('NFT fuse wrapper', () => {
       expect(await NameWrapper.getFuses(wrappedTokenId)).to.equal(CANNOT_UNWRAP)
     })
 
-    //  (Do we want more granular permissions - ability to create subdomains etc, but not burn fuses?).
     it('Can be called by an account authorised by the owner', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
@@ -951,13 +954,15 @@ describe('NFT fuse wrapper', () => {
       expect(await NameWrapper.canBurnFuses(wrappedTokenId)).to.equal(false)
 
       //try to set the resolver and ttl
-      expect(
+      await expect(
         NameWrapper.burnFuses(
           namehash('eth'),
           tokenId,
           CANNOT_REPLACE_SUBDOMAIN
         )
-      ).to.be.reverted
+      ).to.be.revertedWith(
+        'revert NameWrapper: Fuse has been burned for burning fuses'
+      )
     })
 
     it('can set fuses and burn transfer', async () => {
@@ -982,9 +987,11 @@ describe('NFT fuse wrapper', () => {
       expect(await NameWrapper.canTransfer(wrappedTokenId)).to.equal(false)
 
       //try to set the resolver and ttl
-      expect(
+      await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
-      ).to.be.reverted
+      ).to.be.revertedWith(
+        'revert NameWrapper: Fuse already burned for transferring owner'
+      )
     })
 
     it('can set fuses and burn canSetResolver and canSetTTL', async () => {
@@ -1012,9 +1019,15 @@ describe('NFT fuse wrapper', () => {
       expect(await NameWrapper.canSetTTL(wrappedTokenId)).to.equal(false)
 
       //try to set the resolver and ttl
-      expect(NameWrapper.setResolver(wrappedTokenId, account)).to.be.reverted
+      await expect(
+        NameWrapper.setResolver(wrappedTokenId, account)
+      ).to.be.revertedWith(
+        'revert NameWrapper: Fuse already burned for setting resolver'
+      )
 
-      expect(NameWrapper.setTTL(wrappedTokenId, 1000)).to.be.reverted
+      await expect(NameWrapper.setTTL(wrappedTokenId, 1000)).to.be.revertedWith(
+        'revert NameWrapper: Fuse already burned for setting TTL'
+      )
     })
 
     it('can set fuses and burn canCreateSubdomains', async () => {
@@ -1070,13 +1083,15 @@ describe('NFT fuse wrapper', () => {
 
       //try to create a subdomain
 
-      expect(
+      await expect(
         NameWrapper.setSubnodeOwner(
           namehash('fuses2.eth'),
           labelhash('uncreateable'),
           account
         )
-      ).to.be.reverted
+      ).to.be.revertedWith(
+        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+      )
 
       //expect replacing subdomain to succeed
     })
@@ -1865,7 +1880,7 @@ describe('NFT fuse wrapper', () => {
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for setting owner'
+        'revert NameWrapper: Fuse already burned for transferring owner'
       )
     })
   })

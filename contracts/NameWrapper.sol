@@ -1,6 +1,6 @@
 pragma solidity ^0.8.4;
 
-import "./ERC1155.sol";
+import "./ERC1155Fuse.sol";
 import "../interfaces/INameWrapper.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
@@ -10,7 +10,7 @@ import "hardhat/console.sol";
 
 abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
 
-contract NameWrapper is ERC1155, INameWrapper {
+contract NameWrapper is ERC1155Fuse, INameWrapper {
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrarEx public immutable registrar;
@@ -31,12 +31,12 @@ contract NameWrapper is ERC1155, INameWrapper {
 
         /* Burn CANNOT_REPLACE_SUBDOMAIN and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
 
-        setData(
+        _setData(
             uint256(ETH_NODE),
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
-        setData(
+        _setData(
             uint256(ROOT_NODE),
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
@@ -49,7 +49,7 @@ contract NameWrapper is ERC1155, INameWrapper {
         public
         view
         virtual
-        override(ERC1155, IERC165)
+        override(ERC1155Fuse, IERC165)
         returns (bool)
     {
         return
@@ -97,7 +97,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return A number that represents the permissions a name has
      */
 
-    function getFuses(bytes32 node) public view returns (uint96) {
+    function getFuses(bytes32 node) public view override returns (uint96) {
         (, uint96 fuses) = getData(uint256(node));
         return fuses;
     }
@@ -109,7 +109,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not can be wrapped
      */
 
-    function canUnwrap(bytes32 node) public view returns (bool) {
+    function canUnwrap(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_UNWRAP == 0;
     }
@@ -121,7 +121,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not can burn fuses
      */
 
-    function canBurnFuses(bytes32 node) public view returns (bool) {
+    function canBurnFuses(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_BURN_FUSES == 0;
     }
@@ -133,7 +133,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not can be transferred
      */
 
-    function canTransfer(bytes32 node) public view returns (bool) {
+    function canTransfer(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_TRANSFER == 0;
     }
@@ -145,7 +145,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not resolver can be set
      */
 
-    function canSetResolver(bytes32 node) public view returns (bool) {
+    function canSetResolver(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_SET_RESOLVER == 0;
     }
@@ -157,7 +157,7 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canSetTTL(bytes32 node) public view returns (bool) {
+    function canSetTTL(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_SET_TTL == 0;
     }
@@ -169,7 +169,12 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not subdomains can be created
      */
 
-    function canCreateSubdomain(bytes32 node) public view returns (bool) {
+    function canCreateSubdomain(bytes32 node)
+        public
+        view
+        override
+        returns (bool)
+    {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_CREATE_SUBDOMAIN == 0;
     }
@@ -181,7 +186,12 @@ contract NameWrapper is ERC1155, INameWrapper {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canReplaceSubdomain(bytes32 node) public view returns (bool) {
+    function canReplaceSubdomain(bytes32 node)
+        public
+        view
+        override
+        returns (bool)
+    {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_REPLACE_SUBDOMAIN == 0;
     }
@@ -284,7 +294,7 @@ contract NameWrapper is ERC1155, INameWrapper {
         bytes32 label,
         address newRegistrant,
         address newController
-    ) public ownerOnly(_makeNode(ETH_NODE, label)) {
+    ) public override ownerOnly(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
         emit UnwrapETH2LD(label, newRegistrant, newController);
@@ -338,7 +348,7 @@ contract NameWrapper is ERC1155, INameWrapper {
 
         (address owner, uint96 fuses) = getData(uint256(node));
 
-        setData(uint256(node), owner, fuses | _fuses);
+        _setData(uint256(node), owner, fuses | _fuses);
 
         require(
             !canUnwrap(node),
@@ -559,7 +569,7 @@ contract NameWrapper is ERC1155, INameWrapper {
             newOwner != address(this),
             "NameWrapper: newOwner cannot be the NameWrapper contract"
         );
-        setData(tokenId, newOwner, _fuses);
+        _setData(tokenId, newOwner, _fuses);
 
         if (_fuses != CAN_DO_EVERYTHING) {
             require(
@@ -578,7 +588,7 @@ contract NameWrapper is ERC1155, INameWrapper {
     function _burn(uint256 tokenId) private {
         address owner = ownerOf(tokenId);
         // Clear fuses and set owner to 0
-        setData(tokenId, address(0x0), 0);
+        _setData(tokenId, address(0x0), 0);
         emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
     }
 

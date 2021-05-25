@@ -52,6 +52,12 @@ interface INameWrapper is IERC1155 {
         address owner
     ) external;
 
+    function unwrapETH2LD(
+        bytes32 label,
+        address newRegistrant,
+        address newController
+    ) external;
+
     function setSubnodeRecordAndWrap(
         bytes32 node,
         string calldata label,
@@ -81,4 +87,20 @@ interface INameWrapper is IERC1155 {
     function setResolver(bytes32 node, address resolver) external;
 
     function setTTL(bytes32 node, uint64 ttl) external;
+
+    function getFuses(bytes32 node) external returns (uint96);
+
+    function canUnwrap(bytes32 node) external view returns (bool);
+
+    function canBurnFuses(bytes32 node) external view returns (bool);
+
+    function canTransfer(bytes32 node) external view returns (bool);
+
+    function canSetResolver(bytes32 node) external view returns (bool);
+
+    function canSetTTL(bytes32 node) external view returns (bool);
+
+    function canCreateSubdomain(bytes32 node) external view returns (bool);
+
+    function canReplaceSubdomain(bytes32 node) external view returns (bool);
 }
