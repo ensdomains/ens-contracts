@@ -174,7 +174,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
         (address oldOwner, uint96 fuses) = getData(id);
         require(
             _canTransfer(fuses),
-            "NFTFuseWrapper: Fuse already burned for setting owner"
+            "NameWrapper: Fuse already burned for setting owner"
         );
         require(
             amount == 1 && oldOwner == from,

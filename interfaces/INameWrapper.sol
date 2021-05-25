@@ -11,7 +11,7 @@ uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
 uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
-interface INFTFuseWrapper is IERC1155 {
+interface INameWrapper is IERC1155 {
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
@@ -75,8 +75,7 @@ interface INFTFuseWrapper is IERC1155 {
     ) external returns (bytes32);
 
     function isOwnerOrApproved(bytes32 node, address addr)
-        external 
-      
+        external
         returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
