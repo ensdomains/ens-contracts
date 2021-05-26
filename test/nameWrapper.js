@@ -2031,7 +2031,7 @@ describe('Name Wrapper', () => {
 
   describe('MetaDataService', () => {
     it('uri() returns url', async () => {
-      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
+      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains/123')
     })
 
     it('owner can set a new MetaDataService', async () => {
