@@ -78,8 +78,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @return String uri of the metadata service
      */
 
-    function uri() public view override returns (string memory) {
-        return metaDataService.uri();
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        return metaDataService.uri(tokenId);
     }
 
     /**

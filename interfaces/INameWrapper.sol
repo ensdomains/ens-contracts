@@ -108,6 +108,4 @@ interface INameWrapper is IERC1155 {
     function canReplaceSubdomain(bytes32 node) external view returns (bool);
 
     function setMetaDataService(IMetaDataService _newMetaDataService) external;
-
-    function uri() external view returns (string memory);
 }

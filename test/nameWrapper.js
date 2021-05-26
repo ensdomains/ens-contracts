@@ -2028,4 +2028,10 @@ describe('Name Wrapper', () => {
       )
     })
   })
+
+  describe('MetaDataService', () => {
+    it.only('uri() returns url', async () => {
+      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
+    })
+  })
 })

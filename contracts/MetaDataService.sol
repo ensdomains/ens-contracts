@@ -7,7 +7,7 @@ contract MetaDataService {
         _uri = _metaDataUri;
     }
 
-    function uri() public view returns (string memory) {
+    function uri(uint256) public view returns (string memory) {
         return _uri;
     }
 }
