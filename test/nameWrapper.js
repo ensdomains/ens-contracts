@@ -2036,6 +2036,7 @@ describe('Name Wrapper', () => {
 
     it('owner can set a new MetaDataService', async () => {
       await NameWrapper.setMetaDataService(account2)
+      expect(await NameWrapper.metaDataService()).to.equal(account2)
     })
 
     it('non-owner cannot set a new MetaDataService', async () => {
