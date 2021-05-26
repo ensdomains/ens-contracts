@@ -2030,8 +2030,18 @@ describe('Name Wrapper', () => {
   })
 
   describe('MetaDataService', () => {
-    it.only('uri() returns url', async () => {
+    it('uri() returns url', async () => {
       expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
+    })
+
+    it.only('owner can set a new MetaDataService', async () => {
+      await NameWrapper.setMetaDataService(account2)
+    })
+
+    it.only('non-owner cannot set a new MetaDataService', async () => {
+      await expect(
+        NameWrapper2.setMetaDataService(account2)
+      ).to.be.revertedWith('revert Ownable: caller is not the owner')
     })
   })
 })
