@@ -53,6 +53,7 @@ describe('Name Wrapper', () => {
   let BaseRegistrar2
   let NameWrapper
   let NameWrapper2
+  let MetaDataService
   let signers
   let accounts
   let account
@@ -90,10 +91,12 @@ describe('Name Wrapper', () => {
     await BaseRegistrar.addController(account)
     await BaseRegistrar.addController(account2)
 
+    MetaDataService = await deploy('MetaDataService', ['https://ens.domains'])
+
     NameWrapper = await deploy('NameWrapper', [
       EnsRegistry.address,
       BaseRegistrar.address,
-      'https://ens.domains',
+      MetaDataService.address,
     ])
     NameWrapper2 = NameWrapper.connect(signers[1])
 
