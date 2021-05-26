@@ -6,6 +6,7 @@ const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
 const n = require('eth-ens-namehash')
 const namehash = n.hash
+const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour');
 
 use(solidity)
 
@@ -56,6 +57,7 @@ describe('NFT fuse wrapper', () => {
   let NFTFuseWrapper
   let NFTFuseWrapper2
   let signers
+  let accounts
   let account
   let account2
   let result
@@ -130,6 +132,16 @@ describe('NFT fuse wrapper', () => {
   afterEach(async () => {
     await ethers.provider.send('evm_revert', [result])
   })
+
+  shouldBehaveLikeERC1155(() => [NFTFuseWrapper, signers], [namehash('test1.eth'), namehash('test2.eth'), namehash('doesnotexist.eth')], async (firstAddress, secondAddress) => {
+    await BaseRegistrar.setApprovalForAll(NFTFuseWrapper.address, true)
+
+    await BaseRegistrar.register(labelhash('test1'), account, 84600);
+    await NFTFuseWrapper.wrapETH2LD('test1', firstAddress, CAN_DO_EVERYTHING);
+
+    await BaseRegistrar.register(labelhash('test2'), account, 86400);
+    await NFTFuseWrapper.wrapETH2LD('test2', secondAddress, CAN_DO_EVERYTHING);
+  });
 
   describe('wrap()', () => {
     it('Wraps a name if you are the owner', async () => {
