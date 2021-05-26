@@ -175,7 +175,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
         );
         require(
             amount == 1 && oldOwner == from,
-            "ERC1155: Insufficient balance for transfer"
+            "ERC1155: insufficient balance for transfer"
         );
         setData(id, to, fuses);
 
