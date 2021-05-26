@@ -62,9 +62,9 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
      * @param node namehash of the name to check
      */
 
-    modifier ownerOnly(bytes32 node) {
+    modifier onlytokenOwner(bytes32 node) {
         require(
-            isOwnerOrApproved(node, msg.sender),
+            isTokenOwnerOrApproved(node, msg.sender),
             "NameWrapper: msg.sender is not the owner or approved"
         );
         _;
@@ -77,7 +77,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
      * @return whether or not is owner or approved
      */
 
-    function isOwnerOrApproved(bytes32 node, address addr)
+    function isTokenOwnerOrApproved(bytes32 node, address addr)
         public
         view
         override
@@ -294,7 +294,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         bytes32 label,
         address newRegistrant,
         address newController
-    ) public override ownerOnly(_makeNode(ETH_NODE, label)) {
+    ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
         emit UnwrapETH2LD(label, newRegistrant, newController);
@@ -312,7 +312,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         bytes32 parentNode,
         bytes32 label,
         address newController
-    ) public override ownerOnly(_makeNode(parentNode, label)) {
+    ) public override onlyTokenOwner(_makeNode(parentNode, label)) {
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth names must be unwrapped with unwrapETH2LD()"
@@ -333,7 +333,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         bytes32 parentNode,
         bytes32 labelhash,
         uint96 _fuses
-    ) public ownerOnly(_makeNode(parentNode, labelhash)) {
+    ) public onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         bytes32 node = _makeNode(parentNode, labelhash);
 
         require(
@@ -348,12 +348,16 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
 
         (address owner, uint96 fuses) = getData(uint256(node));
 
-        _setData(uint256(node), owner, fuses | _fuses);
+        uint96 newFuses = fuses | _fuses;
+
+        _setData(uint256(node), owner, newFuses);
 
         require(
             !canUnwrap(node),
             "NameWrapper: Domain has not burned unwrap fuse"
         );
+
+        emit BurnFuses(node, newFuses);
     }
 
     /**
@@ -370,7 +374,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         address owner,
         address resolver,
         uint64 ttl
-    ) public ownerOnly(node) {
+    ) public onlyTokenOwner(node) {
         require(
             canCallSetSubnodeOwner(node, label),
             "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
@@ -390,7 +394,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         bytes32 node,
         bytes32 label,
         address owner
-    ) public override ownerOnly(node) returns (bytes32) {
+    ) public override onlyTokenOwner(node) returns (bytes32) {
         require(
             canCallSetSubnodeOwner(node, label),
             "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
@@ -456,7 +460,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         address owner,
         address resolver,
         uint64 ttl
-    ) public ownerOnly(node) {
+    ) public onlyTokenOwner(node) {
         require(
             canTransfer(node),
             "NameWrapper: Fuse is burned for transferring"
@@ -480,7 +484,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
     function setResolver(bytes32 node, address resolver)
         public
         override
-        ownerOnly(node)
+        onlyTokenOwner(node)
     {
         require(
             canSetResolver(node),
@@ -495,7 +499,11 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
      * @param ttl TTL in the registry
      */
 
-    function setTTL(bytes32 node, uint64 ttl) public override ownerOnly(node) {
+    function setTTL(bytes32 node, uint64 ttl)
+        public
+        override
+        onlyTokenOwner(node)
+    {
         require(
             canSetTTL(node),
             "NameWrapper: Fuse already burned for setting TTL"
@@ -621,6 +629,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             _burn(uint256(node));
+            emit UnwrapETH2LD(label, address(0), address(0));
         }
         _mint(ETH_NODE, node, wrappedOwner, _fuses);
 

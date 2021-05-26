@@ -33,6 +33,8 @@ interface INameWrapper is IERC1155 {
         address controller
     );
 
+    event BurnFuses(bytes32 indexed node, uint96 fuses);
+
     function wrap(
         bytes32 node,
         string calldata label,
@@ -80,7 +82,7 @@ interface INameWrapper is IERC1155 {
         uint96 _fuses
     ) external returns (bytes32);
 
-    function isOwnerOrApproved(bytes32 node, address addr)
+    function isTokenOwnerOrApproved(bytes32 node, address addr)
         external
         returns (bool);
 
