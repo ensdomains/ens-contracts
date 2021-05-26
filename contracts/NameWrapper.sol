@@ -62,7 +62,7 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
      * @param node namehash of the name to check
      */
 
-    modifier onlytokenOwner(bytes32 node) {
+    modifier onlyTokenOwner(bytes32 node) {
         require(
             isTokenOwnerOrApproved(node, msg.sender),
             "NameWrapper: msg.sender is not the owner or approved"
