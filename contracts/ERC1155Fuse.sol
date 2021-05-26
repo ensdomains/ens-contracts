@@ -6,12 +6,17 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
+/* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. */
+
+abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
     mapping(uint256 => uint256) public _tokens;
 
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
+
+    // Used as the URI for all token types by relying on ID substitution, e.g. https://token-cdn-domain/{id}.json
+    string private _uri;
 
     /**************************************************************************
      * ERC721 methods
@@ -42,7 +47,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
      * @dev See {IERC1155Metadata-uri}.
      */
     function uri(uint256) public view virtual override returns (string memory) {
-        return "";
+        return _uri;
     }
 
     /**
@@ -144,7 +149,7 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev Sets the Name's owner address and fuses
      */
-    function setData(
+    function _setData(
         uint256 tokenId,
         address owner,
         uint96 fuses
@@ -171,20 +176,18 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
         (address oldOwner, uint96 fuses) = getData(id);
         require(
             _canTransfer(fuses),
-            "NFTFuseWrapper: Fuse already burned for setting owner"
+            "NameWrapper: Fuse already burned for transferring owner"
         );
         require(
             amount == 1 && oldOwner == from,
             "ERC1155: insufficient balance for transfer"
         );
-        setData(id, to, fuses);
+        _setData(id, to, fuses);
 
         emit TransferSingle(msg.sender, from, to, id, amount);
 
         _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
     }
-
-    function _canTransfer(uint96 fuses) internal virtual returns (bool);
 
     /**
      * @dev See {IERC1155-safeBatchTransferFrom}.
@@ -214,13 +217,13 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
 
             require(
                 _canTransfer(fuses),
-                "NFTFuseWrapper: Fuse already burned for setting owner"
+                "NameWrapper: Fuse already burned for transferring owner"
             );
             require(
                 amount == 1 && oldOwner == from,
                 "ERC1155: insufficient balance for transfer"
             );
-            setData(id, to, fuses);
+            _setData(id, to, fuses);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, amounts);
@@ -238,6 +241,31 @@ abstract contract ERC1155 is ERC165, IERC1155, IERC1155MetadataURI {
     /**************************************************************************
      * Internal/private methods
      *************************************************************************/
+
+    /**
+     * @dev Sets a new URI for all token types, by relying on the token type ID
+     * substitution mechanism
+     * https://eips.ethereum.org/EIPS/eip-1155#metadata[defined in the EIP].
+     *
+     * By this mechanism, any occurrence of the `\{id\}` substring in either the
+     * URI or any of the amounts in the JSON file at said URI will be replaced by
+     * clients with the token type ID.
+     *
+     * For example, the `https://token-cdn-domain/\{id\}.json` URI would be
+     * interpreted by clients as
+     * `https://token-cdn-domain/000000000000000000000000000000000000000000000000000000000004cce0.json`
+     * for token type ID 0x4cce0.
+     *
+     * See {uri}.
+     *
+     * Because these URIs cannot be meaningfully represented by the {URI} event,
+     * this function emits no events.
+     */
+    function _setURI(string memory newuri) internal virtual {
+        _uri = newuri;
+    }
+
+    function _canTransfer(uint96 fuses) internal virtual returns (bool);
 
     function _doSafeTransferAcceptanceCheck(
         address operator,

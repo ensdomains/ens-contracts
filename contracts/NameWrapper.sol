@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
-import "./ERC1155.sol";
-import "../interfaces/INFTFuseWrapper.sol";
+import "./ERC1155Fuse.sol";
+import "../interfaces/INameWrapper.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -10,10 +10,10 @@ import "hardhat/console.sol";
 
 abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
 
-contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
+contract NameWrapper is ERC1155Fuse, INameWrapper {
     using BytesUtils for bytes;
-    ENS public ens;
-    BaseRegistrarEx public registrar;
+    ENS public immutable ens;
+    BaseRegistrarEx public immutable registrar;
     bytes4 public constant ERC721_RECEIVED = 0x150b7a02;
 
     bytes32 public constant ETH_NODE =
@@ -21,33 +21,39 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     bytes32 public constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    constructor(ENS _ens, BaseRegistrarEx _registrar) {
+    constructor(
+        ENS _ens,
+        BaseRegistrarEx _registrar,
+        string memory uri_
+    ) {
         ens = _ens;
         registrar = _registrar;
 
         /* Burn CANNOT_REPLACE_SUBDOMAIN and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
 
-        setData(
+        _setData(
             uint256(ETH_NODE),
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
-        setData(
+        _setData(
             uint256(ROOT_NODE),
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
+
+        _setURI(uri_);
     }
 
     function supportsInterface(bytes4 interfaceId)
         public
         view
         virtual
-        override(ERC1155, IERC165)
+        override(ERC1155Fuse, IERC165)
         returns (bool)
     {
         return
-            interfaceId == type(INFTFuseWrapper).interfaceId ||
+            interfaceId == type(INameWrapper).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -56,10 +62,10 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @param node namehash of the name to check
      */
 
-    modifier ownerOnly(bytes32 node) {
+    modifier onlyTokenOwner(bytes32 node) {
         require(
-            isOwnerOrApproved(node, msg.sender),
-            "NFTFuseWrapper: msg.sender is not the owner or approved"
+            isTokenOwnerOrApproved(node, msg.sender),
+            "NameWrapper: msg.sender is not the owner or approved"
         );
         _;
     }
@@ -71,7 +77,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return whether or not is owner or approved
      */
 
-    function isOwnerOrApproved(bytes32 node, address addr)
+    function isTokenOwnerOrApproved(bytes32 node, address addr)
         public
         view
         override
@@ -91,7 +97,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return A number that represents the permissions a name has
      */
 
-    function getFuses(bytes32 node) public view returns (uint96) {
+    function getFuses(bytes32 node) public view override returns (uint96) {
         (, uint96 fuses) = getData(uint256(node));
         return fuses;
     }
@@ -103,7 +109,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not can be wrapped
      */
 
-    function canUnwrap(bytes32 node) public view returns (bool) {
+    function canUnwrap(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_UNWRAP == 0;
     }
@@ -115,7 +121,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not can burn fuses
      */
 
-    function canBurnFuses(bytes32 node) public view returns (bool) {
+    function canBurnFuses(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_BURN_FUSES == 0;
     }
@@ -127,7 +133,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not can be transferred
      */
 
-    function canTransfer(bytes32 node) public view returns (bool) {
+    function canTransfer(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_TRANSFER == 0;
     }
@@ -139,7 +145,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not resolver can be set
      */
 
-    function canSetResolver(bytes32 node) public view returns (bool) {
+    function canSetResolver(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_SET_RESOLVER == 0;
     }
@@ -151,7 +157,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canSetTTL(bytes32 node) public view returns (bool) {
+    function canSetTTL(bytes32 node) public view override returns (bool) {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_SET_TTL == 0;
     }
@@ -163,7 +169,12 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not subdomains can be created
      */
 
-    function canCreateSubdomain(bytes32 node) public view returns (bool) {
+    function canCreateSubdomain(bytes32 node)
+        public
+        view
+        override
+        returns (bool)
+    {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_CREATE_SUBDOMAIN == 0;
     }
@@ -175,7 +186,12 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canReplaceSubdomain(bytes32 node) public view returns (bool) {
+    function canReplaceSubdomain(bytes32 node)
+        public
+        view
+        override
+        returns (bool)
+    {
         uint96 fuses = getFuses(node);
         return fuses & CANNOT_REPLACE_SUBDOMAIN == 0;
     }
@@ -226,7 +242,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
             owner == msg.sender ||
                 registrar.isApprovedForAll(owner, msg.sender) ||
                 isApprovedForAll(owner, msg.sender),
-            "NFTFuseWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
+            "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
         // transfer the token from the user to this contract
         address currentOwner = registrar.ownerOf(tokenId);
@@ -260,7 +276,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
             owner == msg.sender ||
                 ens.isApprovedForAll(owner, msg.sender) ||
                 isApprovedForAll(owner, msg.sender),
-            "NFTFuseWrapper: Domain is not owned by the sender"
+            "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
         emit Wrap(parentNode, label, wrappedOwner, _fuses);
@@ -278,7 +294,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         bytes32 label,
         address newRegistrant,
         address newController
-    ) public ownerOnly(_makeNode(ETH_NODE, label)) {
+    ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
         emit UnwrapETH2LD(label, newRegistrant, newController);
@@ -296,10 +312,10 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         bytes32 parentNode,
         bytes32 label,
         address newController
-    ) public override ownerOnly(_makeNode(parentNode, label)) {
+    ) public override onlyTokenOwner(_makeNode(parentNode, label)) {
         require(
             parentNode != ETH_NODE,
-            "NFTFuseWrapper: .eth names must be unwrapped with unwrapETH2LD()"
+            "NameWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
         _unwrap(parentNode, label, newController);
         emit Unwrap(parentNode, label, newController);
@@ -317,27 +333,31 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         bytes32 parentNode,
         bytes32 labelhash,
         uint96 _fuses
-    ) public ownerOnly(_makeNode(parentNode, labelhash)) {
+    ) public onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         bytes32 node = _makeNode(parentNode, labelhash);
 
         require(
             canBurnFuses(node),
-            "NFTFuseWrapper: Fuse has been burned for burning fuses"
+            "NameWrapper: Fuse has been burned for burning fuses"
         );
 
         require(
             !canReplaceSubdomain(parentNode),
-            "NFTFuseWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse"
+            "NameWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse"
         );
 
         (address owner, uint96 fuses) = getData(uint256(node));
 
-        setData(uint256(node), owner, fuses | _fuses);
+        uint96 newFuses = fuses | _fuses;
+
+        _setData(uint256(node), owner, newFuses);
 
         require(
             !canUnwrap(node),
-            "NFTFuseWrapper: Domain has not burned unwrap fuse"
+            "NameWrapper: Domain has not burned unwrap fuse"
         );
+
+        emit BurnFuses(node, newFuses);
     }
 
     /**
@@ -354,10 +374,10 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         address owner,
         address resolver,
         uint64 ttl
-    ) public ownerOnly(node) {
+    ) public onlyTokenOwner(node) {
         require(
             canCallSetSubnodeOwner(node, label),
-            "NFTFuseWrapper: Fuse has been burned for creating or replacing a subdomain"
+            "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
         );
 
         return ens.setSubnodeRecord(node, label, owner, resolver, ttl);
@@ -374,10 +394,10 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         bytes32 node,
         bytes32 label,
         address owner
-    ) public override ownerOnly(node) returns (bytes32) {
+    ) public override onlyTokenOwner(node) returns (bytes32) {
         require(
             canCallSetSubnodeOwner(node, label),
-            "NFTFuseWrapper: Fuse has been burned for creating or replacing a subdomain"
+            "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
         );
 
         ens.setSubnodeOwner(node, label, owner);
@@ -440,21 +460,18 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         address owner,
         address resolver,
         uint64 ttl
-    ) public ownerOnly(node) {
+    ) public onlyTokenOwner(node) {
         require(
             canTransfer(node),
-            "NFTFuseWrapper: Fuse is burned for transferring"
+            "NameWrapper: Fuse is burned for transferring"
         );
 
         require(
             canSetResolver(node),
-            "NFTFuseWrapper: Fuse is burned for setting resolver"
+            "NameWrapper: Fuse is burned for setting resolver"
         );
 
-        require(
-            canSetTTL(node),
-            "NFTFuseWrapper: Fuse is burned for setting TTL"
-        );
+        require(canSetTTL(node), "NameWrapper: Fuse is burned for setting TTL");
         ens.setRecord(node, owner, resolver, ttl);
     }
 
@@ -467,11 +484,11 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     function setResolver(bytes32 node, address resolver)
         public
         override
-        ownerOnly(node)
+        onlyTokenOwner(node)
     {
         require(
             canSetResolver(node),
-            "NFTFuseWrapper: Fuse already burned for setting resolver"
+            "NameWrapper: Fuse already burned for setting resolver"
         );
         ens.setResolver(node, resolver);
     }
@@ -482,10 +499,14 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
      * @param ttl TTL in the registry
      */
 
-    function setTTL(bytes32 node, uint64 ttl) public override ownerOnly(node) {
+    function setTTL(bytes32 node, uint64 ttl)
+        public
+        override
+        onlyTokenOwner(node)
+    {
         require(
             canSetTTL(node),
-            "NFTFuseWrapper: Fuse already burned for setting TTL"
+            "NameWrapper: Fuse already burned for setting TTL"
         );
         ens.setTTL(node, ttl);
     }
@@ -510,12 +531,12 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         uint96 fuses = 0;
         require(
             msg.sender == address(registrar),
-            "NFTFuseWrapper: Wrapper only supports .eth ERC721 token transfers"
+            "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
         require(
             data.length == 0 || data.length == 12,
-            "NFTFuseWrapper: Data is not of length 0 or 12"
+            "NameWrapper: Data is not of length 0 or 12"
         );
 
         if (data.length == 12) {
@@ -530,7 +551,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
 
     /***** Internal functions */
 
-    function _canTransfer(uint96 fuses) internal override returns (bool) {
+    function _canTransfer(uint96 fuses) internal pure override returns (bool) {
         return fuses & CANNOT_TRANSFER == 0;
     }
 
@@ -554,19 +575,19 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         require(newOwner != address(0), "ERC1155: mint to the zero address");
         require(
             newOwner != address(this),
-            "NFTFuseWrapper: newOwner cannot be the NFTFuseWrapper contract"
+            "NameWrapper: newOwner cannot be the NameWrapper contract"
         );
-        setData(tokenId, newOwner, _fuses);
+        _setData(tokenId, newOwner, _fuses);
 
         if (_fuses != CAN_DO_EVERYTHING) {
             require(
                 !canReplaceSubdomain(parentNode),
-                "NFTFuseWrapper: Cannot burn fuses: parent name can replace subdomain"
+                "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
             );
 
             require(
                 !canUnwrap(node),
-                "NFTFuseWrapper: Cannot burn fuses: domain can be unwrapped"
+                "NameWrapper: Cannot burn fuses: domain can be unwrapped"
             );
         }
         emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
@@ -575,7 +596,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     function _burn(uint256 tokenId) private {
         address owner = ownerOf(tokenId);
         // Clear fuses and set owner to 0
-        setData(tokenId, address(0x0), 0);
+        _setData(tokenId, address(0x0), 0);
         emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
     }
 
@@ -587,7 +608,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
     ) private {
         require(
             parentNode != ETH_NODE,
-            "NFTFuseWrapper: .eth domains need to use wrapETH2LD()"
+            "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
 
         bytes32 node = _makeNode(parentNode, label);
@@ -608,6 +629,7 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             _burn(uint256(node));
+            emit UnwrapETH2LD(label, address(0), address(0));
         }
         _mint(ETH_NODE, node, wrappedOwner, _fuses);
 
@@ -622,13 +644,13 @@ contract NFTFuseWrapper is ERC1155, INFTFuseWrapper {
         bytes32 node = _makeNode(parentNode, label);
         require(
             newOwner != address(0x0),
-            "NFTFuseWrapper: Target owner cannot be 0x0"
+            "NameWrapper: Target owner cannot be 0x0"
         );
         require(
             newOwner != address(this),
-            "NFTFuseWrapper: Target owner cannot be the NFTFuseWrapper contract"
+            "NameWrapper: Target owner cannot be the NameWrapper contract"
         );
-        require(canUnwrap(node), "NFTFuseWrapper: Domain is not unwrappable");
+        require(canUnwrap(node), "NameWrapper: Domain is not unwrappable");
 
         // burn token and fuse data
         _burn(uint256(node));

@@ -5,10 +5,8 @@ dist: trusty
 language: node_js
 
 node_js:
-  - '10'
+  - '14'
 install:
-  - npm install -g truffle
-  - npm install -g ganache-cli
   - npm install
 env:
   - TASK=test
@@ -17,9 +15,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: TASK=lint
-before_script:
-  - ganache-cli > /dev/null &
-  - sleep 5
+
 script:
   - npm run $TASK
 

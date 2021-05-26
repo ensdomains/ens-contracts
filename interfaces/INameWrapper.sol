@@ -11,7 +11,7 @@ uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
 uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
-interface INFTFuseWrapper is IERC1155 {
+interface INameWrapper is IERC1155 {
     event Wrap(
         bytes32 indexed parentNode,
         string indexed label,
@@ -33,6 +33,8 @@ interface INFTFuseWrapper is IERC1155 {
         address controller
     );
 
+    event BurnFuses(bytes32 indexed node, uint96 fuses);
+
     function wrap(
         bytes32 node,
         string calldata label,
@@ -50,6 +52,12 @@ interface INFTFuseWrapper is IERC1155 {
         bytes32 node,
         bytes32 label,
         address owner
+    ) external;
+
+    function unwrapETH2LD(
+        bytes32 label,
+        address newRegistrant,
+        address newController
     ) external;
 
     function setSubnodeRecordAndWrap(
@@ -74,12 +82,27 @@ interface INFTFuseWrapper is IERC1155 {
         uint96 _fuses
     ) external returns (bytes32);
 
-    function isOwnerOrApproved(bytes32 node, address addr)
-        external 
-      
+    function isTokenOwnerOrApproved(bytes32 node, address addr)
+        external
         returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
 
     function setTTL(bytes32 node, uint64 ttl) external;
+
+    function getFuses(bytes32 node) external returns (uint96);
+
+    function canUnwrap(bytes32 node) external view returns (bool);
+
+    function canBurnFuses(bytes32 node) external view returns (bool);
+
+    function canTransfer(bytes32 node) external view returns (bool);
+
+    function canSetResolver(bytes32 node) external view returns (bool);
+
+    function canSetTTL(bytes32 node) external view returns (bool);
+
+    function canCreateSubdomain(bytes32 node) external view returns (bool);
+
+    function canReplaceSubdomain(bytes32 node) external view returns (bool);
 }
