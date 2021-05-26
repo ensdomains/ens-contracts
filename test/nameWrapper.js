@@ -111,17 +111,10 @@ describe('Name Wrapper', () => {
       account
     )
 
-    const ethOwner = await EnsRegistry.owner(namehash('eth'))
-    console.log('ethOwner', ethOwner)
-    const ensEthOwner = await EnsRegistry.owner(namehash('ens.eth'))
-
-    console.log('ensEthOwner', ensEthOwner)
-
     //make sure base registrar is owner of eth TLD
-
-    const ownerOfEth = await EnsRegistry.owner(namehash('eth'))
-
-    expect(ownerOfEth).to.equal(BaseRegistrar.address)
+    expect(await EnsRegistry.owner(namehash('eth'))).to.equal(
+      BaseRegistrar.address
+    )
   })
 
   beforeEach(async () => {
