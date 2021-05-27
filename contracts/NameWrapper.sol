@@ -2,19 +2,22 @@ pragma solidity ^0.8.4;
 
 import "./ERC1155Fuse.sol";
 import "../interfaces/INameWrapper.sol";
+import "../interfaces/IMetadataService.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
 abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
 
-contract NameWrapper is ERC1155Fuse, INameWrapper {
+contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrarEx public immutable registrar;
-    bytes4 public constant ERC721_RECEIVED = 0x150b7a02;
+    IMetadataService public metadataService;
+    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
     bytes32 public constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
@@ -24,10 +27,11 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
     constructor(
         ENS _ens,
         BaseRegistrarEx _registrar,
-        string memory uri_
+        IMetadataService _metadataService
     ) {
         ens = _ens;
         registrar = _registrar;
+        metadataService = _metadataService;
 
         /* Burn CANNOT_REPLACE_SUBDOMAIN and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
 
@@ -41,8 +45,6 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
-
-        _setURI(uri_);
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -55,6 +57,29 @@ contract NameWrapper is ERC1155Fuse, INameWrapper {
         return
             interfaceId == type(INameWrapper).interfaceId ||
             super.supportsInterface(interfaceId);
+    }
+
+    /* Metadata service */
+
+    /**
+     * @notice Set the metadata service. only admin can do this
+     */
+
+    function setMetadataService(IMetadataService _newMetadataService)
+        public
+        override
+        onlyOwner()
+    {
+        metadataService = _newMetadataService;
+    }
+
+    /**
+     * @notice Get the metadata uri
+     * @return String uri of the metadata service
+     */
+
+    function uri(uint256 tokenId) public view override returns (string memory) {
+        return metadataService.uri(tokenId);
     }
 
     /**

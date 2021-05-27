@@ -1,6 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "./IMetadataService.sol";
 
 uint96 constant CANNOT_UNWRAP = 1;
 uint96 constant CANNOT_BURN_FUSES = 2;
@@ -105,4 +106,6 @@ interface INameWrapper is IERC1155 {
     function canCreateSubdomain(bytes32 node) external view returns (bool);
 
     function canReplaceSubdomain(bytes32 node) external view returns (bool);
+
+    function setMetadataService(IMetadataService _newMetadataService) external;
 }

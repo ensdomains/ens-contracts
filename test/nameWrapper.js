@@ -53,6 +53,7 @@ describe('Name Wrapper', () => {
   let BaseRegistrar2
   let NameWrapper
   let NameWrapper2
+  let MetaDataservice
   let signers
   let accounts
   let account
@@ -90,10 +91,14 @@ describe('Name Wrapper', () => {
     await BaseRegistrar.addController(account)
     await BaseRegistrar.addController(account2)
 
+    MetaDataservice = await deploy('StaticMetadataService', [
+      'https://ens.domains',
+    ])
+
     NameWrapper = await deploy('NameWrapper', [
       EnsRegistry.address,
       BaseRegistrar.address,
-      'https://ens.domains',
+      MetaDataservice.address,
     ])
     NameWrapper2 = NameWrapper.connect(signers[1])
 
@@ -2023,6 +2028,23 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(
         'revert NameWrapper: Fuse already burned for transferring owner'
       )
+    })
+  })
+
+  describe('MetadataService', () => {
+    it('uri() returns url', async () => {
+      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
+    })
+
+    it('owner can set a new MetadataService', async () => {
+      await NameWrapper.setMetadataService(account2)
+      expect(await NameWrapper.metadataService()).to.equal(account2)
+    })
+
+    it('non-owner cannot set a new MetadataService', async () => {
+      await expect(
+        NameWrapper2.setMetadataService(account2)
+      ).to.be.revertedWith('revert Ownable: caller is not the owner')
     })
   })
 })
