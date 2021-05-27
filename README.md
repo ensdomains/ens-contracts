@@ -4,7 +4,7 @@ The ENS Name Wrapper is a smart contract that can wrap an existing .eth domain o
 
 The other part of the wrapper is to allow for permissions to be burned. This allows a parent name to be able to provably show it cannot take back a subdomain once issued. This would allow other contracts like a subdomain registrar to distribute or sell names without being able to take them back once given out. This is because due to ENS's recursive nature, the parent can always take back the name if the ownership is only governed by the ENS registry.
 
-The NameWrapper is using the `Ownable` module by OpenZepellin, which has only one function, which is setting the current `MetaDataService` contract. This contract is an abstraction to change and set the `uri` for metadata for each token.
+The NameWrapper is using the `Ownable` module by OpenZeppelin, which has only one function, which is setting the current `MetaDataservice` contract. This contract is an abstraction to change and set the `uri` for metadata for each token.
 
 ## Installation and setup
 
