@@ -2,7 +2,7 @@ pragma solidity ^0.8.4;
 
 import "./ERC1155Fuse.sol";
 import "../interfaces/INameWrapper.sol";
-import "../interfaces/IMetaDataService.sol";
+import "../interfaces/IMetadataService.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
@@ -16,7 +16,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrarEx public immutable registrar;
-    IMetaDataService public metaDataService;
+    IMetadataService public metadataService;
     bytes4 public constant ERC721_RECEIVED = 0x150b7a02;
 
     bytes32 public constant ETH_NODE =
@@ -27,11 +27,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     constructor(
         ENS _ens,
         BaseRegistrarEx _registrar,
-        IMetaDataService _metaDataService
+        IMetadataService _metadataService
     ) {
         ens = _ens;
         registrar = _registrar;
-        metaDataService = _metaDataService;
+        metadataService = _metadataService;
 
         /* Burn CANNOT_REPLACE_SUBDOMAIN and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
 
@@ -65,12 +65,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @notice Set the metadata service. only admin can do this
      */
 
-    function setMetaDataService(IMetaDataService _newMetaDataService)
+    function setMetadataService(IMetadataService _newMetadataService)
         public
         override
         onlyOwner()
     {
-        metaDataService = _newMetaDataService;
+        metadataService = _newMetadataService;
     }
 
     /**
@@ -79,7 +79,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function uri(uint256 tokenId) public view override returns (string memory) {
-        return metaDataService.uri(tokenId);
+        return metadataService.uri(tokenId);
     }
 
     /**

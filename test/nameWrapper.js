@@ -53,7 +53,7 @@ describe('Name Wrapper', () => {
   let BaseRegistrar2
   let NameWrapper
   let NameWrapper2
-  let MetaDataService
+  let MetaDataservice
   let signers
   let accounts
   let account
@@ -91,12 +91,14 @@ describe('Name Wrapper', () => {
     await BaseRegistrar.addController(account)
     await BaseRegistrar.addController(account2)
 
-    MetaDataService = await deploy('MetaDataService', ['https://ens.domains'])
+    MetaDataservice = await deploy('StaticMetadataService', [
+      'https://ens.domains',
+    ])
 
     NameWrapper = await deploy('NameWrapper', [
       EnsRegistry.address,
       BaseRegistrar.address,
-      MetaDataService.address,
+      MetaDataservice.address,
     ])
     NameWrapper2 = NameWrapper.connect(signers[1])
 
@@ -2029,19 +2031,19 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('MetaDataService', () => {
+  describe('MetadataService', () => {
     it('uri() returns url', async () => {
-      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains/123')
+      expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
     })
 
-    it('owner can set a new MetaDataService', async () => {
-      await NameWrapper.setMetaDataService(account2)
-      expect(await NameWrapper.metaDataService()).to.equal(account2)
+    it('owner can set a new MetadataService', async () => {
+      await NameWrapper.setMetadataService(account2)
+      expect(await NameWrapper.metadataService()).to.equal(account2)
     })
 
-    it('non-owner cannot set a new MetaDataService', async () => {
+    it('non-owner cannot set a new MetadataService', async () => {
       await expect(
-        NameWrapper2.setMetaDataService(account2)
+        NameWrapper2.setMetadataService(account2)
       ).to.be.revertedWith('revert Ownable: caller is not the owner')
     })
   })
