@@ -85,9 +85,8 @@ describe('Name Wrapper', () => {
       EnsRegistry.address,
       namehash('eth'),
     ])
-    BaseRegistrar2 = BaseRegistrar.connect(signers[1])
 
-    console.log(`*** BaseRegistrar deployed at ${BaseRegistrar.address} *** `)
+    BaseRegistrar2 = BaseRegistrar.connect(signers[1])
 
     await BaseRegistrar.addController(account)
     await BaseRegistrar.addController(account2)
