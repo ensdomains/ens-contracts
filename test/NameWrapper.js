@@ -155,8 +155,7 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      const tx = await NameWrapper.wrap(ROOT_NODE, 'xyz', account, fuses)
-      console.log((await tx.wait()).gasUsed.toNumber())
+      await NameWrapper.wrap(ROOT_NODE, 'xyz', account, fuses)
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
     })
 
@@ -784,7 +783,7 @@ describe('Name Wrapper', () => {
           CANNOT_TRANSFER
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse'
+        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
       )
     })
     it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
@@ -797,7 +796,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(
-        'revert NameWrapper: Domain has not burned unwrap fuse'
+        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 

@@ -280,6 +280,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
         }
+        _checkFuses(ETH_NODE, _fuses);
         _mint(node, wrappedOwner, _fuses);
 
         emit NameWrapped(ETH_NODE, label, wrappedOwner, _fuses);
@@ -369,21 +370,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Fuse has been burned for burning fuses"
         );
 
-        require(
-            !canReplaceSubdomain(parentNode),
-            "NameWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse"
-        );
-
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
+        _checkFuses(parentNode, newFuses);
 
         _setData(uint256(node), owner, newFuses);
-
-        require(
-            !canUnwrap(node),
-            "NameWrapper: Domain has not burned unwrap fuse"
-        );
 
         emit FusesBurned(node, newFuses);
     }
@@ -551,19 +543,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
-    function _mint(
-        bytes32 node,
-        address newOwner,
-        uint96 _fuses
-    ) internal override {
-        super._mint(node, newOwner, _fuses);
-
-        require(
-            _fuses == CAN_DO_EVERYTHING || !canUnwrap(node),
-            "NameWrapper: Cannot burn fuses: domain can be unwrapped"
-        );
-    }
-
     function _wrap(
         bytes32 parentNode,
         string calldata label,
@@ -574,10 +553,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
-        require(
-            _fuses == CAN_DO_EVERYTHING || !canReplaceSubdomain(parentNode),
-            "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
-        );
+        _checkFuses(parentNode, _fuses);
 
         node = _makeNode(parentNode, keccak256(bytes(label)));
 
@@ -604,5 +580,17 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         ens.setOwner(node, newOwner);
 
         emit NameUnwrapped(node, newOwner);
+    }
+
+    function _checkFuses(bytes32 parentNode, uint96 _fuses) internal view {
+        if(_fuses == CAN_DO_EVERYTHING) return;
+        require(
+            !canReplaceSubdomain(parentNode),
+            "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
+        );
+        require(
+            _fuses & CANNOT_UNWRAP != 0,
+            "NameWrapper: Cannot burn fuses: domain can be unwrapped"
+        );
     }
 }
