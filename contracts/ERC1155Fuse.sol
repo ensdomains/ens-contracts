@@ -234,6 +234,30 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
 
     function _canTransfer(uint96 fuses) internal virtual returns (bool);
 
+    function _mint(
+        bytes32 node,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        uint256 tokenId = uint256(node);
+        address owner = ownerOf(tokenId);
+        require(owner == address(0), "ERC1155: mint of existing token");
+        require(newOwner != address(0), "ERC1155: mint to the zero address");
+        require(
+            newOwner != address(this),
+            "ERC1155: newOwner cannot be the NameWrapper contract"
+        );
+        _setData(tokenId, newOwner, _fuses);
+        emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
+    }
+
+    function _burn(uint256 tokenId) internal virtual {
+        address owner = ownerOf(tokenId);
+        // Clear fuses and set owner to 0
+        _setData(tokenId, address(0x0), 0);
+        emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
+    }
+
     function _doSafeTransferAcceptanceCheck(
         address operator,
         address from,
