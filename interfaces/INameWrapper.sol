@@ -21,8 +21,7 @@ interface INameWrapper is IERC1155 {
     );
 
     event NameUnwrapped(
-        bytes32 indexed parentNode,
-        bytes32 indexed labelhash,
+        bytes32 indexed node,
         address owner
     );
 

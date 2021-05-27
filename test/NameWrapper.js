@@ -318,7 +318,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(ROOT_NODE, labelhash('xyz'), account)
+        .withArgs(namehash('xyz'), account)
     })
 
     it('emits TransferSingle event', async () => {
@@ -498,7 +498,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -541,7 +541,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -692,7 +692,7 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, account)
+        .withArgs(namehash('unwrapped.eth'), account)
     })
 
     it('emits TransferSingle event', async () => {
@@ -783,7 +783,7 @@ describe('Name Wrapper', () => {
           CANNOT_TRANSFER
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse'
+        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
       )
     })
     it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
@@ -796,7 +796,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(
-        'revert NameWrapper: Domain has not burned unwrap fuse'
+        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -1824,7 +1824,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called by anyone else.', async () => {
       await expect(
-        NameWrapper2.setResolver(wrappedTokenId, account2)
+        NameWrapper2.setTTL(wrappedTokenId, 3600)
       ).to.be.revertedWith(
         'revert NameWrapper: msg.sender is not the owner or approved'
       )

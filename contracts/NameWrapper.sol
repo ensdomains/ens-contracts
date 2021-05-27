@@ -278,9 +278,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
-            emit NameUnwrapped(ETH_NODE, labelhash, address(0));
+            emit NameUnwrapped(node, address(0));
         }
-        _mint(ETH_NODE, node, wrappedOwner, _fuses);
+        _checkFuses(ETH_NODE, _fuses);
+        _mint(node, wrappedOwner, _fuses);
 
         emit NameWrapped(ETH_NODE, label, wrappedOwner, _fuses);
     }
@@ -300,9 +301,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address wrappedOwner,
         uint96 _fuses
     ) public override {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(parentNode, labelhash);
-        _wrap(parentNode, labelhash, wrappedOwner, _fuses);
+        bytes32 node = _wrap(parentNode, label, wrappedOwner, _fuses);
         address owner = ens.owner(node);
 
         require(
@@ -312,7 +311,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
-        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -328,9 +326,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address newRegistrant,
         address newController
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
-        _unwrap(ETH_NODE, label, newController);
+        _unwrap(_makeNode(ETH_NODE, label), newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
-        emit NameUnwrapped(ETH_NODE, label, newController);
     }
 
     /**
@@ -350,8 +347,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             parentNode != ETH_NODE,
             "NameWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
-        _unwrap(parentNode, label, newController);
-        emit NameUnwrapped(parentNode, label, newController);
+        _unwrap(_makeNode(parentNode, label), newController);
     }
 
     /**
@@ -374,21 +370,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Fuse has been burned for burning fuses"
         );
 
-        require(
-            !canReplaceSubdomain(parentNode),
-            "NameWrapper: Parent has not burned CAN_REPLACE_SUBDOMAIN fuse"
-        );
-
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
+        _checkFuses(parentNode, newFuses);
 
         _setData(uint256(node), owner, newFuses);
-
-        require(
-            !canUnwrap(node),
-            "NameWrapper: Domain has not burned unwrap fuse"
-        );
 
         emit FusesBurned(node, newFuses);
     }
@@ -452,8 +439,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = setSubnodeOwner(parentNode, labelhash, address(this));
-        _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit NameWrapped(parentNode, label, newOwner, _fuses);
+        _wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -476,8 +462,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit NameWrapped(parentNode, label, newOwner, _fuses);
+        _wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -558,49 +543,28 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
-    function _mint(
-        bytes32 parentNode,
-        bytes32 node,
-        address newOwner,
-        uint96 _fuses
-    ) internal {
-        super._mint(node, newOwner, _fuses);
-
-        if (_fuses != CAN_DO_EVERYTHING) {
-            require(
-                !canReplaceSubdomain(parentNode),
-                "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
-            );
-
-            require(
-                !canUnwrap(node),
-                "NameWrapper: Cannot burn fuses: domain can be unwrapped"
-            );
-        }
-    }
-
     function _wrap(
         bytes32 parentNode,
-        bytes32 label,
+        string calldata label,
         address wrappedOwner,
         uint96 _fuses
-    ) private {
+    ) private returns(bytes32 node) {
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
+        _checkFuses(parentNode, _fuses);
 
-        bytes32 node = _makeNode(parentNode, label);
+        node = _makeNode(parentNode, keccak256(bytes(label)));
 
-        _mint(parentNode, node, wrappedOwner, _fuses);
+        _mint(node, wrappedOwner, _fuses);
+        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     function _unwrap(
-        bytes32 parentNode,
-        bytes32 label,
+        bytes32 node,
         address newOwner
     ) private {
-        bytes32 node = _makeNode(parentNode, label);
         require(
             newOwner != address(0x0),
             "NameWrapper: Target owner cannot be 0x0"
@@ -614,5 +578,19 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         // burn token and fuse data
         _burn(uint256(node));
         ens.setOwner(node, newOwner);
+
+        emit NameUnwrapped(node, newOwner);
+    }
+
+    function _checkFuses(bytes32 parentNode, uint96 _fuses) internal view {
+        if(_fuses == CAN_DO_EVERYTHING) return;
+        require(
+            !canReplaceSubdomain(parentNode),
+            "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
+        );
+        require(
+            _fuses & CANNOT_UNWRAP != 0,
+            "NameWrapper: Cannot burn fuses: domain can be unwrapped"
+        );
     }
 }

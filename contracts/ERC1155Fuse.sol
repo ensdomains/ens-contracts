@@ -238,7 +238,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         bytes32 node,
         address newOwner,
         uint96 _fuses
-    ) internal {
+    ) internal virtual {
         uint256 tokenId = uint256(node);
         address owner = ownerOf(tokenId);
         require(owner == address(0), "ERC1155: mint of existing token");
