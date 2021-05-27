@@ -28,6 +28,7 @@
   "scripts": {
     "chain": "hardhat node",
     "test": "hardhat test",
+    "test:local": "hardhat --network localhost test",
     "compile": "hardhat compile",
     "lint": "eslint test/*.js; solium --dir ./contracts"
   }

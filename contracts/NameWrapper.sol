@@ -274,12 +274,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         registrar.reclaim(uint256(labelhash), address(this));
         // mint a new ERC1155 token with fuses
 
-        address oldWrappedOwner = ownerOf(uint256(node));
-        if (oldWrappedOwner != address(0)) {
-            // burn and unwrap old token of old owner
-            _burn(uint256(node));
-            emit NameUnwrapped(node, address(0));
-        }
         _checkFuses(ETH_NODE, _fuses);
         _mint(node, wrappedOwner, _fuses);
 
@@ -543,12 +537,26 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
+    function _mint(
+        bytes32 node,
+        address wrappedOwner,
+        uint96 _fuses
+    ) internal override {
+        address oldWrappedOwner = ownerOf(uint256(node));
+        if (oldWrappedOwner != address(0)) {
+            // burn and unwrap old token of old owner
+            _burn(uint256(node));
+            emit NameUnwrapped(node, address(0));
+        }
+        super._mint(node, wrappedOwner, _fuses);
+    }
+
     function _wrap(
         bytes32 parentNode,
         string calldata label,
         address wrappedOwner,
         uint96 _fuses
-    ) private returns(bytes32 node) {
+    ) private returns (bytes32 node) {
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
@@ -561,10 +569,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
-    function _unwrap(
-        bytes32 node,
-        address newOwner
-    ) private {
+    function _unwrap(bytes32 node, address newOwner) private {
         require(
             newOwner != address(0x0),
             "NameWrapper: Target owner cannot be 0x0"
@@ -583,7 +588,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     }
 
     function _checkFuses(bytes32 parentNode, uint96 _fuses) internal view {
-        if(_fuses == CAN_DO_EVERYTHING) return;
+        if (_fuses == CAN_DO_EVERYTHING) return;
         require(
             !canReplaceSubdomain(parentNode),
             "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
