@@ -271,7 +271,18 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         registrar.transferFrom(currentOwner, address(this), tokenId);
 
         // transfer the ens record back to the new owner (this contract)
-        _wrapETH2LD(labelhash, node, wrappedOwner, _fuses);
+        registrar.reclaim(uint256(labelhash), address(this));
+        // mint a new ERC1155 token with fuses
+
+        address oldWrappedOwner = ownerOf(uint256(node));
+        if (oldWrappedOwner != address(0)) {
+            // burn and unwrap old token of old owner
+            _burn(uint256(node));
+            emit UnwrapETH2LD(labelhash, address(0), address(0));
+        }
+        _mint(ETH_NODE, node, wrappedOwner, _fuses);
+
+        emit Wrap(ETH_NODE, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -533,43 +544,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         ens.setTTL(node, ttl);
     }
 
-    /**
-     * @notice Sets TTL in the registry
-     * @dev only callable by the .eth registrar
-     * @param from owner of the token previously
-     * @param tokenId namehash of the name
-     * @param data data represents the fuses that will be passed when calling transferFrom on the
-     *             .eth registrar
-     */
-
-    function onERC721Received(
-        address,
-        address from,
-        uint256 tokenId,
-        bytes calldata data
-    ) public returns (bytes4) {
-        //check if it's the eth registrar ERC721
-        uint96 fuses = 0;
-        require(
-            msg.sender == address(registrar),
-            "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
-        );
-
-        require(
-            data.length == 0 || data.length == 12,
-            "NameWrapper: Data is not of length 0 or 12"
-        );
-
-        if (data.length == 12) {
-            fuses = data.readUint96(0);
-        }
-
-        bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
-        _wrapETH2LD(bytes32(tokenId), node, from, fuses);
-        emit WrapETH2LD(bytes32(tokenId), from, fuses);
-        return ERC721_RECEIVED;
-    }
-
     /***** Internal functions */
 
     function _canTransfer(uint96 fuses) internal pure override returns (bool) {
@@ -635,26 +609,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         bytes32 node = _makeNode(parentNode, label);
 
         _mint(parentNode, node, wrappedOwner, _fuses);
-    }
-
-    function _wrapETH2LD(
-        bytes32 label,
-        bytes32 node,
-        address wrappedOwner,
-        uint96 _fuses
-    ) private {
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(uint256(label), address(this));
-        // mint a new ERC1155 token with fuses
-
-        address oldWrappedOwner = ownerOf(uint256(node));
-        if (oldWrappedOwner != address(0)) {
-            _burn(uint256(node));
-            emit UnwrapETH2LD(label, address(0), address(0));
-        }
-        _mint(ETH_NODE, node, wrappedOwner, _fuses);
-
-        emit WrapETH2LD(label, wrappedOwner, _fuses);
     }
 
     function _unwrap(
