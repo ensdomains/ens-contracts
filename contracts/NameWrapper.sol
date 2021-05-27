@@ -67,7 +67,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
     function setMetadataService(IMetadataService _newMetadataService)
         public
-        override
         onlyOwner()
     {
         metadataService = _newMetadataService;
