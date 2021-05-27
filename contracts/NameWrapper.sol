@@ -278,7 +278,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
-            emit UnwrapETH2LD(labelhash, address(0), address(0));
+            emit Unwrap(ETH_NODE, labelhash, address(0));
         }
         _mint(ETH_NODE, node, wrappedOwner, _fuses);
 
@@ -330,7 +330,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
-        emit UnwrapETH2LD(label, newRegistrant, newController);
+        emit Unwrap(ETH_NODE, label, newController);
     }
 
     /**

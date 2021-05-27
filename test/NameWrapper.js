@@ -498,8 +498,8 @@ describe('Name Wrapper', () => {
       // TransferSingle to mint the new token
 
       await expect(tx)
-        .to.emit(NameWrapper, 'UnwrapETH2LD')
-        .withArgs(labelHash, EMPTY_ADDRESS, EMPTY_ADDRESS)
+        .to.emit(NameWrapper, 'Unwrap')
+        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -541,8 +541,8 @@ describe('Name Wrapper', () => {
       )
 
       await expect(tx)
-        .to.emit(NameWrapper, 'UnwrapETH2LD')
-        .withArgs(labelHash, EMPTY_ADDRESS, EMPTY_ADDRESS)
+        .to.emit(NameWrapper, 'Unwrap')
+        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -692,8 +692,8 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
-        .to.emit(NameWrapper, 'UnwrapETH2LD')
-        .withArgs(labelHash, account, account)
+        .to.emit(NameWrapper, 'Unwrap')
+        .withArgs(namehash('eth'), labelHash, account)
     })
 
     it('emits TransferSingle event', async () => {
