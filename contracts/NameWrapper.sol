@@ -17,9 +17,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     IMetadataService public metadataService;
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
-    bytes32 public constant ETH_NODE =
+    bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
-    bytes32 public constant ROOT_NODE =
+    bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
     constructor(
