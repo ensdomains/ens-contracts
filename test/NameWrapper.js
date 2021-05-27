@@ -1824,7 +1824,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called by anyone else.', async () => {
       await expect(
-        NameWrapper2.setResolver(wrappedTokenId, account2)
+        NameWrapper2.setTTL(wrappedTokenId, 3600)
       ).to.be.revertedWith(
         'revert NameWrapper: msg.sender is not the owner or approved'
       )
