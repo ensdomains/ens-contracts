@@ -7,6 +7,7 @@ const { solidity } = require('ethereum-waffle')
 const n = require('eth-ens-namehash')
 const namehash = n.hash
 const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
+const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour');
 
 use(solidity)
 
@@ -147,6 +148,8 @@ describe('Name Wrapper', () => {
     }
   )
 
+  shouldSupportInterfaces(() => NameWrapper, ['INameWrapper'])
+
   describe('wrap()', () => {
     it('Wraps a name if you are the owner', async () => {
       const fuses = MINIMUM_PARENT_FUSES
@@ -180,7 +183,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry.', async () => {
-      expect(NameWrapper.wrap(ROOT_NODE, 'xyz', account, 0)).to.be.reverted
+      await expect(NameWrapper.wrap(ROOT_NODE, 'xyz', account, 0)).to.be.reverted
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
@@ -255,7 +258,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrap(ROOT_NODE, 'xyz', account, CANNOT_UNWRAP)
 
       //attempt to burn fuse
-      expect(
+      await expect(
         NameWrapper.wrap(
           namehash('xyz'),
           'sub',
@@ -278,7 +281,7 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
       //attempt to burn fuse
-      expect(
+      await expect(
         NameWrapper.wrap(ROOT_NODE, 'xyz', account, CANNOT_REPLACE_SUBDOMAIN)
       ).to.be.revertedWith(
         'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
@@ -365,10 +368,10 @@ describe('Name Wrapper', () => {
       expect(ownerOfWrapperAbc).to.equal(account2)
 
       //unwrap using account
-      expect(NameWrapper.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
+      await expect(NameWrapper.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
     })
 
-    it('unwrap() - Does not allow anyone else to unwrap a name', async () => {
+    it('Does not allow anyone else to unwrap a name', async () => {
       const labelHash = labelhash('abc')
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
@@ -377,7 +380,7 @@ describe('Name Wrapper', () => {
       const ownerOfWrapperAbc = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrapperAbc).to.equal(account)
       //unwrap using account
-      expect(NameWrapper2.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
+      await expect(NameWrapper2.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
     })
 
     it('Will not unwrap .eth 2LDs.', async () => {
@@ -461,7 +464,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the .eth registrar.', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
-      expect(NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)).to.be
+      await expect(NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)).to.be
         .reverted
     })
 
