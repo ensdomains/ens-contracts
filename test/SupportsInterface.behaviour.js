@@ -53,6 +53,26 @@ const INTERFACES = {
     'getRoleMember(bytes32,uint256)',
     'getRoleMemberCount(bytes32)',
   ],
+  INameWrapper: [
+    'wrap(bytes32,string,address,uint96)',
+    'wrapETH2LD(string,address,uint96)',
+    'unwrap(bytes32,bytes32,address)',
+    'unwrapETH2LD(bytes32,address,address)',
+    'setSubnodeRecordAndWrap(bytes32,string,address,address,uint64,uint96)',
+    'setSubnodeOwner(bytes32,bytes32,address)',
+    'setSubnodeOwnerAndWrap(bytes32,string,address,uint96)',
+    'isTokenOwnerOrApproved(bytes32,address)',
+    'setResolver(bytes32,address)',
+    'setTTL(bytes32,uint64)',
+    'getFuses(bytes32)',
+    'canUnwrap(bytes32)',
+    'canBurnFuses(bytes32)',
+    'canTransfer(bytes32)',
+    'canSetResolver(bytes32)',
+    'canSetTTL(bytes32)',
+    'canCreateSubdomain(bytes32)',
+    'canReplaceSubdomain(bytes32)',
+  ],
 };
 
 const INTERFACE_IDS = {};
@@ -94,6 +114,10 @@ function shouldSupportInterfaces (contractUnderTest, interfaces = []) {
         }
       });
     }
+
+    it('does not implement the forbidden interface', async function () {
+      expect(await this.contractUnderTest.supportsInterface('0xffffffff')).to.equal(false);
+    });
   });
 }
 
