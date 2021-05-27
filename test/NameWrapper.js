@@ -319,7 +319,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(ROOT_NODE, labelhash('xyz'), account)
+        .withArgs(namehash('xyz'), account)
     })
 
     it('emits TransferSingle event', async () => {
@@ -499,7 +499,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -542,7 +542,7 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
@@ -693,7 +693,7 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(namehash('eth'), labelHash, account)
+        .withArgs(namehash('unwrapped.eth'), account)
     })
 
     it('emits TransferSingle event', async () => {

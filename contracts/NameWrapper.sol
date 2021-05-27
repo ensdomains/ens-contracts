@@ -278,9 +278,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
-            emit NameUnwrapped(ETH_NODE, labelhash, address(0));
+            emit NameUnwrapped(node, address(0));
         }
-        _mint(ETH_NODE, node, wrappedOwner, _fuses);
+        _mint(node, wrappedOwner, _fuses);
 
         emit NameWrapped(ETH_NODE, label, wrappedOwner, _fuses);
     }
@@ -325,9 +325,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address newRegistrant,
         address newController
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
-        _unwrap(ETH_NODE, label, newController);
+        _unwrap(_makeNode(ETH_NODE, label), newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
-        emit NameUnwrapped(ETH_NODE, label, newController);
     }
 
     /**
@@ -347,8 +346,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             parentNode != ETH_NODE,
             "NameWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
-        _unwrap(parentNode, label, newController);
-        emit NameUnwrapped(parentNode, label, newController);
+        _unwrap(_makeNode(parentNode, label), newController);
     }
 
     /**
@@ -554,24 +552,16 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     }
 
     function _mint(
-        bytes32 parentNode,
         bytes32 node,
         address newOwner,
         uint96 _fuses
-    ) internal {
+    ) internal override {
         super._mint(node, newOwner, _fuses);
 
-        if (_fuses != CAN_DO_EVERYTHING) {
-            require(
-                !canReplaceSubdomain(parentNode),
-                "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
-            );
-
-            require(
-                !canUnwrap(node),
-                "NameWrapper: Cannot burn fuses: domain can be unwrapped"
-            );
-        }
+        require(
+            _fuses == CAN_DO_EVERYTHING || !canUnwrap(node),
+            "NameWrapper: Cannot burn fuses: domain can be unwrapped"
+        );
     }
 
     function _wrap(
@@ -584,19 +574,21 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
+        require(
+            _fuses == CAN_DO_EVERYTHING || !canReplaceSubdomain(parentNode),
+            "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
+        );
 
         node = _makeNode(parentNode, keccak256(bytes(label)));
 
-        _mint(parentNode, node, wrappedOwner, _fuses);
+        _mint(node, wrappedOwner, _fuses);
         emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     function _unwrap(
-        bytes32 parentNode,
-        bytes32 label,
+        bytes32 node,
         address newOwner
     ) private {
-        bytes32 node = _makeNode(parentNode, label);
         require(
             newOwner != address(0x0),
             "NameWrapper: Target owner cannot be 0x0"
@@ -610,5 +602,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         // burn token and fuse data
         _burn(uint256(node));
         ens.setOwner(node, newOwner);
+
+        emit NameUnwrapped(node, newOwner);
     }
 }
