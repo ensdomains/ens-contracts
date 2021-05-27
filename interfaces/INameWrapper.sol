@@ -13,28 +13,20 @@ uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
-    event Wrap(
+    event NameWrapped(
         bytes32 indexed parentNode,
         string indexed label,
         address owner,
         uint96 fuses
     );
 
-    event WrapETH2LD(bytes32 indexed labelhash, address owner, uint96 fuses);
-
-    event Unwrap(
+    event NameUnwrapped(
         bytes32 indexed parentNode,
         bytes32 indexed labelhash,
         address owner
     );
 
-    event UnwrapETH2LD(
-        bytes32 indexed labelhash,
-        address registrant,
-        address controller
-    );
-
-    event BurnFuses(bytes32 indexed node, uint96 fuses);
+    event FusesBurned(bytes32 indexed node, uint96 fuses);
 
     function wrap(
         bytes32 node,
