@@ -262,8 +262,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
         require(
             owner == msg.sender ||
-                registrar.isApprovedForAll(owner, msg.sender) ||
-                isApprovedForAll(owner, msg.sender),
+                isApprovedForAll(owner, msg.sender) ||
+                registrar.isApprovedForAll(owner, msg.sender),
             "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
         // transfer the token from the user to this contract
@@ -300,8 +300,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
         require(
             owner == msg.sender ||
-                ens.isApprovedForAll(owner, msg.sender) ||
-                isApprovedForAll(owner, msg.sender),
+                isApprovedForAll(owner, msg.sender) ||
+                ens.isApprovedForAll(owner, msg.sender),
             "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
