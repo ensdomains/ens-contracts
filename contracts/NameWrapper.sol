@@ -589,16 +589,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         bytes32 node,
         address newOwner,
         uint96 _fuses
-    ) private {
-        uint256 tokenId = uint256(node);
-        address owner = ownerOf(tokenId);
-        require(owner == address(0), "ERC1155: mint of existing token");
-        require(newOwner != address(0), "ERC1155: mint to the zero address");
-        require(
-            newOwner != address(this),
-            "NameWrapper: newOwner cannot be the NameWrapper contract"
-        );
-        _setData(tokenId, newOwner, _fuses);
+    ) internal {
+        super._mint(node, newOwner, _fuses);
 
         if (_fuses != CAN_DO_EVERYTHING) {
             require(
@@ -611,14 +603,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
                 "NameWrapper: Cannot burn fuses: domain can be unwrapped"
             );
         }
-        emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
-    }
-
-    function _burn(uint256 tokenId) private {
-        address owner = ownerOf(tokenId);
-        // Clear fuses and set owner to 0
-        _setData(tokenId, address(0x0), 0);
-        emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
     }
 
     function _wrap(

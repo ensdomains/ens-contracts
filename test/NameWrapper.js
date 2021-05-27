@@ -7,7 +7,7 @@ const { solidity } = require('ethereum-waffle')
 const n = require('eth-ens-namehash')
 const namehash = n.hash
 const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
-const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour');
+const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
 
 use(solidity)
 
@@ -183,7 +183,8 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry.', async () => {
-      await expect(NameWrapper.wrap(ROOT_NODE, 'xyz', account, 0)).to.be.reverted
+      await expect(NameWrapper.wrap(ROOT_NODE, 'xyz', account, 0)).to.be
+        .reverted
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
@@ -196,7 +197,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.wrap(ROOT_NODE, 'xyz', NameWrapper.address, 0)
       ).to.be.revertedWith(
-        'revert NameWrapper: newOwner cannot be the NameWrapper contract'
+        'revert ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -368,7 +369,8 @@ describe('Name Wrapper', () => {
       expect(ownerOfWrapperAbc).to.equal(account2)
 
       //unwrap using account
-      await expect(NameWrapper.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
+      await expect(NameWrapper.unwrap(ROOT_NODE, labelHash, account2)).to.be
+        .reverted
     })
 
     it('Does not allow anyone else to unwrap a name', async () => {
@@ -380,7 +382,8 @@ describe('Name Wrapper', () => {
       const ownerOfWrapperAbc = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrapperAbc).to.equal(account)
       //unwrap using account
-      await expect(NameWrapper2.unwrap(ROOT_NODE, labelHash, account2)).to.be.reverted
+      await expect(NameWrapper2.unwrap(ROOT_NODE, labelHash, account2)).to.be
+        .reverted
     })
 
     it('Will not unwrap .eth 2LDs.', async () => {
@@ -464,8 +467,8 @@ describe('Name Wrapper', () => {
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the .eth registrar.', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
-      await expect(NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)).to.be
-        .reverted
+      await expect(NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)).to
+        .be.reverted
     })
 
     it('Can re-wrap a name that was wrapped has already expired', async () => {
@@ -596,7 +599,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.wrapETH2LD(label, NameWrapper.address, CAN_DO_EVERYTHING)
       ).to.be.revertedWith(
-        'revert NameWrapper: newOwner cannot be the NameWrapper contract'
+        'revert ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -1322,7 +1325,7 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: newOwner cannot be the NameWrapper contract'
+        'revert ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -1531,7 +1534,7 @@ describe('Name Wrapper', () => {
           0
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: newOwner cannot be the NameWrapper contract'
+        'revert ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
