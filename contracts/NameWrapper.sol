@@ -538,12 +538,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     }
 
     function _mint(
-        bytes32 parentNode,
-        bytes32 labelHash,
+        bytes32 node,
         address wrappedOwner,
         uint96 _fuses
-    ) internal {
-        bytes32 node = _makeNode(parentNode, labelHash);
+    ) internal override {
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
