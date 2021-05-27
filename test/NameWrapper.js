@@ -504,8 +504,8 @@ describe('Name Wrapper', () => {
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
-        .to.emit(NameWrapper, 'WrapETH2LD')
-        .withArgs(labelHash, account2, CAN_DO_EVERYTHING)
+        .to.emit(NameWrapper, 'Wrap')
+        .withArgs(namehash('eth'), labelHash, account2, CAN_DO_EVERYTHING)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, EMPTY_ADDRESS, account2, nameHash, 1)
@@ -547,8 +547,8 @@ describe('Name Wrapper', () => {
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
-        .to.emit(NameWrapper, 'WrapETH2LD')
-        .withArgs(labelHash, account2, CAN_DO_EVERYTHING)
+        .to.emit(NameWrapper, 'Wrap')
+        .withArgs(namehash('eth'), labelHash, account2, CAN_DO_EVERYTHING)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, EMPTY_ADDRESS, account2, nameHash, 1)
@@ -559,13 +559,13 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('emits WrapETH2LD event', async () => {
+    it('emits Wrap event', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       const tx = await NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
       await expect(tx)
-        .to.emit(NameWrapper, 'WrapETH2LD')
-        .withArgs(labelHash, account, CAN_DO_EVERYTHING)
+        .to.emit(NameWrapper, 'Wrap')
+        .withArgs(namehash('eth'), labelHash, account, CAN_DO_EVERYTHING)
     })
 
     it('emits TransferSingle event', async () => {
