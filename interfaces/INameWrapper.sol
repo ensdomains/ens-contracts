@@ -20,8 +20,6 @@ interface INameWrapper is IERC1155 {
         uint96 fuses
     );
 
-    event WrapETH2LD(bytes32 indexed labelhash, address owner, uint96 fuses);
-
     event Unwrap(
         bytes32 indexed parentNode,
         bytes32 indexed labelhash,
