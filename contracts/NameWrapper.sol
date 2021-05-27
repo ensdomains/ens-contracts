@@ -300,9 +300,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address wrappedOwner,
         uint96 _fuses
     ) public override {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(parentNode, labelhash);
-        _wrap(parentNode, labelhash, wrappedOwner, _fuses);
+        bytes32 node = _wrap(parentNode, label, wrappedOwner, _fuses);
         address owner = ens.owner(node);
 
         require(
@@ -312,7 +310,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
-        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -452,8 +449,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = setSubnodeOwner(parentNode, labelhash, address(this));
-        _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit NameWrapped(parentNode, label, newOwner, _fuses);
+        _wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -476,8 +472,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit NameWrapped(parentNode, label, newOwner, _fuses);
+        _wrap(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -581,18 +576,19 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
     function _wrap(
         bytes32 parentNode,
-        bytes32 label,
+        string calldata label,
         address wrappedOwner,
         uint96 _fuses
-    ) private {
+    ) private returns(bytes32 node) {
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
 
-        bytes32 node = _makeNode(parentNode, label);
+        node = _makeNode(parentNode, keccak256(bytes(label)));
 
         _mint(parentNode, node, wrappedOwner, _fuses);
+        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     function _unwrap(

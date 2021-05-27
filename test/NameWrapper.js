@@ -155,7 +155,8 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(ROOT_NODE, 'xyz', account, fuses)
+      const tx = await NameWrapper.wrap(ROOT_NODE, 'xyz', account, fuses)
+      console.log((await tx.wait()).gasUsed.toNumber())
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
     })
 
