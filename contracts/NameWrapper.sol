@@ -10,12 +10,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
-abstract contract BaseRegistrarEx is BaseRegistrar, IERC721 {}
-
 contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     using BytesUtils for bytes;
     ENS public immutable ens;
-    BaseRegistrarEx public immutable registrar;
+    BaseRegistrar public immutable registrar;
     IMetadataService public metadataService;
     bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
 
@@ -26,7 +24,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
     constructor(
         ENS _ens,
-        BaseRegistrarEx _registrar,
+        BaseRegistrar _registrar,
         IMetadataService _metadataService
     ) {
         ens = _ens;
