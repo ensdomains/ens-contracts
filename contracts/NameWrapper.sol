@@ -422,7 +422,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
         );
 
-        ens.setSubnodeOwner(node, label, owner);
+        return ens.setSubnodeOwner(node, label, owner);
     }
 
     /**
@@ -438,9 +438,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         string calldata label,
         address newOwner,
         uint96 _fuses
-    ) public override returns (bytes32) {
+    ) public override returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
-        setSubnodeOwner(parentNode, labelhash, address(this));
+        node = setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(parentNode, labelhash, newOwner, _fuses);
         emit Wrap(parentNode, label, newOwner, _fuses);
     }
@@ -462,9 +462,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address resolver,
         uint64 ttl,
         uint96 _fuses
-    ) public override returns (bytes32) {
+    ) public override returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
-        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
+        node = setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(parentNode, labelhash, newOwner, _fuses);
         emit Wrap(parentNode, label, newOwner, _fuses);
     }
@@ -544,7 +544,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function onERC721Received(
-        address operator,
+        address,
         address from,
         uint256 tokenId,
         bytes calldata data
