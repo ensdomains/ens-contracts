@@ -402,7 +402,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
         );
 
-        return ens.setSubnodeRecord(node, label, owner, resolver, ttl);
+        ens.setSubnodeRecord(node, label, owner, resolver, ttl);
     }
 
     /**
@@ -462,9 +462,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address resolver,
         uint64 ttl,
         uint96 _fuses
-    ) public override returns (bytes32 node) {
+    ) public override {
         bytes32 labelhash = keccak256(bytes(label));
-        node = setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
+        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(parentNode, labelhash, newOwner, _fuses);
         emit Wrap(parentNode, label, newOwner, _fuses);
     }
@@ -536,7 +536,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     /**
      * @notice Sets TTL in the registry
      * @dev only callable by the .eth registrar
-     * @param operator sender of the tx, either owner or approved caller
      * @param from owner of the token previously
      * @param tokenId namehash of the name
      * @param data data represents the fuses that will be passed when calling transferFrom on the
