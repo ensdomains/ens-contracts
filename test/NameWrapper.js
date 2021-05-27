@@ -167,7 +167,7 @@ describe('Name Wrapper', () => {
 
       const tx = NameWrapper.wrap(ROOT_NODE, 'xyz', account, fuses)
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(ROOT_NODE, 'xyz', account, fuses)
     })
 
@@ -318,7 +318,7 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper.unwrap(ROOT_NODE, labelhash('xyz'), account)
 
       await expect(tx)
-        .to.emit(NameWrapper, 'Unwrap')
+        .to.emit(NameWrapper, 'NameUnwrapped')
         .withArgs(ROOT_NODE, labelhash('xyz'), account)
     })
 
@@ -498,13 +498,13 @@ describe('Name Wrapper', () => {
       // TransferSingle to mint the new token
 
       await expect(tx)
-        .to.emit(NameWrapper, 'Unwrap')
+        .to.emit(NameWrapper, 'NameUnwrapped')
         .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(namehash('eth'), labelHash, account2, CAN_DO_EVERYTHING)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -541,13 +541,13 @@ describe('Name Wrapper', () => {
       )
 
       await expect(tx)
-        .to.emit(NameWrapper, 'Unwrap')
+        .to.emit(NameWrapper, 'NameUnwrapped')
         .withArgs(namehash('eth'), labelHash, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(namehash('eth'), labelHash, account2, CAN_DO_EVERYTHING)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -564,7 +564,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       const tx = await NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(namehash('eth'), labelHash, account, CAN_DO_EVERYTHING)
     })
 
@@ -692,7 +692,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
-        .to.emit(NameWrapper, 'Unwrap')
+        .to.emit(NameWrapper, 'NameUnwrapped')
         .withArgs(namehash('eth'), labelHash, account)
     })
 
@@ -831,7 +831,7 @@ describe('Name Wrapper', () => {
       )
 
       await expect(tx)
-        .to.emit(NameWrapper, 'BurnFuses')
+        .to.emit(NameWrapper, 'FusesBurned')
         .withArgs(wrappedTokenId, CANNOT_UNWRAP | CANNOT_TRANSFER)
 
       expect(await NameWrapper.getFuses(wrappedTokenId)).to.equal(
@@ -1249,7 +1249,7 @@ describe('Name Wrapper', () => {
         0
       )
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(wrappedTokenId, 'setsubnodeownerandwrap', account2, 0)
     })
 
@@ -1446,7 +1446,7 @@ describe('Name Wrapper', () => {
         0
       )
       await expect(tx)
-        .to.emit(NameWrapper, 'Wrap')
+        .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(wrappedTokenId, 'setsubnodeownerandwrap', account2, 0)
     })
 

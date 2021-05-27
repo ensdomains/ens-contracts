@@ -278,11 +278,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
-            emit Unwrap(ETH_NODE, labelhash, address(0));
+            emit NameUnwrapped(ETH_NODE, labelhash, address(0));
         }
         _mint(ETH_NODE, node, wrappedOwner, _fuses);
 
-        emit Wrap(ETH_NODE, label, wrappedOwner, _fuses);
+        emit NameWrapped(ETH_NODE, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -312,7 +312,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
-        emit Wrap(parentNode, label, wrappedOwner, _fuses);
+        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
     }
 
     /**
@@ -330,7 +330,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
         _unwrap(ETH_NODE, label, newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
-        emit Unwrap(ETH_NODE, label, newController);
+        emit NameUnwrapped(ETH_NODE, label, newController);
     }
 
     /**
@@ -351,7 +351,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: .eth names must be unwrapped with unwrapETH2LD()"
         );
         _unwrap(parentNode, label, newController);
-        emit Unwrap(parentNode, label, newController);
+        emit NameUnwrapped(parentNode, label, newController);
     }
 
     /**
@@ -390,7 +390,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             "NameWrapper: Domain has not burned unwrap fuse"
         );
 
-        emit BurnFuses(node, newFuses);
+        emit FusesBurned(node, newFuses);
     }
 
     /**
@@ -453,7 +453,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         bytes32 labelhash = keccak256(bytes(label));
         node = setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit Wrap(parentNode, label, newOwner, _fuses);
+        emit NameWrapped(parentNode, label, newOwner, _fuses);
     }
 
     /**
@@ -477,7 +477,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(parentNode, labelhash, newOwner, _fuses);
-        emit Wrap(parentNode, label, newOwner, _fuses);
+        emit NameWrapped(parentNode, label, newOwner, _fuses);
     }
 
     /**
