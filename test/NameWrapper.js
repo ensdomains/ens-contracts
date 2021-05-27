@@ -345,19 +345,15 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
     })
 
-    it.only('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
+    it('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      //await NameWrapper.wrap(ROOT_NODE, 'xyz', account, CAN_DO_EVERYTHING)
-      //expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
-
       await EnsRegistry.setSubnodeOwner(
         namehash('xyz'),
         labelhash('sub'),
         account
       )
-
       await NameWrapper.wrap(namehash('xyz'), 'sub', account, CAN_DO_EVERYTHING)
 
       await EnsRegistry.setSubnodeOwner(
