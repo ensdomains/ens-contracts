@@ -58,6 +58,7 @@ const INTERFACES = {
     'wrapETH2LD(string,address,uint96)',
     'unwrap(bytes32,bytes32,address)',
     'unwrapETH2LD(bytes32,address,address)',
+    'setSubnodeRecord(bytes32,bytes32,address,address,uint64)',
     'setSubnodeRecordAndWrap(bytes32,string,address,address,uint64,uint96)',
     'setSubnodeOwner(bytes32,bytes32,address)',
     'setSubnodeOwnerAndWrap(bytes32,string,address,uint96)',

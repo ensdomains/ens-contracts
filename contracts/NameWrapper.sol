@@ -388,7 +388,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address owner,
         address resolver,
         uint64 ttl
-    ) public onlyTokenOwner(node) {
+    ) public override onlyTokenOwner(node) {
         require(
             canCallSetSubnodeOwner(node, label),
             "NameWrapper: Fuse has been burned for creating or replacing a subdomain"

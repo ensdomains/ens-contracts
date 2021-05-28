@@ -52,6 +52,14 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
+    function setSubnodeRecord(
+        bytes32 node,
+        bytes32 label,
+        address owner,
+        address resolver,
+        uint64 ttl
+    ) external;
+
     function setSubnodeRecordAndWrap(
         bytes32 node,
         string calldata label,
