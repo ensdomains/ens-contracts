@@ -69,6 +69,13 @@ interface INameWrapper is IERC1155 {
         uint96 _fuses
     ) external;
 
+    function setRecord(
+        bytes32 node,
+        address owner,
+        address resolver,
+        uint64 ttl
+    ) external;
+
     function setSubnodeOwner(
         bytes32 node,
         bytes32 label,
