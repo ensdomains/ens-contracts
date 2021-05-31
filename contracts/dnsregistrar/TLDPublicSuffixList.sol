@@ -1,6 +1,6 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.4;
 
-import "@ensdomains/dnssec-oracle/contracts/BytesUtils.sol";
+import "../dnssec-oracle/BytesUtils.sol";
 import "./PublicSuffixList.sol";
 
 /**

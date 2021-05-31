@@ -1,8 +1,8 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.4;
 
-import "@ensdomains/dnssec-oracle/contracts/DNSSEC.sol";
-import "@ensdomains/dnssec-oracle/contracts/BytesUtils.sol";
-import "@ensdomains/dnssec-oracle/contracts/RRUtils.sol";
+import "../dnssec-oracle/DNSSEC.sol";
+import "../dnssec-oracle/BytesUtils.sol";
+import "../dnssec-oracle/RRUtils.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
 
 library DNSClaimChecker {
@@ -84,6 +84,6 @@ library DNSClaimChecker {
                 return (address(0x0), false);
             }
         }
-        return (address(ret), true);
+        return (address(uint160(ret)), true);
     }
 }

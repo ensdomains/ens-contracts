@@ -1,7 +1,7 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.4;
 pragma experimental ABIEncoderV2;
 
-import "@ensdomains/root/contracts/Ownable.sol";
+import "../root/Ownable.sol";
 import "./PublicSuffixList.sol";
 
 contract SimplePublicSuffixList is PublicSuffixList, Ownable {

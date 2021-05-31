@@ -2,7 +2,7 @@ pragma solidity >=0.8.4;
 
 import "../../registry/ENSRegistry.sol";
 
-contract DummyDNSSEC {
+contract DummyDnsRegistrarDNSSEC {
 
     struct Data {
         uint32 inception;

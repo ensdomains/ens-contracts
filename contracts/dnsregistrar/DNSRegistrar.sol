@@ -1,9 +1,10 @@
-pragma solidity ^0.7.0;
+pragma solidity ^0.8.4;
+pragma experimental ABIEncoderV2;
 
-import "@ensdomains/dnssec-oracle/contracts/BytesUtils.sol";
-import "@ensdomains/dnssec-oracle/contracts/DNSSEC.sol";
-import "@ensdomains/ens/contracts/ENSRegistry.sol";
-import "@ensdomains/root/contracts/Root.sol";
+import "../dnssec-oracle/BytesUtils.sol";
+import "../dnssec-oracle/DNSSEC.sol";
+import "../registry/ENSRegistry.sol";
+import "../root/Root.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
 
@@ -92,7 +93,7 @@ contract DNSRegistrar {
      *        proof must be the TXT record required by the registrar.
      * @param proof The proof record for the first element in input.
      */
-    function proveAndClaim(bytes memory name, bytes memory input, bytes memory proof) public {
+    function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof) public {
         proof = oracle.submitRRSets(input, proof);
         claim(name, proof);
     }

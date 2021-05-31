@@ -1,6 +1,6 @@
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
-import "@ensdomains/ens/contracts/ENS.sol";
+import "../registry/ENS.sol";
 import "./Ownable.sol";
 import "./Controllable.sol";
 
