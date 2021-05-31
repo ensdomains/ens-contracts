@@ -9,7 +9,7 @@ const DummyDigest = artifacts.require('./digests/DummyDigest');
 const P256SHA256Algorithm = artifacts.require('P256SHA256Algorithm.sol');
 const EllipticCurve = artifacts.require('EllipticCurve.sol');
 
-const dnsAnchors = require('../lib/anchors.js');
+const dnsAnchors = require('./test-utils/anchors.js');
 
 async function deploy(contract, ...args) {
     const instance = await contract.new(...args);
@@ -18,6 +18,9 @@ async function deploy(contract, ...args) {
 }
 
 module.exports = async function(hre) {
+    const block = await network.provider.send("eth_getBlockByNumber", ["latest", false])
+
+    console.log('***', block, blockNumber:block.number, block.timestamp)
     let dev = hre.network.name == 'hardhat' || hre.network.name == 'local';
     // From http://data.iana.org/root-anchors/root-anchors.xml
     let anchors = dnsAnchors.realEntries;
