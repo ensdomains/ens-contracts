@@ -14,6 +14,10 @@ const ReverseRegistrar = require('./build/contracts/ReverseRegistrar')
 const TestRegistrar = require('./build/contracts/TestRegistrar')
 const StablePriceOracle  = require('./build/contracts/StablePriceOracle')
 const DNSRegistrar = require('./build/contracts/DNSRegistrar')
+const PublicSuffixList = require('./build/contracts/PublicSuffixList')
+const SimplePublicSuffixList = require('./build/contracts/SimplePublicSuffixList')
+const TLDPublicSuffixList = require('./build/contracts/TLDPublicSuffixList')
+
 const Root = require('./build/contracts/Root')
 const DNSSEC  = require('./build/contracts/DNSSEC')
 const RSASHA256Algorithm = require('./build/contracts/RSASHA256Algorithm')
@@ -39,6 +43,9 @@ module.exports = {
   StablePriceOracle,
   TestRegistrar,
   DNSRegistrar,
+  PublicSuffixList,
+  SimplePublicSuffixList,
+  TLDPublicSuffixList,
   Root,
   DNSSEC,
   RSASHA256Algorithm,
