@@ -114,7 +114,6 @@ async function verifyFailedSubmission(instance, data, sig, proof) {
 // Test against real record
 contract('DNSSEC', accounts => {
   it('should accept real DNSSEC records', async function() {
-    console.log('11')
     await network.provider.send("evm_mine");
     var instance = await dnssec.deployed();
     var proof = await instance.anchors();
@@ -132,6 +131,10 @@ contract('DNSSEC', accounts => {
 
 contract('DNSSEC', function(accounts) {
   before(async () => {
+    // Advance to the current time so the DNSSEC root keys work.
+    await network.provider.send("evm_setNextBlockTimestamp", [Date.now() / 1000]);
+    await network.provider.send("evm_mine");
+
     const instance = await dnssec.deployed();
     const keys = rootKeys();
     const [signedData] = hexEncodeSignedSet(keys);

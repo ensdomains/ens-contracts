@@ -18,9 +18,6 @@ async function deploy(contract, ...args) {
 }
 
 module.exports = async function(hre) {
-    const block = await network.provider.send("eth_getBlockByNumber", ["latest", false])
-
-    console.log('***', block, blockNumber:block.number, block.timestamp)
     let dev = hre.network.name == 'hardhat' || hre.network.name == 'local';
     // From http://data.iana.org/root-anchors/root-anchors.xml
     let anchors = dnsAnchors.realEntries;
