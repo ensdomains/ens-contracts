@@ -23,6 +23,8 @@ task("accounts", "Prints the list of accounts", async () => {
 module.exports = {
   networks: {
     hardhat: {
+      // Required for real DNS record tests
+      initialDate: "2019-03-15T14:06:45.000+13:00"
     },
     localhost: {
       url: "http://127.0.0.1:8545"
