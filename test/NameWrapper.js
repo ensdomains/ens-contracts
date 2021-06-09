@@ -662,6 +662,43 @@ describe('Name Wrapper', () => {
       )
     })
 
+    it('correctly reports fuses for a name that has expired and been rewrapped more permissively', async () => {
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      // Register the name
+      const DAY = 60 * 60 * 24
+      const GRACE_PERIOD = 90
+      await BaseRegistrar.register(labelHash, account, DAY)
+
+      // Wrap it
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      )
+      expect(await NameWrapper.getFuses(namehash('wrapped2.eth'))).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN);
+
+      // Create a subdomain that can't be unwrapped
+      await NameWrapper.setSubnodeOwnerAndWrap(namehash('wrapped2.eth'), 'sub', account, CANNOT_UNWRAP)
+      expect(await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))).to.equal(CANNOT_UNWRAP)
+
+      // Fast forward until the 2LD expires
+      await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
+      await mine()
+
+      // Register from another address
+      await BaseRegistrar2.register(labelHash, account2, DAY)
+      await BaseRegistrar2.setApprovalForAll(NameWrapper.address, true)
+      const tx = await NameWrapper2.wrapETH2LD(
+        label,
+        account2,
+        CAN_DO_EVERYTHING
+      )
+      expect(await NameWrapper.getFuses(namehash('wrapped2.eth'))).to.equal(CAN_DO_EVERYTHING);
+
+      expect(await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))).to.equal(CAN_DO_EVERYTHING)
+    })
+
     it('emits Wrap event', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
