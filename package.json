@@ -5,11 +5,12 @@
   "license": "MIT",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.11",
+    "chai": "^4.2.0",
     "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-babel": "^5.3.1",
     "eslint-plugin-prettier": "^3.1.4",
-    "chai": "^4.2.0"
+    "hardhat-gas-reporter": "^1.0.4"
   },
   "dependencies": {
     "@ensdomains/ens-contracts": "0.0.3",

@@ -2,6 +2,7 @@ const { utils } = require('ethers')
 const fs = require('fs')
 
 require('@nomiclabs/hardhat-waffle')
+require('hardhat-gas-reporter')
 
 module.exports = {
   solidity: {
@@ -18,4 +19,7 @@ module.exports = {
       url: 'http://localhost:8545',
     },
   },
+  gasReporter: {
+    excludeContracts: ['mocks', 'registry', 'ethregistrar']
+  }
 }
