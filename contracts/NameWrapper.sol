@@ -129,29 +129,44 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         (, fuses) = getData(uint256(node));
     }
 
-    function _cannotReplaceSubdomain(bytes memory name, uint offset) internal view returns (bytes32 node, bool enabled) {
-        require(name.length > offset, "Name too short");
+    /**
+     * @dev Internal function that checks all a name's ancestors to ensure fuse values will be respected.
+     * @param name The name to check.
+     * @param offset The offset into the name to start at.
+     * @return node The calculated namehash for this part of the name.
+     * @return enabled Whether or not fuses are enabled for this name.
+     */
+    function _fusesEnabled(bytes memory name, uint offset) internal view returns (bytes32 node, bool enabled) {
+        // Read the first label. If it's the root, return immediately.
         (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
         if(labelhash == bytes32(0)) {
             // Root node
             return (bytes32(0), true);
         }
+
+        // Check the parent name
         bytes32 parentNode;
-        (parentNode, enabled) = _cannotReplaceSubdomain(name, newOffset);
+        (parentNode, enabled) = _fusesEnabled(name, newOffset);
         node = _makeNode(parentNode, labelhash);
+
+        // If fuses aren't enabled on the parent node, return immediately; no need to check ours.
         if(!enabled) {
             return (node, false);
         }
-        (, uint96 fuses) = getData(uint256(node));
+
+        // Check the parent name's fuses to see if replacing subdomains is forbidden
+        if(parentNode == ROOT_NODE) {
+            // Save ourselves some gas; root node fuses are always enabled.
+            return (node, true);
+        }
+        (, uint96 fuses) = getData(uint256(parentNode));
         return (node, fuses & CANNOT_REPLACE_SUBDOMAIN != 0);
     }
 
     function fusesEnabled(bytes32 node) public view returns(bool enabled) {
         bytes memory name = names[node];
         assert(name.length > 0);
-        (bytes32 labelhash, uint offset) = name.readLabel(0);
-        if(labelhash == bytes32(0)) return true; // Fuses are always enabled on the root node.
-        (, enabled) = _cannotReplaceSubdomain(names[node], offset);
+        (, enabled) = _fusesEnabled(name, 0);
     }
 
     /**
