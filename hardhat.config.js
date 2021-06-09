@@ -1,8 +1,11 @@
 const { utils } = require('ethers')
 const fs = require('fs')
+const { execSync } = require('child_process');
 
 require('@nomiclabs/hardhat-waffle')
 require('hardhat-gas-reporter')
+
+const commit = execSync('git rev-parse --short HEAD', ).toString().trim();
 
 module.exports = {
   solidity: {
@@ -21,5 +24,7 @@ module.exports = {
   },
   gasReporter: {
     excludeContracts: ['mocks', 'registry', 'ethregistrar'],
+    outputFile: `gasreport-${commit}.txt`,
+    noColors: true,
   }
 }

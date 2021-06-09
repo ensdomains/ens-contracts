@@ -1,4 +1,4 @@
-const packet = require('dns-packet');
+const packet = require('dns-packet')
 const fs = require('fs')
 const chalk = require('chalk')
 const { ethers } = require('hardhat')
@@ -23,9 +23,6 @@ async function deploy(name, _args) {
   console.log(`📄 ${name}`)
   const contractArtifacts = await ethers.getContractFactory(name)
   const contract = await contractArtifacts.deploy(...args)
-  console.log(chalk.cyan(name), 'deployed to:', chalk.magenta(contract.address))
-  fs.writeFileSync(`artifacts/${name}.address`, contract.address)
-  console.log('\n')
   contract.name = name
   return contract
 }
@@ -1232,18 +1229,18 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account,
         CAN_DO_EVERYTHING
       )
 
       expect(
-        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+        await EnsRegistry.owner(namehash(`sub.${label}.eth`))
       ).to.equal(NameWrapper.address)
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account)
     })
@@ -1252,18 +1249,18 @@ describe('Name Wrapper', () => {
       await NameWrapper.setApprovalForAll(account2, true)
       await NameWrapper2.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account,
         0
       )
 
       expect(
-        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+        await EnsRegistry.owner(namehash(`sub.${label}.eth`))
       ).to.equal(NameWrapper.address)
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account)
     })
@@ -1271,18 +1268,18 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NameWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         CAN_DO_EVERYTHING
       )
 
       expect(
-        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+        await EnsRegistry.owner(namehash(`sub.${label}.eth`))
       ).to.equal(NameWrapper.address)
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account2)
     })
@@ -1291,7 +1288,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwnerAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING
         )
@@ -1301,7 +1298,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwnerAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           NameWrapper.address,
           CAN_DO_EVERYTHING
         )
@@ -1315,7 +1312,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setSubnodeOwnerAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           CAN_DO_EVERYTHING
         )
@@ -1331,7 +1328,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwnerAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           CANNOT_UNWRAP
         )
@@ -1351,7 +1348,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwnerAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           CANNOT_REPLACE_SUBDOMAIN
         )
@@ -1371,14 +1368,14 @@ describe('Name Wrapper', () => {
       )
       await NameWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account,
         CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       )
 
       expect(
         await NameWrapper.canReplaceSubdomain(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(false)
     })
@@ -1386,20 +1383,20 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       const tx = await NameWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         0
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(namehash(`setsubnodeownerandwrap.${label}.eth`), encodeName(`setsubnodeownerandwrap.${label}.eth`), account2, 0)
+        .withArgs(namehash(`sub.${label}.eth`), encodeName(`sub.${label}.eth`), account2, 0)
     })
 
     it('Emits TransferSingle event', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       const tx = await NameWrapper.setSubnodeOwnerAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         0
       )
@@ -1409,7 +1406,7 @@ describe('Name Wrapper', () => {
           account,
           EMPTY_ADDRESS,
           account2,
-          namehash(`setsubnodeownerandwrap.${label}.eth`),
+          namehash(`sub.${label}.eth`),
           1
         )
     })
@@ -1433,7 +1430,7 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NameWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account,
         resolver,
         0,
@@ -1441,12 +1438,12 @@ describe('Name Wrapper', () => {
       )
 
       expect(
-        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+        await EnsRegistry.owner(namehash(`sub.${label}.eth`))
       ).to.equal(NameWrapper.address)
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account)
     })
@@ -1456,7 +1453,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setApprovalForAll(account2, true)
       await NameWrapper2.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account,
         resolver,
         0,
@@ -1464,12 +1461,12 @@ describe('Name Wrapper', () => {
       )
 
       expect(
-        await EnsRegistry.owner(namehash(`setsubnodeownerandwrap.${label}.eth`))
+        await EnsRegistry.owner(namehash(`sub.${label}.eth`))
       ).to.equal(NameWrapper.address)
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account)
     })
@@ -1477,7 +1474,7 @@ describe('Name Wrapper', () => {
     it('Transfers the wrapped token to the target address.', async () => {
       await NameWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         resolver,
         0,
@@ -1486,7 +1483,7 @@ describe('Name Wrapper', () => {
 
       expect(
         await NameWrapper.ownerOf(
-          namehash(`setsubnodeownerandwrap.${label}.eth`)
+          namehash(`sub.${label}.eth`)
         )
       ).to.equal(account2)
     })
@@ -1495,7 +1492,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeRecordAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           EMPTY_ADDRESS,
           resolver,
           0,
@@ -1508,7 +1505,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeRecordAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           NameWrapper.address,
           resolver,
           0,
@@ -1525,7 +1522,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setSubnodeRecordAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           resolver,
           0,
@@ -1544,7 +1541,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeRecordAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           resolver,
           0,
@@ -1567,7 +1564,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeRecordAndWrap(
           wrappedTokenId,
-          'setsubnodeownerandwrap',
+          'sub',
           account,
           resolver,
           0,
@@ -1581,7 +1578,7 @@ describe('Name Wrapper', () => {
     it('Emits Wrap event', async () => {
       const tx = await NameWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         resolver,
         0,
@@ -1589,13 +1586,13 @@ describe('Name Wrapper', () => {
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(namehash(`setsubnodeownerandwrap.${label}.eth`), encodeName(`setsubnodeownerandwrap.${label}.eth`), account2, 0)
+        .withArgs(namehash(`sub.${label}.eth`), encodeName(`sub.${label}.eth`), account2, 0)
     })
 
     it('Emits TransferSingle event', async () => {
       const tx = await NameWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         resolver,
         0,
@@ -1607,7 +1604,7 @@ describe('Name Wrapper', () => {
           account,
           EMPTY_ADDRESS,
           account2,
-          namehash(`setsubnodeownerandwrap.${label}.eth`),
+          namehash(`sub.${label}.eth`),
           1
         )
     })
@@ -1615,14 +1612,14 @@ describe('Name Wrapper', () => {
     it('Sets the appropriate values on the ENS registry.', async () => {
       await NameWrapper.setSubnodeRecordAndWrap(
         wrappedTokenId,
-        'setsubnodeownerandwrap',
+        'sub',
         account2,
         resolver,
         100,
         0
       )
 
-      const node = namehash(`setsubnodeownerandwrap.${label}.eth`)
+      const node = namehash(`sub.${label}.eth`)
 
       expect(await EnsRegistry.owner(node)).to.equal(NameWrapper.address)
       expect(await EnsRegistry.resolver(node)).to.equal(resolver)

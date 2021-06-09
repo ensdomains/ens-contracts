@@ -119,28 +119,39 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      *      The interface has predefined fuses for all registry permissions, but additional
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
-     * @return A number that represents the permissions a name has
+     * @return fuses A number that represents the permissions a name has
      */
 
-    function getFuses(bytes32 node) public view override returns (uint96) {
-        (, uint96 fuses) = getFuses(names[node], 0);
-        return fuses;
-    }
-
-    function getFuses(bytes memory name, uint offset) internal view returns (bytes32 node, uint96 fuses) {
-        require(name.length > 0, "Name is empty");
-        if(offset == name.length - 1) {
-            require(name[name.length - 1] == hex'00', "NameWrapper: Invalid name terminator");
-            return (bytes32(0), uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP));
-        }
-        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
-        (bytes32 parentNode, uint96 parentFuses) = getFuses(name, newOffset);
-        node = _makeNode(parentNode, labelhash);
-        if(parentFuses & CANNOT_REPLACE_SUBDOMAIN == 0) {
-            return (node, uint96(0));
+    function getFuses(bytes32 node) public view override returns (uint96 fuses) {
+        if(!fusesEnabled(node)) {
+            return CAN_DO_EVERYTHING;
         }
         (, fuses) = getData(uint256(node));
-        return (node, fuses);
+    }
+
+    function _cannotReplaceSubdomain(bytes memory name, uint offset) internal view returns (bytes32 node, bool enabled) {
+        require(name.length > offset, "Name too short");
+        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
+        if(labelhash == bytes32(0)) {
+            // Root node
+            return (bytes32(0), true);
+        }
+        bytes32 parentNode;
+        (parentNode, enabled) = _cannotReplaceSubdomain(name, newOffset);
+        node = _makeNode(parentNode, labelhash);
+        if(!enabled) {
+            return (node, false);
+        }
+        (, uint96 fuses) = getData(uint256(node));
+        return (node, fuses & CANNOT_REPLACE_SUBDOMAIN != 0);
+    }
+
+    function fusesEnabled(bytes32 node) public view returns(bool enabled) {
+        bytes memory name = names[node];
+        assert(name.length > 0);
+        (bytes32 labelhash, uint offset) = name.readLabel(0);
+        if(labelhash == bytes32(0)) return true; // Fuses are always enabled on the root node.
+        (, enabled) = _cannotReplaceSubdomain(names[node], offset);
     }
 
     /**
@@ -558,15 +569,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
-    function _namehash(bytes memory name, uint offset) internal pure returns(bytes32) {
-        if(offset == name.length - 1) {
-            require(name[name.length - 1] == hex'00', "NameWrapper: Invalid name terminator");
-            return bytes32(0);
-        }
-        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
-        return keccak256(abi.encodePacked(_namehash(name, newOffset), labelhash));
-    }
-
     function _addLabel(string memory label, bytes memory name) internal pure returns(bytes memory ret) {
         require(bytes(label).length < 256, "NameWrapper: Label too long");
         ret = new bytes(bytes(label).length + name.length + 1);
@@ -595,7 +597,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         uint96 _fuses
     ) private returns (bytes32 node) {
         (bytes32 labelhash, uint offset) = name.readLabel(0);
-        bytes32 parentNode = _namehash(name, offset);
+        bytes32 parentNode = name.namehash(offset);
 
         require(
             parentNode != ETH_NODE,
