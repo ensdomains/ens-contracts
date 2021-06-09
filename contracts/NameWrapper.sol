@@ -571,10 +571,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
     function _addLabel(string memory label, bytes memory name) internal pure returns(bytes memory ret) {
         require(bytes(label).length < 256, "NameWrapper: Label too long");
-        ret = new bytes(bytes(label).length + name.length + 1);
-        ret[0] = bytes1(uint8(bytes(label).length));
-        ret.memcpy(1, bytes(label), 0, bytes(label).length);
-        ret.memcpy(bytes(label).length + 1, name, 0, name.length);
+        return abi.encodePacked(uint8(bytes(label).length), label, name);
     }
 
     function _mint(

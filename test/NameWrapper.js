@@ -20,7 +20,6 @@ const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 async function deploy(name, _args) {
   const args = _args || []
 
-  console.log(`📄 ${name}`)
   const contractArtifacts = await ethers.getContractFactory(name)
   const contract = await contractArtifacts.deploy(...args)
   contract.name = name

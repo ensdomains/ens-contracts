@@ -67,38 +67,4 @@ library BytesUtils {
         }
         newIdx = idx + len + 1;
     }
-
-    function memcpy(uint dest, uint src, uint len) private pure {
-        // Copy word-length chunks while possible
-        for (; len >= 32; len -= 32) {
-            assembly {
-                mstore(dest, mload(src))
-            }
-            dest += 32;
-            src += 32;
-        }
-
-        // Copy remaining bytes
-        unchecked {
-            uint mask = (256 ** (32 - len)) - 1;
-            assembly {
-                let srcpart := and(mload(src), not(mask))
-                let destpart := and(mload(dest), mask)
-                mstore(dest, or(destpart, srcpart))
-            }
-        }
-    }
-    
-    function memcpy(bytes memory dest, uint destoff, bytes memory src, uint srcoff, uint len) internal pure {
-        assert(destoff + len <= dest.length);
-        assert(srcoff + len <= src.length);
-
-        uint destptr;
-        uint srcptr;
-        assembly {
-            destptr := add(add(dest, 32), destoff)
-            srcptr := add(add(src, 32), srcoff)
-        }
-        memcpy(destptr, srcptr, len);
-    }
 }
