@@ -15,8 +15,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ENS public immutable ens;
     BaseRegistrar public immutable registrar;
     IMetadataService public metadataService;
-    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
+    mapping(bytes32=>bytes) public names;
 
+    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 private constant ROOT_NODE =
@@ -43,6 +44,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
+        names[ROOT_NODE] = '\x00';
+        names[ETH_NODE] = '\x03eth\x00';
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -120,8 +123,24 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function getFuses(bytes32 node) public view override returns (uint96) {
-        (, uint96 fuses) = getData(uint256(node));
+        (, uint96 fuses) = getFuses(names[node], 0);
         return fuses;
+    }
+
+    function getFuses(bytes memory name, uint offset) internal view returns (bytes32 node, uint96 fuses) {
+        require(name.length > 0, "Name is empty");
+        if(offset == name.length - 1) {
+            require(name[name.length - 1] == hex'00', "NameWrapper: Invalid name terminator");
+            return (bytes32(0), uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP));
+        }
+        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
+        (bytes32 parentNode, uint96 parentFuses) = getFuses(name, newOffset);
+        node = _makeNode(parentNode, labelhash);
+        if(parentFuses & CANNOT_REPLACE_SUBDOMAIN == 0) {
+            return (node, uint96(0));
+        }
+        (, fuses) = getData(uint256(node));
+        return (node, fuses);
     }
 
     /**
@@ -277,25 +296,25 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         _checkFuses(ETH_NODE, _fuses);
         _mint(node, wrappedOwner, _fuses);
 
-        emit NameWrapped(ETH_NODE, label, wrappedOwner, _fuses);
+        bytes memory name = _addLabel(label, '\x03eth\x00');
+        names[node] = name;
+        emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
     /**
      * @notice Wraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner in the registry or an authorised caller in the registry
-     * @param parentNode parent namehash of the name to wrap e.g. vitalik.xyz would be namehash('xyz')
-     * @param label label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
+     * @param name The name to wrap, in DNS format
      * @param _fuses initial fuses to set represented as a number. Check getFuses() for more info
      * @param wrappedOwner Owner of the name in this contract
      */
 
     function wrap(
-        bytes32 parentNode,
-        string calldata label,
+        bytes calldata name,
         address wrappedOwner,
         uint96 _fuses
     ) public override {
-        bytes32 node = _wrap(parentNode, label, wrappedOwner, _fuses);
+        bytes32 node = _wrap(name, wrappedOwner, _fuses);
         address owner = ens.owner(node);
 
         require(
@@ -433,7 +452,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = setSubnodeOwner(parentNode, labelhash, address(this));
-        _wrap(parentNode, label, newOwner, _fuses);
+        bytes memory name = _addLabel(label, names[parentNode]);
+        _wrap(name, newOwner, _fuses);
     }
 
     /**
@@ -456,7 +476,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _wrap(parentNode, label, newOwner, _fuses);
+        bytes memory name = _addLabel(label, names[parentNode]);
+        _wrap(name, newOwner, _fuses);
     }
 
     /**
@@ -537,6 +558,23 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
+    function _namehash(bytes memory name, uint offset) internal pure returns(bytes32) {
+        if(offset == name.length - 1) {
+            require(name[name.length - 1] == hex'00', "NameWrapper: Invalid name terminator");
+            return bytes32(0);
+        }
+        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
+        return keccak256(abi.encodePacked(_namehash(name, newOffset), labelhash));
+    }
+
+    function _addLabel(string memory label, bytes memory name) internal pure returns(bytes memory ret) {
+        require(bytes(label).length < 256, "NameWrapper: Label too long");
+        ret = new bytes(bytes(label).length + name.length + 1);
+        ret[0] = bytes1(uint8(bytes(label).length));
+        ret.memcpy(1, bytes(label), 0, bytes(label).length);
+        ret.memcpy(bytes(label).length + 1, name, 0, name.length);
+    }
+
     function _mint(
         bytes32 node,
         address wrappedOwner,
@@ -552,21 +590,24 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     }
 
     function _wrap(
-        bytes32 parentNode,
-        string calldata label,
+        bytes memory name,
         address wrappedOwner,
         uint96 _fuses
     ) private returns (bytes32 node) {
+        (bytes32 labelhash, uint offset) = name.readLabel(0);
+        bytes32 parentNode = _namehash(name, offset);
+
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
         _checkFuses(parentNode, _fuses);
 
-        node = _makeNode(parentNode, keccak256(bytes(label)));
+        node = _makeNode(parentNode, labelhash);
 
         _mint(node, wrappedOwner, _fuses);
-        emit NameWrapped(parentNode, label, wrappedOwner, _fuses);
+        names[node] = name;
+        emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
     function _unwrap(bytes32 node, address newOwner) private {

@@ -14,8 +14,8 @@ uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
     event NameWrapped(
-        bytes32 indexed parentNode,
-        string indexed label,
+        bytes32 indexed node,
+        bytes name,
         address owner,
         uint96 fuses
     );
@@ -28,8 +28,7 @@ interface INameWrapper is IERC1155 {
     event FusesBurned(bytes32 indexed node, uint96 fuses);
 
     function wrap(
-        bytes32 node,
-        string calldata label,
+        bytes calldata name,
         address wrappedOwner,
         uint96 _fuses
     ) external;

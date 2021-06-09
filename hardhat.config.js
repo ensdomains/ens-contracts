@@ -20,6 +20,6 @@ module.exports = {
     },
   },
   gasReporter: {
-    excludeContracts: ['mocks', 'registry', 'ethregistrar']
+    excludeContracts: ['mocks', 'registry', 'ethregistrar'],
   }
 }
