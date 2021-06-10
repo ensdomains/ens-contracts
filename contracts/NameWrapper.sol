@@ -120,12 +120,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
-     * @return enabled True if fuses are enabled for this name, false if they are not enforced.
+     * @return safeUntil The earliest time at which any fuses could be cleared
      */
-    function getFuses(bytes32 node) public view override returns (uint96 fuses, bool enabled) {
+    function getFuses(bytes32 node) public view override returns (uint96 fuses, uint safeUntil) {
         bytes memory name = names[node];
         require(name.length > 0, "NameWrapper: Name not found");
-        (, enabled) = _fusesEnabled(name, 0);
+        (, safeUntil) = _getExpiration(name, 0);
         (, fuses) = getData(uint256(node));
     }
 
@@ -134,33 +134,40 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @param name The name to check.
      * @param offset The offset into the name to start at.
      * @return node The calculated namehash for this part of the name.
-     * @return enabled Whether or not fuses are enabled for this name.
+     * @return expiration The timestamp at which the name or its parent expires.
      */
-    function _fusesEnabled(bytes memory name, uint offset) internal view returns (bytes32 node, bool enabled) {
+    function _getExpiration(bytes memory name, uint offset) internal view returns (bytes32 node, uint expiration) {
         // Read the first label. If it's the root, return immediately.
         (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
         if(labelhash == bytes32(0)) {
             // Root node
-            return (bytes32(0), true);
+            return (bytes32(0), type(uint).max);
         }
 
         // Check the parent name
         bytes32 parentNode;
-        (parentNode, enabled) = _fusesEnabled(name, newOffset);
+        (parentNode, expiration) = _getExpiration(name, newOffset);
         node = _makeNode(parentNode, labelhash);
 
-        // If fuses aren't enabled on the parent node, return immediately; no need to check ours.
-        if(!enabled) {
-            return (node, false);
+        if(expiration < block.timestamp) {
+            // If expiration is less than now, return immediately; no need to check fuses.
+            return (node, expiration);
         }
 
         // Check the parent name's fuses to see if replacing subdomains is forbidden
         if(parentNode == ROOT_NODE) {
-            // Save ourselves some gas; root node fuses are always enabled.
-            return (node, true);
+            // Save ourselves some gas; root node can't be replaced
+            return (node, expiration);
+        } else if(parentNode == ETH_NODE) {
+            // Special case .eth: Get the expiration from the registrar
+            expiration = registrar.nameExpires(uint256(labelhash));
+            return (node, expiration);
         }
-        (, uint96 fuses) = getData(uint256(parentNode));
-        return (node, fuses & CANNOT_REPLACE_SUBDOMAIN != 0);
+
+        if(!_allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
+            expiration = 0;
+        }
+        return (node, expiration);
     }
 
     /**

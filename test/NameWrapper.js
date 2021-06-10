@@ -264,9 +264,9 @@ describe('Name Wrapper', () => {
           account,
           CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       );
-      const [fuses, enabled] = await NameWrapper.getFuses(namehash('sub.xyz'));
+      const [fuses, safeUntil] = await NameWrapper.getFuses(namehash('sub.xyz'));
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN);
-      expect(enabled).to.be.false
+      expect(safeUntil).to.equal(0);
     })
 
     it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {
@@ -673,15 +673,15 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       )
-      let [fuses, enabled] = await NameWrapper.getFuses(namehash('wrapped2.eth'));
+      let [fuses, safeUntil] = await NameWrapper.getFuses(namehash('wrapped2.eth'));
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(labelHash));
 
       // Create a subdomain that can't be unwrapped
       await NameWrapper.setSubnodeOwnerAndWrap(namehash('wrapped2.eth'), 'sub', account, CANNOT_UNWRAP);
-      ([fuses, enabled] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth')))
+      ([fuses, safeUntil] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth')))
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(labelHash));
 
 
       // Fast forward until the 2LD expires
@@ -696,13 +696,13 @@ describe('Name Wrapper', () => {
         account2,
         CAN_DO_EVERYTHING
       );
-      ([fuses, enabled] = await NameWrapper.getFuses(namehash('wrapped2.eth')))
+      ([fuses, safeUntil] = await NameWrapper.getFuses(namehash('wrapped2.eth')))
       expect(fuses).to.equal(CAN_DO_EVERYTHING)
-      expect(enabled).to.be.true;
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(labelHash));
 
-      ([fuses, enabled] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth')))
+      ([fuses, safeUntil] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth')))
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.false
+      expect(safeUntil).to.equal(0);
     })
 
     it('emits Wrap event', async () => {
@@ -805,9 +805,9 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await BaseRegistrar.register(labelHash, account, 84600)
       await NameWrapper.wrapETH2LD(label, account, initialFuses)
-      const [fuses, enabled] = await NameWrapper.getFuses(nameHash)
+      const [fuses, safeUntil] = await NameWrapper.getFuses(nameHash)
       expect(fuses).to.equal(initialFuses)
-      expect(enabled).to.equal(true)
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(labelHash));
     })
   })
 
@@ -929,9 +929,9 @@ describe('Name Wrapper', () => {
           namehash('sub.abc'),
           CANNOT_UNWRAP | CANNOT_TRANSFER
       )
-      const [fuses, enabled] = await NameWrapper.getFuses(namehash('sub.abc'))
+      const [fuses, safeUntil] = await NameWrapper.getFuses(namehash('sub.abc'))
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
-      expect(enabled).to.be.false
+      expect(safeUntil).to.equal(0);
     })
     it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
@@ -954,15 +954,15 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
-      let [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
+      let [fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
 
       await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER);
 
-      ([fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId))
+      ([fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId))
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
     })
 
     it('Emits BurnFusesEvent', async () => {
@@ -981,9 +981,9 @@ describe('Name Wrapper', () => {
         .to.emit(NameWrapper, 'FusesBurned')
         .withArgs(wrappedTokenId, CANNOT_UNWRAP | CANNOT_TRANSFER)
 
-      const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
+      const [fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
     })
 
     it('Can be called by an account authorised by the owner', async () => {
@@ -1000,9 +1000,9 @@ describe('Name Wrapper', () => {
         CANNOT_UNWRAP
       )
 
-      const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
+      const [fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
     })
     it('Cannot be called by an unauthorised account', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
@@ -1030,9 +1030,9 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.burnFuses(wrappedTokenId, 128)
 
-      const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
+      const [fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | 128)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
     })
 
     it('Logically ORs passed in fuses with already-burned fuses.', async () => {
@@ -1048,9 +1048,9 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.burnFuses(wrappedTokenId, 128)
 
-      const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
+      const [fuses, safeUntil] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN | 128)
-      expect(enabled).to.be.true
+      expect(safeUntil).to.equal(await BaseRegistrar.nameExpires(tokenId))
     })
 
     it('can set fuses and then burn ability to burn fuses', async () => {
@@ -1336,9 +1336,9 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP
       )
-      const [fuses, enabled] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      const [fuses, safeUntil] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.false
+      expect(safeUntil).to.equal(0)
     })
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned.', async () => {
       const label = 'subdomain2'
@@ -1550,9 +1550,9 @@ describe('Name Wrapper', () => {
           0,
           CANNOT_UNWRAP
       )
-      const [fuses, enabled] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      const [fuses, safeUntil] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(enabled).to.be.false
+      expect(safeUntil).to.equal(0)
     })
 
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {

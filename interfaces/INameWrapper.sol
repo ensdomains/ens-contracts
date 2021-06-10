@@ -55,7 +55,7 @@ interface INameWrapper is IERC1155 {
         bytes32 node,
         uint96 _fuses
     ) external;
-    
+
     function setSubnodeRecord(
         bytes32 node,
         bytes32 label,
@@ -101,7 +101,7 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node) external returns (uint96, bool);
+    function getFuses(bytes32 node) external returns (uint96, uint);
 
     function canUnwrap(bytes32 node) external view returns (bool);
 
