@@ -174,7 +174,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
             return (node, expiration);
         }
 
-        if (!_allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
+        if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
             expiration = 0;
         }
         return (node, expiration);
@@ -187,8 +187,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not can be wrapped
      */
 
-    function canUnwrap(bytes32 node) public view override returns (bool) {
-        return !_allFusesBurned(node, CANNOT_UNWRAP);
+    function canUnwrap(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_UNWRAP);
     }
 
     /**
@@ -198,8 +198,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not can burn fuses
      */
 
-    function canBurnFuses(bytes32 node) public view override returns (bool) {
-        return !_allFusesBurned(node, CANNOT_BURN_FUSES);
+    function canBurnFuses(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_BURN_FUSES);
     }
 
     /**
@@ -209,8 +209,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not can be transferred
      */
 
-    function canTransfer(bytes32 node) public view override returns (bool) {
-        return !_allFusesBurned(node, CANNOT_TRANSFER);
+    function canTransfer(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_TRANSFER);
     }
 
     /**
@@ -220,8 +220,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not resolver can be set
      */
 
-    function canSetResolver(bytes32 node) public view override returns (bool) {
-        return !_allFusesBurned(node, CANNOT_SET_RESOLVER);
+    function canSetResolver(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_SET_RESOLVER);
     }
 
     /**
@@ -231,8 +231,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canSetTTL(bytes32 node) public view override returns (bool) {
-        return !_allFusesBurned(node, CANNOT_SET_TTL);
+    function canSetTTL(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_SET_TTL);
     }
 
     /**
@@ -242,13 +242,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not subdomains can be created
      */
 
-    function canCreateSubdomain(bytes32 node)
-        public
-        view
-        override
-        returns (bool)
-    {
-        return !_allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN);
+    function canCreateSubdomain(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN);
     }
 
     /**
@@ -258,13 +253,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @return Boolean of whether or not TTL can be set
      */
 
-    function canReplaceSubdomain(bytes32 node)
-        public
-        view
-        override
-        returns (bool)
-    {
-        return !_allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN);
+    function canReplaceSubdomain(bytes32 node) private view returns (bool) {
+        return !allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN);
     }
 
     /**
@@ -279,7 +269,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      */
 
     function canCallSetSubnodeOwner(bytes32 node, bytes32 label)
-        public
+        private
         view
         returns (bool)
     {
@@ -559,6 +549,23 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         ens.setTTL(node, ttl);
     }
 
+    /**
+     * @notice Checks all Fuses in the mask are burned for the node
+     * @param node namehash of the name
+     * @param fuseMask the fuses you want to check
+     * @return Boolean of whether or not all the selected fuses are burned
+     */
+
+    function allFusesBurned(bytes32 node, uint96 fuseMask)
+        public
+        view
+        override
+        returns (bool)
+    {
+        (, uint96 fuses) = getData(uint256(node));
+        return fuses & fuseMask == fuseMask;
+    }
+
     function onERC721Received(
         address to,
         address from,
@@ -684,14 +691,5 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
             _fuses & CANNOT_UNWRAP != 0,
             "NameWrapper: Cannot burn fuses: domain can be unwrapped"
         );
-    }
-
-    function _allFusesBurned(bytes32 node, uint96 fuseMask)
-        internal
-        view
-        returns (bool)
-    {
-        (, uint96 fuses) = getData(uint256(node));
-        return fuses & fuseMask == fuseMask;
     }
 }

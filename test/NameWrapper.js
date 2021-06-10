@@ -1092,7 +1092,9 @@ describe('Name Wrapper', () => {
 
       // check flag in the wrapper
 
-      expect(await NameWrapper.canBurnFuses(wrappedTokenId)).to.equal(false)
+      expect(
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_BURN_FUSES)
+      ).to.equal(true)
 
       //try to set the resolver and ttl
       await expect(
@@ -1121,7 +1123,9 @@ describe('Name Wrapper', () => {
 
       // check flag in the wrapper
 
-      expect(await NameWrapper.canTransfer(wrappedTokenId)).to.equal(false)
+      expect(
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_TRANSFER)
+      ).to.equal(true)
 
       //try to set the resolver and ttl
       await expect(
@@ -1151,8 +1155,12 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
 
       // check flag in the wrapper
-      expect(await NameWrapper.canSetResolver(wrappedTokenId)).to.equal(false)
-      expect(await NameWrapper.canSetTTL(wrappedTokenId)).to.equal(false)
+      expect(
+        await NameWrapper.allFusesBurned(
+          wrappedTokenId,
+          CANNOT_SET_RESOLVER | CANNOT_SET_TTL
+        )
+      ).to.equal(true)
 
       //try to set the resolver and ttl
       await expect(
@@ -1177,11 +1185,12 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
-      const canCreateSubdomain1 = await NameWrapper.canCreateSubdomain(
-        wrappedTokenId
-      )
-
-      expect(canCreateSubdomain1).to.equal(true)
+      expect(
+        await NameWrapper.allFusesBurned(
+          wrappedTokenId,
+          CANNOT_CREATE_SUBDOMAIN
+        )
+      ).to.equal(false)
 
       // can create before burn
 
@@ -1210,11 +1219,12 @@ describe('Name Wrapper', () => {
 
       expect(ownerInWrapper).to.equal(account)
 
-      const canCreateSubdomain = await NameWrapper.canCreateSubdomain(
-        wrappedTokenId
-      )
-
-      expect(canCreateSubdomain).to.equal(false)
+      expect(
+        await NameWrapper.allFusesBurned(
+          wrappedTokenId,
+          CANNOT_CREATE_SUBDOMAIN
+        )
+      ).to.equal(true)
 
       //try to create a subdomain
 
@@ -1390,8 +1400,11 @@ describe('Name Wrapper', () => {
       )
 
       expect(
-        await NameWrapper.canReplaceSubdomain(namehash(`sub.${label}.eth`))
-      ).to.equal(false)
+        await NameWrapper.allFusesBurned(
+          namehash(`sub.${label}.eth`),
+          CANNOT_REPLACE_SUBDOMAIN
+        )
+      ).to.equal(true)
     })
     it('Emits Wrap event', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
@@ -2017,7 +2030,9 @@ describe('Name Wrapper', () => {
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(1)
-      expect(await NameWrapper.canUnwrap(wrappedTokenId)).to.equal(false)
+      expect(
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP)
+      ).to.equal(true)
     })
 
     it('Accepts a zero-length data field for no fuses', async () => {
@@ -2092,7 +2107,10 @@ describe('Name Wrapper', () => {
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(5)
-      expect(await NameWrapper.canUnwrap(wrappedTokenId)).to.equal(false)
+
+      expect(
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP)
+      ).to.equal(true)
     })
 
     it('Sets the controller in the ENS registry to the wrapper contract', async () => {

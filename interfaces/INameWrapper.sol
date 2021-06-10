@@ -20,10 +20,7 @@ interface INameWrapper is IERC1155 {
         uint96 fuses
     );
 
-    event NameUnwrapped(
-        bytes32 indexed node,
-        address owner
-    );
+    event NameUnwrapped(bytes32 indexed node, address owner);
 
     event FusesBurned(bytes32 indexed node, uint96 fuses);
 
@@ -51,10 +48,7 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function burnFuses(
-        bytes32 node,
-        uint96 _fuses
-    ) external;
+    function burnFuses(bytes32 node, uint96 _fuses) external;
 
     function setSubnodeRecord(
         bytes32 node,
@@ -101,19 +95,10 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node) external returns (uint96, uint);
+    function getFuses(bytes32 node) external returns (uint96, uint256);
 
-    function canUnwrap(bytes32 node) external view returns (bool);
-
-    function canBurnFuses(bytes32 node) external view returns (bool);
-
-    function canTransfer(bytes32 node) external view returns (bool);
-
-    function canSetResolver(bytes32 node) external view returns (bool);
-
-    function canSetTTL(bytes32 node) external view returns (bool);
-
-    function canCreateSubdomain(bytes32 node) external view returns (bool);
-
-    function canReplaceSubdomain(bytes32 node) external view returns (bool);
+    function allFusesBurned(bytes32 node, uint96 fuseMask)
+        external
+        view
+        returns (bool);
 }
