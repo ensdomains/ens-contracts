@@ -121,6 +121,25 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
+     */
+    function getRawFuses(bytes32 node)
+        public
+        view
+        override
+        returns (uint96 fuses)
+    {
+        bytes memory name = names[node];
+        require(name.length > 0, "NameWrapper: Name not found");
+        (, fuses) = getData(uint256(node));
+    }
+
+    /**
+     * @notice Gets fuse permissions for a specific name
+     * @dev Fuses are represented by a uint96 where each permission is represented by 1 bit
+     *      The interface has predefined fuses for all registry permissions, but additional
+     *      fuses can be added for other use cases
+     * @param node namehash of the name to check
+     * @return fuses A number that represents the permissions a name has
      * @return safeUntil The earliest time at which any fuses could be cleared
      */
     function getFuses(bytes32 node)
@@ -181,83 +200,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     }
 
     /**
-     * @notice Check whether a name can be unwrapped
-     *
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not can be wrapped
-     */
-
-    function canUnwrap(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_UNWRAP);
-    }
-
-    /**
-     * @notice Check whether a name can burn fuses
-     *
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not can burn fuses
-     */
-
-    function canBurnFuses(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_BURN_FUSES);
-    }
-
-    /**
-     * @notice Check whether a name can be transferred
-     *
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not can be transferred
-     */
-
-    function canTransfer(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_TRANSFER);
-    }
-
-    /**
-     * @notice Check whether a name can set the resolver
-     *
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not resolver can be set
-     */
-
-    function canSetResolver(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_SET_RESOLVER);
-    }
-
-    /**
-     * @notice Check whether a name can set the TTL
-     *
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not TTL can be set
-     */
-
-    function canSetTTL(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_SET_TTL);
-    }
-
-    /**
-     * @notice Check whether a name can create a subdomain
-     * @dev Creating a subdomain is defined as a subdomain that has a 0x0 owner and a new owner is set
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not subdomains can be created
-     */
-
-    function canCreateSubdomain(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN);
-    }
-
-    /**
-     * @notice Check whether a name can replace a subdomain
-     * @dev Replacing a subdomain is defined as a subdomain that has an existing owner and is overwritten
-     * @param node namehash of the name to check
-     * @return Boolean of whether or not TTL can be set
-     */
-
-    function canReplaceSubdomain(bytes32 node) private view returns (bool) {
-        return !allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN);
-    }
-
-    /**
      * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
      * @dev Checks both canCreateSubdomain and canReplaceSubdomain and whether not they have been burnt
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
@@ -277,8 +219,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         address owner = ens.owner(subnode);
 
         return
-            (owner == address(0) && canCreateSubdomain(node)) ||
-            (owner != address(0) && canReplaceSubdomain(node));
+            (owner == address(0) &&
+                !allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN)) ||
+            (owner != address(0) &&
+                !allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN));
     }
 
     /**
@@ -384,7 +328,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         onlyTokenOwner(node)
     {
         require(
-            canBurnFuses(node),
+            !allFusesBurned(node, CANNOT_BURN_FUSES),
             "NameWrapper: Fuse has been burned for burning fuses"
         );
 
@@ -500,16 +444,19 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         uint64 ttl
     ) public override onlyTokenOwner(node) {
         require(
-            canTransfer(node),
+            !allFusesBurned(node, CANNOT_TRANSFER),
             "NameWrapper: Fuse is burned for transferring"
         );
 
         require(
-            canSetResolver(node),
+            !allFusesBurned(node, CANNOT_SET_RESOLVER),
             "NameWrapper: Fuse is burned for setting resolver"
         );
 
-        require(canSetTTL(node), "NameWrapper: Fuse is burned for setting TTL");
+        require(
+            !allFusesBurned(node, CANNOT_SET_TTL),
+            "NameWrapper: Fuse is burned for setting TTL"
+        );
         ens.setRecord(node, owner, resolver, ttl);
     }
 
@@ -525,7 +472,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         onlyTokenOwner(node)
     {
         require(
-            canSetResolver(node),
+            !allFusesBurned(node, CANNOT_SET_RESOLVER),
             "NameWrapper: Fuse already burned for setting resolver"
         );
         ens.setResolver(node, resolver);
@@ -543,7 +490,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         onlyTokenOwner(node)
     {
         require(
-            canSetTTL(node),
+            !allFusesBurned(node, CANNOT_SET_TTL),
             "NameWrapper: Fuse already burned for setting TTL"
         );
         ens.setTTL(node, ttl);
@@ -676,7 +623,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
             newOwner != address(this),
             "NameWrapper: Target owner cannot be the NameWrapper contract"
         );
-        require(canUnwrap(node), "NameWrapper: Domain is not unwrappable");
+        require(
+            !allFusesBurned(node, CANNOT_UNWRAP),
+            "NameWrapper: Domain is not unwrappable"
+        );
 
         // burn token and fuse data
         _burn(uint256(node));

@@ -61,6 +61,7 @@ const INTERFACES = {
     'isTokenOwnerOrApproved(bytes32,address)',
     'setResolver(bytes32,address)',
     'setTTL(bytes32,uint64)',
+    'getRawFuses(bytes32)',
     'getFuses(bytes32)',
     'allFusesBurned(bytes32,uint96)',
   ],
