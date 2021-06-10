@@ -96,7 +96,7 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node) external returns (uint96);
+    function getFuses(bytes32 node) external returns (uint96, bool);
 
     function canUnwrap(bytes32 node) external view returns (bool);
 
