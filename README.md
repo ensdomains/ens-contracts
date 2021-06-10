@@ -89,6 +89,18 @@ If this fuse is burned, new subdomains cannot be created. Calls to `setSubnodeOw
 
 If this fuse is burned, existing subdomains cannot be replaced by the parent name. Calls to `setSubnodeOwner`, `setSubnodeRecord`, `setSubnodeOwnerAndWrap` and `setSubnodeRecordAndWrap` will fail if they reference a name that already exists.
 
+### Checking Fuses using `allFusesBurned(node, uint96)`
+
+To check whether or not a fuse is burnt you can use this function that takes a fuse mask of all fuses you want to check.
+
+```js
+const areBurned = await allFusesBurned(
+  namehash('vitalik.eth'),
+  CANNOT_TRANSFER | CANNOT_SET_RESOLVER
+)
+// if CANNOT_UNWRAP AND CANNOT_SET_RESOLVER are *both* burned this will return true
+```
+
 ## Installation and setup
 
 ```bash
