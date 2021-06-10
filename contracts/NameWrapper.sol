@@ -6,18 +6,19 @@ import "../interfaces/IMetadataService.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
-contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
+contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrar public immutable registrar;
     IMetadataService public metadataService;
-    mapping(bytes32=>bytes) public names;
+    mapping(bytes32 => bytes) public names;
 
-    bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
+    //bytes4 private constant ERC721_RECEIVED = 0x150b7a02;
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 private constant ROOT_NODE =
@@ -44,8 +45,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             address(0x0),
             uint96(CANNOT_REPLACE_SUBDOMAIN | CANNOT_UNWRAP)
         );
-        names[ROOT_NODE] = '\x00';
-        names[ETH_NODE] = '\x03eth\x00';
+        names[ROOT_NODE] = "\x00";
+        names[ETH_NODE] = "\x03eth\x00";
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -122,7 +123,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @return fuses A number that represents the permissions a name has
      * @return safeUntil The earliest time at which any fuses could be cleared
      */
-    function getFuses(bytes32 node) public view override returns (uint96 fuses, uint safeUntil) {
+    function getFuses(bytes32 node)
+        public
+        view
+        override
+        returns (uint96 fuses, uint256 safeUntil)
+    {
         bytes memory name = names[node];
         require(name.length > 0, "NameWrapper: Name not found");
         (, safeUntil) = _getExpiration(name, 0);
@@ -136,12 +142,16 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @return node The calculated namehash for this part of the name.
      * @return expiration The timestamp at which the name or its parent expires.
      */
-    function _getExpiration(bytes memory name, uint offset) internal view returns (bytes32 node, uint expiration) {
+    function _getExpiration(bytes memory name, uint256 offset)
+        internal
+        view
+        returns (bytes32 node, uint256 expiration)
+    {
         // Read the first label. If it's the root, return immediately.
-        (bytes32 labelhash, uint newOffset) = name.readLabel(offset);
-        if(labelhash == bytes32(0)) {
+        (bytes32 labelhash, uint256 newOffset) = name.readLabel(offset);
+        if (labelhash == bytes32(0)) {
             // Root node
-            return (bytes32(0), type(uint).max);
+            return (bytes32(0), type(uint256).max);
         }
 
         // Check the parent name
@@ -149,22 +159,22 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         (parentNode, expiration) = _getExpiration(name, newOffset);
         node = _makeNode(parentNode, labelhash);
 
-        if(expiration < block.timestamp) {
+        if (expiration < block.timestamp) {
             // If expiration is less than now, return immediately; no need to check fuses.
             return (node, expiration);
         }
 
         // Check the parent name's fuses to see if replacing subdomains is forbidden
-        if(parentNode == ROOT_NODE) {
+        if (parentNode == ROOT_NODE) {
             // Save ourselves some gas; root node can't be replaced
             return (node, expiration);
-        } else if(parentNode == ETH_NODE) {
+        } else if (parentNode == ETH_NODE) {
             // Special case .eth: Get the expiration from the registrar
             expiration = registrar.nameExpires(uint256(labelhash));
             return (node, expiration);
         }
 
-        if(!_allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
+        if (!_allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
             expiration = 0;
         }
         return (node, expiration);
@@ -294,8 +304,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address wrappedOwner,
         uint96 _fuses
     ) public override {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
+        bytes32 labelhash = _wrapETH2LD(label, wrappedOwner, _fuses);
         uint256 tokenId = uint256(labelhash);
         address owner = registrar.ownerOf(tokenId);
 
@@ -308,17 +317,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         // transfer the token from the user to this contract
         address currentOwner = registrar.ownerOf(tokenId);
         registrar.transferFrom(currentOwner, address(this), tokenId);
-
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(uint256(labelhash), address(this));
-        // mint a new ERC1155 token with fuses
-
-        _checkFuses(_fuses);
-        _mint(node, wrappedOwner, _fuses);
-
-        bytes memory name = _addLabel(label, '\x03eth\x00');
-        names[node] = name;
-        emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
     /**
@@ -390,10 +388,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @param _fuses Fuses you want to burn.
      */
 
-    function burnFuses(
-        bytes32 node,
-        uint96 _fuses
-    ) public override onlyTokenOwner(node) {
+    function burnFuses(bytes32 node, uint96 _fuses)
+        public
+        override
+        onlyTokenOwner(node)
+    {
         require(
             canBurnFuses(node),
             "NameWrapper: Fuse has been burned for burning fuses"
@@ -560,6 +559,30 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         ens.setTTL(node, ttl);
     }
 
+    function onERC721Received(
+        address to,
+        address from,
+        uint256 tokenId,
+        bytes calldata data
+    ) public override returns (bytes4) {
+        //check if it's the eth registrar ERC721
+        require(
+            msg.sender == address(registrar),
+            "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
+        );
+
+        (string memory label, uint96 fuses) =
+            abi.decode(data, (string, uint96));
+
+        require(
+            keccak256(bytes(label)) == bytes32(tokenId),
+            "NameWrapper: Token id does match keccak(label) of label provided in data field"
+        );
+
+        _wrapETH2LD(label, from, fuses);
+        return IERC721Receiver(to).onERC721Received.selector;
+    }
+
     /***** Internal functions */
 
     function _canTransfer(uint96 fuses) internal pure override returns (bool) {
@@ -574,7 +597,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         return keccak256(abi.encodePacked(node, label));
     }
 
-    function _addLabel(string memory label, bytes memory name) internal pure returns(bytes memory ret) {
+    function _addLabel(string memory label, bytes memory name)
+        internal
+        pure
+        returns (bytes memory ret)
+    {
         require(bytes(label).length < 256, "NameWrapper: Label too long");
         return abi.encodePacked(uint8(bytes(label).length), label, name);
     }
@@ -598,7 +625,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         address wrappedOwner,
         uint96 _fuses
     ) private returns (bytes32 node) {
-        (bytes32 labelhash, uint offset) = name.readLabel(0);
+        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
 
         require(
@@ -610,6 +637,25 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
         _checkFuses(_fuses);
         _mint(node, wrappedOwner, _fuses);
+        names[node] = name;
+        emit NameWrapped(node, name, wrappedOwner, _fuses);
+    }
+
+    function _wrapETH2LD(
+        string memory label,
+        address wrappedOwner,
+        uint96 _fuses
+    ) private returns (bytes32 labelhash) {
+        labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);
+        // transfer the ens record back to the new owner (this contract)
+        registrar.reclaim(uint256(labelhash), address(this));
+        // mint a new ERC1155 token with fuses
+
+        _checkFuses(_fuses);
+        _mint(node, wrappedOwner, _fuses);
+
+        bytes memory name = _addLabel(label, "\x03eth\x00");
         names[node] = name;
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
@@ -640,7 +686,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         );
     }
 
-    function _allFusesBurned(bytes32 node, uint96 fuseMask) internal view returns(bool) {
+    function _allFusesBurned(bytes32 node, uint96 fuseMask)
+        internal
+        view
+        returns (bool)
+    {
         (, uint96 fuses) = getData(uint256(node));
         return fuses & fuseMask == fuseMask;
     }
