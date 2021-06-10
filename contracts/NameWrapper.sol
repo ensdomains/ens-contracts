@@ -125,7 +125,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
 
     function getFuses(bytes32 node) public view override returns (uint96 fuses, bool enabled) {
         bytes memory name = names[node];
-        assert(name.length > 0);
+        require(name.length > 0, "NameWrapper: Name not found");
         (, enabled) = _fusesEnabled(name, 0);
         (, fuses) = getData(uint256(node));
     }
@@ -314,7 +314,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         registrar.reclaim(uint256(labelhash), address(this));
         // mint a new ERC1155 token with fuses
 
-        _checkFuses(ETH_NODE, _fuses);
+        _checkFuses(_fuses);
         _mint(node, wrappedOwner, _fuses);
 
         bytes memory name = _addLabel(label, '\x03eth\x00');
@@ -387,18 +387,14 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
     /**
      * @notice Burns any fuse passed to this function for a name
      * @dev Fuse burns are always additive and will not unburn already burnt fuses
-     * @param parentNode parent namehash of the name. e.g. vitalik.xyz would be namehash('xyz')
-     * @param labelhash labelhash of the name. e.g. vitalik.xyz would be labelhash('vitalik')
+     * @param node namehash of the name. e.g. vitalik.xyz would be namehash('vitalik.xyz')
      * @param _fuses Fuses you want to burn.
      */
 
     function burnFuses(
-        bytes32 parentNode,
-        bytes32 labelhash,
+        bytes32 node,
         uint96 _fuses
-    ) public onlyTokenOwner(_makeNode(parentNode, labelhash)) {
-        bytes32 node = _makeNode(parentNode, labelhash);
-
+    ) public override onlyTokenOwner(node) {
         require(
             canBurnFuses(node),
             "NameWrapper: Fuse has been burned for burning fuses"
@@ -407,7 +403,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
-        _checkFuses(parentNode, newFuses);
+        _checkFuses(newFuses);
 
         _setData(uint256(node), owner, newFuses);
 
@@ -610,10 +606,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
-        _checkFuses(parentNode, _fuses);
 
         node = _makeNode(parentNode, labelhash);
 
+        _checkFuses(_fuses);
         _mint(node, wrappedOwner, _fuses);
         names[node] = name;
         emit NameWrapped(node, name, wrappedOwner, _fuses);
@@ -637,12 +633,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         emit NameUnwrapped(node, newOwner);
     }
 
-    function _checkFuses(bytes32 parentNode, uint96 _fuses) internal view {
+    function _checkFuses(uint96 _fuses) internal pure {
         if (_fuses == CAN_DO_EVERYTHING) return;
-        require(
-            !canReplaceSubdomain(parentNode),
-            "NameWrapper: Cannot burn fuses: parent name can replace subdomain"
-        );
         require(
             _fuses & CANNOT_UNWRAP != 0,
             "NameWrapper: Cannot burn fuses: domain can be unwrapped"

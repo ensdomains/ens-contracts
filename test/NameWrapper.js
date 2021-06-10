@@ -247,7 +247,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Fuses cannot be burned if CANNOT_REPLACE_SUBDOMAIN has not burned', async () => {
+    it('Fuses are disabled if CANNOT_REPLACE_SUBDOMAIN has not been burned on the parent domain', async () => {
       // register sub.xyz before we wrap xyz
       await EnsRegistry.setSubnodeOwner(
         namehash('xyz'),
@@ -259,15 +259,14 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrap(encodeName('xyz'), account, CANNOT_UNWRAP)
 
       //attempt to burn fuse
-      await expect(
-        NameWrapper.wrap(
+      await NameWrapper.wrap(
           encodeName('sub.xyz'),
           account,
-          CANNOT_REPLACE_SUBDOMAIN
-        )
-      ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
-      )
+          CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      );
+      const [fuses, enabled] = await NameWrapper.getFuses(namehash('sub.xyz'));
+      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN);
+      expect(enabled).to.be.false
     })
 
     it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {
@@ -912,7 +911,7 @@ describe('Name Wrapper', () => {
     const label = 'fuses'
     const tokenId = labelhash('fuses')
     const wrappedTokenId = namehash('fuses.eth')
-    it('Will not allow burning fuses unless the parent domain has CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
+    it('Burns fuses but shows them as disabled if the parent domain does not have CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('abc'), account)
 
       await EnsRegistry.setSubnodeOwner(
@@ -926,15 +925,13 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrap(encodeName('sub.abc'), account, 0)
 
-      await expect(
-        NameWrapper.burnFuses(
-          namehash('abc'),
-          labelhash('sub'),
-          CANNOT_TRANSFER
-        )
-      ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
+      await NameWrapper.burnFuses(
+          namehash('sub.abc'),
+          CANNOT_UNWRAP | CANNOT_TRANSFER
       )
+      const [fuses, enabled] = await NameWrapper.getFuses(namehash('sub.abc'))
+      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
+      expect(enabled).to.be.false
     })
     it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
@@ -944,7 +941,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING)
 
       await expect(
-        NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+        NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(
         'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
@@ -961,7 +958,7 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(CANNOT_UNWRAP)
       expect(enabled).to.be.true
 
-      await NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_TRANSFER);
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER);
 
       ([fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId))
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
@@ -976,8 +973,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
       const tx = await NameWrapper.burnFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CANNOT_TRANSFER
       )
 
@@ -1000,8 +996,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setApprovalForAll(account2, true)
 
       await NameWrapper2.burnFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CANNOT_UNWRAP
       )
 
@@ -1018,8 +1013,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.burnFuses(
-          namehash('eth'),
-          tokenId,
+          wrappedTokenId,
           CAN_DO_EVERYTHING | CANNOT_UNWRAP
         )
       ).to.be.reverted
@@ -1034,7 +1028,7 @@ describe('Name Wrapper', () => {
 
       // Each fuse is represented by the next bit, 64 is the next undefined fuse
 
-      await NameWrapper.burnFuses(namehash('eth'), tokenId, 128)
+      await NameWrapper.burnFuses(wrappedTokenId, 128)
 
       const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | 128)
@@ -1052,7 +1046,7 @@ describe('Name Wrapper', () => {
         CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
       )
 
-      await NameWrapper.burnFuses(namehash('eth'), tokenId, 128)
+      await NameWrapper.burnFuses(wrappedTokenId, 128)
 
       const [fuses, enabled] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN | 128)
@@ -1071,7 +1065,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
-      await NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_BURN_FUSES)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_BURN_FUSES)
 
       const ownerInWrapper = await NameWrapper.ownerOf(wrappedTokenId)
 
@@ -1084,8 +1078,7 @@ describe('Name Wrapper', () => {
       //try to set the resolver and ttl
       await expect(
         NameWrapper.burnFuses(
-          namehash('eth'),
-          tokenId,
+          wrappedTokenId,
           CANNOT_REPLACE_SUBDOMAIN
         )
       ).to.be.revertedWith(
@@ -1106,7 +1099,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
-      await NameWrapper.burnFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
 
@@ -1135,8 +1128,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP)
 
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CANNOT_SET_RESOLVER | CANNOT_SET_TTL
       )
 
@@ -1194,8 +1186,7 @@ describe('Name Wrapper', () => {
       ).to.equal(account)
 
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CAN_DO_EVERYTHING | CANNOT_CREATE_SUBDOMAIN
       )
 
@@ -1334,21 +1325,20 @@ describe('Name Wrapper', () => {
         'revert NameWrapper: msg.sender is not the owner or approved'
       )
     })
-    it('Does not allow fuses to be burned if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned', async () => {
+    it('Fuses are not enabled if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned', async () => {
       const label = 'subdomain2'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
-      await expect(
-        NameWrapper.setSubnodeOwnerAndWrap(
-          wrappedTokenId,
-          'sub',
-          account,
-          CANNOT_UNWRAP
-        )
-      ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
+      await NameWrapper.setSubnodeOwnerAndWrap(
+        wrappedTokenId,
+        'sub',
+        account,
+        CANNOT_UNWRAP
       )
+      const [fuses, enabled] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      expect(fuses).to.equal(CANNOT_UNWRAP)
+      expect(enabled).to.be.false
     })
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned.', async () => {
       const label = 'subdomain2'
@@ -1547,23 +1537,22 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Does not allow fuses to be burned if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
+    it('Fuses are not enabled if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned.', async () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
-      await expect(
-        NameWrapper.setSubnodeRecordAndWrap(
+      await NameWrapper.setSubnodeRecordAndWrap(
           wrappedTokenId,
           'sub',
           account,
           resolver,
           0,
           CANNOT_UNWRAP
-        )
-      ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: parent name can replace subdomain'
       )
+      const [fuses, enabled] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      expect(fuses).to.equal(CANNOT_UNWRAP)
+      expect(enabled).to.be.false
     })
 
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {
@@ -1678,7 +1667,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_TRANSFER is burned.', async () => {
-      await NameWrapper.burnFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
       ).to.be.revertedWith(
@@ -1688,8 +1677,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned.', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_SET_RESOLVER
       )
 
@@ -1701,7 +1689,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned.', async () => {
-      await NameWrapper.burnFuses(namehash('eth'), labelHash, CANNOT_SET_TTL)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
@@ -1780,8 +1768,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if CREATE_SUBDOMAIN is burned and is a new subdomain', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_CREATE_SUBDOMAIN
       )
 
@@ -1802,8 +1789,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if REPLACE_SUBDOMAIN is burned and is an existing subdomain', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_REPLACE_SUBDOMAIN
       )
 
@@ -1869,8 +1855,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if CREATE_SUBDOMAIN is burned and is a new subdomain', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_CREATE_SUBDOMAIN
       )
 
@@ -1885,8 +1870,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if REPLACE_SUBDOMAIN is burned and is an existing subdomain', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_REPLACE_SUBDOMAIN
       )
 
@@ -1937,8 +1921,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned', async () => {
       await NameWrapper.burnFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
         CANNOT_SET_RESOLVER
       )
 
@@ -1985,7 +1968,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned', async () => {
-      await NameWrapper.burnFuses(namehash('eth'), labelHash, CANNOT_SET_TTL)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 100)).to.be.revertedWith(
         'revert NameWrapper: Fuse already burned for setting TTL'
@@ -2003,7 +1986,7 @@ describe('Name Wrapper', () => {
     })
 
     it('safeTransfer cannot be called if CANNOT_TRANSFER is burned', async () => {
-      await NameWrapper.burnFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
@@ -2013,7 +1996,7 @@ describe('Name Wrapper', () => {
     })
 
     it('safeBatchTransfer cannot be called if CANNOT_TRANSFER is burned', async () => {
-      await NameWrapper.burnFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(
         NameWrapper.safeBatchTransferFrom(
