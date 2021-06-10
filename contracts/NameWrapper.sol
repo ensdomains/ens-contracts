@@ -122,7 +122,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      * @return fuses A number that represents the permissions a name has
      * @return enabled True if fuses are enabled for this name, false if they are not enforced.
      */
-
     function getFuses(bytes32 node) public view override returns (uint96 fuses, bool enabled) {
         bytes memory name = names[node];
         require(name.length > 0, "NameWrapper: Name not found");
@@ -172,8 +171,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function canUnwrap(bytes32 node) public view override returns (bool) {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_UNWRAP == 0);
+        return !_allFusesBurned(node, CANNOT_UNWRAP);
     }
 
     /**
@@ -184,8 +182,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function canBurnFuses(bytes32 node) public view override returns (bool) {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_BURN_FUSES == 0);
+        return !_allFusesBurned(node, CANNOT_BURN_FUSES);
     }
 
     /**
@@ -196,8 +193,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function canTransfer(bytes32 node) public view override returns (bool) {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_TRANSFER == 0);
+        return !_allFusesBurned(node, CANNOT_TRANSFER);
     }
 
     /**
@@ -208,8 +204,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function canSetResolver(bytes32 node) public view override returns (bool) {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_SET_RESOLVER == 0);
+        return !_allFusesBurned(node, CANNOT_SET_RESOLVER);
     }
 
     /**
@@ -220,8 +215,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
      */
 
     function canSetTTL(bytes32 node) public view override returns (bool) {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_SET_TTL == 0);
+        return !_allFusesBurned(node, CANNOT_SET_TTL);
     }
 
     /**
@@ -237,8 +231,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         override
         returns (bool)
     {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_CREATE_SUBDOMAIN == 0);
+        return !_allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN);
     }
 
     /**
@@ -254,8 +247,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
         override
         returns (bool)
     {
-        (uint96 fuses, bool enabled) = getFuses(node);
-        return !enabled || (fuses & CANNOT_REPLACE_SUBDOMAIN == 0);
+        return !_allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN);
     }
 
     /**
@@ -639,5 +631,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper {
             _fuses & CANNOT_UNWRAP != 0,
             "NameWrapper: Cannot burn fuses: domain can be unwrapped"
         );
+    }
+
+    function _allFusesBurned(bytes32 node, uint96 fuseMask) internal view returns(bool) {
+        (, uint96 fuses) = getData(uint256(node));
+        return fuses & fuseMask == fuseMask;
     }
 }
