@@ -157,9 +157,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
                 registrar.isApprovedForAll(owner, msg.sender),
             "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
+
         // transfer the token from the user to this contract
-        address currentOwner = registrar.ownerOf(tokenId);
-        registrar.transferFrom(currentOwner, address(this), tokenId);
+        registrar.transferFrom(owner, address(this), tokenId);
     }
 
     /**
