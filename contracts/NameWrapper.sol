@@ -135,32 +135,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     }
 
     /**
-     * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
-     * @dev Checks both canCreateSubdomain and canReplaceSubdomain and whether not they have been burnt
-     *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
-     *      replacing a subdomain. If either conditions are true, then it is possible to call
-     *      setSubnodeOwner
-     * @param node namehash of the name to check
-     * @param label labelhash of the name to check
-     * @return Boolean of whether or not setSubnodeOwner/setSubnodeRecord can be called
-     */
-
-    function canCallSetSubnodeOwner(bytes32 node, bytes32 label)
-        private
-        view
-        returns (bool)
-    {
-        bytes32 subnode = _makeNode(node, label);
-        address owner = ens.owner(subnode);
-
-        return
-            (owner == address(0) &&
-                !allFusesBurned(node, CANNOT_CREATE_SUBDOMAIN)) ||
-            (owner != address(0) &&
-                !allFusesBurned(node, CANNOT_REPLACE_SUBDOMAIN));
-    }
-
-    /**
      * @notice Wraps a .eth domain, creating a new token and sending the original ERC721 token to this *         contract
      * @dev Can be called by the owner of the name in the .eth registrar or an authorised caller on the *      registrar
      * @param label label as a string of the .eth domain to wrap
@@ -261,12 +235,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         public
         override
         onlyTokenOwner(node)
+        operationAllowed(node, CANNOT_BURN_FUSES)
     {
-        require(
-            !allFusesBurned(node, CANNOT_BURN_FUSES),
-            "NameWrapper: Fuse has been burned for burning fuses"
-        );
-
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
@@ -290,12 +260,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         address owner,
         address resolver,
         uint64 ttl
-    ) public override onlyTokenOwner(node) {
-        require(
-            canCallSetSubnodeOwner(node, label),
-            "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
-        );
-
+    )
+        public
+        override
+        onlyTokenOwner(node)
+        canCallSetSubnodeOwner(node, label)
+    {
         ens.setSubnodeRecord(node, label, owner, resolver, ttl);
     }
 
@@ -310,12 +280,13 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         bytes32 node,
         bytes32 label,
         address owner
-    ) public override onlyTokenOwner(node) returns (bytes32) {
-        require(
-            canCallSetSubnodeOwner(node, label),
-            "NameWrapper: Fuse has been burned for creating or replacing a subdomain"
-        );
-
+    ) 
+        public
+        override
+        onlyTokenOwner(node)
+        canCallSetSubnodeOwner(node, label)
+        returns (bytes32) 
+    {
         return ens.setSubnodeOwner(node, label, owner);
     }
 
@@ -376,21 +347,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         address owner,
         address resolver,
         uint64 ttl
-    ) public override onlyTokenOwner(node) {
-        require(
-            !allFusesBurned(node, CANNOT_TRANSFER),
-            "NameWrapper: Fuse is burned for transferring"
-        );
-
-        require(
-            !allFusesBurned(node, CANNOT_SET_RESOLVER),
-            "NameWrapper: Fuse is burned for setting resolver"
-        );
-
-        require(
-            !allFusesBurned(node, CANNOT_SET_TTL),
-            "NameWrapper: Fuse is burned for setting TTL"
-        );
+    ) 
+        public
+        override
+        onlyTokenOwner(node)
+        operationAllowed(node, CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL)
+    {
         ens.setRecord(node, owner, resolver, ttl);
     }
 
@@ -404,11 +366,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         public
         override
         onlyTokenOwner(node)
+        operationAllowed(node, CANNOT_SET_RESOLVER)
     {
-        require(
-            !allFusesBurned(node, CANNOT_SET_RESOLVER),
-            "NameWrapper: Fuse already burned for setting resolver"
-        );
         ens.setResolver(node, resolver);
     }
 
@@ -422,12 +381,48 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         public
         override
         onlyTokenOwner(node)
+        operationAllowed(node, CANNOT_SET_TTL)
     {
-        require(
-            !allFusesBurned(node, CANNOT_SET_TTL),
-            "NameWrapper: Fuse already burned for setting TTL"
-        );
         ens.setTTL(node, ttl);
+    }
+
+    /**
+     * @dev Allows an operation only if none of the specified fuses are burned.
+     * @param node The namehash of the name to check fuses on.
+     * @param fuseMask A bitmask of fuses that must not be burned.
+     */
+    modifier operationAllowed(bytes32 node, uint96 fuseMask) {
+        (, uint96 fuses) = getData(uint256(node));
+        require(
+            fuses & fuseMask == 0,
+            "NameWrapper: Operation prohibited by fuses"
+        );
+        _;
+    }
+
+    /**
+     * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
+     * @dev Checks both canCreateSubdomain and canReplaceSubdomain and whether not they have been burnt
+     *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
+     *      replacing a subdomain. If either conditions are true, then it is possible to call
+     *      setSubnodeOwner
+     * @param node namehash of the name to check
+     * @param label labelhash of the name to check
+     */
+
+    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 label)
+    {
+        bytes32 subnode = _makeNode(node, label);
+        address owner = ens.owner(subnode);
+        (, uint96 fuses) = getData(uint256(node));
+
+        require(
+            (owner == address(0) &&
+                fuses & CANNOT_CREATE_SUBDOMAIN == 0) ||
+            (owner != address(0) &&
+                fuses & CANNOT_REPLACE_SUBDOMAIN == 0),
+            "NameWrapper: Operation prohibited by fuses");
+        _;
     }
 
     /**

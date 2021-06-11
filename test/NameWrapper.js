@@ -1100,7 +1100,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.burnFuses(wrappedTokenId, CANNOT_REPLACE_SUBDOMAIN)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for burning fuses'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1166,11 +1166,11 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setResolver(wrappedTokenId, account)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for setting resolver'
+        'NameWrapper: Operation prohibited by fuses'
       )
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 1000)).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for setting TTL'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1235,7 +1235,7 @@ describe('Name Wrapper', () => {
           account
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+        'NameWrapper: Operation prohibited by fuses'
       )
 
       //expect replacing subdomain to succeed
@@ -1700,7 +1700,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse is burned for transferring'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1710,7 +1710,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse is burned for setting resolver'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1719,7 +1719,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
-      ).to.be.revertedWith('revert NameWrapper: Fuse is burned for setting TTL')
+      ).to.be.revertedWith('NameWrapper: Operation prohibited by fuses')
     })
   })
 
@@ -1806,7 +1806,7 @@ describe('Name Wrapper', () => {
           50
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1831,7 +1831,7 @@ describe('Name Wrapper', () => {
           50
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
   })
@@ -1881,7 +1881,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
 
@@ -1894,7 +1894,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse has been burned for creating or replacing a subdomain'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
   })
@@ -1939,7 +1939,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.setResolver(wrappedTokenId, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for setting resolver'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
   })
@@ -1982,7 +1982,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.burnFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 100)).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for setting TTL'
+        'NameWrapper: Operation prohibited by fuses'
       )
     })
   })
