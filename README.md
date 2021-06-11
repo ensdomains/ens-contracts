@@ -28,13 +28,13 @@ In order to wrap a domain that is not a `.eth` 2LD, the owner of the name must h
 
 An alternative way to wrap `.eth` names is to send the name to the NameWrapper contract, this bypasses the need to `setApprovalForAll` on the registrar and is preferable when only wrapping one name.
 
-To wrap a name by sending to the contract, you must add in extra data on `safeTransferFrom(address,address,uint256,bytes)`, this must be formatted as a `string` for the plaintext label and a `uint96` for the fuses.
+To wrap a name by sending to the contract, you must use `safeTransferFrom(address,address,uint256,bytes)` with the extra data (the last parameter) ABI formatted as `[string label, address owner, uint96 fuses]`.
 
 Example:
 
 ```js
 // Using ethers.js v5
-abiCoder.encode(['string', 'uint96'], ['vitalik', '0x000000000000000000000001'])
+abiCoder.encode(['string', 'address', 'uint96'], ['vitalik', '0x...', '0x000000000000000000000001'])
 ```
 
 ## Unwrapping a name

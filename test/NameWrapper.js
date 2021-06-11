@@ -1992,17 +1992,17 @@ describe('Name Wrapper', () => {
     const name = label + '.eth'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
-    it('Wraps a name transferred to it and sets the owner to the from address', async () => {
+    it('Wraps a name transferred to it and sets the owner to the provided address', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
       await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(['string', 'uint96'], [label, '0x0'])
+        abiCoder.encode(['string', 'address', 'uint96'], [label, account2, '0x0'])
       )
 
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account2)
       expect(await BaseRegistrar.ownerOf(tokenId)).to.equal(NameWrapper.address)
     })
 
@@ -2010,7 +2010,15 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
       await expect(
-        NameWrapper.onERC721Received(account, account, tokenId, '0x')
+        NameWrapper.onERC721Received(
+          account,
+          account,
+          tokenId,
+          abiCoder.encode(
+            ['string', 'address', 'uint96'],
+            [label, account, '0x000000000000000000000001']
+          )
+        )
       ).to.be.revertedWith(
         'revert NameWrapper: Wrapper only supports .eth ERC721 token transfers'
       )
@@ -2024,8 +2032,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000001']
+          ['string', 'address', 'uint96'],
+          [label, account, '0x000000000000000000000001']
         )
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
@@ -2035,21 +2043,15 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
     })
 
-    it('Accepts a zero-length data field for no fuses', async () => {
+    it('Reverts if transferred without data', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
-      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+      await expect(BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000000']
-        )
-      )
-
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      expect(await BaseRegistrar.ownerOf(tokenId)).to.equal(NameWrapper.address)
+        '0x',
+      )).to.be.revertedWith('')
     })
     it('Rejects transfers where the data field label does not match the tokenId', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
@@ -2060,8 +2062,8 @@ describe('Name Wrapper', () => {
           NameWrapper.address,
           tokenId,
           abiCoder.encode(
-            ['string', 'uint96'],
-            ['incorrectlabel', '0x000000000000000000000000']
+            ['string', 'address', 'uint96'],
+            ['incorrectlabel', account, '0x000000000000000000000000']
           )
         )
       ).to.be.revertedWith(
@@ -2079,8 +2081,8 @@ describe('Name Wrapper', () => {
           NameWrapper.address,
           tokenId,
           abiCoder.encode(
-            ['string', 'uint96'],
-            [label, '0x000000000000000000000002']
+            ['string', 'address', 'uint96'],
+            [label, account, '0x000000000000000000000002']
           )
         )
       ).to.be.revertedWith(
@@ -2097,8 +2099,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          ['string', 'address', 'uint96'],
+          [label, account, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2121,8 +2123,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000000']
+          ['string', 'address', 'uint96'],
+          [label, account, '0x000000000000000000000000']
         )
       )
 
@@ -2139,8 +2141,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          ['send2contract', '0x000000000000000000000000'] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          ['string', 'address', 'uint96'],
+          ['send2contract', account, '0x000000000000000000000000'] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2159,8 +2161,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          ['string', 'address', 'uint96'],
+          [label, account, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2183,8 +2185,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'uint96'],
-          [label, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          ['string', 'address', 'uint96'],
+          [label, account, '0x000000000000000000000005'] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 

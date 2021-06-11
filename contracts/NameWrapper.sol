@@ -505,15 +505,15 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
             "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
-        (string memory label, uint96 fuses) =
-            abi.decode(data, (string, uint96));
+        (string memory label, address owner, uint96 fuses) =
+            abi.decode(data, (string, address, uint96));
 
         require(
             keccak256(bytes(label)) == bytes32(tokenId),
             "NameWrapper: Token id does match keccak(label) of label provided in data field"
         );
 
-        _wrapETH2LD(label, from, fuses);
+        _wrapETH2LD(label, owner, fuses);
         return IERC721Receiver(to).onERC721Received.selector;
     }
 
