@@ -121,25 +121,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
-     */
-    function getRawFuses(bytes32 node)
-        public
-        view
-        override
-        returns (uint96 fuses)
-    {
-        bytes memory name = names[node];
-        require(name.length > 0, "NameWrapper: Name not found");
-        (, fuses) = getData(uint256(node));
-    }
-
-    /**
-     * @notice Gets fuse permissions for a specific name
-     * @dev Fuses are represented by a uint96 where each permission is represented by 1 bit
-     *      The interface has predefined fuses for all registry permissions, but additional
-     *      fuses can be added for other use cases
-     * @param node namehash of the name to check
-     * @return fuses A number that represents the permissions a name has
      * @return safeUntil The earliest time at which any fuses could be cleared
      */
     function getFuses(bytes32 node)
