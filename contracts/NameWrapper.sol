@@ -248,14 +248,15 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
     /**
      * @notice Sets records for the subdomain in the ENS Registry
-     * @param node namehash of the name
+     * @param parentNode namehash of the parent name
+     * @param label labelhash of the subnode
      * @param owner newOwner in the registry
      * @param resolver the resolver contract in the registry
      * @param ttl ttl in the registry
      */
 
     function setSubnodeRecord(
-        bytes32 node,
+        bytes32 parentNode,
         bytes32 label,
         address owner,
         address resolver,
@@ -263,31 +264,31 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     )
         public
         override
-        onlyTokenOwner(node)
-        canCallSetSubnodeOwner(node, label)
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, label)
     {
-        ens.setSubnodeRecord(node, label, owner, resolver, ttl);
+        ens.setSubnodeRecord(parentNode, label, owner, resolver, ttl);
     }
 
     /**
      * @notice Sets the subnode owner in the registry
-     * @param node parent namehash of the subnode
+     * @param parentNode namehash of the parent name
      * @param label labelhash of the subnode
      * @param owner newOwner in the registry
      */
 
     function setSubnodeOwner(
-        bytes32 node,
+        bytes32 parentNode,
         bytes32 label,
         address owner
     ) 
         public
         override
-        onlyTokenOwner(node)
-        canCallSetSubnodeOwner(node, label)
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, label)
         returns (bytes32) 
     {
-        return ens.setSubnodeOwner(node, label, owner);
+        return ens.setSubnodeOwner(parentNode, label, owner);
     }
 
     /**
