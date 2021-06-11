@@ -491,16 +491,19 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
     function _mint(
         bytes32 node,
+        bytes memory name,
         address wrappedOwner,
         uint96 _fuses
-    ) internal override {
+    ) internal {
+        names[node] = name;
+
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
         }
-        super._mint(node, wrappedOwner, _fuses);
+        _mint(node, wrappedOwner, _fuses);
     }
 
     function _wrap(
@@ -518,8 +521,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
         node = _makeNode(parentNode, labelhash);
 
-        _mint(node, wrappedOwner, _fuses);
-        names[node] = name;
+        _mint(node, name, wrappedOwner, _fuses);
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
@@ -535,10 +537,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         registrar.reclaim(uint256(labelhash), address(this));
 
         // mint a new ERC1155 token with fuses
-        _mint(node, wrappedOwner, _fuses);
-
         bytes memory name = _addLabel(label, "\x03eth\x00");
-        names[node] = name;
+        _mint(node, name, wrappedOwner, _fuses);
+
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
