@@ -495,7 +495,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
     function onERC721Received(
         address to,
-        address from,
+        address,
         uint256 tokenId,
         bytes calldata data
     ) public override returns (bytes4) {
