@@ -135,51 +135,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     }
 
     /**
-     * @dev Internal function that checks all a name's ancestors to ensure fuse values will be respected.
-     * @param name The name to check.
-     * @param offset The offset into the name to start at.
-     * @return node The calculated namehash for this part of the name.
-     * @return expiration The timestamp at which the name or its parent expires.
-     */
-    function _getExpiration(bytes memory name, uint256 offset)
-        internal
-        view
-        returns (bytes32 node, uint256 expiration)
-    {
-        // Read the first label. If it's the root, return immediately.
-        (bytes32 labelhash, uint256 newOffset) = name.readLabel(offset);
-        if (labelhash == bytes32(0)) {
-            // Root node
-            return (bytes32(0), type(uint256).max);
-        }
-
-        // Check the parent name
-        bytes32 parentNode;
-        (parentNode, expiration) = _getExpiration(name, newOffset);
-        node = _makeNode(parentNode, labelhash);
-
-        if (expiration < block.timestamp) {
-            // If expiration is less than now, return immediately; no need to check fuses.
-            return (node, expiration);
-        }
-
-        // Check the parent name's fuses to see if replacing subdomains is forbidden
-        if (parentNode == ROOT_NODE) {
-            // Save ourselves some gas; root node can't be replaced
-            return (node, expiration);
-        } else if (parentNode == ETH_NODE) {
-            // Special case .eth: Get the expiration from the registrar
-            expiration = registrar.nameExpires(uint256(labelhash));
-            return (node, expiration);
-        }
-
-        if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
-            expiration = 0;
-        }
-        return (node, expiration);
-    }
-
-    /**
      * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
      * @dev Checks both canCreateSubdomain and canReplaceSubdomain and whether not they have been burnt
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
@@ -315,7 +270,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
-        _checkFuses(newFuses);
 
         _setData(uint256(node), owner, newFuses);
 
@@ -569,7 +523,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
         node = _makeNode(parentNode, labelhash);
 
-        _checkFuses(_fuses);
         _mint(node, wrappedOwner, _fuses);
         names[node] = name;
         emit NameWrapped(node, name, wrappedOwner, _fuses);
@@ -582,11 +535,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     ) private returns (bytes32 labelhash) {
         labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
+
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(uint256(labelhash), address(this));
-        // mint a new ERC1155 token with fuses
 
-        _checkFuses(_fuses);
+        // mint a new ERC1155 token with fuses
         _mint(node, wrappedOwner, _fuses);
 
         bytes memory name = _addLabel(label, "\x03eth\x00");
@@ -615,11 +568,56 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         emit NameUnwrapped(node, newOwner);
     }
 
-    function _checkFuses(uint96 _fuses) internal pure {
-        if (_fuses == CAN_DO_EVERYTHING) return;
+    function _setData(uint256 tokenId, address owner, uint96 fuses) internal override {
         require(
-            _fuses & CANNOT_UNWRAP != 0,
+            fuses == CAN_DO_EVERYTHING || fuses & CANNOT_UNWRAP != 0,
             "NameWrapper: Cannot burn fuses: domain can be unwrapped"
         );
+        super._setData(tokenId, owner, fuses);
+    }
+
+    /**
+     * @dev Internal function that checks all a name's ancestors to ensure fuse values will be respected.
+     * @param name The name to check.
+     * @param offset The offset into the name to start at.
+     * @return node The calculated namehash for this part of the name.
+     * @return expiration The timestamp at which the name or its parent expires.
+     */
+    function _getExpiration(bytes memory name, uint256 offset)
+        internal
+        view
+        returns (bytes32 node, uint256 expiration)
+    {
+        // Read the first label. If it's the root, return immediately.
+        (bytes32 labelhash, uint256 newOffset) = name.readLabel(offset);
+        if (labelhash == bytes32(0)) {
+            // Root node
+            return (bytes32(0), type(uint256).max);
+        }
+
+        // Check the parent name
+        bytes32 parentNode;
+        (parentNode, expiration) = _getExpiration(name, newOffset);
+        node = _makeNode(parentNode, labelhash);
+
+        if (expiration < block.timestamp) {
+            // If expiration is less than now, return immediately; no need to check fuses.
+            return (node, expiration);
+        }
+
+        // Check the parent name's fuses to see if replacing subdomains is forbidden
+        if (parentNode == ROOT_NODE) {
+            // Save ourselves some gas; root node can't be replaced
+            return (node, expiration);
+        } else if (parentNode == ETH_NODE) {
+            // Special case .eth: Get the expiration from the registrar
+            expiration = registrar.nameExpires(uint256(labelhash));
+            return (node, expiration);
+        }
+
+        if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
+            expiration = 0;
+        }
+        return (node, expiration);
     }
 }

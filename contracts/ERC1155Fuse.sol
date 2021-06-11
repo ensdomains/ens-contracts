@@ -143,7 +143,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint256 tokenId,
         address owner,
         uint96 fuses
-    ) internal {
+    ) internal virtual {
         _tokens[tokenId] = uint256(uint160(owner)) | (uint256(fuses) << 160);
     }
 
