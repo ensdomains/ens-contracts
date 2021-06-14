@@ -1,6 +1,5 @@
 const packet = require('dns-packet')
 const fs = require('fs')
-const chalk = require('chalk')
 const { ethers } = require('hardhat')
 const { utils, BigNumber: BN } = ethers
 const { use, expect } = require('chai')
