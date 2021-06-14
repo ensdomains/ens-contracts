@@ -120,17 +120,21 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
-     * @return safeUntil The earliest time at which any fuses could be cleared
+     * @return vulnerability The earliest time at which any fuses could be cleared
      */
     function getFuses(bytes32 node)
         public
         view
         override
-        returns (uint96 fuses, uint256 safeUntil)
+        returns (
+            uint96 fuses,
+            ParentVulnerability vulnerability,
+            bytes32 vulnerableNode
+        )
     {
         bytes memory name = names[node];
         require(name.length > 0, "NameWrapper: Name not found");
-        (, safeUntil) = _getExpiration(name, 0);
+        (, vulnerability, vulnerableNode) = _checkHierarchy(name, 0);
         (, fuses) = getData(uint256(node));
     }
 
@@ -260,12 +264,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         address owner,
         address resolver,
         uint64 ttl
-    )
-        public
-        override
-        onlyTokenOwner(node)
-        canCallSetSubnodeOwner(node, label)
-    {
+    ) public override onlyTokenOwner(node) canCallSetSubnodeOwner(node, label) {
         ens.setSubnodeRecord(node, label, owner, resolver, ttl);
     }
 
@@ -280,12 +279,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         bytes32 node,
         bytes32 label,
         address owner
-    ) 
+    )
         public
         override
         onlyTokenOwner(node)
         canCallSetSubnodeOwner(node, label)
-        returns (bytes32) 
+        returns (bytes32)
     {
         return ens.setSubnodeOwner(node, label, owner);
     }
@@ -347,11 +346,14 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         address owner,
         address resolver,
         uint64 ttl
-    ) 
+    )
         public
         override
         onlyTokenOwner(node)
-        operationAllowed(node, CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL)
+        operationAllowed(
+            node,
+            CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
+        )
     {
         ens.setRecord(node, owner, resolver, ttl);
     }
@@ -410,18 +412,16 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @param label labelhash of the name to check
      */
 
-    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 label)
-    {
+    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 label) {
         bytes32 subnode = _makeNode(node, label);
         address owner = ens.owner(subnode);
         (, uint96 fuses) = getData(uint256(node));
 
         require(
-            (owner == address(0) &&
-                fuses & CANNOT_CREATE_SUBDOMAIN == 0) ||
-            (owner != address(0) &&
-                fuses & CANNOT_REPLACE_SUBDOMAIN == 0),
-            "NameWrapper: Operation prohibited by fuses");
+            (owner == address(0) && fuses & CANNOT_CREATE_SUBDOMAIN == 0) ||
+                (owner != address(0) && fuses & CANNOT_REPLACE_SUBDOMAIN == 0),
+            "NameWrapper: Operation prohibited by fuses"
+        );
         _;
     }
 
@@ -564,7 +564,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         emit NameUnwrapped(node, newOwner);
     }
 
-    function _setData(uint256 tokenId, address owner, uint96 fuses) internal override {
+    function _setData(
+        uint256 tokenId,
+        address owner,
+        uint96 fuses
+    ) internal override {
         require(
             fuses == CAN_DO_EVERYTHING || fuses & CANNOT_UNWRAP != 0,
             "NameWrapper: Cannot burn fuses: domain can be unwrapped"
@@ -573,47 +577,75 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     }
 
     /**
-     * @dev Internal function that checks all a name's ancestors to ensure fuse values will be respected.
+     * @dev Internal function that checks all a name's ancestors to ensure fuse values will be respected and parent controller/registrant are set to the Wrapper
      * @param name The name to check.
      * @param offset The offset into the name to start at.
      * @return node The calculated namehash for this part of the name.
-     * @return expiration The timestamp at which the name or its parent expires.
+     * @return vulnerability The timestamp at which the name or its parent expires.
      */
-    function _getExpiration(bytes memory name, uint256 offset)
+    function _checkHierarchy(bytes memory name, uint256 offset)
         internal
         view
-        returns (bytes32 node, uint256 expiration)
+        returns (
+            bytes32 node,
+            ParentVulnerability vulnerability,
+            bytes32 vulnerableNode
+        )
     {
         // Read the first label. If it's the root, return immediately.
         (bytes32 labelhash, uint256 newOffset) = name.readLabel(offset);
         if (labelhash == bytes32(0)) {
             // Root node
-            return (bytes32(0), type(uint256).max);
+            return (bytes32(0), ParentVulnerability.Safe, 0);
         }
 
         // Check the parent name
         bytes32 parentNode;
-        (parentNode, expiration) = _getExpiration(name, newOffset);
+        (
+            parentNode, /* 0 */
+            vulnerability,
+            vulnerableNode
+        ) = _checkHierarchy(name, newOffset);
+
         node = _makeNode(parentNode, labelhash);
 
-        if (expiration < block.timestamp) {
-            // If expiration is less than now, return immediately; no need to check fuses.
-            return (node, expiration);
+        // stop function checking any other nodes if a parent is not safe
+        if (vulnerability != ParentVulnerability.Safe) {
+            return (node, vulnerability, vulnerableNode);
         }
 
         // Check the parent name's fuses to see if replacing subdomains is forbidden
         if (parentNode == ROOT_NODE) {
             // Save ourselves some gas; root node can't be replaced
-            return (node, expiration);
+            return (node, ParentVulnerability.Safe, 0);
         } else if (parentNode == ETH_NODE) {
-            // Special case .eth: Get the expiration from the registrar
-            expiration = registrar.nameExpires(uint256(labelhash));
-            return (node, expiration);
+            // Special case .eth: Check registrant or name isexpired
+
+            try registrar.ownerOf(uint256(labelhash)) returns (
+                address registrarOwner
+            ) {
+                if (registrarOwner != address(this)) {
+                    vulnerability = ParentVulnerability.Registrant;
+                    vulnerableNode = node;
+                    return (node, vulnerability, vulnerableNode);
+                }
+            } catch {
+                vulnerability = ParentVulnerability.Expired;
+                vulnerableNode = labelhash;
+                return (node, vulnerability, vulnerableNode);
+            }
+        }
+
+        if (ens.owner(node) != address(this)) {
+            vulnerability = ParentVulnerability.Controller;
+            vulnerableNode = node;
+            return (node, vulnerability, vulnerableNode);
         }
 
         if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
-            expiration = 0;
+            vulnerableNode = parentNode;
+            vulnerability = ParentVulnerability.Fuses;
         }
-        return (node, expiration);
+        return (node, vulnerability, vulnerableNode);
     }
 }
