@@ -2248,6 +2248,77 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe.only('getFuses', () => {
+    const label = 'getfuses'
+    const labelHash = labelhash(label)
+    const nameHash = namehash(label + '.eth')
+    const subLabel = 'sub'
+    const subLabelhash = labelhash(subLabel)
+    const subNameHash = namehash(`${subLabel}.${label}.eth`)
+    it('returns the correct fuses and vulnerability', async () => {
+      const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(label, account, initialFuses)
+      const [fuses, vulnerability] = await NameWrapper.getFuses(nameHash)
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Safe)
+    })
+
+    it('identifies vulnerability is in fuses and node associated with it', async () => {
+      const initialFuses = CAN_DO_EVERYTHING
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(label, account, initialFuses)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.setSubnodeOwnerAndWrap(
+        nameHash,
+        subLabel,
+        account,
+        initialFuses
+      )
+
+      let [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(
+        subNameHash
+      )
+
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Fuses)
+      expect(vulnerableNode).to.equal(nameHash)
+
+      //check parent fuses
+      ;[fuses, vulnerability] = await NameWrapper.getFuses(nameHash)
+
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Safe)
+    })
+
+    it('identifies vulnerability is the domain is expired and node associated with it', async () => {
+      const initialFuses = CANNOT_UNWRAP | CANNOT_REPLACE_SUBDOMAIN
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(label, account, initialFuses)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.setSubnodeOwnerAndWrap(
+        nameHash,
+        subLabel,
+        account,
+        initialFuses
+      )
+
+      await increaseTime(84600 + 1)
+      await mine()
+
+      let [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(
+        subNameHash
+      )
+
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Expired)
+      expect(vulnerableNode).to.equal(nameHash)
+    })
+  })
+
   describe('MetadataService', () => {
     it('uri() returns url', async () => {
       expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')

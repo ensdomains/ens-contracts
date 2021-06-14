@@ -631,7 +631,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
                 }
             } catch {
                 vulnerability = ParentVulnerability.Expired;
-                vulnerableNode = labelhash;
+                vulnerableNode = node;
                 return (node, vulnerability, vulnerableNode);
             }
         }
