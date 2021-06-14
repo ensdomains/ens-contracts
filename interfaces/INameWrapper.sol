@@ -13,6 +13,7 @@ uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
+    enum ParentVulnerability {Safe, Registrant, Controller, Fuses, Expired}
     event NameWrapped(
         bytes32 indexed node,
         bytes name,
@@ -95,7 +96,13 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node) external returns (uint96, uint256);
+    function getFuses(bytes32 node)
+        external
+        returns (
+            uint96,
+            ParentVulnerability,
+            bytes32
+        );
 
     function allFusesBurned(bytes32 node, uint96 fuseMask)
         external
