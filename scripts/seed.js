@@ -52,7 +52,6 @@ async function main() {
     // })
     // await NameWrapper.wrapETH2LD('superawesome', firstAddress, CAN_DO_EVERYTHING)
     console.log(2.1)
-    await NameWrapper.wrap(encodeName('sub1.testing.eth'), firstAddress, CAN_DO_EVERYTHING)
     // await NameWrapper.wrapETH2LD('postmigration', firstAddress, CAN_DO_EVERYTHING)
     console.log(2.2)
     // console.log(3)
