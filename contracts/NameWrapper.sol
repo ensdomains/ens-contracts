@@ -640,9 +640,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
             vulnerableNode = parentNode;
             vulnerability = NameSafety.SubdomainReplacementAllowed;
+            return (node, vulnerability, vulnerableNode);
         }
-
-        return (node, vulnerability, vulnerableNode);
     }
 
     function _checkOwnership(
