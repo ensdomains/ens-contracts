@@ -7,6 +7,7 @@
     "@openzeppelin/test-helpers": "^0.5.11",
     "chai": "^4.2.0",
     "dns-packet": "^5.2.4",
+    "envfile": "^6.14.0",
     "eslint": "^7.5.0",
     "eslint-config-prettier": "^6.11.0",
     "eslint-plugin-babel": "^5.3.1",
@@ -32,6 +33,8 @@
     "test": "hardhat test",
     "test:local": "hardhat --network localhost test",
     "compile": "hardhat compile",
-    "lint": "eslint test/*.js; solium --dir ./contracts"
+    "lint": "eslint test/*.js; solium --dir ./contracts",
+    "deploy": "npx hardhat run --network localhost scripts/deploy.js",
+    "seed": "npx hardhat run --network localhost scripts/seed.js"
   }
 }
