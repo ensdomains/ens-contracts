@@ -625,34 +625,53 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         if (parentNode == ROOT_NODE) {
             // Save ourselves some gas; root node can't be replaced
             return (node, NameSafety.Safe, 0);
-        } else if (parentNode == ETH_NODE) {
+        }
+
+        (vulnerability, vulnerableNode) = _checkOwnership(
+            labelhash,
+            node,
+            parentNode
+        );
+
+        if (vulnerability != NameSafety.Safe) {
+            return (node, vulnerability, vulnerableNode);
+        }
+
+        if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
+            vulnerableNode = parentNode;
+            vulnerability = NameSafety.SubdomainReplacementAllowed;
+        }
+
+        return (node, vulnerability, vulnerableNode);
+    }
+
+    function _checkOwnership(
+        bytes32 labelhash,
+        bytes32 node,
+        bytes32 parentNode
+    ) internal view returns (NameSafety vulnerability, bytes32 vulnerableNode) {
+        if (parentNode == ETH_NODE) {
             // Special case .eth: Check registrant or name isexpired
 
             try registrar.ownerOf(uint256(labelhash)) returns (
                 address registrarOwner
             ) {
                 if (registrarOwner != address(this)) {
-                    vulnerability = NameSafety.Registrant;
+                    vulnerability = NameSafety.RegistrantNotWrapped;
                     vulnerableNode = node;
-                    return (node, vulnerability, vulnerableNode);
+                    return (vulnerability, vulnerableNode);
                 }
             } catch {
                 vulnerability = NameSafety.Expired;
                 vulnerableNode = node;
-                return (node, vulnerability, vulnerableNode);
+                return (vulnerability, vulnerableNode);
             }
         }
 
         if (ens.owner(node) != address(this)) {
-            vulnerability = NameSafety.Controller;
+            vulnerability = NameSafety.ControllerNotWrapped;
             vulnerableNode = node;
-            return (node, vulnerability, vulnerableNode);
+            return (vulnerability, vulnerableNode);
         }
-
-        if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
-            vulnerableNode = parentNode;
-            vulnerability = NameSafety.Fuses;
-        }
-        return (node, vulnerability, vulnerableNode);
     }
 }

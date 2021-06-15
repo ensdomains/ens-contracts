@@ -13,7 +13,13 @@ uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
-    enum NameSafety {Safe, Registrant, Controller, Fuses, Expired}
+    enum NameSafety {
+        Safe,
+        RegistrantNotWrapped,
+        ControllerNotWrapped,
+        SubdomainReplacementAllowed,
+        Expired
+    }
     event NameWrapped(
         bytes32 indexed node,
         bytes name,
