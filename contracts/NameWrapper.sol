@@ -656,21 +656,15 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
                 address registrarOwner
             ) {
                 if (registrarOwner != address(this)) {
-                    vulnerability = NameSafety.RegistrantNotWrapped;
-                    vulnerableNode = node;
-                    return (vulnerability, vulnerableNode);
+                    return (NameSafety.RegistrantNotWrapped, node);
                 }
             } catch {
-                vulnerability = NameSafety.Expired;
-                vulnerableNode = node;
-                return (vulnerability, vulnerableNode);
+                return (NameSafety.Expired, node);
             }
         }
 
         if (ens.owner(node) != address(this)) {
-            vulnerability = NameSafety.ControllerNotWrapped;
-            vulnerableNode = node;
-            return (vulnerability, vulnerableNode);
+            return (NameSafety.ControllerNotWrapped, node);
         }
     }
 }
