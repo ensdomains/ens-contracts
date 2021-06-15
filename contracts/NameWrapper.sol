@@ -120,7 +120,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      *      fuses can be added for other use cases
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
-     * @return vulnerability The earliest time at which any fuses could be cleared
+     * @return vulnerability The type of vulnerability
+     * @return vulnerableNode Which node is vulnerable
      */
     function getFuses(bytes32 node)
         public
@@ -128,7 +129,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         override
         returns (
             uint96 fuses,
-            ParentVulnerability vulnerability,
+            NameSafety vulnerability,
             bytes32 vulnerableNode
         )
     {
@@ -290,7 +291,7 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         override
         onlyTokenOwner(parentNode)
         canCallSetSubnodeOwner(parentNode, label)
-        returns (bytes32) 
+        returns (bytes32)
     {
         return ens.setSubnodeOwner(parentNode, label, owner);
     }
@@ -587,14 +588,15 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
      * @param name The name to check.
      * @param offset The offset into the name to start at.
      * @return node The calculated namehash for this part of the name.
-     * @return vulnerability The timestamp at which the name or its parent expires.
+     * @return vulnerability what kind of vulnerability the node has
+     * @return vulnerableNode which node is at risk
      */
     function _checkHierarchy(bytes memory name, uint256 offset)
         internal
         view
         returns (
             bytes32 node,
-            ParentVulnerability vulnerability,
+            NameSafety vulnerability,
             bytes32 vulnerableNode
         )
     {
@@ -602,28 +604,27 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         (bytes32 labelhash, uint256 newOffset) = name.readLabel(offset);
         if (labelhash == bytes32(0)) {
             // Root node
-            return (bytes32(0), ParentVulnerability.Safe, 0);
+            return (bytes32(0), NameSafety.Safe, 0);
         }
 
         // Check the parent name
         bytes32 parentNode;
-        (
-            parentNode, /* 0 */
-            vulnerability,
-            vulnerableNode
-        ) = _checkHierarchy(name, newOffset);
+        (parentNode, vulnerability, vulnerableNode) = _checkHierarchy(
+            name,
+            newOffset
+        );
 
         node = _makeNode(parentNode, labelhash);
 
         // stop function checking any other nodes if a parent is not safe
-        if (vulnerability != ParentVulnerability.Safe) {
+        if (vulnerability != NameSafety.Safe) {
             return (node, vulnerability, vulnerableNode);
         }
 
         // Check the parent name's fuses to see if replacing subdomains is forbidden
         if (parentNode == ROOT_NODE) {
             // Save ourselves some gas; root node can't be replaced
-            return (node, ParentVulnerability.Safe, 0);
+            return (node, NameSafety.Safe, 0);
         } else if (parentNode == ETH_NODE) {
             // Special case .eth: Check registrant or name isexpired
 
@@ -631,26 +632,26 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
                 address registrarOwner
             ) {
                 if (registrarOwner != address(this)) {
-                    vulnerability = ParentVulnerability.Registrant;
+                    vulnerability = NameSafety.Registrant;
                     vulnerableNode = node;
                     return (node, vulnerability, vulnerableNode);
                 }
             } catch {
-                vulnerability = ParentVulnerability.Expired;
+                vulnerability = NameSafety.Expired;
                 vulnerableNode = node;
                 return (node, vulnerability, vulnerableNode);
             }
         }
 
         if (ens.owner(node) != address(this)) {
-            vulnerability = ParentVulnerability.Controller;
+            vulnerability = NameSafety.Controller;
             vulnerableNode = node;
             return (node, vulnerability, vulnerableNode);
         }
 
         if (!allFusesBurned(parentNode, CANNOT_REPLACE_SUBDOMAIN)) {
             vulnerableNode = parentNode;
-            vulnerability = ParentVulnerability.Fuses;
+            vulnerability = NameSafety.Fuses;
         }
         return (node, vulnerability, vulnerableNode);
     }

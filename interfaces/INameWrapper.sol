@@ -13,7 +13,7 @@ uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
-    enum ParentVulnerability {Safe, Registrant, Controller, Fuses, Expired}
+    enum NameSafety {Safe, Registrant, Controller, Fuses, Expired}
     event NameWrapped(
         bytes32 indexed node,
         bytes name,
@@ -100,7 +100,7 @@ interface INameWrapper is IERC1155 {
         external
         returns (
             uint96,
-            ParentVulnerability,
+            NameSafety,
             bytes32
         );
 
