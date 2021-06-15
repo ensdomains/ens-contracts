@@ -50,7 +50,7 @@ const INTERFACES = {
   INameWrapper: [
     'wrap(bytes,address,uint96)',
     'wrapETH2LD(string,address,uint96)',
-    'registerAndWrapETH2LD(string,address,uint,address,uint96)',
+    'registerAndWrapETH2LD(string,address,uint256,address,uint96)',
     'renew(uint256,uint256)',
     'unwrap(bytes32,bytes32,address)',
     'unwrapETH2LD(bytes32,address,address)',
