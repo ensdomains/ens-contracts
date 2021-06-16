@@ -13,23 +13,26 @@ uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
+    enum NameSafety {
+        Safe,
+        RegistrantNotWrapped,
+        ControllerNotWrapped,
+        SubdomainReplacementAllowed,
+        Expired
+    }
     event NameWrapped(
-        bytes32 indexed parentNode,
-        string indexed label,
+        bytes32 indexed node,
+        bytes name,
         address owner,
         uint96 fuses
     );
 
-    event NameUnwrapped(
-        bytes32 indexed node,
-        address owner
-    );
+    event NameUnwrapped(bytes32 indexed node, address owner);
 
     event FusesBurned(bytes32 indexed node, uint96 fuses);
 
     function wrap(
-        bytes32 node,
-        string calldata label,
+        bytes calldata name,
         address wrappedOwner,
         uint96 _fuses
     ) external;
@@ -51,6 +54,8 @@ interface INameWrapper is IERC1155 {
         address newRegistrant,
         address newController
     ) external;
+
+    function burnFuses(bytes32 node, uint96 _fuses) external;
 
     function setSubnodeRecord(
         bytes32 node,
@@ -97,19 +102,16 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node) external returns (uint96);
+    function getFuses(bytes32 node)
+        external
+        returns (
+            uint96,
+            NameSafety,
+            bytes32
+        );
 
-    function canUnwrap(bytes32 node) external view returns (bool);
-
-    function canBurnFuses(bytes32 node) external view returns (bool);
-
-    function canTransfer(bytes32 node) external view returns (bool);
-
-    function canSetResolver(bytes32 node) external view returns (bool);
-
-    function canSetTTL(bytes32 node) external view returns (bool);
-
-    function canCreateSubdomain(bytes32 node) external view returns (bool);
-
-    function canReplaceSubdomain(bytes32 node) external view returns (bool);
+    function allFusesBurned(bytes32 node, uint96 fuseMask)
+        external
+        view
+        returns (bool);
 }
