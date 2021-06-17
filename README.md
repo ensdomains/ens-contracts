@@ -34,7 +34,10 @@ Example:
 
 ```js
 // Using ethers.js v5
-abiCoder.encode(['string', 'address', 'uint96'], ['vitalik', '0x...', '0x000000000000000000000001'])
+abiCoder.encode(
+  ['string', 'address', 'uint96'],
+  ['vitalik', '0x...', '0x000000000000000000000001']
+)
 ```
 
 ## Unwrapping a name
@@ -100,6 +103,21 @@ const areBurned = await allFusesBurned(
 )
 // if CANNOT_UNWRAP AND CANNOT_SET_RESOLVER are *both* burned this will return true
 ```
+
+### Get current fuses and parent safety using `getFuses(node)`
+
+Get fuses gets the raw fuses for a current node and also checks the parent hierarchy for you. The raw fuses it returns will be a `uint96` and you will have to decode this yourself. If you just need to check a fuse has been burned, you can call `allFusesBurned` as it will use less gas.
+
+The parent hierarchy check will start from the root and check 4 things:
+
+1. Is the registrant of the name the wrapper?
+2. Is the controller of the name the wrapper?
+3. Are the fuses burnt for replacing a subdomain?
+4. Is the name expired?
+
+This is represented by `enum NameSafety {Safe, Registrant, Controller, Fuses, Expired}`
+
+Lastly it will return to you the first node up the hierarchy that is vulnerable. After it finds a vulnerable node, it will break from checking and so it needs to be rechecked for children down the hierarchy once the vulnerable node has been made safe.
 
 ## Installation and setup
 
