@@ -2390,13 +2390,16 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(initialFuses)
       expect(vulnerability).to.equal(ParentVulnerability.Controller)
       expect(vulnerableNode).to.equal(subNameHash)
+    })
+  })
+
   describe('registerAndWrapETH2LD', () => {
-    const label = 'register';
+    const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
 
     before(async () => {
-      await BaseRegistrar.addController(NameWrapper.address);
+      await BaseRegistrar.addController(NameWrapper.address)
       await NameWrapper.setController(account, true)
     })
 
@@ -2411,11 +2414,11 @@ describe('Name Wrapper', () => {
     it('allows specifying a resolver address', async () => {
       await NameWrapper.registerAndWrapETH2LD(label, account, 86400, account2, CAN_DO_EVERYTHING)
 
-      expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2);
+      expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2)
     })
 
     it('does not allow non controllers to register names', async () => {
-      await NameWrapper.setController(account, false);
+      await NameWrapper.setController(account, false)
       await expect(
         NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
       ).to.be.revertedWith('')
@@ -2425,7 +2428,7 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(namehash('eth'), labelHash, account, CAN_DO_EVERYTHING)
+        .withArgs(wrappedTokenId, encodeName('register.eth'), account, CAN_DO_EVERYTHING)
     })
 
     it('emits TransferSingle event', async () => {
@@ -2465,17 +2468,19 @@ describe('Name Wrapper', () => {
     it('Allows fuse to be burned if CANNOT_UNWRAP has been burned.', async () => {
       const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
       await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, initialFuses)
-      expect(await NameWrapper.getFuses(wrappedTokenId)).to.equal(initialFuses)
+      const [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Safe)
     })
   })
 
   describe('renew', () => {
-    const label = 'register';
+    const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
 
     before(async () => {
-      await BaseRegistrar.addController(NameWrapper.address);
+      await BaseRegistrar.addController(NameWrapper.address)
       await NameWrapper.setController(account, true)
     })
 
