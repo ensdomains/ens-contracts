@@ -22,6 +22,8 @@ async function main() {
     const [deployer] = await ethers.getSigners();
     console.log({parsedFile})
     const CAN_DO_EVERYTHING = 0
+    const CANNOT_UNWRAP = 1
+    const CANNOT_SET_RESOLVER = 8
     const firstAddress = deployer.address
     console.log("Account balance:", (await deployer.getBalance()).toString());
     const {
@@ -37,31 +39,17 @@ async function main() {
     const NameWrapper = await (await ethers.getContractFactory("NameWrapper")).attach(wrapperAddress);
     const namehashedname = namehash('postmigration.eth')
     const labelhashedname = labelhash('postmigration')
-    console.log(1, {namehashedname, labelhashedname})
-    const registrarOwner = await BaseRegistrar.ownerOf(labelhashedname)
-    
+    console.log('postimigration.eth', {namehashedname, labelhashedname})
     await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
     await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-    await NameWrapper.wrap(encodeName('sub1.testing.eth'), firstAddress, CAN_DO_EVERYTHING)
-
-    // const isApproved = await BaseRegistrar.isApprovedForAll(registrarOwner, firstAddress)
-    // console.log(1.1, {
-    //   registrarOwner,
-    //   firstAddress,
-    //   isApproved
-    // })
-    // await NameWrapper.wrapETH2LD('superawesome', firstAddress, CAN_DO_EVERYTHING)
-    console.log(2.1)
-    // await NameWrapper.wrapETH2LD('postmigration', firstAddress, CAN_DO_EVERYTHING)
-    console.log(2.2)
-    // console.log(3)
-    // let owner = await NameWrapper.ownerOf(namehashedname)
-    // console.log(4, {owner})
-    // console.log(5)
-    // console.log(6)
-    // let tokenURI = await NameWrapper.uri(namehashedname)
-    // console.log(7)
-    // console.log('owner', {owner, tokenURI})
+    await NameWrapper.wrapETH2LD('postmigration', firstAddress, CAN_DO_EVERYTHING)
+    await NameWrapper.setSubnodeOwnerAndWrap(namehash('postmigration.eth'), 'sub1', firstAddress, CAN_DO_EVERYTHING)
+    await NameWrapper.setSubnodeOwnerAndWrap(namehash('postmigration.eth'), 'sub2', firstAddress, CAN_DO_EVERYTHING)
+    await NameWrapper.burnFuses(namehash('sub2.postmigration.eth'),CANNOT_UNWRAP)
+    await NameWrapper.burnFuses(namehash('sub2.postmigration.eth'),CANNOT_SET_RESOLVER)
+    await NameWrapper.unwrap(namehash('postmigration.eth'), labelhash('sub1'), firstAddress)
+    let tokenURI = await NameWrapper.uri(namehashedname)
+    console.log('owner', {tokenURI})
   }
   
   main()
