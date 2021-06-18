@@ -1,17 +1,18 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "./ERC1155Fuse.sol";
+import "./Controllable.sol";
 import "../interfaces/INameWrapper.sol";
 import "../interfaces/IMetadataService.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
-contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
+contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC721Receiver {
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrar public immutable registrar;
@@ -156,6 +157,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
         uint256 tokenId = uint256(labelhash);
         address owner = registrar.ownerOf(tokenId);
 
+        // transfer the ens record back to the new owner (this contract)
+        registrar.reclaim(uint256(labelhash), address(this));
+
         require(
             owner == msg.sender ||
                 isApprovedForAll(owner, msg.sender) ||
@@ -165,6 +169,44 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
 
         // transfer the token from the user to this contract
         registrar.transferFrom(owner, address(this), tokenId);
+    }
+
+    /**
+     * @dev Registers a new .eth second-level domain and wraps it.
+     *      Only callable by authorised controllers.
+     * @param label The label to register (Eg, 'foo' for 'foo.eth').
+     * @param wrappedOwner The owner of the wrapped name.
+     * @param duration The duration, in seconds, to register the name for.
+     * @param resolver The resolver address to set on the ENS registry (optional).
+     * @return expires The expiry date of the new name, in seconds since the Unix epoch.
+     */
+    function registerAndWrapETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        uint duration,
+        address resolver,
+        uint96 _fuses
+    ) onlyController external override returns(uint expires) {
+        bytes32 labelhash = _wrapETH2LD(label, wrappedOwner, _fuses);
+        bytes32 node = _makeNode(ETH_NODE, labelhash);
+        uint256 tokenId = uint256(labelhash);
+
+        expires = registrar.register(tokenId, address(this), duration);
+
+        if(resolver != address(0)) {
+            ens.setResolver(node, resolver);
+        }
+    }
+
+    /**
+     * @dev Renews a .eth second-level domain.
+     *      Only callable by authorised controllers.
+     * @param labelHash The hash of the label to register (eg, `keccak256('foo')`, for 'foo.eth').
+     * @param duration The number of seconds to renew the name for.
+     * @return expires The expiry date of the name, in seconds since the Unix epoch.
+     */
+    function renew(uint labelHash, uint duration) onlyController external override returns(uint expires) {
+        return registrar.renew(labelHash, duration);
     }
 
     /**
@@ -469,7 +511,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
             "NameWrapper: Token id does match keccak(label) of label provided in data field"
         );
 
-        _wrapETH2LD(label, owner, fuses);
+        bytes32 labelhash = _wrapETH2LD(label, owner, fuses);
+
+        // transfer the ens record back to the new owner (this contract)
+        registrar.reclaim(uint256(labelhash), address(this));
+
         return IERC721Receiver(to).onERC721Received.selector;
     }
 
@@ -539,9 +585,6 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, IERC721Receiver {
     ) private returns (bytes32 labelhash) {
         labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
-
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(uint256(labelhash), address(this));
 
         // mint a new ERC1155 token with fuses
         bytes memory name = _addLabel(label, "\x03eth\x00");

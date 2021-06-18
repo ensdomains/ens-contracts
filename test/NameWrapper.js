@@ -2393,6 +2393,122 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('registerAndWrapETH2LD', () => {
+    const label = 'register'
+    const labelHash = labelhash(label)
+    const wrappedTokenId = namehash(label + '.eth')
+
+    before(async () => {
+      await BaseRegistrar.addController(NameWrapper.address)
+      await NameWrapper.setController(account, true)
+    })
+
+    it('should register and wrap names', async () => {
+      await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(NameWrapper.address)
+      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(NameWrapper.address)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+    })
+
+    it('allows specifying a resolver address', async () => {
+      await NameWrapper.registerAndWrapETH2LD(label, account, 86400, account2, CAN_DO_EVERYTHING)
+
+      expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2)
+    })
+
+    it('does not allow non controllers to register names', async () => {
+      await NameWrapper.setController(account, false)
+      await expect(
+        NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      ).to.be.revertedWith('')
+    })
+
+    it('emits Wrap event', async () => {
+      const tx = await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameWrapped')
+        .withArgs(wrappedTokenId, encodeName('register.eth'), account, CAN_DO_EVERYTHING)
+    })
+
+    it('emits TransferSingle event', async () => {
+      const tx = await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      await expect(tx)
+        .to.emit(NameWrapper, 'TransferSingle')
+        .withArgs(account, EMPTY_ADDRESS, account, wrappedTokenId, 1)
+    })
+
+    it('Transfers the wrapped token to the target address.', async () => {
+      await NameWrapper.registerAndWrapETH2LD(label, account2, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account2)
+    })
+
+    it('Does not allow wrapping with a target address of 0x0', async () => {
+      await expect(
+        NameWrapper.registerAndWrapETH2LD(label, EMPTY_ADDRESS, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+    })
+
+    it('Does not allow wrapping with a target address of the wrapper contract address.', async () => {
+      await expect(
+        NameWrapper.registerAndWrapETH2LD(label, NameWrapper.address, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      ).to.be.revertedWith(
+        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+      )
+    })
+
+    it('Does not allows fuse to be burned if CANNOT_UNWRAP has not been burned.', async () => {
+      await expect(
+        NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CANNOT_SET_RESOLVER)
+      ).to.be.revertedWith(
+        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+      )
+    })
+
+    it('Allows fuse to be burned if CANNOT_UNWRAP has been burned.', async () => {
+      const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
+      await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, initialFuses)
+      const [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(initialFuses)
+      expect(vulnerability).to.equal(ParentVulnerability.Safe)
+    })
+  })
+
+  describe('renew', () => {
+    const label = 'register'
+    const labelHash = labelhash(label)
+    const wrappedTokenId = namehash(label + '.eth')
+
+    before(async () => {
+      await BaseRegistrar.addController(NameWrapper.address)
+      await NameWrapper.setController(account, true)
+    })
+
+    it('renews names', async () => {
+      await NameWrapper.registerAndWrapETH2LD(label, account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING)
+      const expires = await BaseRegistrar.nameExpires(labelHash)
+      await NameWrapper.renew(labelHash, 86400)
+      expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(expires.toNumber() + 86400)
+    })
+  })
+
+  describe('Controllable', () => {
+    it('allows the owner to add and remove controllers', async () => {
+      const tx = await NameWrapper.setController(account, true)
+      expect(tx).to.emit(NameWrapper, "ControllerChanged").withArgs(account, true)
+
+      const tx2 = await NameWrapper.setController(account, false)
+      expect(tx2).to.emit(NameWrapper, "ControllerChanged").withArgs(account, false)
+    })
+
+    it('does not allow non-owners to add or remove controllers', async () => {
+      await NameWrapper.setController(account, true)
+
+      await expect(NameWrapper2.setController(account2, true)).to.be.reverted;
+      await expect(NameWrapper2.setController(account, false)).to.be.reverted;
+    })
+  })
+
   describe('MetadataService', () => {
     it('uri() returns url', async () => {
       expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')

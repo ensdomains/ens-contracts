@@ -43,6 +43,16 @@ interface INameWrapper is IERC1155 {
         uint96 _fuses
     ) external;
 
+    function registerAndWrapETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        uint duration,
+        address resolver,
+        uint96 _fuses
+    ) external returns(uint expires);
+
+    function renew(uint labelHash, uint duration) external returns(uint expires);
+
     function unwrap(
         bytes32 node,
         bytes32 label,
