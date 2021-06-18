@@ -2492,6 +2492,23 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('Controllable', () => {
+    it('allows the owner to add and remove controllers', async () => {
+      const tx = await NameWrapper.setController(account, true)
+      expect(tx).to.emit(NameWrapper, "ControllerChanged").withArgs(account, true)
+
+      const tx2 = await NameWrapper.setController(account, false)
+      expect(tx2).to.emit(NameWrapper, "ControllerChanged").withArgs(account, false)
+    })
+
+    it('does not allow non-owners to add or remove controllers', async () => {
+      await NameWrapper.setController(account, true)
+
+      await expect(NameWrapper2.setController(account2, true)).to.be.reverted;
+      await expect(NameWrapper2.setController(account, false)).to.be.reverted;
+    })
+  })
+
   describe('MetadataService', () => {
     it('uri() returns url', async () => {
       expect(await NameWrapper.uri(123)).to.equal('https://ens.domains')
