@@ -51,7 +51,7 @@ describe('BytesUtils', () => {
 
   describe('namehash()', () => {
     it('Hashes the empty name to 0', async () => {
-      expect(await BytesUtils.namehash(encodeName(''), 0)).to.equal(namehash(''))
+      expect(await BytesUtils.namehash(encodeName('.'), 0)).to.equal(namehash(''))
     })
 
     it('Hashes .eth correctly', async () => {
