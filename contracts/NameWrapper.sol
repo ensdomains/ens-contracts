@@ -555,6 +555,7 @@ contract NameWrapper is
         pure
         returns (bytes memory ret)
     {
+        require(bytes(label).length > 0, "NameWrapper: Label too short");
         require(bytes(label).length < 256, "NameWrapper: Label too long");
         return abi.encodePacked(uint8(bytes(label).length), label, name);
     }

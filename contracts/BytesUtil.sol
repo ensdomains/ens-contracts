@@ -25,6 +25,7 @@ library BytesUtils {
     function namehash(bytes memory self, uint offset) internal pure returns(bytes32) {
         (bytes32 labelhash, uint newOffset) = readLabel(self, offset);
         if(labelhash == bytes32(0)) {
+            require(offset == self.length - 1, "namehash: Junk at end of name");
             return bytes32(0);
         }
         return keccak256(abi.encodePacked(namehash(self, newOffset), labelhash));
