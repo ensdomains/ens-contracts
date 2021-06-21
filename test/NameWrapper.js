@@ -8,6 +8,7 @@ const n = require('eth-ens-namehash')
 const namehash = n.hash
 const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
 const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
+const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 
 const abiCoder = new ethers.utils.AbiCoder()
 
@@ -462,7 +463,7 @@ describe('Name Wrapper', () => {
 
     it('Will not wrap a name with junk at the end', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await expect(NameWrapper.wrap(encodeName('xyz') + '123456', account, CAN_DO_EVERYTHING)).to.be.revertedWith("namehash: Junk at end of name");
+      await expect(NameWrapper.wrap(encodeName('xyz') + '123456', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)).to.be.revertedWith("namehash: Junk at end of name");
     })
   })
 
@@ -987,7 +988,7 @@ describe('Name Wrapper', () => {
     it('Will not wrap an empty name', async () => {
       await BaseRegistrar.register(labelhash(''), account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await expect(NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING)).to.be.revertedWith("NameWrapper: Label too short")
+      await expect(NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)).to.be.revertedWith("NameWrapper: Label too short")
     })
   })
 
