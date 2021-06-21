@@ -460,7 +460,7 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
     })
 
-    it.only('Will not wrap a name with junk at the end', async () => {
+    it('Will not wrap a name with junk at the end', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(NameWrapper.wrap(encodeName('xyz') + '123456', account, CAN_DO_EVERYTHING)).to.be.revertedWith("namehash: Junk at end of name");
     })
