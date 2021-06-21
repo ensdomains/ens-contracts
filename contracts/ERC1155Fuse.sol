@@ -250,6 +250,14 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         );
         _setData(tokenId, newOwner, _fuses);
         emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
+        _doSafeTransferAcceptanceCheck(
+            msg.sender,
+            address(0),
+            newOwner,
+            tokenId,
+            1,
+            ""
+        );
     }
 
     function _burn(uint256 tokenId) internal virtual {
