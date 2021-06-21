@@ -16,7 +16,7 @@ With the exception of the functionality to upgrade the metadata generation for t
 
 ## Wrapping a name
 
-`.eth` 2LDs (second-level domains) such as `example.eth` can be wrapped by calling `wrapETH2LD(label, wrappedOwner, fuses)`. `label` is the first part of the domain name (eg, `'example'` for `example.eth`), `wrappedOwner` is the desired owner for the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevoacably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name.
+`.eth` 2LDs (second-level domains) such as `example.eth` can be wrapped by calling `wrapETH2LD(label, wrappedOwner, fuses, resolver)`. `label` is the first part of the domain name (eg, `'example'` for `example.eth`), `wrappedOwner` is the desired owner for the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevoacably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name. The resolver can also optionally be set here and would need to be a _wrapper aware_ resolver that uses the NameWrapper ownership over the Registry ownership.
 
 In order to wrap a `.eth` 2LD, the owner of the name must have authorised the wrapper by calling `setApprovalForAll` on the registrar, and the caller of `wrapETH2LD` must be either the owner, or authorised by the owner on either the wrapper or the registrar.
 
@@ -28,15 +28,15 @@ In order to wrap a domain that is not a `.eth` 2LD, the owner of the name must h
 
 An alternative way to wrap `.eth` names is to send the name to the NameWrapper contract, this bypasses the need to `setApprovalForAll` on the registrar and is preferable when only wrapping one name.
 
-To wrap a name by sending to the contract, you must use `safeTransferFrom(address,address,uint256,bytes)` with the extra data (the last parameter) ABI formatted as `[string label, address owner, uint96 fuses]`.
+To wrap a name by sending to the contract, you must use `safeTransferFrom(address,address,uint256,bytes)` with the extra data (the last parameter) ABI formatted as `[string label, address owner, uint96 fuses, address resolver]`.
 
 Example:
 
 ```js
 // Using ethers.js v5
 abiCoder.encode(
-  ['string', 'address', 'uint96'],
-  ['vitalik', '0x...', '0x000000000000000000000001']
+  ['string', 'address', 'uint96', 'address'],
+  ['vitalik', '0x...', '0x000000000000000000000001', '0x...']
 )
 ```
 

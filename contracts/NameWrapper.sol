@@ -12,7 +12,13 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 import "hardhat/console.sol";
 
-contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC721Receiver {
+contract NameWrapper is
+    Ownable,
+    ERC1155Fuse,
+    INameWrapper,
+    Controllable,
+    IERC721Receiver
+{
     using BytesUtils for bytes;
     ENS public immutable ens;
     BaseRegistrar public immutable registrar;
@@ -151,14 +157,13 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint96 _fuses
+        uint96 _fuses,
+        address resolver
     ) public override {
-        bytes32 labelhash = _wrapETH2LD(label, wrappedOwner, _fuses);
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);
         uint256 tokenId = uint256(labelhash);
         address owner = registrar.ownerOf(tokenId);
-
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(uint256(labelhash), address(this));
 
         require(
             owner == msg.sender ||
@@ -166,6 +171,11 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
                 registrar.isApprovedForAll(owner, msg.sender),
             "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
+
+        // transfer the ens record back to the new owner (this contract)
+        registrar.reclaim(uint256(labelhash), address(this));
+
+        _wrapETH2LD(label, wrappedOwner, _fuses, resolver);
 
         // transfer the token from the user to this contract
         registrar.transferFrom(owner, address(this), tokenId);
@@ -183,19 +193,15 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
     function registerAndWrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint duration,
+        uint256 duration,
         address resolver,
         uint96 _fuses
-    ) onlyController external override returns(uint expires) {
-        bytes32 labelhash = _wrapETH2LD(label, wrappedOwner, _fuses);
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
+    ) external override onlyController returns (uint256 expires) {
+        bytes32 labelhash = keccak256(bytes(label));
         uint256 tokenId = uint256(labelhash);
 
         expires = registrar.register(tokenId, address(this), duration);
-
-        if(resolver != address(0)) {
-            ens.setResolver(node, resolver);
-        }
+        _wrapETH2LD(label, wrappedOwner, _fuses, resolver);
     }
 
     /**
@@ -205,7 +211,12 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
      * @param duration The number of seconds to renew the name for.
      * @return expires The expiry date of the name, in seconds since the Unix epoch.
      */
-    function renew(uint labelHash, uint duration) onlyController external override returns(uint expires) {
+    function renew(uint256 labelHash, uint256 duration)
+        external
+        override
+        onlyController
+        returns (uint256 expires)
+    {
         return registrar.renew(labelHash, duration);
     }
 
@@ -220,7 +231,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
     function wrap(
         bytes calldata name,
         address wrappedOwner,
-        uint96 _fuses
+        uint96 _fuses,
+        address resolver
     ) public override {
         bytes32 node = _wrap(name, wrappedOwner, _fuses);
         address owner = ens.owner(node);
@@ -232,6 +244,9 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
             "NameWrapper: Domain is not owned by the sender"
         );
         ens.setOwner(node, address(this));
+        if (resolver != address(0)) {
+            ens.setResolver(node, resolver);
+        }
     }
 
     /**
@@ -503,18 +518,20 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
             "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
-        (string memory label, address owner, uint96 fuses) =
-            abi.decode(data, (string, address, uint96));
+        (string memory label, address owner, uint96 fuses, address resolver) =
+            abi.decode(data, (string, address, uint96, address));
 
         require(
             keccak256(bytes(label)) == bytes32(tokenId),
             "NameWrapper: Token id does match keccak(label) of label provided in data field"
         );
 
-        bytes32 labelhash = _wrapETH2LD(label, owner, fuses);
+        bytes32 labelhash = keccak256(bytes(label));
 
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(uint256(labelhash), address(this));
+
+        _wrapETH2LD(label, owner, fuses, resolver);
 
         return IERC721Receiver(to).onERC721Received.selector;
     }
@@ -581,7 +598,8 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
     function _wrapETH2LD(
         string memory label,
         address wrappedOwner,
-        uint96 _fuses
+        uint96 _fuses,
+        address resolver
     ) private returns (bytes32 labelhash) {
         labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
@@ -589,6 +607,10 @@ contract NameWrapper is Ownable, ERC1155Fuse, INameWrapper, Controllable, IERC72
         // mint a new ERC1155 token with fuses
         bytes memory name = _addLabel(label, "\x03eth\x00");
         _mint(node, name, wrappedOwner, _fuses);
+
+        if (resolver != address(0)) {
+            ens.setResolver(node, resolver);
+        }
 
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
