@@ -5,6 +5,6 @@ pragma solidity ^0.8.4;
 */
 contract DummyNameWrapper {
     function ownerOf(uint256 /* id */) public view returns (address) {
-        return msg.sender;
+        return tx.origin;
     }
 }

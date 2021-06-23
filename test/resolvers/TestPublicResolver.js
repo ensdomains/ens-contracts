@@ -655,10 +655,11 @@ contract('PublicResolver', function (accounts) {
         });
 
         it('permits name wrapper owner to make changes if owner is set to name wrapper address', async () => {
-            var owner = await ens.owner(node)
-            await exceptions.expectFailure(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: accounts[2]}));
+            var owner = await ens.owner(node)            
+            var operator = accounts[2]
+            await exceptions.expectFailure(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: operator}));
             await ens.setOwner(node, nameWrapper.address, {from: owner})
-            await expect(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: accounts[2]}))
+            await expect(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: operator}))
         });
     });
 

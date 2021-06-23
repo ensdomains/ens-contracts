@@ -56,9 +56,7 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
         if(owner == address(nameWrapper) ){
             owner = nameWrapper.ownerOf(uint256(node));
         }
-        return owner == msg.sender
-            || isApprovedForAll(owner, msg.sender)
-            || nameWrapper.ownerOf(uint256(node)) == msg.sender;
+        return owner == msg.sender || isApprovedForAll(owner, msg.sender);
     }
 
     /**
