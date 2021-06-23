@@ -2,6 +2,7 @@
 const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol');
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol');
 const ENS = artifacts.require('./registry/ENSRegistry.sol');
+const NameWrapper = artifacts.require('DummyNameWrapper.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
@@ -9,12 +10,13 @@ const sha3 = require('web3-utils').sha3;
 contract('ReverseRegistar', function (accounts) {
 
     let node;
-    let registrar, resolver, ens;
+    let registrar, resolver, ens, nameWrapper;
 
     beforeEach(async () => {
         node = namehash.hash(accounts[0].slice(2).toLowerCase() + ".addr.reverse");
         ens = await ENS.new();
-        resolver = await PublicResolver.new(ens.address);
+        nameWrapper = await NameWrapper.new();
+        resolver = await PublicResolver.new(ens.address, nameWrapper.address);
         registrar = await ReverseRegistrar.new(ens.address, resolver.address);
 
         await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {from: accounts[0]});
