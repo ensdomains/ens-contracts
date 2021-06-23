@@ -636,10 +636,14 @@ contract('PublicResolver', function (accounts) {
         });
 
         it('emits an ApprovalForAll log', async () => {
-            var tx = await resolver.setApprovalForAll(accounts[2], true, {from: accounts[1]});
-            expect(tx).to.emit(resolver, 'ApprovalForAll').withArgs(
-                accounts[1], accounts[2], true 
-            );
+            var owner = accounts[0]
+            var operator = accounts[1]
+            var tx = await resolver.setApprovalForAll(operator, true, {from: owner});
+            assert.equal(tx.logs.length, 1);
+            assert.equal(tx.logs[0].event, "ApprovalForAll");
+            assert.equal(tx.logs[0].args.owner, owner);
+            assert.equal(tx.logs[0].args.operator, operator);
+            assert.equal(tx.logs[0].args.approved, true);
         });
 
         it('reverts if attempting to approve self as an operator', async () => {
@@ -651,12 +655,12 @@ contract('PublicResolver', function (accounts) {
         });
 
         it('permits name wrapper owner to make changes if owner is set to name wrapper address', async () => {
+            console.log(1)
             var owner = await ens.owner(node)
-            await expect(resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {from: accounts[2]})).to.be.reverted
+            await exceptions.expectFailure(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: accounts[2]}));
             await ens.setOwner(node, nameWrapper.address, {from: owner})
-            await expect(resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {from: accounts[2]}))
+            await expect(resolver.methods['setAddr(bytes32,address)'](node, owner, {from: accounts[2]}))
         });
-
     });
 
     describe('multicall', async () => {
