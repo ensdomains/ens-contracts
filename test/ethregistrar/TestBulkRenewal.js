@@ -5,6 +5,7 @@ const ETHRegistrarController = artifacts.require('./ETHRegistrarController');
 const DummyOracle = artifacts.require('./DummyOracle');
 const StablePriceOracle = artifacts.require('./StablePriceOracle');
 const BulkRenewal = artifacts.require('./BulkRenewal');
+const NameWrapper = artifacts.require('DummyNameWrapper.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
@@ -21,6 +22,7 @@ contract('BulkRenewal', function (accounts) {
 	let controller;
 	let priceOracle;
 	let bulkRenewal;
+	let nameWrapper;
 
 	const secret = "0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
 	const ownerAccount = accounts[0]; // Account that owns the registrar
@@ -29,9 +31,9 @@ contract('BulkRenewal', function (accounts) {
 	before(async () => {
 		// Create a registry
 		ens = await ENS.new();
-
+		nameWrapper = await NameWrapper.new();
 		// Create a public resolver
-		resolver = await PublicResolver.new(ens.address);
+		resolver = await PublicResolver.new(ens.address, nameWrapper.address);
 
 		// Create a base registrar
 		baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {from: ownerAccount});
