@@ -34,8 +34,8 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
     constructor(ENS _ens, INameWrapper wrapperAddress){
-        nameWrapper = wrapperAddress;
         ens = _ens;
+        nameWrapper = wrapperAddress;
     }
 
     /**
