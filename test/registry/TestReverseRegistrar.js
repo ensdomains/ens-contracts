@@ -1,21 +1,26 @@
 const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
+const { exceptions } = require("../test-utils")
 
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 
-describe.only('ReverseRegistrar Tests', () => {
+describe('ReverseRegistrar Tests', () => {
 
   contract('ReverseRegistar', function(accounts) {
-    let node
+    let node, node2, node3
     let registrar, resolver, ens
 
     beforeEach(async () => {
       node = namehash.hash(accounts[0].slice(2).toLowerCase() + '.addr.reverse')
+      node2 = namehash.hash(accounts[1].slice(2).toLowerCase() + '.addr.reverse')
+      node3 = namehash.hash(accounts[2].slice(2).toLowerCase() + '.addr.reverse')
       ens = await ENS.new()
       resolver = await PublicResolver.new(ens.address)
       registrar = await ReverseRegistrar.new(ens.address, resolver.address)
+
+      await registrar.setController(accounts[0], true)
 
       await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
         from: accounts[0],
@@ -59,6 +64,16 @@ describe.only('ReverseRegistrar Tests', () => {
       await registrar.setName('testname', { from: accounts[0], gas: 1000000 })
       assert.equal(await ens.resolver(node), resolver.address)
       assert.equal(await resolver.name(node), 'testname')
+    })
+
+    it('allows controller to set name records for other accounts', async () => {
+      await registrar.setNameWithController(accounts[1], 'testname', { from: accounts[0], gas: 1000000 })
+      assert.equal(await ens.resolver(node2), resolver.address)
+      assert.equal(await resolver.name(node2), 'testname')
+    })
+
+    it('forbids non-controller from calling setNameWithController', async () => {
+      await exceptions.expectFailure(registrar.setNameWithController(accounts[1], 'testname', { from: accounts[1], gas: 1000000 }));
     })
 
     // @todo this test does not work.

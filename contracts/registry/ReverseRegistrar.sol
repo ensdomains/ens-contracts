@@ -82,18 +82,19 @@ contract ReverseRegistrar is Ownable, Controllable {
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    // function setName(string memory name)
-    //     public
-    //     onlyController
-    //     returns (bytes32)
-    // {
-    //     bytes32 node = claimWithResolver(
-    //         address(this),
-    //         address(defaultResolver)
-    //     );
-    //     defaultResolver.setName(node, name);
-    //     return node;
-    // }
+    function setNameWithController(address addr, string memory name)
+        public
+        onlyController
+        returns (bytes32)
+    {
+        bytes32 node = _claimWithResolver(
+            addr,
+            address(this),
+            address(defaultResolver)
+        );
+        defaultResolver.setName(node, name);
+        return node;
+    }
 
     /**
      * @dev Returns the node hash for a given account's reverse records.
