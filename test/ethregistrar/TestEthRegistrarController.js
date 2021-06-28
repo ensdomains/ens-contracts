@@ -5,7 +5,7 @@ const ETHRegistrarController = artifacts.require('./ETHRegistrarController');
 const DummyOracle = artifacts.require('./DummyOracle');
 const StablePriceOracle = artifacts.require('./StablePriceOracle');
 const { evm, exceptions } = require("../test-utils");
-
+const NameWrapper = artifacts.require('DummyNameWrapper.sol');
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 const toBN = require('web3-utils').toBN;
@@ -19,6 +19,7 @@ contract('ETHRegistrarController', function (accounts) {
     let baseRegistrar;
     let controller;
     let priceOracle;
+    let nameWrapper;
 
     const secret = "0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF";
     const ownerAccount = accounts[0]; // Account that owns the registrar
@@ -26,8 +27,8 @@ contract('ETHRegistrarController', function (accounts) {
 
     before(async () => {
         ens = await ENS.new();
-
-        resolver = await PublicResolver.new(ens.address);
+        nameWrapper = await NameWrapper.new();
+        resolver = await PublicResolver.new(ens.address, nameWrapper.address);
 
         baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {from: ownerAccount});
         await ens.setSubnodeOwner('0x0', sha3('eth'), baseRegistrar.address);

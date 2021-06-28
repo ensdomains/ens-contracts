@@ -1,26 +1,28 @@
-const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
-const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
-const ENS = artifacts.require('./registry/ENSRegistry.sol')
-const { exceptions } = require("../test-utils")
-
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
+const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol');
+const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol');
+const ENS = artifacts.require('./registry/ENSRegistry.sol');
+const NameWrapper = artifacts.require('DummyNameWrapper.sol');
+const { exceptions } = require("../test-utils")
 
 describe('ReverseRegistrar Tests', () => {
 
-  contract('ReverseRegistar', function(accounts) {
-    let node, node2, node3
-    let registrar, resolver, ens
+contract('ReverseRegistar', function (accounts) {
+
+    let node, node2, node3;
+    
+    let registrar, resolver, ens, nameWrapper;
 
     beforeEach(async () => {
-      node = namehash.hash(accounts[0].slice(2).toLowerCase() + '.addr.reverse')
-      node2 = namehash.hash(accounts[1].slice(2).toLowerCase() + '.addr.reverse')
-      node3 = namehash.hash(accounts[2].slice(2).toLowerCase() + '.addr.reverse')
-      ens = await ENS.new()
-      resolver = await PublicResolver.new(ens.address)
-      registrar = await ReverseRegistrar.new(ens.address, resolver.address)
-
-      await registrar.setController(accounts[0], true)
+        node = namehash.hash(accounts[0].slice(2).toLowerCase() + ".addr.reverse");
+        node2 = namehash.hash(accounts[1].slice(2).toLowerCase() + '.addr.reverse');
+        node3 = namehash.hash(accounts[2].slice(2).toLowerCase() + '.addr.reverse');
+        ens = await ENS.new();
+        nameWrapper = await NameWrapper.new();
+        resolver = await PublicResolver.new(ens.address, nameWrapper.address);
+        registrar = await ReverseRegistrar.new(ens.address, resolver.address);
+        await registrar.setController(accounts[0], true)
 
       await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
         from: accounts[0],
