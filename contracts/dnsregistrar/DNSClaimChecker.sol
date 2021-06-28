@@ -25,15 +25,15 @@ library DNSClaimChecker {
         buf.append("\x04_ens");
         buf.append(name);
         bytes20 hash;
-        uint64 inserted;
+        uint32 expiration;
         // Check the provided TXT record has been validated by the oracle
-        (, inserted, hash) = oracle.rrdata(TYPE_TXT, buf.buf);
+        (, expiration, hash) = oracle.rrdata(TYPE_TXT, buf.buf);
         if (hash == bytes20(0) && proof.length == 0) return (address(0x0), false);
 
         require(hash == bytes20(keccak256(proof)));
 
         for (RRUtils.RRIterator memory iter = proof.iterateRRs(0); !iter.done(); iter.next()) {
-            require(inserted + iter.ttl >= block.timestamp, "DNS record is stale; refresh or delete it before proceeding.");
+            require(RRUtils.serialNumberGte(expiration + iter.ttl, uint32(block.timestamp)), "DNS record is stale; refresh or delete it before proceeding.");
 
             bool found;
             address addr;
