@@ -37,6 +37,7 @@
     "lint": "eslint test/*.js; solium --dir ./contracts",
     "deploy": "npx hardhat run --network localhost scripts/deploy.js",
     "deploy:rinkeby": "npx hardhat run --network rinkeby scripts/deploy.js",
-    "seed": "npx hardhat run --network localhost scripts/seed.js"
+    "seed": "npx hardhat run --network localhost scripts/seed.js",
+    "seed:rinkeby": "npx hardhat run --network rinkeby scripts/seed.js"
   }
 }
