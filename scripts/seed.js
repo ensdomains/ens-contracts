@@ -13,6 +13,11 @@ use(solidity)
 const namehash = n.hash
 const labelhash = (label) => utils.keccak256(utils.toUtf8Bytes(label))
 
+function getOpenSeaUrl(contract, namehashedname){
+  const tokenId = ethers.BigNumber.from(namehashedname).toString()
+  return `https://testnets.opensea.io/assets/${contract}/${tokenId}`
+}
+
 async function main(a) {
     const [deployer] = await ethers.getSigners();
     const CAN_DO_EVERYTHING = 0
@@ -28,9 +33,8 @@ async function main(a) {
     } = parsedFile
     if(!(registryAddress && registrarAddress && wrapperAddress && resolverAddress)){
       throw('Set addresses on .env')
-    }  
+    } 
     console.log("Account balance:", (await deployer.getBalance()).toString());
-
     console.log({
       registryAddress,registrarAddress, wrapperAddress, resolverAddress,firstAddress, name
     })
@@ -38,21 +42,21 @@ async function main(a) {
     const BaseRegistrar = await (await ethers.getContractFactory("BaseRegistrarImplementation")).attach(registrarAddress);
     const NameWrapper = await (await ethers.getContractFactory("NameWrapper")).attach(wrapperAddress);
     const Resolver = await (await ethers.getContractFactory("PublicResolver")).attach(resolverAddress);
-    const namehashedname = namehash(`${name}.eth`)
+    const domain = `${name}.eth`
+    const namehashedname = namehash(domain)
+    
     await (await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)).wait()
     await (await EnsRegistry.setApprovalForAll(NameWrapper.address, true)).wait()
     await (await NameWrapper.wrapETH2LD(name, firstAddress, CAN_DO_EVERYTHING)).wait()
+    console.log(`Wrapped NFT for ${domain} is available at ${getOpenSeaUrl(NameWrapper.address, namehashedname)}`)
     await (await NameWrapper.setSubnodeOwnerAndWrap(namehash(`${name}.eth`), 'sub1', firstAddress, CAN_DO_EVERYTHING)).wait()
     await (await NameWrapper.setSubnodeOwnerAndWrap(namehash(`${name}.eth`), 'sub2', firstAddress, CAN_DO_EVERYTHING)).wait()
     await (await NameWrapper.setResolver(namehash(`sub2.${name}.eth`), resolverAddress)).wait()
     await (await Resolver.setText(namehash(`sub2.${name}.eth`), 'domains.ens.nft.image', 'https://i.imgur.com/JcZESMp.png')).wait()
-    let text = await Resolver.text(namehash(`sub2.${name}.eth`), 'avatar')
-    console.log({text})
+    console.log(`Wrapped NFT for sub2.${name}.eth is available at ${getOpenSeaUrl(NameWrapper.address, namehash(`sub2.${name}.eth`))}`)
     await (await NameWrapper.burnFuses(namehash(`sub2.${name}.eth`),CANNOT_UNWRAP)).wait()
     await (await NameWrapper.burnFuses(namehash(`sub2.${name}.eth`),CANNOT_SET_RESOLVER)).wait()
     await (await NameWrapper.unwrap(namehash(`${name}.eth`), labelhash('sub1'), firstAddress)).wait()
-    let tokenURI = await NameWrapper.uri(namehashedname)
-    console.log('owner', {tokenURI})
   }
   
   main()
