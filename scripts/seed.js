@@ -6,7 +6,7 @@ const packet = require('dns-packet')
 const { utils, BigNumber: BN } = ethers
 const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
-const parsedFile = envfile.parse(fs.readFileSync('./.env'));
+const parsedFile = envfile.parse(fs.readFileSync('./.env'))
 
 use(solidity)
 
@@ -19,7 +19,7 @@ function getOpenSeaUrl(contract, namehashedname){
 }
 
 async function main(a) {
-    const [deployer] = await ethers.getSigners();
+    const [deployer] = await ethers.getSigners()
     const CAN_DO_EVERYTHING = 0
     const CANNOT_UNWRAP = 1
     const CANNOT_SET_RESOLVER = 8
@@ -34,14 +34,14 @@ async function main(a) {
     if(!(registryAddress && registrarAddress && wrapperAddress && resolverAddress)){
       throw('Set addresses on .env')
     } 
-    console.log("Account balance:", (await deployer.getBalance()).toString());
+    console.log("Account balance:", (await deployer.getBalance()).toString())
     console.log({
       registryAddress,registrarAddress, wrapperAddress, resolverAddress,firstAddress, name
     })
-    const EnsRegistry = await (await ethers.getContractFactory("ENSRegistry")).attach(registryAddress);
-    const BaseRegistrar = await (await ethers.getContractFactory("BaseRegistrarImplementation")).attach(registrarAddress);
-    const NameWrapper = await (await ethers.getContractFactory("NameWrapper")).attach(wrapperAddress);
-    const Resolver = await (await ethers.getContractFactory("PublicResolver")).attach(resolverAddress);
+    const EnsRegistry = await (await ethers.getContractFactory("ENSRegistry")).attach(registryAddress)
+    const BaseRegistrar = await (await ethers.getContractFactory("BaseRegistrarImplementation")).attach(registrarAddress)
+    const NameWrapper = await (await ethers.getContractFactory("NameWrapper")).attach(wrapperAddress)
+    const Resolver = await (await ethers.getContractFactory("PublicResolver")).attach(resolverAddress)
     const domain = `${name}.eth`
     const namehashedname = namehash(domain)
     
@@ -62,6 +62,6 @@ async function main(a) {
   main()
     .then(() => process.exit(0))
     .catch(error => {
-      console.error(error);
-      process.exit(1);
-    });
+      console.error(error)
+      process.exit(1)
+    })
