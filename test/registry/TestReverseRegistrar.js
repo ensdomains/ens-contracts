@@ -24,7 +24,6 @@ describe.only('ReverseRegistrar Tests', () => {
       nameWrapper = await NameWrapper.new()
       resolver = await PublicResolver.new(ens.address, nameWrapper.address)
       registrar = await ReverseRegistrar.new(ens.address, resolver.address)
-      await registrar.setController(accounts[0], true)
 
       await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
         from: accounts[0],
@@ -71,6 +70,7 @@ describe.only('ReverseRegistrar Tests', () => {
     })
 
     it('allows controller to set name records for other accounts', async () => {
+      await registrar.setController(accounts[0], true)
       await registrar.setNameForAddr(accounts[1], 'testname', {
         from: accounts[0],
         gas: 1000000,
@@ -79,13 +79,22 @@ describe.only('ReverseRegistrar Tests', () => {
       assert.equal(await resolver.name(node2), 'testname')
     })
 
-    it('forbids non-controller from calling setNameWithController', async () => {
+    it('forbids non-controller from calling setNameWithController if addresss is different', async () => {
       await exceptions.expectFailure(
         registrar.setNameForAddr(accounts[1], 'testname', {
-          from: accounts[1],
+          from: accounts[0],
           gas: 1000000,
         })
       )
+    })
+
+    it('allows name to be set for an address if the sender is the address even if not controller', async () => {
+      await registrar.setNameForAddr(accounts[0], 'testname', {
+        from: accounts[0],
+        gas: 1000000,
+      })
+      assert.equal(await ens.resolver(node), resolver.address)
+      assert.equal(await resolver.name(node), 'testname')
     })
 
     // @todo this test does not work.
