@@ -68,7 +68,8 @@ contract ReverseRegistrar is Ownable, Controllable {
      * @return The ENS node hash of the reverse record.
      */
     function setName(string memory name) public returns (bytes32) {
-        bytes32 node = claimWithResolver(
+        bytes32 node = _claimWithResolver(
+            msg.sender,
             address(this),
             address(defaultResolver)
         );
@@ -150,22 +151,13 @@ contract ReverseRegistrar is Ownable, Controllable {
     ) internal returns (bytes32) {
         bytes32 label = sha3HexAddress(addr);
         bytes32 node = keccak256(abi.encodePacked(ADDR_REVERSE_NODE, label));
-        address currentOwner = ens.owner(node);
+        address currentResolver = ens.resolver(node);
+        address newResolver = (resolver != address(0x0) &&
+            resolver != currentResolver)
+            ? resolver
+            : currentResolver;
 
-        // Update the resolver if required
-        if (resolver != address(0x0) && resolver != ens.resolver(node)) {
-            // Transfer the name to us first if it's not already
-            if (currentOwner != address(this)) {
-                ens.setSubnodeOwner(ADDR_REVERSE_NODE, label, address(this));
-                currentOwner = address(this);
-            }
-            ens.setResolver(node, resolver);
-        }
-
-        // Update the owner if required
-        if (currentOwner != owner) {
-            ens.setSubnodeOwner(ADDR_REVERSE_NODE, label, owner);
-        }
+        ens.setSubnodeRecord(ADDR_REVERSE_NODE, label, owner, newResolver, 0);
 
         return node;
     }
