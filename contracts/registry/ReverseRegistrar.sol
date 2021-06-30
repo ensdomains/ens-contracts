@@ -38,7 +38,9 @@ contract ReverseRegistrar is Ownable, Controllable {
 
     modifier authorised(address addr) {
         require(
-            controllers[msg.sender] || addr == msg.sender,
+            controllers[msg.sender] ||
+                addr == msg.sender ||
+                ens.isApprovedForAll(addr, msg.sender),
             "Caller is not a controller or is authori"
         );
         _;

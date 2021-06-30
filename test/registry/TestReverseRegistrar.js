@@ -6,7 +6,9 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
 const { exceptions } = require('../test-utils')
 
-describe.only('ReverseRegistrar Tests', () => {
+const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+
+describe('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3
 
@@ -40,61 +42,202 @@ describe.only('ReverseRegistrar Tests', () => {
       assert.equal(await registrar.node.call(accounts[0]), node)
     })
 
-    it('allows an account to claim its address', async () => {
-      await registrar.claim(accounts[1], { from: accounts[0] })
-      assert.equal(await ens.owner(node), accounts[1])
-    })
-
-    it('allows an account to specify resolver', async () => {
-      await registrar.claimWithResolver(accounts[1], accounts[2], {
-        from: accounts[0],
+    describe('claim', () => {
+      it('allows an account to claim its address', async () => {
+        await registrar.claim(accounts[1], { from: accounts[0] })
+        assert.equal(await ens.owner(node), accounts[1])
       })
-      assert.equal(await ens.owner(node), accounts[1])
-      assert.equal(await ens.resolver(node), accounts[2])
     })
 
-    it('does not overwrite resolver if not specified', async () => {
-      await registrar.claimWithResolver(accounts[1], accounts[2], {
-        from: accounts[0],
+    describe('claimForAddr', () => {
+      it('allows an account to claim its address', async () => {
+        await registrar.claimForAddr(accounts[0], accounts[1], {
+          from: accounts[0],
+        })
+        assert.equal(await ens.owner(node), accounts[1])
       })
-      await registrar.claim(accounts[3], { from: accounts[0] })
 
-      assert.equal(await ens.owner(node), accounts[3])
-      assert.equal(await ens.resolver(node), accounts[2])
-    })
-
-    it('sets name records', async () => {
-      await registrar.setName('testname', { from: accounts[0], gas: 1000000 })
-      assert.equal(await ens.resolver(node), resolver.address)
-      assert.equal(await resolver.name(node), 'testname')
-    })
-
-    it('allows controller to set name records for other accounts', async () => {
-      await registrar.setController(accounts[0], true)
-      await registrar.setNameForAddr(accounts[1], 'testname', {
-        from: accounts[0],
-        gas: 1000000,
+      it('forbids an account to claim another address', async () => {
+        await exceptions.expectFailure(
+          registrar.claimForAddr(accounts[1], accounts[0], {
+            from: accounts[0],
+          })
+        )
       })
-      assert.equal(await ens.resolver(node2), resolver.address)
-      assert.equal(await resolver.name(node2), 'testname')
+
+      it('allows an authorised account to claim a different address', async () => {
+        await ens.setApprovalForAll(accounts[0], true, { from: accounts[1] })
+        await registrar.claimForAddr(accounts[1], accounts[2], {
+          from: accounts[0],
+        })
+        assert.equal(await ens.owner(node2), accounts[2])
+      })
+
+      it('allows a controller to claim a different address', async () => {
+        await registrar.setController(accounts[0], true)
+        await registrar.claimForAddr(accounts[1], accounts[2], {
+          from: accounts[0],
+        })
+        assert.equal(await ens.owner(node2), accounts[2])
+      })
     })
 
-    it('forbids non-controller from calling setNameWithController if addresss is different', async () => {
-      await exceptions.expectFailure(
-        registrar.setNameForAddr(accounts[1], 'testname', {
+    describe('claimWithResolver', () => {
+      it('allows an account to specify resolver', async () => {
+        await registrar.claimWithResolver(accounts[1], accounts[2], {
+          from: accounts[0],
+        })
+        assert.equal(await ens.owner(node), accounts[1])
+        assert.equal(await ens.resolver(node), accounts[2])
+      })
+
+      it('does not overwrite resolver if not specified', async () => {
+        await registrar.claimWithResolver(accounts[1], accounts[2], {
+          from: accounts[0],
+        })
+        await registrar.claim(accounts[3], { from: accounts[0] })
+
+        assert.equal(await ens.owner(node), accounts[3])
+        assert.equal(await ens.resolver(node), accounts[2])
+      })
+    })
+
+    describe('claimWithResolverForAddr', () => {
+      it('allows an account with the same address to specify resolver', async () => {
+        await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
+        assert.equal(await ens.owner(node), accounts[0])
+        assert.equal(await ens.resolver(node), resolver.address)
+      })
+
+      it('allows an account authorised by the address to specify resolver', async () => {
+        await ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
+        await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[1],
+          }
+        )
+        assert.equal(await ens.owner(node), accounts[0])
+        assert.equal(await ens.resolver(node), resolver.address)
+      })
+
+      it('allows a controller specify resolver', async () => {
+        await registrar.setController(accounts[1], true)
+        await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[1],
+          }
+        )
+        assert.equal(await ens.owner(node), accounts[0])
+        assert.equal(await ens.resolver(node), resolver.address)
+      })
+
+      it('does not overwrite resolver if not specified', async () => {
+        await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
+
+        assert.equal(await ens.owner(node), accounts[0])
+        assert.equal(await ens.resolver(node), resolver.address)
+
+        await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          EMPTY_ADDRESS,
+          {
+            from: accounts[0],
+          }
+        )
+
+        assert.equal(await ens.owner(node), accounts[0])
+        assert.equal(await ens.resolver(node), resolver.address)
+      })
+
+      it('forbids an account with a different address', async () => {
+        await exceptions.expectFailure(
+          registrar.claimWithResolverForAddr(
+            accounts[0],
+            accounts[0],
+            resolver.address,
+            {
+              from: accounts[1],
+            }
+          )
+        )
+      })
+    })
+
+    describe('setName', () => {
+      it('sets name records', async () => {
+        await registrar.setName('testname', { from: accounts[0], gas: 1000000 })
+        assert.equal(await ens.resolver(node), resolver.address)
+        assert.equal(await resolver.name(node), 'testname')
+      })
+    })
+
+    describe('setNameForAddr', () => {
+      it('allows controller to set name records for other accounts', async () => {
+        await registrar.setController(accounts[0], true)
+        await registrar.setNameForAddr(accounts[1], 'testname', {
           from: accounts[0],
           gas: 1000000,
         })
-      )
+        assert.equal(await ens.resolver(node2), resolver.address)
+        assert.equal(await resolver.name(node2), 'testname')
+      })
+
+      it('forbids non-controller if address is different from sender and not authorised', async () => {
+        await exceptions.expectFailure(
+          registrar.setNameForAddr(accounts[1], 'testname', {
+            from: accounts[0],
+            gas: 1000000,
+          })
+        )
+      })
+
+      it('allows name to be set for an address if the sender is the address', async () => {
+        await registrar.setNameForAddr(accounts[0], 'testname', {
+          from: accounts[0],
+          gas: 1000000,
+        })
+        assert.equal(await ens.resolver(node), resolver.address)
+        assert.equal(await resolver.name(node), 'testname')
+      })
+
+      it('allows name to be set for an address if the sender is authorised', async () => {
+        ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
+        await registrar.setNameForAddr(accounts[0], 'testname', {
+          from: accounts[1],
+          gas: 1000000,
+        })
+        assert.equal(await ens.resolver(node), resolver.address)
+        assert.equal(await resolver.name(node), 'testname')
+      })
     })
 
-    it('allows name to be set for an address if the sender is the address even if not controller', async () => {
-      await registrar.setNameForAddr(accounts[0], 'testname', {
-        from: accounts[0],
-        gas: 1000000,
+    describe('setController', () => {
+      it('forbid non-owner from setting a controller', async () => {
+        await exceptions.expectFailure(
+          registrar.setController(accounts[1], true, { from: accounts[1] })
+        )
       })
-      assert.equal(await ens.resolver(node), resolver.address)
-      assert.equal(await resolver.name(node), 'testname')
     })
 
     // @todo this test does not work.
