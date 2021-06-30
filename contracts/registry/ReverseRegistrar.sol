@@ -41,7 +41,7 @@ contract ReverseRegistrar is Ownable, Controllable {
             controllers[msg.sender] ||
                 addr == msg.sender ||
                 ens.isApprovedForAll(addr, msg.sender),
-            "Caller is not a controller or is authori"
+            "Caller is not a controller or authorised by address or the address itself"
         );
         _;
     }
