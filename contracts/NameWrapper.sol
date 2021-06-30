@@ -161,7 +161,6 @@ contract NameWrapper is
         address resolver
     ) public override {
         bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
         uint256 tokenId = uint256(labelhash);
         address owner = registrar.ownerOf(tokenId);
 
