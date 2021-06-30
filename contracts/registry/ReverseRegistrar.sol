@@ -83,9 +83,10 @@ contract ReverseRegistrar is Ownable, Controllable {
      * resolver if necessary.
      * Only callable by controllers
      * @param name The name to set for this address.
+     * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    function setNameWithController(address addr, string memory name)
+    function setNameForAddr(address addr, string memory name)
         public
         onlyController
         returns (bytes32)
@@ -152,10 +153,11 @@ contract ReverseRegistrar is Ownable, Controllable {
         bytes32 label = sha3HexAddress(addr);
         bytes32 node = keccak256(abi.encodePacked(ADDR_REVERSE_NODE, label));
         address currentResolver = ens.resolver(node);
-        address newResolver = (resolver != address(0x0) &&
-            resolver != currentResolver)
-            ? resolver
-            : currentResolver;
+        address newResolver = currentResolver;
+
+        if (resolver != address(0x0) && resolver != currentResolver) {
+            newResolver = resolver;
+        }
 
         ens.setSubnodeRecord(ADDR_REVERSE_NODE, label, owner, newResolver, 0);
 

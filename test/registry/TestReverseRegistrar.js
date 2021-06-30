@@ -71,7 +71,7 @@ describe.only('ReverseRegistrar Tests', () => {
     })
 
     it('allows controller to set name records for other accounts', async () => {
-      await registrar.setNameWithController(accounts[1], 'testname', {
+      await registrar.setNameForAddr(accounts[1], 'testname', {
         from: accounts[0],
         gas: 1000000,
       })
@@ -81,7 +81,7 @@ describe.only('ReverseRegistrar Tests', () => {
 
     it('forbids non-controller from calling setNameWithController', async () => {
       await exceptions.expectFailure(
-        registrar.setNameWithController(accounts[1], 'testname', {
+        registrar.setNameForAddr(accounts[1], 'testname', {
           from: accounts[1],
           gas: 1000000,
         })
