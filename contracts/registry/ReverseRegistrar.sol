@@ -8,6 +8,8 @@ abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
 }
 
+bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000000000000000;
+
 contract ReverseRegistrar is Ownable, Controllable {
     // namehash('addr.reverse')
     bytes32 public constant ADDR_REVERSE_NODE =
@@ -119,10 +121,6 @@ contract ReverseRegistrar is Ownable, Controllable {
         addr;
         ret; // Stop warning us about unused variables
         assembly {
-            let
-                lookup
-            := 0x3031323334353637383961626364656600000000000000000000000000000000
-
             for {
                 let i := 40
             } gt(i, 0) {
