@@ -1,24 +1,28 @@
 pragma solidity ^0.8.4;
 
 import "../registry/ENS.sol";
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Controllable.sol";
 
 contract Root is Ownable, Controllable {
-    bytes32 constant private ROOT_NODE = bytes32(0);
+    bytes32 private constant ROOT_NODE = bytes32(0);
 
-    bytes4 constant private INTERFACE_META_ID = bytes4(keccak256("supportsInterface(bytes4)"));
+    bytes4 private constant INTERFACE_META_ID =
+        bytes4(keccak256("supportsInterface(bytes4)"));
 
     event TLDLocked(bytes32 indexed label);
 
     ENS public ens;
-    mapping(bytes32=>bool) public locked;
+    mapping(bytes32 => bool) public locked;
 
     constructor(ENS _ens) public {
         ens = _ens;
     }
 
-    function setSubnodeOwner(bytes32 label, address owner) external onlyController {
+    function setSubnodeOwner(bytes32 label, address owner)
+        external
+        onlyController
+    {
         require(!locked[label]);
         ens.setSubnodeOwner(ROOT_NODE, label, owner);
     }
@@ -32,7 +36,11 @@ contract Root is Ownable, Controllable {
         locked[label] = true;
     }
 
-    function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
+    function supportsInterface(bytes4 interfaceID)
+        external
+        pure
+        returns (bool)
+    {
         return interfaceID == INTERFACE_META_ID;
     }
 }

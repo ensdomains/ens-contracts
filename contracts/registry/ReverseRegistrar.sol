@@ -1,7 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "./ENS.sol";
-import "../root/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "../root/Controllable.sol";
 
 abstract contract NameResolver {
