@@ -42,7 +42,8 @@ contract ReverseRegistrar is Ownable, Controllable {
         require(
             addr == msg.sender ||
                 controllers[msg.sender] ||
-                ens.isApprovedForAll(addr, msg.sender),
+                ens.isApprovedForAll(addr, msg.sender) ||
+                ownsContract(addr),
             "Caller is not a controller or authorised by address or the address itself"
         );
         _;
@@ -181,13 +182,8 @@ contract ReverseRegistrar is Ownable, Controllable {
         }
     }
 
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The address of the resolver to set; 0 to leave unchanged.
-     * @return The ENS node hash of the reverse record.
-     */
+    /* Internal functions */
+
     function _claimWithResolver(
         address addr,
         address owner,
@@ -205,5 +201,13 @@ contract ReverseRegistrar is Ownable, Controllable {
         emit ReverseClaimed(addr, node);
 
         return node;
+    }
+
+    function ownsContract(address addr) internal view returns (bool) {
+        try Ownable(addr).owner() returns (address owner) {
+            return owner == msg.sender;
+        } catch {
+            return false;
+        }
     }
 }
