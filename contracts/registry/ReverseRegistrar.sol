@@ -18,6 +18,8 @@ contract ReverseRegistrar is Ownable, Controllable {
     ENS public ens;
     NameResolver public defaultResolver;
 
+    event ReverseClaimed(address indexed addr, bytes32 indexed node);
+
     /**
      * @dev Constructor
      * @param ensAddr The address of the ENS registry.
@@ -38,8 +40,8 @@ contract ReverseRegistrar is Ownable, Controllable {
 
     modifier authorised(address addr) {
         require(
-            controllers[msg.sender] ||
-                addr == msg.sender ||
+            addr == msg.sender ||
+                controllers[msg.sender] ||
                 ens.isApprovedForAll(addr, msg.sender),
             "Caller is not a controller or authorised by address or the address itself"
         );
@@ -199,6 +201,8 @@ contract ReverseRegistrar is Ownable, Controllable {
         address newResolver = shouldUpdateResolver ? resolver : currentResolver;
 
         ens.setSubnodeRecord(ADDR_REVERSE_NODE, label, owner, newResolver, 0);
+
+        emit ReverseClaimed(addr, node);
 
         return node;
     }

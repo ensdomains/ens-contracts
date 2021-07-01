@@ -8,7 +8,14 @@ const { exceptions } = require('../test-utils')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-describe('ReverseRegistrar Tests', () => {
+function assertReverseClaimedEventEmitted(tx, addr, node) {
+  assert.equal(tx.logs.length, 1)
+  assert.equal(tx.logs[0].event, 'ReverseClaimed')
+  assert.equal(tx.logs[0].args.addr, addr)
+  assert.equal(tx.logs[0].args.node, node)
+}
+
+describe.only('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3
 
@@ -47,6 +54,11 @@ describe('ReverseRegistrar Tests', () => {
         await registrar.claim(accounts[1], { from: accounts[0] })
         assert.equal(await ens.owner(node), accounts[1])
       })
+
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.claim(accounts[1], { from: accounts[0] })
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
+      })
     })
 
     describe('claimForAddr', () => {
@@ -55,6 +67,13 @@ describe('ReverseRegistrar Tests', () => {
           from: accounts[0],
         })
         assert.equal(await ens.owner(node), accounts[1])
+      })
+
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.claimForAddr(accounts[0], accounts[1], {
+          from: accounts[0],
+        })
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
       it('forbids an account to claim another address', async () => {
@@ -91,6 +110,13 @@ describe('ReverseRegistrar Tests', () => {
         assert.equal(await ens.resolver(node), accounts[2])
       })
 
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.claimWithResolver(accounts[1], accounts[2], {
+          from: accounts[0],
+        })
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
+      })
+
       it('does not overwrite resolver if not specified', async () => {
         await registrar.claimWithResolver(accounts[1], accounts[2], {
           from: accounts[0],
@@ -114,6 +140,18 @@ describe('ReverseRegistrar Tests', () => {
         )
         assert.equal(await ens.owner(node), accounts[0])
         assert.equal(await ens.resolver(node), resolver.address)
+      })
+
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.claimWithResolverForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
       it('allows an account authorised by the address to specify resolver', async () => {
@@ -190,6 +228,14 @@ describe('ReverseRegistrar Tests', () => {
         assert.equal(await ens.resolver(node), resolver.address)
         assert.equal(await resolver.name(node), 'testname')
       })
+
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.setName('testname', {
+          from: accounts[0],
+          gas: 1000000,
+        })
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
+      })
     })
 
     describe('setNameForAddr', () => {
@@ -201,6 +247,14 @@ describe('ReverseRegistrar Tests', () => {
         })
         assert.equal(await ens.resolver(node2), resolver.address)
         assert.equal(await resolver.name(node2), 'testname')
+      })
+
+      it('event ReverseClaimed is emitted', async () => {
+        const tx = await registrar.setNameForAddr(accounts[0], 'testname', {
+          from: accounts[0],
+          gas: 1000000,
+        })
+        assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
       it('forbids non-controller if address is different from sender and not authorised', async () => {
