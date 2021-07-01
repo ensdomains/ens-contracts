@@ -4,8 +4,16 @@ const { execSync } = require('child_process');
 require('@nomiclabs/hardhat-waffle')
 require('hardhat-gas-reporter')
 require("@nomiclabs/hardhat-etherscan");
+const filename = './.env';
+const time = new Date();
 const envfile = require('envfile')
-const { PRIVATE_KEY, ETHERSCAN_API_KEY, INFURA_API_KEY } = envfile.parse(fs.readFileSync('./.env'));
+
+try {
+  fs.utimesSync(filename, time, time);
+} catch (err) {
+  fs.closeSync(fs.openSync(filename, 'w'));
+}
+const { PRIVATE_KEY, ETHERSCAN_API_KEY, INFURA_API_KEY } = envfile.parse(fs.readFileSync(filename));
 
 const commit = execSync('git rev-parse --short HEAD', ).toString().trim();
 
