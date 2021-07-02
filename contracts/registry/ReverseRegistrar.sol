@@ -125,22 +125,24 @@ contract ReverseRegistrar is Ownable, Controllable {
      * @dev Sets the `name()` record for the reverse ENS record associated with
      * the account provided. First updates the resolver to the default reverse
      * resolver if necessary.
-     * Only callable by controllers
+     * Only callable by controllers and authorised users
      * @param addr The reverse record to set
+     * @param owner The owner of the reverse node
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    function setNameForAddr(address addr, string memory name)
-        public
-        authorised(addr)
-        returns (bytes32)
-    {
+    function setNameForAddr(
+        address addr,
+        address owner,
+        string memory name
+    ) public authorised(addr) returns (bytes32) {
         bytes32 node = _claimWithResolver(
             addr,
             address(this),
             address(defaultResolver)
         );
         defaultResolver.setName(node, name);
+        ens.setSubnodeOwner(ADDR_REVERSE_NODE, sha3HexAddress(addr), owner);
         return node;
     }
 

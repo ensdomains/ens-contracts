@@ -15,24 +15,26 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
   assert.equal(tx.logs[0].args.node, node)
 }
 
+function getReverseNode(addr) {
+  return namehash.hash(addr.slice(2).toLowerCase() + '.addr.reverse')
+}
+
 describe.only('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
-    let node, node2, node3
+    let node, node2, node3, dummyOwnableReverseNode
 
-    let registrar, resolver, ens, nameWrapper
+    let registrar, resolver, ens, nameWrapper, dummyOwnable
 
     beforeEach(async () => {
-      node = namehash.hash(accounts[0].slice(2).toLowerCase() + '.addr.reverse')
-      node2 = namehash.hash(
-        accounts[1].slice(2).toLowerCase() + '.addr.reverse'
-      )
-      node3 = namehash.hash(
-        accounts[2].slice(2).toLowerCase() + '.addr.reverse'
-      )
+      node = getReverseNode(accounts[0])
+      node2 = getReverseNode(accounts[1])
+      node3 = getReverseNode(accounts[2])
       ens = await ENS.new()
       nameWrapper = await NameWrapper.new()
       resolver = await PublicResolver.new(ens.address, nameWrapper.address)
       registrar = await ReverseRegistrar.new(ens.address, resolver.address)
+      dummyOwnable = await ReverseRegistrar.new(ens.address, resolver.address)
+      dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)
 
       await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
         from: accounts[0],
@@ -98,6 +100,14 @@ describe.only('ReverseRegistrar Tests', () => {
           from: accounts[0],
         })
         assert.equal(await ens.owner(node2), accounts[2])
+      })
+
+      it('allows an owner() of a contract to claim the reverse node of that contract', async () => {
+        await registrar.setController(accounts[0], true)
+        await registrar.claimForAddr(dummyOwnable.address, accounts[0], {
+          from: accounts[0],
+        })
+        assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
       })
     })
 
@@ -220,6 +230,22 @@ describe.only('ReverseRegistrar Tests', () => {
           )
         )
       })
+
+      it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
+        await registrar.claimWithResolverForAddr(
+          dummyOwnable.address,
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
+        assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
+        assert.equal(
+          await ens.resolver(dummyOwnableReverseNode),
+          resolver.address
+        )
+      })
     })
 
     describe('setName', () => {
@@ -241,7 +267,7 @@ describe.only('ReverseRegistrar Tests', () => {
     describe('setNameForAddr', () => {
       it('allows controller to set name records for other accounts', async () => {
         await registrar.setController(accounts[0], true)
-        await registrar.setNameForAddr(accounts[1], 'testname', {
+        await registrar.setNameForAddr(accounts[1], accounts[0], 'testname', {
           from: accounts[0],
           gas: 1000000,
         })
@@ -250,16 +276,21 @@ describe.only('ReverseRegistrar Tests', () => {
       })
 
       it('event ReverseClaimed is emitted', async () => {
-        const tx = await registrar.setNameForAddr(accounts[0], 'testname', {
-          from: accounts[0],
-          gas: 1000000,
-        })
+        const tx = await registrar.setNameForAddr(
+          accounts[0],
+          accounts[0],
+          'testname',
+          {
+            from: accounts[0],
+            gas: 1000000,
+          }
+        )
         assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
       it('forbids non-controller if address is different from sender and not authorised', async () => {
         await exceptions.expectFailure(
-          registrar.setNameForAddr(accounts[1], 'testname', {
+          registrar.setNameForAddr(accounts[1], accounts[0], 'testname', {
             from: accounts[0],
             gas: 1000000,
           })
@@ -267,7 +298,7 @@ describe.only('ReverseRegistrar Tests', () => {
       })
 
       it('allows name to be set for an address if the sender is the address', async () => {
-        await registrar.setNameForAddr(accounts[0], 'testname', {
+        await registrar.setNameForAddr(accounts[0], accounts[0], 'testname', {
           from: accounts[0],
           gas: 1000000,
         })
@@ -277,12 +308,28 @@ describe.only('ReverseRegistrar Tests', () => {
 
       it('allows name to be set for an address if the sender is authorised', async () => {
         ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
-        await registrar.setNameForAddr(accounts[0], 'testname', {
+        await registrar.setNameForAddr(accounts[0], accounts[0], 'testname', {
           from: accounts[1],
           gas: 1000000,
         })
         assert.equal(await ens.resolver(node), resolver.address)
         assert.equal(await resolver.name(node), 'testname')
+      })
+
+      it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
+        await registrar.setNameForAddr(
+          dummyOwnable.address,
+          accounts[0],
+          'dummyownable.eth',
+          {
+            from: accounts[0],
+          }
+        )
+        assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
+        assert.equal(
+          await resolver.name(dummyOwnableReverseNode),
+          'dummyownable.eth'
+        )
       })
     })
 
