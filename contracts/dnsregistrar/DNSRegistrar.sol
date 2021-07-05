@@ -7,6 +7,7 @@ import "../registry/ENSRegistry.sol";
 import "../root/Root.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
+import "../resolvers/profiles/AddrResolver.sol";
 
 /**
  * @dev An ENS registrar that allows the owner of a DNS name to claim the
@@ -68,22 +69,8 @@ contract DNSRegistrar {
      *        record.
      */
     function claim(bytes memory name, bytes memory proof) public {
-        // Get the first label
-        uint labelLen = name.readUint8(0);
-        bytes32 labelHash = name.keccak(1, labelLen);
-
-        // Parent name must be in the public suffix list.
-        bytes memory parentName = name.substring(labelLen + 1, name.length - labelLen - 1);
-        require(suffixes.isPublicSuffix(parentName), "Parent name must be a public suffix");
-
-        // Make sure the parent name is enabled
-        bytes32 rootNode = enableNode(parentName, 0);
-
-        address addr;
-        (addr,) = DNSClaimChecker.getOwnerAddress(oracle, name, proof);
-
+        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(name, proof);
         ens.setSubnodeOwner(rootNode, labelHash, addr);
-        emit Claim(keccak256(abi.encodePacked(rootNode, labelHash)), addr, name);
     }
 
     /**
@@ -98,9 +85,37 @@ contract DNSRegistrar {
         claim(name, proof);
     }
 
+    function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof, address resolver, address addr) public {
+        proof = oracle.submitRRSets(input, proof);
+        (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, proof);
+        require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
+        ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
+        if(addr != address(0)) {
+            bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
+            AddrResolver(resolver).setAddr(node, addr);
+        }
+    }
+
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
         return interfaceID == INTERFACE_META_ID ||
                interfaceID == DNSSEC_CLAIM_ID;
+    }
+
+    function _claim(bytes memory name, bytes memory proof) internal returns(bytes32 rootNode, bytes32 labelHash, address addr) {
+        // Get the first label
+        uint labelLen = name.readUint8(0);
+        labelHash = name.keccak(1, labelLen);
+
+        // Parent name must be in the public suffix list.
+        bytes memory parentName = name.substring(labelLen + 1, name.length - labelLen - 1);
+        require(suffixes.isPublicSuffix(parentName), "Parent name must be a public suffix");
+
+        // Make sure the parent name is enabled
+        rootNode = enableNode(parentName, 0);
+
+        (addr,) = DNSClaimChecker.getOwnerAddress(oracle, name, proof);
+
+        emit Claim(keccak256(abi.encodePacked(rootNode, labelHash)), addr, name);
     }
 
     function enableNode(bytes memory domain, uint offset) internal returns(bytes32 node) {
