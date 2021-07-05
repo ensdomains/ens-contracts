@@ -34,7 +34,7 @@ contract('DNSRegistrar', function(accounts) {
     await root.setController(registrar.address, true);
   });
 
-  it('allows the owner of a DNS name to claim it in ENS', async function() {
+  it('allows anyone to claim on behalf of the owner of an ENS name', async function() {
     assert.equal(await registrar.oracle(), dnssec.address);
     assert.equal(await registrar.ens(), ens.address);
 
@@ -43,7 +43,7 @@ contract('DNSRegistrar', function(accounts) {
       type: 'TXT',
       class: 'IN',
       ttl: 3600,
-      data: ['a=' + accounts[0]]
+      data: ['a=' + accounts[1]]
     });
 
     await dnssec.setData(
@@ -56,7 +56,7 @@ contract('DNSRegistrar', function(accounts) {
 
     await registrar.claim(utils.hexEncodeName('foo.test'), proof);
 
-    assert.equal(await ens.owner(namehash.hash('foo.test')), accounts[0]);
+    assert.equal(await ens.owner(namehash.hash('foo.test')), accounts[1]);
   });
 
   it('allows the owner to prove-and-claim', async () => {
@@ -218,5 +218,25 @@ contract('DNSRegistrar', function(accounts) {
     await registrar.proveAndClaimWithResolver(utils.hexEncodeName('foo.test'), [{rrset: proof, sig: '0x'}], '0x', resolver.address, accounts[0]);
 
     assert.equal(await resolver.addr(namehash.hash('foo.test')), accounts[0])
+  });
+
+  it('forbids setting an address if the resolver is not also set', async () => {
+    var proof = utils.hexEncodeTXT({
+      name: '_ens.foo.test',
+      type: 'TXT',
+      class: 'IN',
+      ttl: 3600,
+      data: ['a=' + accounts[0]]
+    });
+
+    await dnssec.setData(
+      16,
+      utils.hexEncodeName('_ens.foo.test'),
+      now,
+      now,
+      proof
+    );
+
+    await exceptions.expectFailure(registrar.proveAndClaimWithResolver(utils.hexEncodeName('foo.test'), [{rrset: proof, sig: '0x'}], '0x', ZERO_ADDRESS, accounts[0]));
   });
 });

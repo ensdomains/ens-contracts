@@ -91,6 +91,7 @@ contract DNSRegistrar {
         require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
         ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
         if(addr != address(0)) {
+            require(resolver != address(0), "Cannot set addr if resolver is not set");
             bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
             AddrResolver(resolver).setAddr(node, addr);
         }
