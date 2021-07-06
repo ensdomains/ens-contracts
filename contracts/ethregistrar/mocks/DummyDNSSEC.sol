@@ -1,6 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "../../registry/ENSRegistry.sol";
+import "../../dnssec-oracle/DNSSEC.sol";
 
 contract DummyDnsRegistrarDNSSEC {
 
@@ -27,5 +28,9 @@ contract DummyDnsRegistrarDNSSEC {
     function rrdata(uint16 dnstype, bytes memory name) public view returns (uint32, uint64, bytes20) {
         Data storage rr = datas[keccak256(abi.encodePacked(dnstype, name))];
         return (rr.inception, rr.inserted, rr.hash);
+    }
+
+    function submitRRSets(DNSSEC.RRSetWithSignature[] memory input, bytes calldata) public virtual returns (bytes memory) {
+        return input[input.length - 1].rrset;
     }
 }
