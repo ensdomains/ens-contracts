@@ -1,14 +1,17 @@
 pragma solidity ^0.8.4;
 
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Controllable is Ownable {
-    mapping(address=>bool) public controllers;
+    mapping(address => bool) public controllers;
 
     event ControllerChanged(address indexed controller, bool enabled);
 
     modifier onlyController {
-        require(controllers[msg.sender]);
+        require(
+            controllers[msg.sender],
+            "Controllable: Caller is not a controller"
+        );
         _;
     }
 
