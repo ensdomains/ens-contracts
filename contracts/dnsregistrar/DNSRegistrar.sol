@@ -27,11 +27,6 @@ contract DNSRegistrar is IDNSRegistrar {
     PublicSuffixList public suffixes;
 
     bytes4 constant private INTERFACE_META_ID = bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 constant private DNSSEC_CLAIM_ID = bytes4(
-        keccak256("claim(bytes,bytes)") ^
-        keccak256("proveAndClaim(bytes,bytes,bytes)") ^
-        keccak256("oracle()")
-    );
 
     event Claim(bytes32 indexed node, address indexed owner, bytes dnsname);
     event NewOracle(address oracle);
