@@ -9,11 +9,17 @@ import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
 import "../resolvers/profiles/AddrResolver.sol";
 
+interface IDNSRegistrar {
+    function claim(bytes memory name, bytes memory proof) external;
+    function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof) external;
+    function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof, address resolver, address addr) external;
+}
+
 /**
  * @dev An ENS registrar that allows the owner of a DNS name to claim the
  *      corresponding name in ENS.
  */
-contract DNSRegistrar {
+contract DNSRegistrar is IDNSRegistrar {
     using BytesUtils for bytes;
 
     DNSSEC public oracle;
@@ -21,17 +27,12 @@ contract DNSRegistrar {
     PublicSuffixList public suffixes;
 
     bytes4 constant private INTERFACE_META_ID = bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 constant private DNSSEC_CLAIM_ID = bytes4(
-        keccak256("claim(bytes,bytes)") ^
-        keccak256("proveAndClaim(bytes,bytes,bytes)") ^
-        keccak256("oracle()")
-    );
 
     event Claim(bytes32 indexed node, address indexed owner, bytes dnsname);
     event NewOracle(address oracle);
     event NewPublicSuffixList(address suffixes);
 
-    constructor(DNSSEC _dnssec, PublicSuffixList _suffixes, ENS _ens) public {
+    constructor(DNSSEC _dnssec, PublicSuffixList _suffixes, ENS _ens) {
         oracle = _dnssec;
         emit NewOracle(address(oracle));
         suffixes = _suffixes;
@@ -68,7 +69,7 @@ contract DNSRegistrar {
      *        the name will be transferred to the address specified in the TXT
      *        record.
      */
-    function claim(bytes memory name, bytes memory proof) public {
+    function claim(bytes memory name, bytes memory proof) public override {
         (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(name, proof);
         ens.setSubnodeOwner(rootNode, labelHash, addr);
     }
@@ -80,12 +81,12 @@ contract DNSRegistrar {
      *        proof must be the TXT record required by the registrar.
      * @param proof The proof record for the first element in input.
      */
-    function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof) public {
+    function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof) public override {
         proof = oracle.submitRRSets(input, proof);
         claim(name, proof);
     }
 
-    function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof, address resolver, address addr) public {
+    function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof, address resolver, address addr) public override {
         proof = oracle.submitRRSets(input, proof);
         (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, proof);
         require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
@@ -99,7 +100,7 @@ contract DNSRegistrar {
 
     function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
         return interfaceID == INTERFACE_META_ID ||
-               interfaceID == DNSSEC_CLAIM_ID;
+               interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
     function _claim(bytes memory name, bytes memory proof) internal returns(bytes32 rootNode, bytes32 labelHash, address addr) {
