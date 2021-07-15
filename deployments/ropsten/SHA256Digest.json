@@ -1,0 +1,28 @@
+{
+    "address": "0x3aEC88108385E29169a2D570351E9F05ee5e4396",
+    "abi": [
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "hash",
+                    "type": "bytes"
+                }
+            ],
+            "name": "verify",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "pure",
+            "type": "function"
+        }
+    ]
+}

@@ -1,0 +1,32 @@
+{
+    "address": "0x6Ad2b699BB4512Bde6B296730AE9d3d2A184B2a5",
+    "abi": [
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "key",
+                    "type": "bytes"
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "sig",
+                    "type": "bytes"
+                }
+            ],
+            "name": "verify",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        }
+    ]
+}

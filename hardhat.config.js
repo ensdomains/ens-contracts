@@ -3,6 +3,8 @@ require("@nomiclabs/hardhat-waffle");
 require("hardhat-abi-exporter");
 require("@nomiclabs/hardhat-solhint");
 require("hardhat-gas-reporter");
+require("hardhat-deploy");
+require("hardhat-deploy-ethers");
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -24,10 +26,14 @@ module.exports = {
   networks: {
     hardhat: {
       // Required for real DNS record tests
-      initialDate: "2019-03-15T14:06:45.000+13:00"
+      initialDate: "2019-03-15T14:06:45.000+13:00",
+      saveDeployments: false,
+      tags: ["test"],
     },
     localhost: {
-      url: "http://127.0.0.1:8545"
+      url: "http://127.0.0.1:9545",
+      saveDeployments: false,
+      tags: ["test", "legacy"],
     }
   },
   mocha: {
@@ -41,12 +47,14 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: "0.8.4"
-      },
-      {
         version: "0.8.4",
       }
     ]
-  }
+  },
+  namedAccounts: {
+    deployer: {
+      default: 0,
+    },
+  },
 };
 

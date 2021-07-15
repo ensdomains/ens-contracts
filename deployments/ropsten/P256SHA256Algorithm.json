@@ -1,0 +1,57 @@
+{
+    "address": "0x74377DF5f49D1577218a634C292366ba0Fdc7819",
+    "abi": [
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "curve",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "key",
+                    "type": "bytes"
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "signature",
+                    "type": "bytes"
+                }
+            ],
+            "name": "verify",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "name": "_curve",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        }
+    ]
+}

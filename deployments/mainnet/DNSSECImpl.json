@@ -1,0 +1,347 @@
+{
+    "address": "0x58a6618b3049C113460AB4eC62f2c68996E9eD7C",
+    "abi": [
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "name": "algo",
+                    "type": "address"
+                }
+            ],
+            "name": "setAlgorithm",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "dnstype",
+                    "type": "uint16"
+                },
+                {
+                    "name": "name",
+                    "type": "bytes"
+                }
+            ],
+            "name": "rrdata",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint32"
+                },
+                {
+                    "name": "",
+                    "type": "uint64"
+                },
+                {
+                    "name": "",
+                    "type": "bytes20"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "newOwner",
+                    "type": "address"
+                }
+            ],
+            "name": "setOwner",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "name": "digest",
+                    "type": "address"
+                }
+            ],
+            "name": "setDigest",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "input",
+                    "type": "bytes"
+                },
+                {
+                    "name": "sig",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proof",
+                    "type": "bytes"
+                }
+            ],
+            "name": "submitRRSet",
+            "outputs": [
+                {
+                    "name": "rrs",
+                    "type": "bytes"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "",
+                    "type": "uint8"
+                }
+            ],
+            "name": "digests",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proof",
+                    "type": "bytes"
+                }
+            ],
+            "name": "submitRRSets",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bytes"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "name": "digest",
+                    "type": "address"
+                }
+            ],
+            "name": "setNSEC3Digest",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "owner",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [],
+            "name": "anchors",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bytes"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "",
+                    "type": "uint8"
+                }
+            ],
+            "name": "nsec3Digests",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "",
+                    "type": "uint8"
+                }
+            ],
+            "name": "algorithms",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "view",
+            "type": "function"
+        },
+        {
+            "constant": false,
+            "inputs": [
+                {
+                    "name": "deleteType",
+                    "type": "uint16"
+                },
+                {
+                    "name": "deleteName",
+                    "type": "bytes"
+                },
+                {
+                    "name": "nsec",
+                    "type": "bytes"
+                },
+                {
+                    "name": "sig",
+                    "type": "bytes"
+                },
+                {
+                    "name": "proof",
+                    "type": "bytes"
+                }
+            ],
+            "name": "deleteRRSet",
+            "outputs": [],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "function"
+        },
+        {
+            "inputs": [
+                {
+                    "name": "_anchors",
+                    "type": "bytes"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "nonpayable",
+            "type": "constructor"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "indexed": false,
+                    "name": "addr",
+                    "type": "address"
+                }
+            ],
+            "name": "AlgorithmUpdated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "indexed": false,
+                    "name": "addr",
+                    "type": "address"
+                }
+            ],
+            "name": "DigestUpdated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "id",
+                    "type": "uint8"
+                },
+                {
+                    "indexed": false,
+                    "name": "addr",
+                    "type": "address"
+                }
+            ],
+            "name": "NSEC3DigestUpdated",
+            "type": "event"
+        },
+        {
+            "anonymous": false,
+            "inputs": [
+                {
+                    "indexed": false,
+                    "name": "name",
+                    "type": "bytes"
+                },
+                {
+                    "indexed": false,
+                    "name": "rrset",
+                    "type": "bytes"
+                }
+            ],
+            "name": "RRSetUpdated",
+            "type": "event"
+        }
+    ]"}
