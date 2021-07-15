@@ -33,7 +33,7 @@ module.exports = {
     localhost: {
       url: "http://127.0.0.1:9545",
       saveDeployments: false,
-      tags: ["test", "legacy"],
+      tags: ["test", "legacy", "use_root"],
     }
   },
   mocha: {
@@ -53,6 +53,9 @@ module.exports = {
   },
   namedAccounts: {
     deployer: {
+      default: 0,
+    },
+    owner: {
       default: 0,
     },
   },
