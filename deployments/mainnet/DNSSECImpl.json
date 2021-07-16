@@ -344,4 +344,5 @@
             "name": "RRSetUpdated",
             "type": "event"
         }
-    ]"}
+    ]
+}

@@ -94,26 +94,26 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
     for(const [id, alg] of Object.entries(algorithms)) {
       const address = (await deployments.get(alg)).address;
       if(address != await dnssec.algorithms(id)) {
-        transactions.push(dnssec.setAlgorithm(id, address));
+        transactions.push(await dnssec.setAlgorithm(id, address));
       }
     }
 
     for(const [id, digest] of Object.entries(digests)) {
       const address = (await deployments.get(digest)).address;
       if(address != await dnssec.digests(id)) {
-        transactions.push(dnssec.setDigest(id, address));
+        transactions.push(await dnssec.setDigest(id, address));
       }
     }
 
     for(const [id, digest] of Object.entries(nsec_digests)) {
       const address = (await deployments.get(digest)).address;
       if(address != await dnssec.nsec3Digests(id)) {
-        transactions.push(dnssec.setNSEC3Digest(id, address));
+        transactions.push(await dnssec.setNSEC3Digest(id, address));
       }
     }
 
     console.log(`Waiting on ${transactions.length} transactions setting DNSSEC parameters`);
-    await Promise.all(transactions);
+    await Promise.all(transactions.map((tx) => tx.wait()));
 };
 module.exports.tags = ['dnssec-oracle'];
 module.exports.dependencies = ['dnssec-algorithms', 'dnssec-digests', 'dnssec-nsec3-digests'];

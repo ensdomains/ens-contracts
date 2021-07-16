@@ -32,7 +32,9 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
         const rootOwner = await registry.owner(ZERO_HASH);
         switch(rootOwner) {
         case deployer:
-            await registry.setOwner(ZERO_HASH, owner, {from: deployer});
+            const tx = await registry.setOwner(ZERO_HASH, owner, {from: deployer});
+            console.log("Setting final owner of root node on registry (tx:${tx.hash})...");
+            await tx.wait();
             break;
         case owner:
             break;

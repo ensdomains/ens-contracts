@@ -16,7 +16,7 @@ async function setTLDsOnRoot(owner, root, registrar, tlds) {
     const transactions = []
     for(const tld of tlds) {
         const labelhash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tld));
-        transactions.push(root.setSubnodeOwner(labelhash, registrar.address, {from: owner}));
+        transactions.push(await root.setSubnodeOwner(labelhash, registrar.address, {from: owner}));
     }
     return transactions;
 }
@@ -29,7 +29,7 @@ async function setTLDsOnRegistry(owner, registry, registrar, tlds) {
     const transactions = []
     for(const tld of tlds) {
         const labelhash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tld));
-        transactions.push(registry.setSubnodeOwner(ZERO_HASH, labelhash, registrar.address, {from: owner}));
+        transactions.push(await registry.setSubnodeOwner(ZERO_HASH, labelhash, registrar.address, {from: owner}));
     }
     return transactions;
 }
@@ -51,7 +51,7 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
 
     if(transactions.length > 0) {
         console.log(`Waiting on ${transactions.length} transactions setting DNS TLDs`)
-        await Promise.all(transactions);
+        await Promise.all(transactions.map((tx) => tx.wait()));
     }
 };
 module.exports.tags = ['dnsregistrar'];

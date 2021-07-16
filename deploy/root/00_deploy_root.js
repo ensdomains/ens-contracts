@@ -7,7 +7,7 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
     const {deployer, owner} = await getNamedAccounts();
 
     if(!network.tags.use_root) {
-        return;
+        return true;
     }
 
     const registry = await ethers.getContract('ENSRegistry');
@@ -20,20 +20,29 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
 
     const root = await ethers.getContract('Root');
 
-    await registry.setOwner(ZERO_HASH, root.address);
+    let tx = await registry.setOwner(ZERO_HASH, root.address);
+    console.log(`Setting owner of root node to root contract (tx: ${tx.hash})...`);
+    await tx.wait();
     
     const rootOwner = await root.owner();
     switch(rootOwner) {
     case deployer:
-        await root.transferOwnership(owner);
+        tx = await root.attach(deployer).transferOwnership(owner);
+        console.log(`Transferring root ownership to final owner (tx: ${tx.hash})...`);
+        await tx.wait();
     case owner:
         if(!await root.controllers(owner)) {
-            await root.setController(owner, true);
+            tx = await root.attach(owner).setController(owner, true);
+            console.log(`Setting final owner as controller on root contract (tx: ${tx.hash})...`);
+            await tx.wait();
         }
         break;
     default:
         console.log(`WARNING: Root is owned by ${rootOwner}; cannot transfer to owner account`);
     }
+
+    return true;
 };
+module.exports.id = "root";
 module.exports.tags = ['root'];
 module.exports.dependencies = ['registry'];
