@@ -197,7 +197,6 @@ contract('DNSRegistrar', function(accounts) {
 
   it('sets an address on the resolver if provided', async () => {
     var resolver = await PublicResolver.new(ens.address, ZERO_ADDRESS);
-    await resolver.setApprovalForAll(registrar.address, true);
 
     var proof = utils.hexEncodeTXT({
       name: '_ens.foo.test',
