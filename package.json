@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "description": "ENS contracts",
   "scripts": {
     "test": "npx hardhat test",
@@ -25,11 +25,14 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.11",
     "chai": "^4.3.4",
+    "dotenv": "^10.0.0",
     "elliptic-solidity": "^1.0.0",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
     "hardhat": "^2.2.1",
     "hardhat-abi-exporter": "^2.2.1",
+    "hardhat-deploy": "^0.8.11",
+    "hardhat-deploy-ethers": "^0.3.0-beta.10",
     "hardhat-gas-reporter": "^1.0.4",
     "rfc4648": "^1.5.0"
   },
@@ -41,7 +44,7 @@
     "@ensdomains/buffer": "^0.0.13",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
-    "dns-packet": "^5.2.4",
+    "dns-packet": "^5.3.0",
     "name-wrapper": "^1.0.0"
   },
   "directories": {

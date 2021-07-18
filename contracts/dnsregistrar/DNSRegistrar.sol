@@ -90,11 +90,17 @@ contract DNSRegistrar is IDNSRegistrar {
         proof = oracle.submitRRSets(input, proof);
         (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, proof);
         require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
-        ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
         if(addr != address(0)) {
             require(resolver != address(0), "Cannot set addr if resolver is not set");
+            // Set ourselves as the owner so we can set a record on the resolver
+            ens.setSubnodeRecord(rootNode, labelHash, address(this), resolver, 0);
             bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
+            // Set the resolver record
             AddrResolver(resolver).setAddr(node, addr);
+            // Transfer the record to the owner
+            ens.setOwner(node, owner);
+        } else {
+            ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
         }
     }
 

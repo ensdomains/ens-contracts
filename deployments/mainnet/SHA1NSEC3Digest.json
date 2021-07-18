@@ -1,0 +1,32 @@
+{
+    "address": "0xF7eD1C9c99ECe4a8b0A9Ab115967DBeA52459DB6",
+    "abi": [
+        {
+            "constant": true,
+            "inputs": [
+                {
+                    "name": "salt",
+                    "type": "bytes"
+                },
+                {
+                    "name": "data",
+                    "type": "bytes"
+                },
+                {
+                    "name": "iterations",
+                    "type": "uint256"
+                }
+            ],
+            "name": "hash",
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bytes32"
+                }
+            ],
+            "payable": false,
+            "stateMutability": "pure",
+            "type": "function"
+        }
+    ]
+}
