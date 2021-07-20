@@ -4,7 +4,12 @@ const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
 const ETHRegistrarController = artifacts.require('./ETHRegistrarController')
 const DummyOracle = artifacts.require('./DummyOracle')
 const StablePriceOracle = artifacts.require('./StablePriceOracle')
-const { evm, exceptions } = require('../test-utils')
+const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
+const {
+  evm,
+  exceptions,
+  reverse: { getReverseNode },
+} = require('../test-utils')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -20,6 +25,7 @@ describe.only('ETHRegistrarController Tests', () => {
     let baseRegistrar
     let controller
     let priceOracle
+    let reverseRegistrar
     let nameWrapper
 
     const secret =
@@ -39,6 +45,14 @@ describe.only('ETHRegistrarController Tests', () => {
           from: ownerAccount,
         }
       )
+
+      reverseRegistrar = await ReverseRegistrar.new(
+        ens.address,
+        resolver.address,
+        {
+          from: ownerAccount,
+        }
+      )
       await ens.setSubnodeOwner('0x0', sha3('eth'), baseRegistrar.address)
 
       const dummyOracle = await DummyOracle.new(toBN(100000000))
@@ -48,15 +62,28 @@ describe.only('ETHRegistrarController Tests', () => {
         priceOracle.address,
         600,
         86400,
-        priceOracle.address,
+        reverseRegistrar.address,
         { from: ownerAccount }
       )
       await baseRegistrar.addController(controller.address, {
         from: ownerAccount,
       })
+      await reverseRegistrar.setController(controller.address, {
+        from: ownerAccount,
+      })
       await controller.setPriceOracle(priceOracle.address, {
         from: ownerAccount,
       })
+
+      await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
+        from: accounts[0],
+      })
+      await ens.setSubnodeOwner(
+        namehash.hash('reverse'),
+        sha3('addr'),
+        reverseRegistrar.address,
+        { from: accounts[0] }
+      )
     })
 
     const checkLabels = {
@@ -287,6 +314,32 @@ describe.only('ETHRegistrarController Tests', () => {
     it('should allow the registrar owner to withdraw funds', async () => {
       await controller.withdraw({ gasPrice: 0, from: ownerAccount })
       assert.equal(await web3.eth.getBalance(controller.address), 0)
+    })
+
+    it('should set the reverse record of the account', async () => {
+      const commitment = await controller.makeCommitmentWithConfig(
+        'reverse',
+        registrantAccount,
+        secret,
+        resolver.address,
+        NULL_ADDRESS
+      )
+      await controller.commit(commitment)
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await controller.registerWithConfig(
+        'reverse',
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver.address,
+        NULL_ADDRESS,
+        true,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      const name = await resolver.name(getReverseNode(ownerAccount))
+      assert.equal(name, 'reverse.eth')
     })
   })
 })

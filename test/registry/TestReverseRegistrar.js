@@ -4,7 +4,10 @@ const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
-const { exceptions } = require('../test-utils')
+const {
+  exceptions,
+  reverse: { getReverseNode },
+} = require('../test-utils')
 
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -13,10 +16,6 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
   assert.equal(tx.logs[0].event, 'ReverseClaimed')
   assert.equal(tx.logs[0].args.addr, addr)
   assert.equal(tx.logs[0].args.node, node)
-}
-
-function getReverseNode(addr) {
-  return namehash.hash(addr.slice(2).toLowerCase() + '.addr.reverse')
 }
 
 describe('ReverseRegistrar Tests', () => {
