@@ -465,6 +465,22 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(NameWrapper.wrap(encodeName('xyz') + '123456', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)).to.be.revertedWith("namehash: Junk at end of name");
     })
+
+    it.only('Does not allow wrapping a name you do not own', async () => {
+      // Register the name to account1
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(encodeName('xyz'), account, CAN_DO_EVERYTHING, EMPTY_ADDRESS)
+
+      // Deploy the steal-your-name contract
+      const NameThief = await deploy('NameThief', [NameWrapper.address])
+
+      // Try and steal the name
+      await NameThief.steal(encodeName('xyz'))
+
+      // Make sure it didn't succeed
+      // expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
+      expect(await EnsRegistry.owner(namehash('xyz'))).to.equal(NameWrapper.address)
+    })
   })
 
   describe('unwrap()', () => {

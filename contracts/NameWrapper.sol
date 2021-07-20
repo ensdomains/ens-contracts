@@ -20,10 +20,10 @@ contract NameWrapper is
     IERC721Receiver
 {
     using BytesUtils for bytes;
-    ENS public immutable ens;
-    BaseRegistrar public immutable registrar;
-    IMetadataService public metadataService;
-    mapping(bytes32 => bytes) public names;
+    ENS public immutable override ens;
+    BaseRegistrar public immutable override registrar;
+    IMetadataService public override metadataService;
+    mapping(bytes32 => bytes) public override names;
 
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
