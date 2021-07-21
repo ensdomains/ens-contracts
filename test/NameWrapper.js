@@ -285,9 +285,9 @@ describe('Name Wrapper', () => {
       const label = 'wrapped'
       const labelHash = labelhash(label)
       await BaseRegistrar.register(labelHash, account, 84600)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('blah.eth'), account2, 0, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('wrapped.eth'), account2, 0, EMPTY_ADDRESS)
       ).to.be.revertedWith(
         'revert NameWrapper: .eth domains need to use wrapETH2LD()'
       )
@@ -463,7 +463,14 @@ describe('Name Wrapper', () => {
 
     it('Will not wrap a name with junk at the end', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await expect(NameWrapper.wrap(encodeName('xyz') + '123456', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)).to.be.revertedWith("namehash: Junk at end of name");
+      await expect(
+        NameWrapper.wrap(
+          encodeName('xyz') + '123456',
+          account,
+          CAN_DO_EVERYTHING,
+          ZERO_ADDRESS
+        )
+      ).to.be.revertedWith('namehash: Junk at end of name')
     })
   })
 
@@ -988,7 +995,9 @@ describe('Name Wrapper', () => {
     it('Will not wrap an empty name', async () => {
       await BaseRegistrar.register(labelhash(''), account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await expect(NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)).to.be.revertedWith("NameWrapper: Label too short")
+      await expect(
+        NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)
+      ).to.be.revertedWith('NameWrapper: Label too short')
     })
   })
 
@@ -1649,12 +1658,14 @@ describe('Name Wrapper', () => {
 
     it('Will not create a subdomain with an empty label', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await expect(NameWrapper.setSubnodeOwnerAndWrap(
-        wrappedTokenId,
-        '',
-        account,
-        CAN_DO_EVERYTHING
-      )).to.be.revertedWith("NameWrapper: Label too short")
+      await expect(
+        NameWrapper.setSubnodeOwnerAndWrap(
+          wrappedTokenId,
+          '',
+          account,
+          CAN_DO_EVERYTHING
+        )
+      ).to.be.revertedWith('NameWrapper: Label too short')
     })
   })
 
@@ -1876,14 +1887,16 @@ describe('Name Wrapper', () => {
 
     it('Will not create a subdomain with an empty label', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await expect(NameWrapper.setSubnodeRecordAndWrap(
-        wrappedTokenId,
-        '',
-        account,
-        resolver,
-        0,
-        0
-      )).to.be.revertedWith("NameWrapper: Label too short")
+      await expect(
+        NameWrapper.setSubnodeRecordAndWrap(
+          wrappedTokenId,
+          '',
+          account,
+          resolver,
+          0,
+          0
+        )
+      ).to.be.revertedWith('NameWrapper: Label too short')
     })
   })
 
@@ -2449,15 +2462,17 @@ describe('Name Wrapper', () => {
     it('will not wrap a name with an empty label', async () => {
       await BaseRegistrar.register(labelhash(''), account, 84600)
 
-      await expect(BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
-        account,
-        NameWrapper.address,
-        labelhash(''),
-        abiCoder.encode(
-          ['string', 'address', 'uint96'],
-          ['', account2, '0x0']
+      await expect(
+        BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+          account,
+          NameWrapper.address,
+          labelhash(''),
+          abiCoder.encode(
+            ['string', 'address', 'uint96'],
+            ['', account2, '0x0']
+          )
         )
-      )).to.be.revertedWith("NameWrapper: Label too short")
+      ).to.be.revertedWith('NameWrapper: Label too short')
     })
   })
 
@@ -2795,8 +2810,15 @@ describe('Name Wrapper', () => {
     })
 
     it('Will not wrap a name with an empty label', async () => {
-      await expect(NameWrapper.registerAndWrapETH2LD('', account, 86400, EMPTY_ADDRESS, CAN_DO_EVERYTHING))
-        .to.be.revertedWith("NameWrapper: Label too short")
+      await expect(
+        NameWrapper.registerAndWrapETH2LD(
+          '',
+          account,
+          86400,
+          EMPTY_ADDRESS,
+          CAN_DO_EVERYTHING
+        )
+      ).to.be.revertedWith('NameWrapper: Label too short')
     })
   })
 

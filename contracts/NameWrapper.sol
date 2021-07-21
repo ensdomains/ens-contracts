@@ -233,19 +233,21 @@ contract NameWrapper is
         uint96 _fuses,
         address resolver
     ) public override {
-        bytes32 node = _wrap(name, wrappedOwner, _fuses);
+        (bytes32 node, bytes32 parentNode, ) = _storeNamehash(name);
         address owner = ens.owner(node);
-
         require(
             owner == msg.sender ||
                 isApprovedForAll(owner, msg.sender) ||
                 ens.isApprovedForAll(owner, msg.sender),
             "NameWrapper: Domain is not owned by the sender"
         );
-        ens.setOwner(node, address(this));
+
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
+
+        _wrap(name, node, parentNode, wrappedOwner, _fuses);
+        ens.setOwner(node, address(this));
     }
 
     /**
@@ -369,7 +371,8 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = setSubnodeOwner(parentNode, labelhash, address(this));
         bytes memory name = _addLabel(label, names[parentNode]);
-        _wrap(name, newOwner, _fuses);
+        _storeNamehash(name);
+        _wrap(name, node, parentNode, newOwner, _fuses);
     }
 
     /**
@@ -393,7 +396,8 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         bytes memory name = _addLabel(label, names[parentNode]);
-        _wrap(name, newOwner, _fuses);
+        (bytes32 node, , ) = _storeNamehash(name);
+        _wrap(name, node, parentNode, newOwner, _fuses);
     }
 
     /**
@@ -517,8 +521,12 @@ contract NameWrapper is
             "NameWrapper: Wrapper only supports .eth ERC721 token transfers"
         );
 
-        (string memory label, address owner, uint96 fuses, address resolver) =
-            abi.decode(data, (string, address, uint96, address));
+        (
+            string memory label,
+            address owner,
+            uint96 fuses,
+            address resolver
+        ) = abi.decode(data, (string, address, uint96, address));
 
         require(
             keccak256(bytes(label)) == bytes32(tokenId),
@@ -578,19 +586,15 @@ contract NameWrapper is
 
     function _wrap(
         bytes memory name,
+        bytes32 node,
+        bytes32 parentNode,
         address wrappedOwner,
         uint96 _fuses
-    ) private returns (bytes32 node) {
-        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
-
+    ) private {
         require(
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
-
-        node = _makeNode(parentNode, labelhash);
-
         _mint(node, name, wrappedOwner, _fuses);
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
@@ -731,5 +735,20 @@ contract NameWrapper is
         if (ens.owner(node) != address(this)) {
             return (NameSafety.ControllerNotWrapped, node);
         }
+    }
+
+    function _storeNamehash(bytes memory name)
+        internal
+        returns (
+            bytes32 node,
+            bytes32 parentNode,
+            bytes32 labelhash
+        )
+    {
+        (bytes32 currentLabelhash, uint256 offset) = name.readLabel(0);
+        labelhash = currentLabelhash;
+        parentNode = name.namehash(offset);
+        node = _makeNode(parentNode, labelhash);
+        names[node] = name;
     }
 }
