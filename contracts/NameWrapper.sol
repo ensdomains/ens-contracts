@@ -573,6 +573,8 @@ contract NameWrapper is
     ) internal override {
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
+            // sanity check that a new token isn't owned by the wrapper
+            assert(oldWrappedOwner != address(this));
             // burn and unwrap old token of old owner
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
