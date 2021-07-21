@@ -368,10 +368,10 @@ contract NameWrapper is
         address newOwner,
         uint96 _fuses
     ) public override returns (bytes32 node) {
-        bytes32 labelhash = keccak256(bytes(label));
-        node = setSubnodeOwner(parentNode, labelhash, address(this));
+        bytes32 labelhash;
         bytes memory name = _addLabel(label, names[parentNode]);
-        _storeNamehash(name);
+        (node, , labelhash) = _storeNamehash(name);
+        setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(name, node, parentNode, newOwner, _fuses);
     }
 
@@ -393,10 +393,9 @@ contract NameWrapper is
         uint64 ttl,
         uint96 _fuses
     ) public override {
-        bytes32 labelhash = keccak256(bytes(label));
-        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         bytes memory name = _addLabel(label, names[parentNode]);
-        (bytes32 node, , ) = _storeNamehash(name);
+        (bytes32 node, , bytes32 labelhash) = _storeNamehash(name);
+        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
         _wrap(name, node, parentNode, newOwner, _fuses);
     }
 
@@ -569,19 +568,16 @@ contract NameWrapper is
 
     function _mint(
         bytes32 node,
-        bytes memory name,
         address wrappedOwner,
         uint96 _fuses
-    ) internal {
-        names[node] = name;
-
+    ) internal override {
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
         }
-        _mint(node, wrappedOwner, _fuses);
+        super._mint(node, wrappedOwner, _fuses);
     }
 
     function _wrap(
@@ -595,7 +591,8 @@ contract NameWrapper is
             parentNode != ETH_NODE,
             "NameWrapper: .eth domains need to use wrapETH2LD()"
         );
-        _mint(node, name, wrappedOwner, _fuses);
+
+        _mint(node, wrappedOwner, _fuses);
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
@@ -606,15 +603,15 @@ contract NameWrapper is
         address resolver
     ) private returns (bytes32 labelhash) {
         labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
-
         // mint a new ERC1155 token with fuses
         bytes memory name = _addLabel(label, "\x03eth\x00");
-        _mint(node, name, wrappedOwner, _fuses);
+        (bytes32 node, , ) = _storeNamehash(name);
 
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
+
+        _mint(node, wrappedOwner, _fuses);
 
         emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
