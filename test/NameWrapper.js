@@ -475,16 +475,21 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith('namehash: Junk at end of name')
     })
 
-    it.only('Does not allow wrapping a name you do not own', async () => {
+    it('Does not allow wrapping a name you do not own', async () => {
       // Register the name to account1
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, CAN_DO_EVERYTHING, EMPTY_ADDRESS)
+      await NameWrapper.wrap(
+        encodeName('xyz'),
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
 
       // Deploy the destroy-your-name contract
       const NameGriefer = await deploy('NameGriefer', [NameWrapper.address])
 
       // Try and burn the name
-      await NameGriefer.destroy(encodeName('xyz'))
+      expect(NameGriefer.destroy(encodeName('xyz'))).to.be.reverted
 
       // Make sure it didn't succeed
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)

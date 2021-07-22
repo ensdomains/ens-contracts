@@ -575,7 +575,7 @@ contract NameWrapper is
         address oldWrappedOwner = ownerOf(uint256(node));
         if (oldWrappedOwner != address(0)) {
             // sanity check that the owner is not the wrapper in the registry
-            assert(ens.owner(node) != address(this));
+            //assert(ens.owner(node) != address(this));
             // burn and unwrap old token of old owner
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
