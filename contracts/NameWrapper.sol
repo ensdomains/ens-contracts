@@ -745,8 +745,8 @@ contract NameWrapper is
             bytes32 labelhash
         )
     {
-        (bytes32 currentLabelhash, uint256 offset) = name.readLabel(0);
-        labelhash = currentLabelhash;
+        uint256 offset;
+        (labelhash, offset) = name.readLabel(0);
         parentNode = name.namehash(offset);
         node = _makeNode(parentNode, labelhash);
         names[node] = name;
