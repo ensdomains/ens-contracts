@@ -160,8 +160,7 @@ contract NameWrapper is
         uint96 _fuses,
         address resolver
     ) public override {
-        bytes32 labelhash = keccak256(bytes(label));
-        uint256 tokenId = uint256(labelhash);
+        uint256 tokenId = uint256(keccak256(bytes(label)));
         address owner = registrar.ownerOf(tokenId);
 
         require(
@@ -171,13 +170,13 @@ contract NameWrapper is
             "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
 
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(uint256(labelhash), address(this));
-
-        _wrapETH2LD(label, wrappedOwner, _fuses, resolver);
-
         // transfer the token from the user to this contract
         registrar.transferFrom(owner, address(this), tokenId);
+
+        // transfer the ens record back to the new owner (this contract)
+        registrar.reclaim(tokenId, address(this));
+
+        _wrapETH2LD(label, wrappedOwner, _fuses, resolver);
     }
 
     /**
@@ -196,8 +195,7 @@ contract NameWrapper is
         address resolver,
         uint96 _fuses
     ) external override onlyController returns (uint256 expires) {
-        bytes32 labelhash = keccak256(bytes(label));
-        uint256 tokenId = uint256(labelhash);
+        uint256 tokenId = uint256(keccak256(bytes(label)));
 
         expires = registrar.register(tokenId, address(this), duration);
         _wrapETH2LD(label, wrappedOwner, _fuses, resolver);
@@ -206,17 +204,17 @@ contract NameWrapper is
     /**
      * @dev Renews a .eth second-level domain.
      *      Only callable by authorised controllers.
-     * @param labelHash The hash of the label to register (eg, `keccak256('foo')`, for 'foo.eth').
+     * @param tokenId The hash of the label to register (eg, `keccak256('foo')`, for 'foo.eth').
      * @param duration The number of seconds to renew the name for.
      * @return expires The expiry date of the name, in seconds since the Unix epoch.
      */
-    function renew(uint256 labelHash, uint256 duration)
+    function renew(uint256 tokenId, uint256 duration)
         external
         override
         onlyController
         returns (uint256 expires)
     {
-        return registrar.renew(labelHash, duration);
+        return registrar.renew(tokenId, duration);
     }
 
     /**
@@ -233,7 +231,13 @@ contract NameWrapper is
         uint96 _fuses,
         address resolver
     ) public override {
-        (bytes32 node, bytes32 parentNode, ) = _storeNamehash(name);
+        (bytes32 node, bytes32 parentNode, ) = _prewrap(name, wrappedOwner, _fuses);
+
+        require(
+            parentNode != ETH_NODE,
+            "NameWrapper: .eth domains need to use wrapETH2LD()"
+        );
+
         address owner = ens.owner(node);
         require(
             owner == msg.sender ||
@@ -248,7 +252,7 @@ contract NameWrapper is
 
         ens.setOwner(node, address(this));
 
-        _wrap(name, node, parentNode, wrappedOwner, _fuses);
+        _mint(node, wrappedOwner, _fuses);
     }
 
     /**
@@ -371,9 +375,9 @@ contract NameWrapper is
     ) public override returns (bytes32 node) {
         bytes32 labelhash;
         bytes memory name = _addLabel(label, names[parentNode]);
-        (node, , labelhash) = _storeNamehash(name);
+        (node, , labelhash) = _prewrap(name, newOwner, _fuses);
         setSubnodeOwner(parentNode, labelhash, address(this));
-        _wrap(name, node, parentNode, newOwner, _fuses);
+        _mint(node, newOwner, _fuses);
     }
 
     /**
@@ -395,9 +399,9 @@ contract NameWrapper is
         uint96 _fuses
     ) public override {
         bytes memory name = _addLabel(label, names[parentNode]);
-        (bytes32 node, , bytes32 labelhash) = _storeNamehash(name);
+        (bytes32 node, , bytes32 labelhash) = _prewrap(name, newOwner, _fuses);
         setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-        _wrap(name, node, parentNode, newOwner, _fuses);
+        _mint(node, newOwner, _fuses);
     }
 
     /**
@@ -583,22 +587,6 @@ contract NameWrapper is
         super._mint(node, wrappedOwner, _fuses);
     }
 
-    function _wrap(
-        bytes memory name,
-        bytes32 node,
-        bytes32 parentNode,
-        address wrappedOwner,
-        uint96 _fuses
-    ) private {
-        require(
-            parentNode != ETH_NODE,
-            "NameWrapper: .eth domains need to use wrapETH2LD()"
-        );
-
-        _mint(node, wrappedOwner, _fuses);
-        emit NameWrapped(node, name, wrappedOwner, _fuses);
-    }
-
     function _wrapETH2LD(
         string memory label,
         address wrappedOwner,
@@ -608,15 +596,13 @@ contract NameWrapper is
         labelhash = keccak256(bytes(label));
         // mint a new ERC1155 token with fuses
         bytes memory name = _addLabel(label, "\x03eth\x00");
-        (bytes32 node, , ) = _storeNamehash(name);
+        (bytes32 node, , ) = _prewrap(name, wrappedOwner, _fuses);
 
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
 
         _mint(node, wrappedOwner, _fuses);
-
-        emit NameWrapped(node, name, wrappedOwner, _fuses);
     }
 
     function _unwrap(bytes32 node, address newOwner) private {
@@ -737,7 +723,7 @@ contract NameWrapper is
         }
     }
 
-    function _storeNamehash(bytes memory name)
+    function _prewrap(bytes memory name, address wrappedOwner, uint96 fuses)
         internal
         returns (
             bytes32 node,
@@ -750,5 +736,6 @@ contract NameWrapper is
         parentNode = name.namehash(offset);
         node = _makeNode(parentNode, labelhash);
         names[node] = name;
+        emit NameWrapped(node, name, wrappedOwner, fuses);
     }
 }
