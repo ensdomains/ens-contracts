@@ -6,6 +6,16 @@ abstract contract ResolverBase {
         return interfaceID == INTERFACE_META_ID;
     }
 
+    function multicall(bytes[] calldata data) external returns(bytes[] memory results) {
+        results = new bytes[](data.length);
+        for(uint i = 0; i < data.length; i++) {
+            (bool success, bytes memory result) = address(this).delegatecall(data[i]);
+            require(success);
+            results[i] = result;
+        }
+        return results;
+    }
+
     function isAuthorised(bytes32 node) internal virtual view returns(bool);
 
     modifier authorised(bytes32 node) {

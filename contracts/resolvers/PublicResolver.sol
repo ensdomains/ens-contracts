@@ -66,16 +66,6 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
         return _operatorApprovals[account][operator];
     }
 
-    function multicall(bytes[] calldata data) external returns(bytes[] memory results) {
-        results = new bytes[](data.length);
-        for(uint i = 0; i < data.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(data[i]);
-            require(success);
-            results[i] = result;
-        }
-        return results;
-    }
-
     function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public pure returns(bool) {
         return super.supportsInterface(interfaceID);
     }
