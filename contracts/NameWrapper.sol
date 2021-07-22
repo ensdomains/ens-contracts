@@ -246,8 +246,9 @@ contract NameWrapper is
             ens.setResolver(node, resolver);
         }
 
-        _wrap(name, node, parentNode, wrappedOwner, _fuses);
         ens.setOwner(node, address(this));
+
+        _wrap(name, node, parentNode, wrappedOwner, _fuses);
     }
 
     /**

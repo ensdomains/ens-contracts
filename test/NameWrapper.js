@@ -229,12 +229,14 @@ describe('Name Wrapper', () => {
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
         NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, 0, EMPTY_ADDRESS)
       ).to.be.revertedWith('revert ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
         NameWrapper.wrap(
           encodeName('xyz'),
