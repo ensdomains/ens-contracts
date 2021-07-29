@@ -203,6 +203,7 @@ describe.only('ETHRegistrarController Tests', () => {
         resolver.address,
         registrantAccount,
         false,
+        0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
       assert.equal(tx.logs.length, 1)
@@ -261,6 +262,7 @@ describe.only('ETHRegistrarController Tests', () => {
         resolver.address,
         NULL_ADDRESS,
         false,
+        0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
       assert.equal(tx.logs.length, 1)
@@ -364,6 +366,7 @@ describe.only('ETHRegistrarController Tests', () => {
         resolver.address,
         NULL_ADDRESS,
         true,
+        0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
@@ -392,12 +395,19 @@ describe.only('ETHRegistrarController Tests', () => {
         resolver.address,
         NULL_ADDRESS,
         true,
+        0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
       assert.equal(
         await nameWrapper.ownerOf(namehash.hash(name)),
         registrantAccount
+      )
+
+      assert.equal(await ens.owner(namehash.hash(name)), nameWrapper.address)
+      assert.equal(
+        await baseRegistrar.ownerOf(sha3(label)),
+        nameWrapper.address
       )
     })
   })

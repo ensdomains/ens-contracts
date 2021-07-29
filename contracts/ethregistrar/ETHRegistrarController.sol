@@ -148,7 +148,8 @@ contract ETHRegistrarController is Ownable {
             secret,
             address(0),
             address(0),
-            false
+            false,
+            0
         );
     }
 
@@ -159,16 +160,14 @@ contract ETHRegistrarController is Ownable {
         bytes32 secret,
         address resolver,
         address addr,
-        bool reverseRecord
+        bool reverseRecord,
+        uint96 fuses
     ) public payable {
-        bytes32 commitment = makeCommitmentWithConfig(
+        uint256 cost = _consumeCommitment(
             name,
-            owner,
-            secret,
-            resolver,
-            addr
+            duration,
+            makeCommitmentWithConfig(name, owner, secret, resolver, addr)
         );
-        uint256 cost = _consumeCommitment(name, duration, commitment);
 
         bytes32 label = keccak256(bytes(name));
         uint256 tokenId = uint256(label);
@@ -183,7 +182,7 @@ contract ETHRegistrarController is Ownable {
                 address(this),
                 duration,
                 resolver,
-                0
+                fuses
             );
 
             // The nodehash of this label
