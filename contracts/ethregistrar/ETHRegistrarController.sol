@@ -176,7 +176,7 @@ contract ETHRegistrarController is Ownable {
         uint256 expires;
         if (resolver != address(0)) {
             // Set this contract as the (temporary) owner, giving it
-            // permission to set up the resolver.
+            // permission to set address
 
             expires = nameWrapper.registerAndWrapETH2LD(
                 name,
