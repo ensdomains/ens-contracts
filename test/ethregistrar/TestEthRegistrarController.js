@@ -23,7 +23,7 @@ const toBN = require('web3-utils').toBN
 const DAYS = 24 * 60 * 60
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-describe.only('ETHRegistrarController Tests', () => {
+describe('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function(accounts) {
     let ens
     let resolver
