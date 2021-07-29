@@ -410,5 +410,34 @@ describe.only('ETHRegistrarController Tests', () => {
         nameWrapper.address
       )
     })
+
+    it('should auto wrap the name and allow fuses to be set', async () => {
+      const label = 'fuses'
+      const name = label + '.eth'
+      const commitment = await controller.makeCommitmentWithConfig(
+        label,
+        registrantAccount,
+        secret,
+        resolver.address,
+        NULL_ADDRESS
+      )
+      await controller.commit(commitment)
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await controller.registerWithConfig(
+        label,
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver.address,
+        NULL_ADDRESS,
+        true,
+        1,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      const [, fuses] = await nameWrapper.getData(namehash.hash(name))
+      assert.equal(fuses, 1)
+    })
   })
 })
