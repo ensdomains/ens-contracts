@@ -3,9 +3,11 @@ pragma solidity >=0.8.4;
 import "./PriceOracle.sol";
 import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../resolvers/Resolver.sol";
 import "../registry/ReverseRegistrar.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@ensdomains/name-wrapper/interfaces/INameWrapper.sol";
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
@@ -42,6 +44,7 @@ contract ETHRegistrarController is Ownable {
     uint256 public minCommitmentAge;
     uint256 public maxCommitmentAge;
     ReverseRegistrar reverseRegistrar;
+    INameWrapper nameWrapper;
 
     mapping(bytes32 => uint256) public commitments;
 
@@ -65,7 +68,8 @@ contract ETHRegistrarController is Ownable {
         PriceOracle _prices,
         uint256 _minCommitmentAge,
         uint256 _maxCommitmentAge,
-        ReverseRegistrar _reverseRegistrar
+        ReverseRegistrar _reverseRegistrar,
+        INameWrapper _nameWrapper
     ) public {
         require(_maxCommitmentAge > _minCommitmentAge);
 
@@ -74,6 +78,7 @@ contract ETHRegistrarController is Ownable {
         minCommitmentAge = _minCommitmentAge;
         maxCommitmentAge = _maxCommitmentAge;
         reverseRegistrar = _reverseRegistrar;
+        nameWrapper = _nameWrapper;
     }
 
     function rentPrice(string memory name, uint256 duration)
@@ -172,15 +177,19 @@ contract ETHRegistrarController is Ownable {
         if (resolver != address(0)) {
             // Set this contract as the (temporary) owner, giving it
             // permission to set up the resolver.
-            expires = base.register(tokenId, address(this), duration);
+
+            expires = nameWrapper.registerAndWrapETH2LD(
+                name,
+                address(this),
+                duration,
+                resolver,
+                0
+            );
 
             // The nodehash of this label
             bytes32 nodehash = keccak256(
                 abi.encodePacked(base.baseNode(), label)
             );
-
-            // Set the resolver
-            base.ens().setResolver(nodehash, resolver);
 
             // Configure the resolver
             if (addr != address(0)) {
@@ -188,8 +197,13 @@ contract ETHRegistrarController is Ownable {
             }
 
             // Now transfer full ownership to the expected owner
-            base.reclaim(tokenId, owner);
-            base.transferFrom(address(this), owner, tokenId);
+            nameWrapper.safeTransferFrom(
+                address(this),
+                owner,
+                uint256(nodehash),
+                1,
+                ""
+            );
         } else {
             require(addr == address(0));
             expires = base.register(tokenId, owner, duration);
@@ -273,5 +287,21 @@ contract ETHRegistrarController is Ownable {
         require(msg.value >= cost);
 
         return cost;
+    }
+
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        //TODO: guard against any other contract sending erc1155 to it apart from NameWrapper
+        return
+            bytes4(
+                keccak256(
+                    "onERC1155Received(address,address,uint256,uint256,bytes)"
+                )
+            );
     }
 }

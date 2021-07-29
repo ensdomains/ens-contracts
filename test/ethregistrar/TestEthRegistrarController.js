@@ -10,7 +10,12 @@ const {
   exceptions,
   reverse: { getReverseNode },
 } = require('../test-utils')
-const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+
+const { ethers } = require('hardhat')
+const NameWrapperJSON = require('@ensdomains/name-wrapper/artifacts/contracts/NameWrapper.sol/NameWrapper.json')
+// const NameWrapper = artifacts.require(
+//   '@ensdomains/name-wrapper/contracts/NameWrapper.sol'
+// )
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
@@ -35,8 +40,6 @@ describe.only('ETHRegistrarController Tests', () => {
 
     before(async () => {
       ens = await ENS.new()
-      nameWrapper = await NameWrapper.new()
-      resolver = await PublicResolver.new(ens.address, nameWrapper.address)
 
       baseRegistrar = await BaseRegistrar.new(
         ens.address,
@@ -45,6 +48,20 @@ describe.only('ETHRegistrarController Tests', () => {
           from: ownerAccount,
         }
       )
+
+      const signer = ethers.provider.getSigner()
+      const factory = new ethers.ContractFactory(
+        NameWrapperJSON.abi,
+        NameWrapperJSON.bytecode,
+        signer
+      )
+      nameWrapper = await factory.deploy(
+        ens.address,
+        baseRegistrar.address,
+        ownerAccount
+      )
+
+      resolver = await PublicResolver.new(ens.address, nameWrapper.address)
 
       reverseRegistrar = await ReverseRegistrar.new(
         ens.address,
@@ -63,9 +80,16 @@ describe.only('ETHRegistrarController Tests', () => {
         600,
         86400,
         reverseRegistrar.address,
+        nameWrapper.address,
         { from: ownerAccount }
       )
       await baseRegistrar.addController(controller.address, {
+        from: ownerAccount,
+      })
+      await nameWrapper.setController(controller.address, {
+        from: ownerAccount,
+      })
+      await baseRegistrar.addController(nameWrapper.address, {
         from: ownerAccount,
       })
       await reverseRegistrar.setController(controller.address, {
@@ -192,8 +216,13 @@ describe.only('ETHRegistrarController Tests', () => {
 
       var nodehash = namehash.hash('newconfigname.eth')
       assert.equal(await ens.resolver(nodehash), resolver.address)
-      assert.equal(await ens.owner(nodehash), registrantAccount)
+      assert.equal(await ens.owner(nodehash), nameWrapper.address)
+      assert.equal(
+        await baseRegistrar.ownerOf(sha3('newconfigname')),
+        nameWrapper.address
+      )
       assert.equal(await resolver.addr(nodehash), registrantAccount)
+      assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
     })
 
     it('should not allow a commitment with addr but not resolver', async () => {
@@ -340,6 +369,36 @@ describe.only('ETHRegistrarController Tests', () => {
 
       const name = await resolver.name(getReverseNode(ownerAccount))
       assert.equal(name, 'reverse.eth')
+    })
+
+    it('should auto wrap the name and set the ERC721 owner to the wrapper', async () => {
+      const label = 'wrapper'
+      const name = label + '.eth'
+      const commitment = await controller.makeCommitmentWithConfig(
+        label,
+        registrantAccount,
+        secret,
+        resolver.address,
+        NULL_ADDRESS
+      )
+      await controller.commit(commitment)
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await controller.registerWithConfig(
+        label,
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver.address,
+        NULL_ADDRESS,
+        true,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      assert.equal(
+        await nameWrapper.ownerOf(namehash.hash(name)),
+        registrantAccount
+      )
     })
   })
 })
