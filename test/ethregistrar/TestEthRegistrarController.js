@@ -9,9 +9,13 @@ const {
   evm,
   exceptions,
   reverse: { getReverseNode },
+  contracts: { deploy },
 } = require('../test-utils')
 
+const { expect } = require('chai')
+
 const { ethers } = require('hardhat')
+const provider = ethers.provider
 const NameWrapperJSON = require('@ensdomains/name-wrapper/artifacts/contracts/NameWrapper.sol/NameWrapper.json')
 // const NameWrapper = artifacts.require(
 //   '@ensdomains/name-wrapper/contracts/NameWrapper.sol'
@@ -22,8 +26,10 @@ const toBN = require('web3-utils').toBN
 
 const DAYS = 24 * 60 * 60
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
+const EMPTY_BYTES =
+  '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-describe('ETHRegistrarController Tests', () => {
+describe.only('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function(accounts) {
     let ens
     let resolver
@@ -39,14 +45,11 @@ describe('ETHRegistrarController Tests', () => {
     const registrantAccount = accounts[1] // Account that owns test names
 
     before(async () => {
-      ens = await ENS.new()
-
-      baseRegistrar = await BaseRegistrar.new(
+      ens = await deploy('ENSRegistry')
+      baseRegistrar = await deploy(
+        'BaseRegistrarImplementation',
         ens.address,
-        namehash.hash('eth'),
-        {
-          from: ownerAccount,
-        }
+        namehash.hash('eth')
       )
 
       const signer = ethers.provider.getSigner()
@@ -61,45 +64,37 @@ describe('ETHRegistrarController Tests', () => {
         ownerAccount
       )
 
-      resolver = await PublicResolver.new(ens.address, nameWrapper.address)
-
-      reverseRegistrar = await ReverseRegistrar.new(
+      resolver = await deploy(
+        'PublicResolver',
         ens.address,
-        resolver.address,
-        {
-          from: ownerAccount,
-        }
+        nameWrapper.address
       )
-      await ens.setSubnodeOwner('0x0', sha3('eth'), baseRegistrar.address)
 
-      const dummyOracle = await DummyOracle.new(toBN(100000000))
-      priceOracle = await StablePriceOracle.new(dummyOracle.address, [1])
-      controller = await ETHRegistrarController.new(
+      reverseRegistrar = await deploy(
+        'ReverseRegistrar',
+        ens.address,
+        resolver.address
+      )
+      await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
+
+      const dummyOracle = await deploy('DummyOracle', '100000000')
+      priceOracle = await deploy('StablePriceOracle', dummyOracle.address, [1])
+      controller = await deploy(
+        'ETHRegistrarController',
         baseRegistrar.address,
         priceOracle.address,
         600,
         86400,
         reverseRegistrar.address,
-        nameWrapper.address,
-        { from: ownerAccount }
+        nameWrapper.address
       )
-      await baseRegistrar.addController(controller.address, {
-        from: ownerAccount,
-      })
-      await nameWrapper.setController(controller.address, {
-        from: ownerAccount,
-      })
-      await baseRegistrar.addController(nameWrapper.address, {
-        from: ownerAccount,
-      })
-      await reverseRegistrar.setController(controller.address, {
-        from: ownerAccount,
-      })
-      await controller.setPriceOracle(priceOracle.address, {
-        from: ownerAccount,
-      })
+      await baseRegistrar.addController(controller.address)
+      await nameWrapper.setController(controller.address, true)
+      await baseRegistrar.addController(nameWrapper.address)
+      await reverseRegistrar.setController(controller.address, true)
+      await controller.setPriceOracle(priceOracle.address)
 
-      await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
+      await ens.setSubnodeOwner(EMPTY_BYTES, sha3('reverse'), accounts[0], {
         from: accounts[0],
       })
       await ens.setSubnodeOwner(
@@ -151,9 +146,10 @@ describe('ETHRegistrarController Tests', () => {
         secret
       )
       var tx = await controller.commit(commitment)
+      console.log(tx)
       assert.equal(
         await controller.commitments(commitment),
-        (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp
+        (await provider.getBlock(tx.blockNumber)).timestamp
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -165,10 +161,8 @@ describe('ETHRegistrarController Tests', () => {
         secret,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
-      assert.equal(tx.logs.length, 1)
-      assert.equal(tx.logs[0].event, 'NameRegistered')
-      assert.equal(tx.logs[0].args.name, 'newname')
-      assert.equal(tx.logs[0].args.owner, registrantAccount)
+
+      await expect(tx).to.emit(controller, 'NameRegistered')
       assert.equal(
         (await web3.eth.getBalance(controller.address)) - balanceBefore,
         28 * DAYS
@@ -190,7 +184,7 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.commit(commitment)
       assert.equal(
         await controller.commitments(commitment),
-        (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -222,7 +216,7 @@ describe('ETHRegistrarController Tests', () => {
         await baseRegistrar.ownerOf(sha3('newconfigname')),
         nameWrapper.address
       )
-      assert.equal(await resolver.addr(nodehash), registrantAccount)
+      assert.equal(await resolver['addr(bytes32)'](nodehash), registrantAccount)
       assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
     })
 
@@ -249,7 +243,7 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.commit(commitment)
       assert.equal(
         await controller.commitments(commitment),
-        (await web3.eth.getBlock(tx.receipt.blockNumber)).timestamp
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -276,7 +270,7 @@ describe('ETHRegistrarController Tests', () => {
 
       var nodehash = namehash.hash('newconfigname2.eth')
       assert.equal(await ens.resolver(nodehash), resolver.address)
-      assert.equal(await resolver.addr(nodehash), 0)
+      assert.equal(await resolver['addr(bytes32)'](nodehash), 0)
     })
 
     it('should include the owner in the commitment', async () => {
