@@ -35,7 +35,7 @@ contract ETHRegistrarController is Ownable {
                 "registerWithConfig(string,address,uint256,bytes32,address,address)"
             ) ^
                 keccak256(
-                    "makeCommitmentWithConfig(string,address,bytes32,address,address)"
+                    "makeCommitmentWithConfig(string,address,bytes32,address,address,bool,int96)"
                 )
         );
 
