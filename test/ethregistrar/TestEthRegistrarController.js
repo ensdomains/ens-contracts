@@ -1,10 +1,3 @@
-const ENS = artifacts.require('./registry/ENSRegistry')
-const PublicResolver = artifacts.require('./resolvers/PublicResolver')
-const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
-const ETHRegistrarController = artifacts.require('./ETHRegistrarController')
-const DummyOracle = artifacts.require('./DummyOracle')
-const StablePriceOracle = artifacts.require('./StablePriceOracle')
-const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
 const {
   evm,
   exceptions,
@@ -17,9 +10,6 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const provider = ethers.provider
 const NameWrapperJSON = require('@ensdomains/name-wrapper/artifacts/contracts/NameWrapper.sol/NameWrapper.json')
-// const NameWrapper = artifacts.require(
-//   '@ensdomains/name-wrapper/contracts/NameWrapper.sol'
-// )
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
