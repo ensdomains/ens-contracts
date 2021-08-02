@@ -162,7 +162,18 @@ describe.only('ETHRegistrarController Tests', () => {
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      await expect(tx).to.emit(controller, 'NameRegistered')
+      const block = await provider.getBlock(tx.blockNumber)
+
+      await expect(tx)
+        .to.emit(controller, 'NameRegistered')
+        .withArgs(
+          'newname',
+          sha3('newname'),
+          registrantAccount,
+          28 * DAYS,
+          block.timestamp + 28 * DAYS
+        )
+
       assert.equal(
         (await web3.eth.getBalance(controller.address)) - balanceBefore,
         28 * DAYS
@@ -200,10 +211,19 @@ describe.only('ETHRegistrarController Tests', () => {
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
-      assert.equal(tx.logs.length, 1)
-      assert.equal(tx.logs[0].event, 'NameRegistered')
-      assert.equal(tx.logs[0].args.name, 'newconfigname')
-      assert.equal(tx.logs[0].args.owner, registrantAccount)
+
+      const block = await provider.getBlock(tx.blockNumber)
+
+      await expect(tx)
+        .to.emit(controller, 'NameRegistered')
+        .withArgs(
+          'newconfigname',
+          sha3('newconfigname'),
+          registrantAccount,
+          28 * DAYS,
+          block.timestamp + 28 * DAYS
+        )
+
       assert.equal(
         (await web3.eth.getBalance(controller.address)) - balanceBefore,
         28 * DAYS
@@ -259,14 +279,18 @@ describe.only('ETHRegistrarController Tests', () => {
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
-      assert.equal(tx.logs.length, 1)
-      assert.equal(tx.logs[0].event, 'NameRegistered')
-      assert.equal(tx.logs[0].args.name, 'newconfigname2')
-      assert.equal(tx.logs[0].args.owner, registrantAccount)
-      assert.equal(
-        (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        28 * DAYS
-      )
+
+      const block = await provider.getBlock(tx.blockNumber)
+
+      await expect(tx)
+        .to.emit(controller, 'NameRegistered')
+        .withArgs(
+          'newconfigname2',
+          sha3('newconfigname2'),
+          registrantAccount,
+          28 * DAYS,
+          block.timestamp + 28 * DAYS
+        )
 
       var nodehash = namehash.hash('newconfigname2.eth')
       assert.equal(await ens.resolver(nodehash), resolver.address)
