@@ -154,7 +154,7 @@ contract ETHRegistrarController is Ownable {
     }
 
     function registerWithConfig(
-        string memory name,
+        string calldata name,
         address owner,
         uint256 duration,
         bytes32 secret,
@@ -170,42 +170,28 @@ contract ETHRegistrarController is Ownable {
         );
 
         bytes32 label = keccak256(bytes(name));
-        uint256 tokenId = uint256(label);
 
         uint256 expires;
         if (resolver != address(0)) {
-            // Set this contract as the (temporary) owner, giving it
-            // permission to set address
-
-            expires = nameWrapper.registerAndWrapETH2LD(
+            expires = _registerWithResolver(
+                label,
                 name,
-                address(this),
+                owner,
                 duration,
                 resolver,
+                addr,
                 fuses
-            );
-
-            // The nodehash of this label
-            bytes32 nodehash = keccak256(
-                abi.encodePacked(base.baseNode(), label)
-            );
-
-            // Configure the resolver
-            if (addr != address(0)) {
-                Resolver(resolver).setAddr(nodehash, addr);
-            }
-
-            // Now transfer full ownership to the expected owner
-            nameWrapper.safeTransferFrom(
-                address(this),
-                owner,
-                uint256(nodehash),
-                1,
-                ""
             );
         } else {
             require(addr == address(0));
-            expires = base.register(tokenId, owner, duration);
+
+            expires = nameWrapper.registerAndWrapETH2LD(
+                name,
+                owner,
+                duration,
+                address(0),
+                fuses
+            );
         }
 
         if (reverseRecord) {
@@ -267,6 +253,24 @@ contract ETHRegistrarController is Ownable {
             interfaceID == COMMITMENT_WITH_CONFIG_CONTROLLER_ID;
     }
 
+    function onERC1155Received(
+        address,
+        address,
+        uint256,
+        uint256,
+        bytes calldata
+    ) external pure returns (bytes4) {
+        //TODO: guard against any other contract sending erc1155 to it apart from NameWrapper
+        return
+            bytes4(
+                keccak256(
+                    "onERC1155Received(address,address,uint256,uint256,bytes)"
+                )
+            );
+    }
+
+    /* Internal functions */
+
     function _consumeCommitment(
         string memory name,
         uint256 duration,
@@ -288,19 +292,92 @@ contract ETHRegistrarController is Ownable {
         return cost;
     }
 
-    function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        //TODO: guard against any other contract sending erc1155 to it apart from NameWrapper
-        return
-            bytes4(
-                keccak256(
-                    "onERC1155Received(address,address,uint256,uint256,bytes)"
-                )
+    function _registerWithResolver(
+        bytes32 label,
+        string calldata name,
+        address owner,
+        uint256 duration,
+        address resolver,
+        address addr,
+        uint96 fuses
+    ) internal returns (uint256 expires) {
+        Resolver resolverContract = Resolver(resolver);
+        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
+
+        try
+            resolverContract.isApprovedForAll(msg.sender, address(this))
+        returns (bool approved) {
+            if (approved) {
+                expires = nameWrapper.registerAndWrapETH2LD(
+                    name,
+                    owner,
+                    duration,
+                    resolver,
+                    fuses
+                );
+
+                if (addr != address(0)) {
+                    resolverContract.setAddr(nodehash, addr);
+                }
+            } else {
+                // Set this contract as the (temporary) owner, giving it
+                // permission to set address
+                expires = _registerWithoutResolverAuthorisation(
+                    resolverContract,
+                    nodehash,
+                    name,
+                    owner,
+                    duration,
+                    resolver,
+                    addr,
+                    fuses
+                );
+            }
+        } catch {
+            //Assume resolver is old and proceed with setting contract as temporary owner
+            expires = _registerWithoutResolverAuthorisation(
+                resolverContract,
+                nodehash,
+                name,
+                owner,
+                duration,
+                resolver,
+                addr,
+                fuses
             );
+        }
+    }
+
+    function _registerWithoutResolverAuthorisation(
+        Resolver resolverContract,
+        bytes32 nodehash,
+        string calldata name,
+        address owner,
+        uint256 duration,
+        address resolver,
+        address addr,
+        uint96 fuses
+    ) internal returns (uint256 expires) {
+        expires = nameWrapper.registerAndWrapETH2LD(
+            name,
+            address(this),
+            duration,
+            resolver,
+            fuses
+        );
+
+        // Configure the resolver
+        if (addr != address(0)) {
+            resolverContract.setAddr(nodehash, addr);
+        }
+
+        // Now transfer full ownership to the expected owner
+        nameWrapper.safeTransferFrom(
+            address(this),
+            owner,
+            uint256(nodehash),
+            1,
+            ""
+        );
     }
 }
