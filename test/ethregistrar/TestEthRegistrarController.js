@@ -20,22 +20,31 @@ const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 describe.only('ETHRegistrarController Tests', () => {
-  contract('ETHRegistrarController', function(accounts) {
+  contract('ETHRegistrarController', function() {
     let ens
     let resolver
+    let resolver2 // resolver signed by accounts[1]
     let baseRegistrar
     let controller
+    let controller2 // controller signed by accounts[1]
     let priceOracle
     let reverseRegistrar
     let nameWrapper
 
     const secret =
       '0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'
-    const ownerAccount = accounts[0] // Account that owns the registrar
-    const registrantAccount = accounts[1] // Account that owns test names
+    let ownerAccount // Account that owns the registrar
+    let registrantAccount // Account that owns test names
+    let accounts = []
 
     before(async () => {
+      signers = await ethers.getSigners()
+      ownerAccount = await signers[0].getAddress()
+      registrantAccount = await signers[1].getAddress()
+      accounts = [ownerAccount, registrantAccount, signers[2].getAddress()]
+
       ens = await deploy('ENSRegistry')
+
       baseRegistrar = await deploy(
         'BaseRegistrarImplementation',
         ens.address,
@@ -46,7 +55,7 @@ describe.only('ETHRegistrarController Tests', () => {
       const factory = new ethers.ContractFactory(
         NameWrapperJSON.abi,
         NameWrapperJSON.bytecode,
-        signer
+        signers[0]
       )
       nameWrapper = await factory.deploy(
         ens.address,
@@ -59,6 +68,8 @@ describe.only('ETHRegistrarController Tests', () => {
         ens.address,
         nameWrapper.address
       )
+
+      resolver2 = await resolver.connect(signers[1])
 
       reverseRegistrar = await deploy(
         'ReverseRegistrar',
@@ -78,6 +89,8 @@ describe.only('ETHRegistrarController Tests', () => {
         reverseRegistrar.address,
         nameWrapper.address
       )
+
+      controller2 = controller.connect(signers[1])
       await baseRegistrar.addController(controller.address)
       await nameWrapper.setController(controller.address, true)
       await baseRegistrar.addController(nameWrapper.address)
@@ -450,50 +463,69 @@ describe.only('ETHRegistrarController Tests', () => {
     it('approval should reduce gas for registration', async () => {
       const label = 'other'
       const name = label + '.eth'
+      const node = namehash.hash(name)
       const commitment = await controller.makeCommitmentWithConfig(
         label,
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS
+        registrantAccount
       )
 
       await controller.commit(commitment)
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
 
-      const gasA = await controller.estimateGas.registerWithConfig(
+      const gasA = await controller2.estimateGas.registerWithConfig(
         label,
         registrantAccount,
         28 * DAYS,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        registrantAccount,
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      const resolverGas = await resolver.estimateGas.setApprovalForAll(
-        controller.address,
-        true
-      )
+      await resolver2.setApprovalForAll(controller.address, true)
 
-      await resolver.setApprovalForAll(controller.address, true)
-
-      const gasB = await controller.estimateGas.registerWithConfig(
+      const gasB = await controller2.estimateGas.registerWithConfig(
         label,
         registrantAccount,
         28 * DAYS,
         secret,
-        resolver.address,
-        NULL_ADDRESS,
+        resolver2.address,
+        registrantAccount,
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
       expect(gasA.toNumber()).to.be.greaterThan(gasB.toNumber())
+
+      const tx = await controller2.registerWithConfig(
+        label,
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver2.address,
+        registrantAccount,
+        true,
+        1,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      console.log((await tx.wait()).gasUsed.toString())
+
+      console.log(gasA.toString(), gasB.toString())
+
+      expect(await nameWrapper.ownerOf(node)).to.equal(registrantAccount)
+      expect(await ens.owner(namehash.hash(name))).to.equal(nameWrapper.address)
+      expect(await baseRegistrar.ownerOf(sha3(label))).to.equal(
+        nameWrapper.address
+      )
+      expect(await resolver2['addr(bytes32)'](node)).to.equal(registrantAccount)
     })
   })
 })
