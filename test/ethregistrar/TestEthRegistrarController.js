@@ -136,7 +136,6 @@ describe.only('ETHRegistrarController Tests', () => {
         secret
       )
       var tx = await controller.commit(commitment)
-      console.log(tx)
       assert.equal(
         await controller.commitments(commitment),
         (await provider.getBlock(tx.blockNumber)).timestamp
@@ -446,6 +445,55 @@ describe.only('ETHRegistrarController Tests', () => {
 
       const [, fuses] = await nameWrapper.getData(namehash.hash(name))
       assert.equal(fuses, 1)
+    })
+
+    it('approval should reduce gas for registration', async () => {
+      const label = 'other'
+      const name = label + '.eth'
+      const commitment = await controller.makeCommitmentWithConfig(
+        label,
+        registrantAccount,
+        secret,
+        resolver.address,
+        NULL_ADDRESS
+      )
+
+      await controller.commit(commitment)
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+
+      const gasA = await controller.estimateGas.registerWithConfig(
+        label,
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver.address,
+        NULL_ADDRESS,
+        true,
+        1,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      const resolverGas = await resolver.estimateGas.setApprovalForAll(
+        controller.address,
+        true
+      )
+
+      await resolver.setApprovalForAll(controller.address, true)
+
+      const gasB = await controller.estimateGas.registerWithConfig(
+        label,
+        registrantAccount,
+        28 * DAYS,
+        secret,
+        resolver.address,
+        NULL_ADDRESS,
+        true,
+        1,
+        { value: 28 * DAYS + 1, gasPrice: 0 }
+      )
+
+      expect(gasA.toNumber()).to.be.greaterThan(gasB.toNumber())
     })
   })
 })
