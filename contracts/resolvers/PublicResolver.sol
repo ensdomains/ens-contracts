@@ -18,9 +18,19 @@ interface INameWrapper {
  * A simple resolver anyone can use; only allows the owner of a node to set its
  * address.
  */
-contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver {
+contract PublicResolver is
+    ABIResolver,
+    AddrResolver,
+    ContentHashResolver,
+    DNSResolver,
+    InterfaceResolver,
+    NameResolver,
+    PubkeyResolver,
+    TextResolver
+{
     ENS ens;
     INameWrapper nameWrapper;
+    address trustedContract;
 
     /**
      * A mapping of operators. An address that is authorised for an address
@@ -31,17 +41,26 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     // Logged when an operator is added or removed.
-    event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
+    event ApprovalForAll(
+        address indexed owner,
+        address indexed operator,
+        bool approved
+    );
 
-    constructor(ENS _ens, INameWrapper wrapperAddress){
+    constructor(
+        ENS _ens,
+        INameWrapper wrapperAddress,
+        address _trustedContract
+    ) {
         ens = _ens;
         nameWrapper = wrapperAddress;
+        trustedContract = _trustedContract;
     }
 
     /**
      * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator, bool approved) external{
+    function setApprovalForAll(address operator, bool approved) external {
         require(
             msg.sender != operator,
             "ERC1155: setting approval status for self"
@@ -51,32 +70,59 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    function isAuthorised(bytes32 node) internal override view returns(bool) {
+    function isAuthorised(bytes32 node) internal view override returns (bool) {
         address owner = ens.owner(node);
-        if(owner == address(nameWrapper) ){
+        if (owner == address(nameWrapper)) {
             owner = nameWrapper.ownerOf(uint256(node));
         }
-        return owner == msg.sender || isApprovedForAll(owner, msg.sender);
+        return
+            owner == msg.sender ||
+            msg.sender == trustedContract ||
+            isApprovedForAll(owner, msg.sender);
     }
 
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address account, address operator) public view returns (bool){
+    function isApprovedForAll(address account, address operator)
+        public
+        view
+        returns (bool)
+    {
         return _operatorApprovals[account][operator];
     }
 
-    function multicall(bytes[] calldata data) external returns(bytes[] memory results) {
+    function multicall(bytes[] calldata data)
+        external
+        returns (bytes[] memory results)
+    {
         results = new bytes[](data.length);
-        for(uint i = 0; i < data.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(data[i]);
+        for (uint256 i = 0; i < data.length; i++) {
+            (bool success, bytes memory result) = address(this).delegatecall(
+                data[i]
+            );
             require(success);
             results[i] = result;
         }
         return results;
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID)
+        public
+        pure
+        virtual
+        override(
+            ABIResolver,
+            AddrResolver,
+            ContentHashResolver,
+            DNSResolver,
+            InterfaceResolver,
+            NameResolver,
+            PubkeyResolver,
+            TextResolver
+        )
+        returns (bool)
+    {
         return super.supportsInterface(interfaceID);
     }
 }

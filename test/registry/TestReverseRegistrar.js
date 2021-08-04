@@ -30,7 +30,11 @@ describe('ReverseRegistrar Tests', () => {
       node3 = getReverseNode(accounts[2])
       ens = await ENS.new()
       nameWrapper = await NameWrapper.new()
-      resolver = await PublicResolver.new(ens.address, nameWrapper.address)
+      resolver = await PublicResolver.new(
+        ens.address,
+        nameWrapper.address,
+        '0x0000000000000000000000000000000000000000'
+      )
       registrar = await ReverseRegistrar.new(ens.address, resolver.address)
       dummyOwnable = await ReverseRegistrar.new(ens.address, resolver.address)
       dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)

@@ -19,7 +19,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-describe.only('ETHRegistrarController Tests', () => {
+describe('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function() {
     let ens
     let resolver
@@ -63,19 +63,23 @@ describe.only('ETHRegistrarController Tests', () => {
         ownerAccount
       )
 
-      resolver = await deploy(
-        'PublicResolver',
-        ens.address,
-        nameWrapper.address
-      )
-
-      resolver2 = await resolver.connect(signers[1])
+      reverseResolver = await deploy('DefaultReverseResolver', ens.address)
 
       reverseRegistrar = await deploy(
         'ReverseRegistrar',
         ens.address,
-        resolver.address
+        reverseResolver.address
       )
+
+      resolver = await deploy(
+        'PublicResolver',
+        ens.address,
+        nameWrapper.address,
+        reverseRegistrar.address
+      )
+
+      resolver2 = await resolver.connect(signers[1])
+
       await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
 
       const dummyOracle = await deploy('DummyOracle', '100000000')
@@ -192,7 +196,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        registrantAccount
+        registrantAccount,
+        false,
+        0
       )
       var tx = await controller.commit(commitment)
       assert.equal(
@@ -213,6 +219,8 @@ describe.only('ETHRegistrarController Tests', () => {
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
+
+      console.log((await tx.wait()).gasUsed.toString())
 
       const block = await provider.getBlock(tx.blockNumber)
 
@@ -249,7 +257,9 @@ describe.only('ETHRegistrarController Tests', () => {
           registrantAccount,
           secret,
           NULL_ADDRESS,
-          registrantAccount
+          registrantAccount,
+          false,
+          0
         )
       )
     })
@@ -260,7 +270,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS
+        NULL_ADDRESS,
+        false,
+        0
       )
       var tx = await controller.commit(commitment)
       assert.equal(
@@ -373,7 +385,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS
+        NULL_ADDRESS,
+        true,
+        0
       )
       await controller.commit(commitment)
 
@@ -390,7 +404,7 @@ describe.only('ETHRegistrarController Tests', () => {
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      const name = await resolver.name(getReverseNode(ownerAccount))
+      const name = await reverseResolver.name(getReverseNode(ownerAccount))
       assert.equal(name, 'reverse.eth')
     })
 
@@ -402,7 +416,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS
+        NULL_ADDRESS,
+        true,
+        0
       )
       await controller.commit(commitment)
 
@@ -439,7 +455,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS
+        NULL_ADDRESS,
+        true,
+        1
       )
       await controller.commit(commitment)
 
@@ -469,7 +487,9 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        registrantAccount
+        registrantAccount,
+        true,
+        1
       )
 
       await controller.commit(commitment)

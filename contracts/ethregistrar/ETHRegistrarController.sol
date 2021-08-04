@@ -9,6 +9,8 @@ import "../registry/ReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@ensdomains/name-wrapper/interfaces/INameWrapper.sol";
 
+import "hardhat/console.sol";
+
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
@@ -110,7 +112,9 @@ contract ETHRegistrarController is Ownable {
                 owner,
                 secret,
                 address(0),
-                address(0)
+                address(0),
+                false,
+                0
             );
     }
 
@@ -119,7 +123,9 @@ contract ETHRegistrarController is Ownable {
         address owner,
         bytes32 secret,
         address resolver,
-        address addr
+        address addr,
+        bool reverseRecord,
+        uint96 fuses
     ) public pure returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
         if (resolver == address(0) && addr == address(0)) {
@@ -127,7 +133,17 @@ contract ETHRegistrarController is Ownable {
         }
         require(resolver != address(0));
         return
-            keccak256(abi.encodePacked(label, owner, resolver, addr, secret));
+            keccak256(
+                abi.encodePacked(
+                    label,
+                    owner,
+                    resolver,
+                    addr,
+                    secret,
+                    reverseRecord,
+                    fuses
+                )
+            );
     }
 
     function commit(bytes32 commitment) public {
@@ -163,11 +179,22 @@ contract ETHRegistrarController is Ownable {
         bool reverseRecord,
         uint96 fuses
     ) public payable {
+        console.log("start1", gasleft());
         uint256 cost = _consumeCommitment(
             name,
             duration,
-            makeCommitmentWithConfig(name, owner, secret, resolver, addr)
+            makeCommitmentWithConfig(
+                name,
+                owner,
+                secret,
+                resolver,
+                addr,
+                reverseRecord,
+                fuses
+            )
         );
+
+        console.log("2", gasleft());
 
         bytes32 label = keccak256(bytes(name));
 
@@ -304,10 +331,13 @@ contract ETHRegistrarController is Ownable {
         Resolver resolverContract = Resolver(resolver);
         bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
 
+        console.log("3", gasleft());
+
         try
             resolverContract.isApprovedForAll(msg.sender, address(this))
         returns (bool approved) {
             if (approved) {
+                console.log("4", gasleft());
                 expires = nameWrapper.registerAndWrapETH2LD(
                     name,
                     owner,
@@ -315,13 +345,16 @@ contract ETHRegistrarController is Ownable {
                     resolver,
                     fuses
                 );
+                console.log("5", gasleft());
 
                 if (addr != address(0)) {
                     resolverContract.setAddr(nodehash, addr);
                 }
+                console.log("6", gasleft());
             } else {
                 // Set this contract as the (temporary) owner, giving it
                 // permission to set address
+                console.log("4a", gasleft());
                 expires = _registerWithoutResolverAuthorisation(
                     resolverContract,
                     nodehash,
@@ -332,6 +365,7 @@ contract ETHRegistrarController is Ownable {
                     addr,
                     fuses
                 );
+                console.log("5a", gasleft());
             }
         } catch {
             //Assume resolver is old and proceed with setting contract as temporary owner
@@ -346,6 +380,7 @@ contract ETHRegistrarController is Ownable {
                 fuses
             );
         }
+        console.log("end", gasleft());
     }
 
     function _registerWithoutResolverAuthorisation(
@@ -358,6 +393,7 @@ contract ETHRegistrarController is Ownable {
         address addr,
         uint96 fuses
     ) internal returns (uint256 expires) {
+        console.log("_registerWithoutResolverAuthorisation 1", gasleft());
         expires = nameWrapper.registerAndWrapETH2LD(
             name,
             address(this),
@@ -365,11 +401,13 @@ contract ETHRegistrarController is Ownable {
             resolver,
             fuses
         );
+        console.log("_registerWithoutResolverAuthorisation 2", gasleft());
 
         // Configure the resolver
         if (addr != address(0)) {
             resolverContract.setAddr(nodehash, addr);
         }
+        console.log("_registerWithoutResolverAuthorisation 3", gasleft());
 
         // Now transfer full ownership to the expected owner
         nameWrapper.safeTransferFrom(
@@ -379,5 +417,6 @@ contract ETHRegistrarController is Ownable {
             1,
             ""
         );
+        console.log("_registerWithoutResolverAuthorisation 4", gasleft());
     }
 }

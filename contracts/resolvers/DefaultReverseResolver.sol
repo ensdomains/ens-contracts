@@ -9,10 +9,11 @@ import "../registry/ReverseRegistrar.sol";
  */
 contract DefaultReverseResolver {
     // namehash('addr.reverse')
-    bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
+    bytes32 constant ADDR_REVERSE_NODE =
+        0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
     ENS public ens;
-    mapping (bytes32 => string) public name;
+    mapping(bytes32 => string) public name;
 
     /**
      * @dev Only permits calls by the reverse registrar.
@@ -31,7 +32,9 @@ contract DefaultReverseResolver {
         ens = ensAddr;
 
         // Assign ownership of the reverse record to our deployer
-        ReverseRegistrar registrar = ReverseRegistrar(ens.owner(ADDR_REVERSE_NODE));
+        ReverseRegistrar registrar = ReverseRegistrar(
+            ens.owner(ADDR_REVERSE_NODE)
+        );
         if (address(registrar) != address(0x0)) {
             registrar.claim(msg.sender);
         }
