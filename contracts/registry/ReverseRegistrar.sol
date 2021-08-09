@@ -49,6 +49,10 @@ contract ReverseRegistrar is Ownable, Controllable {
         _;
     }
 
+    function claimResolverReverse() public onlyOwner returns (bytes32) {
+        return claimForAddr(address(defaultResolver), msg.sender);
+    }
+
     /**
      * @dev Transfers ownership of the reverse ENS record associated with the
      *      calling account.

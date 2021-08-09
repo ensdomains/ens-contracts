@@ -10,6 +10,7 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const provider = ethers.provider
 const NameWrapperJSON = require('@ensdomains/name-wrapper/artifacts/contracts/NameWrapper.sol/NameWrapper.json')
+const ReverseResolverJSON = require('../../artifacts/contracts/resolvers/DefaultReverseResolver.sol/DefaultReverseResolver.json')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
@@ -19,7 +20,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-describe('ETHRegistrarController Tests', () => {
+describe.only('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function() {
     let ens
     let resolver
@@ -63,12 +64,12 @@ describe('ETHRegistrarController Tests', () => {
         ownerAccount
       )
 
-      reverseResolver = await deploy('DefaultReverseResolver', ens.address)
+      reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
 
-      reverseRegistrar = await deploy(
-        'ReverseRegistrar',
-        ens.address,
-        reverseResolver.address
+      reverseResolver = new ethers.Contract(
+        await reverseRegistrar.defaultResolver(),
+        ReverseResolverJSON.abi,
+        ethers.provider
       )
 
       await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
