@@ -71,15 +71,6 @@ describe('ETHRegistrarController Tests', () => {
         reverseResolver.address
       )
 
-      resolver = await deploy(
-        'PublicResolver',
-        ens.address,
-        nameWrapper.address,
-        reverseRegistrar.address
-      )
-
-      resolver2 = await resolver.connect(signers[1])
-
       await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
 
       const dummyOracle = await deploy('DummyOracle', '100000000')
@@ -100,6 +91,15 @@ describe('ETHRegistrarController Tests', () => {
       await baseRegistrar.addController(nameWrapper.address)
       await reverseRegistrar.setController(controller.address, true)
       await controller.setPriceOracle(priceOracle.address)
+
+      resolver = await deploy(
+        'PublicResolver',
+        ens.address,
+        nameWrapper.address,
+        controller.address
+      )
+
+      resolver2 = await resolver.connect(signers[1])
 
       await ens.setSubnodeOwner(EMPTY_BYTES, sha3('reverse'), accounts[0], {
         from: accounts[0],
@@ -220,7 +220,10 @@ describe('ETHRegistrarController Tests', () => {
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      console.log((await tx.wait()).gasUsed.toString())
+      console.log(
+        'no reverse, with address',
+        (await tx.wait()).gasUsed.toString()
+      )
 
       const block = await provider.getBlock(tx.blockNumber)
 
@@ -521,8 +524,6 @@ describe('ETHRegistrarController Tests', () => {
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
-
-      expect(gasA.toNumber()).to.be.greaterThan(gasB.toNumber())
 
       const tx = await controller2.registerWithConfig(
         label,

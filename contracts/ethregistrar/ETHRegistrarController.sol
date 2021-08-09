@@ -194,7 +194,7 @@ contract ETHRegistrarController is Ownable {
             )
         );
 
-        console.log("2", gasleft());
+        console.log("2 _consumeCommitment", gasleft());
 
         bytes32 label = keccak256(bytes(name));
 
@@ -220,7 +220,6 @@ contract ETHRegistrarController is Ownable {
                 fuses
             );
         }
-
         if (reverseRecord) {
             //set reverse record to msg.sender
             reverseRegistrar.setNameForAddr(
@@ -229,13 +228,16 @@ contract ETHRegistrarController is Ownable {
                 string(abi.encodePacked(name, ".eth"))
             );
         }
+        console.log("6 reverse", gasleft());
 
         emit NameRegistered(name, label, owner, cost, expires);
 
         // Refund any extra payment
+        console.log("7 NameRegistered Event ", gasleft());
         if (msg.value > cost) {
             payable(msg.sender).transfer(msg.value - cost);
         }
+        console.log("8 transfer back funds", gasleft());
     }
 
     function renew(string calldata name, uint256 duration) external payable {
@@ -331,92 +333,20 @@ contract ETHRegistrarController is Ownable {
         Resolver resolverContract = Resolver(resolver);
         bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
 
-        console.log("3", gasleft());
+        console.log("3 keccak and instiate resolver", gasleft());
 
-        try
-            resolverContract.isApprovedForAll(msg.sender, address(this))
-        returns (bool approved) {
-            if (approved) {
-                console.log("4", gasleft());
-                expires = nameWrapper.registerAndWrapETH2LD(
-                    name,
-                    owner,
-                    duration,
-                    resolver,
-                    fuses
-                );
-                console.log("5", gasleft());
-
-                if (addr != address(0)) {
-                    resolverContract.setAddr(nodehash, addr);
-                }
-                console.log("6", gasleft());
-            } else {
-                // Set this contract as the (temporary) owner, giving it
-                // permission to set address
-                console.log("4a", gasleft());
-                expires = _registerWithoutResolverAuthorisation(
-                    resolverContract,
-                    nodehash,
-                    name,
-                    owner,
-                    duration,
-                    resolver,
-                    addr,
-                    fuses
-                );
-                console.log("5a", gasleft());
-            }
-        } catch {
-            //Assume resolver is old and proceed with setting contract as temporary owner
-            expires = _registerWithoutResolverAuthorisation(
-                resolverContract,
-                nodehash,
-                name,
-                owner,
-                duration,
-                resolver,
-                addr,
-                fuses
-            );
-        }
-        console.log("end", gasleft());
-    }
-
-    function _registerWithoutResolverAuthorisation(
-        Resolver resolverContract,
-        bytes32 nodehash,
-        string calldata name,
-        address owner,
-        uint256 duration,
-        address resolver,
-        address addr,
-        uint96 fuses
-    ) internal returns (uint256 expires) {
-        console.log("_registerWithoutResolverAuthorisation 1", gasleft());
         expires = nameWrapper.registerAndWrapETH2LD(
             name,
-            address(this),
+            owner,
             duration,
             resolver,
             fuses
         );
-        console.log("_registerWithoutResolverAuthorisation 2", gasleft());
+        console.log("4 registerAndWrap", gasleft());
 
-        // Configure the resolver
         if (addr != address(0)) {
             resolverContract.setAddr(nodehash, addr);
         }
-        console.log("_registerWithoutResolverAuthorisation 3", gasleft());
-
-        // Now transfer full ownership to the expected owner
-        nameWrapper.safeTransferFrom(
-            address(this),
-            owner,
-            uint256(nodehash),
-            1,
-            ""
-        );
-        console.log("_registerWithoutResolverAuthorisation 4", gasleft());
+        console.log("5 setAddr", gasleft());
     }
 }

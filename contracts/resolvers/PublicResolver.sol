@@ -30,7 +30,7 @@ contract PublicResolver is
 {
     ENS ens;
     INameWrapper nameWrapper;
-    address trustedContract;
+    address immutable trustedContract;
 
     /**
      * A mapping of operators. An address that is authorised for an address
@@ -71,14 +71,14 @@ contract PublicResolver is
     }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
+        if (msg.sender == trustedContract) {
+            return true;
+        }
         address owner = ens.owner(node);
         if (owner == address(nameWrapper)) {
             owner = nameWrapper.ownerOf(uint256(node));
         }
-        return
-            owner == msg.sender ||
-            msg.sender == trustedContract ||
-            isApprovedForAll(owner, msg.sender);
+        return owner == msg.sender || isApprovedForAll(owner, msg.sender);
     }
 
     /**

@@ -2,8 +2,12 @@ const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
+const ReverseResolver = artifacts.require(
+  './registry/DefaultReverseResolver.sol'
+)
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+const { ethers } = require('hardhat')
 const {
   exceptions,
   reverse: { getReverseNode },
@@ -22,7 +26,7 @@ describe('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3, dummyOwnableReverseNode
 
-    let registrar, resolver, ens, nameWrapper, dummyOwnable
+    let registrar, resolver, ens, nameWrapper, dummyOwnable, defaultResolver
 
     beforeEach(async () => {
       node = getReverseNode(accounts[0])
@@ -35,8 +39,13 @@ describe('ReverseRegistrar Tests', () => {
         nameWrapper.address,
         '0x0000000000000000000000000000000000000000'
       )
-      registrar = await ReverseRegistrar.new(ens.address, resolver.address)
-      dummyOwnable = await ReverseRegistrar.new(ens.address, resolver.address)
+      registrar = await ReverseRegistrar.new(ens.address)
+      defaultResolver = new ethers.Contract(
+        await registrar.defaultResolver(),
+        ReverseResolver.abi,
+        ethers.provider
+      )
+      dummyOwnable = await ReverseRegistrar.new(ens.address)
       dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)
 
       await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
@@ -254,8 +263,8 @@ describe('ReverseRegistrar Tests', () => {
     describe('setName', () => {
       it('sets name records', async () => {
         await registrar.setName('testname', { from: accounts[0], gas: 1000000 })
-        assert.equal(await ens.resolver(node), resolver.address)
-        assert.equal(await resolver.name(node), 'testname')
+        assert.equal(await ens.resolver(node), defaultResolver.address)
+        assert.equal(await defaultResolver.name(node), 'testname')
       })
 
       it('event ReverseClaimed is emitted', async () => {
@@ -274,8 +283,8 @@ describe('ReverseRegistrar Tests', () => {
           from: accounts[0],
           gas: 1000000,
         })
-        assert.equal(await ens.resolver(node2), resolver.address)
-        assert.equal(await resolver.name(node2), 'testname')
+        assert.equal(await ens.resolver(node2), defaultResolver.address)
+        assert.equal(await defaultResolver.name(node2), 'testname')
       })
 
       it('event ReverseClaimed is emitted', async () => {
@@ -305,8 +314,8 @@ describe('ReverseRegistrar Tests', () => {
           from: accounts[0],
           gas: 1000000,
         })
-        assert.equal(await ens.resolver(node), resolver.address)
-        assert.equal(await resolver.name(node), 'testname')
+        assert.equal(await ens.resolver(node), defaultResolver.address)
+        assert.equal(await defaultResolver.name(node), 'testname')
       })
 
       it('allows name to be set for an address if the sender is authorised', async () => {
@@ -315,8 +324,8 @@ describe('ReverseRegistrar Tests', () => {
           from: accounts[1],
           gas: 1000000,
         })
-        assert.equal(await ens.resolver(node), resolver.address)
-        assert.equal(await resolver.name(node), 'testname')
+        assert.equal(await ens.resolver(node), defaultResolver.address)
+        assert.equal(await defaultResolver.name(node), 'testname')
       })
 
       it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
@@ -330,7 +339,7 @@ describe('ReverseRegistrar Tests', () => {
         )
         assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
         assert.equal(
-          await resolver.name(dummyOwnableReverseNode),
+          await defaultResolver.name(dummyOwnableReverseNode),
           'dummyownable.eth'
         )
       })

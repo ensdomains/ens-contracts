@@ -3,6 +3,7 @@ pragma solidity >=0.8.4;
 import "./ENS.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../root/Controllable.sol";
+import "../resolvers/DefaultReverseResolver.sol";
 
 abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
@@ -16,18 +17,17 @@ bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967f
 
 contract ReverseRegistrar is Ownable, Controllable {
     ENS public ens;
-    NameResolver public defaultResolver;
+    DefaultReverseResolver public defaultResolver;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     /**
      * @dev Constructor
      * @param ensAddr The address of the ENS registry.
-     * @param resolverAddr The address of the default reverse resolver.
      */
-    constructor(ENS ensAddr, NameResolver resolverAddr) {
+    constructor(ENS ensAddr) {
         ens = ensAddr;
-        defaultResolver = resolverAddr;
+        defaultResolver = new DefaultReverseResolver(ensAddr, address(this));
 
         // Assign ownership of the reverse record to our deployer
         ReverseRegistrar oldRegistrar = ReverseRegistrar(
