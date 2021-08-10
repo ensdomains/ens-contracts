@@ -15,6 +15,7 @@ contract DefaultReverseResolver {
     ENS public ens;
     mapping(bytes32 => string) public name;
     address immutable owner;
+    event NameChanged(bytes32 indexed node, string name);
 
     /**
      * @dev Only permits calls by the reverse registrar.
@@ -47,5 +48,6 @@ contract DefaultReverseResolver {
      */
     function setName(bytes32 node, string memory _name) public onlyOwner(node) {
         name[node] = _name;
+        emit NameChanged(node, _name);
     }
 }
