@@ -48,6 +48,10 @@ const INTERFACES = {
     'getRoleMemberCount(bytes32)',
   ],
   INameWrapper: [
+    'ens()',
+    'registrar()',
+    'metadataService()',
+    'names(bytes32)',
     'wrap(bytes,address,uint96,address)',
     'wrapETH2LD(string,address,uint96,address)',
     'registerAndWrapETH2LD(string,address,uint256,address,uint96)',
