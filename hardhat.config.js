@@ -51,6 +51,12 @@ module.exports = {
       tags: ["test", "legacy", "use_root"],
       chainId: 3,
       accounts: real_accounts,
+    },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["legacy", "use_root"],
+      chainId: 1,
+      accounts: real_accounts,
     }
   },
   mocha: {
