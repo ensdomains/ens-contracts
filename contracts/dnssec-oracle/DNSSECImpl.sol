@@ -513,7 +513,7 @@ contract DNSSECImpl is DNSSEC, Owned {
         if(dnskey.algorithm != rrset.algorithm) {
             return false;
         }
-        uint16 computedkeytag = computeKeytag(keyrdata);
+        uint16 computedkeytag = keyrdata.computeKeytag();
         if (computedkeytag != rrset.keytag) {
             return false;
         }
@@ -560,7 +560,7 @@ contract DNSSECImpl is DNSSEC, Owned {
     function verifyKeyWithDS(bytes memory keyname, RRUtils.RRIterator memory dsrrs, RRUtils.DNSKEY memory dnskey, bytes memory keyrdata)
         internal view returns (bool)
     {
-        uint16 keytag = computeKeytag(keyrdata);
+        uint16 keytag = keyrdata.computeKeytag();
         for (; !dsrrs.done(); dsrrs.next()) {
             RRUtils.DS memory ds = dsrrs.data.readDS(dsrrs.rdataOffset, dsrrs.nextOffset - dsrrs.rdataOffset);
             if(ds.keytag != keytag) {
@@ -593,18 +593,5 @@ contract DNSSECImpl is DNSSEC, Owned {
             return false;
         }
         return digests[digesttype].verify(data, digest);
-    }
-
-    /**
-     * @dev Computes the keytag for a chunk of data.
-     * @param data The data to compute a keytag for.
-     * @return The computed key tag.
-     */
-    function computeKeytag(bytes memory data) internal pure returns (uint16) {
-        uint ac;
-        for (uint i = 0; i < data.length; i++) {
-            ac += i & 1 == 0 ? uint16(data.readUint8(i)) << 8 : data.readUint8(i);
-        }
-        return uint16(ac + (ac >> 16));
     }
 }
