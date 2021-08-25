@@ -382,8 +382,8 @@ library RRUtils {
                     word := mload(add(add(data, 32), i))
                 }
                 if(i + 32 > data.length) {
-                    uint bitsleft = (data.length - i) * 8;
-                    word = word & ((1 << bitsleft) - 1) << (256 - bitsleft);
+                    uint unused = 256 - (data.length - i) * 8;
+                    word = (word >> unused) << unused;
                 }
                 ac1 += (word & 0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >> 8;
                 ac2 += (word & 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF);

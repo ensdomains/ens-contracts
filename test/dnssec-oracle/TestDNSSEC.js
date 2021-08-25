@@ -125,7 +125,6 @@ contract('DNSSEC', accounts => {
       sets.push([rrsetBuf, sigBuf]);
     }
     var tx = await instance.submitRRSets(sets, proof);
-    console.log(tx.receipt.gasUsed);
     assert.equal(tx.receipt.status, true);
   });
 });
