@@ -17,7 +17,7 @@ describe('BytesUtils', () => {
   let BytesUtils
 
   before(async () => {
-    const BytesUtilsFactory = await ethers.getContractFactory("TestBytesUtils")
+    const BytesUtilsFactory = await ethers.getContractFactory("contracts/wrapper/test/TestBytesUtils.sol:TestBytesUtils")
     BytesUtils = await BytesUtilsFactory.deploy()
   })
 

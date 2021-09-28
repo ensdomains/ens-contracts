@@ -3,14 +3,13 @@ pragma solidity ^0.8.4;
 
 import "./ERC1155Fuse.sol";
 import "./Controllable.sol";
-import "../interfaces/INameWrapper.sol";
-import "../interfaces/IMetadataService.sol";
-import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
-import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
+import "./INameWrapper.sol";
+import "./IMetadataService.sol";
+import "../registry/ENS.sol";
+import "../ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
-import "hardhat/console.sol";
 
 contract NameWrapper is
     Ownable,

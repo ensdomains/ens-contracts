@@ -1,8 +1,8 @@
 pragma solidity ^0.8.4;
 
 import "../BytesUtil.sol";
-import "../../interfaces/INameWrapper.sol";
-import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
+import "../INameWrapper.sol";
+import "../../registry/ENS.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 contract NameGriefer is IERC1155Receiver {

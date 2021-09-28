@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
-import "@ensdomains/ens-contracts/contracts/registry/ENS.sol";
-import "@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol";
+import "../registry/ENS.sol";
+import "../ethregistrar/BaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "./IMetadataService.sol";
 
