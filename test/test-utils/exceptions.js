@@ -3,7 +3,7 @@ function isException(error, msg) {
     if(msg){
         return strError.match(msg)
     }else{
-        strError.includes('invalid opcode') || strError.includes('invalid JUMP') || strError.includes('revert');
+        return strError.includes('invalid opcode') || strError.includes('invalid JUMP') || strError.includes('revert');
     }
 }
 
