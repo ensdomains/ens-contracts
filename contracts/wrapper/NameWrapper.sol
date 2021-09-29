@@ -161,17 +161,17 @@ contract NameWrapper is
         address resolver
     ) public override {
         uint256 tokenId = uint256(keccak256(bytes(label)));
-        address nameOwner = registrar.ownerOf(tokenId);
+        address registrant = registrar.ownerOf(tokenId);
 
         require(
-            nameOwner == msg.sender ||
-                isApprovedForAll(nameOwner, msg.sender) ||
-                registrar.isApprovedForAll(nameOwner, msg.sender),
+            registrant == msg.sender ||
+                isApprovedForAll(registrant, msg.sender) ||
+                registrar.isApprovedForAll(registrant, msg.sender),
             "NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar"
         );
 
         // transfer the token from the user to this contract
-        registrar.transferFrom(nameOwner, address(this), tokenId);
+        registrar.transferFrom(registrant, address(this), tokenId);
 
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(tokenId, address(this));
@@ -539,12 +539,12 @@ contract NameWrapper is
             address resolver
         ) = abi.decode(data, (string, address, uint96, address));
 
+        bytes32 labelhash = bytes32(tokenId);
+
         require(
-            keccak256(bytes(label)) == bytes32(tokenId),
+            keccak256(bytes(label)) == labelhash,
             "NameWrapper: Token id does match keccak(label) of label provided in data field"
         );
-
-        bytes32 labelhash = bytes32(tokenId);
 
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(uint256(labelhash), address(this));
