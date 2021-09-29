@@ -1,8 +1,6 @@
 pragma solidity >=0.8.4;
 pragma experimental ABIEncoderV2;
 
-import "hardhat/console.sol";
-
 interface ENS {
   function resolver(bytes32 node) external view returns(address);
 }
@@ -37,16 +35,10 @@ contract UniversalResolver {
   function _resolve(bytes memory input) internal returns (bool, bytes memory) {
     require(input.length >= 36, "Input too short");
     bytes32 node;
-    console.log("_resolve input");
-    console.logBytes(input);
     assembly {
       node := mload(add(input, 36))
     }
-    console.log("_resolve node");
-    console.logBytes32(node);
     address resolver = ens.resolver(node);
-    console.log("_resolve resolver");
-    console.logAddress(resolver);
     return resolver.call(input);
   }
 }
