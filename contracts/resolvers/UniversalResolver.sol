@@ -40,7 +40,7 @@ contract UniversalResolver {
     console.log("_resolve input");
     console.logBytes(input);
     assembly {
-      node := calldataload(add(input, 36))
+      node := mload(add(input, 36))
     }
     console.log("_resolve node");
     console.logBytes32(node);

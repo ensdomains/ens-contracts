@@ -27,7 +27,6 @@ contract('UniversalResolver', function (accounts) {
           await ens.setSubnodeOwner(ethnode, sha3(label), accounts[0], {from: accounts[0]});
           await ens.setResolver(node, resolver.address, {from: accounts[0]})
           await resolver.methods['setAddr(bytes32,address)'](node, account, {from: accounts[0]})
-          console.log(index, await resolver.contract.methods['addr(bytes32)'](node).call())
         }
     });
 
@@ -39,6 +38,8 @@ contract('UniversalResolver', function (accounts) {
           ]
           var results = await universal.multicall.call(input);
           console.log({labels, nodes, input, results})
+          assert.equal(web3.eth.abi.decodeParameters(['address'], results[0])[0], accounts[0]);
+          assert.equal(web3.eth.abi.decodeParameters(['address'], results[1])[0], accounts[1]);
         });
     });
 });
