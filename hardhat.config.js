@@ -5,6 +5,7 @@ require("@nomiclabs/hardhat-solhint");
 require("hardhat-gas-reporter");
 require("hardhat-deploy");
 require("hardhat-deploy-ethers");
+require("@nomiclabs/hardhat-etherscan");
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -29,7 +30,6 @@ real_accounts = undefined;
 if(process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
   real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY];
 }
-
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -42,9 +42,21 @@ module.exports = {
       tags: ["test", "legacy", "use_root"],
     },
     localhost: {
-      url: "http://127.0.0.1:9545",
+      url: "http://127.0.0.1:8545",
       saveDeployments: false,
       tags: ["test", "legacy", "use_root"],
+    },
+    rinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["test", "legacy", "use_root"],
+      chainId: 4,
+      accounts: real_accounts,
+    },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["test", "legacy", "use_root"],
+      chainId: 5,
+      accounts: real_accounts,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`,
@@ -58,6 +70,9 @@ module.exports = {
       chainId: 1,
       accounts: real_accounts,
     }
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY
   },
   mocha: {
   },
