@@ -12,7 +12,7 @@ contract UniversalResolver {
     ens = _ens;
   }
   
-  function multicall(bytes[] calldata inputs) external returns (bytes[] memory ret) {
+  function multicall(bytes[] calldata inputs) external view returns (bytes[] memory ret) {
     ret = new bytes[](inputs.length);
     for(uint256 i = 0; i < inputs.length; i++) {
       (, bytes memory result) = _resolve(inputs[i]);
@@ -32,13 +32,13 @@ contract UniversalResolver {
     }
   }
   
-  function _resolve(bytes memory input) internal returns (bool, bytes memory) {
+  function _resolve(bytes memory input) internal view returns (bool, bytes memory) {
     require(input.length >= 36, "Input too short");
     bytes32 node;
     assembly {
       node := mload(add(input, 36))
     }
     address resolver = ens.resolver(node);
-    return resolver.call(input);
+    return resolver.staticcall(input);
   }
 }
