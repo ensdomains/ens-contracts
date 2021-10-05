@@ -49,6 +49,12 @@ contract ReverseRegistrar is Ownable, Controllable {
         _;
     }
 
+    /**
+     * @dev Claims resolver reverse node
+     *
+     * @return The ENS node hash of the reverse record.
+     */
+
     function claimResolverReverse() public onlyOwner returns (bytes32) {
         return claimForAddr(address(defaultResolver), msg.sender);
     }
