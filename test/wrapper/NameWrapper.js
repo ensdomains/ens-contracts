@@ -232,7 +232,7 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
         NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, 0, EMPTY_ADDRESS)
-      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+      ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
@@ -245,7 +245,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS
         )
       ).to.be.revertedWith(
-        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -279,7 +279,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.wrap(encodeName('abc'), account2, 0, EMPTY_ADDRESS)
       ).to.be.revertedWith(
-        'revert NameWrapper: Domain is not owned by the sender'
+        'NameWrapper: Domain is not owned by the sender'
       )
     })
 
@@ -291,7 +291,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.wrap(encodeName('wrapped.eth'), account2, 0, EMPTY_ADDRESS)
       ).to.be.revertedWith(
-        'revert NameWrapper: .eth domains need to use wrapETH2LD()'
+        'NameWrapper: .eth domains need to use wrapETH2LD()'
       )
     })
 
@@ -345,7 +345,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -619,7 +619,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.unwrap(namehash('eth'), labelhash('unwrapped'), account)
       ).to.be.revertedWith(
-        'revert NameWrapper: .eth names must be unwrapped with unwrapETH2LD()'
+        'NameWrapper: .eth names must be unwrapped with unwrapETH2LD()'
       )
     })
 
@@ -631,12 +631,12 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrap(encodeName('abc'), account, 0, EMPTY_ADDRESS)
       await expect(
         NameWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS)
-      ).to.be.revertedWith('revert NameWrapper: Target owner cannot be 0x0')
+      ).to.be.revertedWith('NameWrapper: Target owner cannot be 0x0')
 
       await expect(
         NameWrapper.unwrap(ROOT_NODE, labelHash, NameWrapper.address)
       ).to.be.revertedWith(
-        'revert NameWrapper: Target owner cannot be the NameWrapper contract'
+        'NameWrapper: Target owner cannot be the NameWrapper contract'
       )
     })
 
@@ -653,7 +653,7 @@ describe('Name Wrapper', () => {
       )
       await expect(
         NameWrapper.unwrap(ROOT_NODE, labelHash, account)
-      ).to.be.revertedWith('revert NameWrapper: Domain is not unwrappable')
+      ).to.be.revertedWith('NameWrapper: Domain is not unwrappable')
     })
   })
 
@@ -928,7 +928,7 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING,
           EMPTY_ADDRESS
         )
-      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+      ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Does not allow wrapping with a target address of the wrapper contract address.', async () => {
@@ -943,7 +943,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS
         )
       ).to.be.revertedWith(
-        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -966,7 +966,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
       ).to.be.revertedWith(
-        'revert NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar'
+        'NameWrapper: Sender is not owner or authorised by the owner or authorised on the .eth registrar'
       )
     })
 
@@ -1000,7 +1000,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -1093,7 +1093,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.unwrapETH2LD(labelHash, account2, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -1110,7 +1110,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.unwrapETH2LD(labelHash, account2, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -1120,7 +1120,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
       await expect(
         NameWrapper.unwrapETH2LD(labelHash, account, account)
-      ).to.be.revertedWith('revert NameWrapper: Domain is not unwrappable')
+      ).to.be.revertedWith('NameWrapper: Domain is not unwrappable')
     })
   })
 
@@ -1198,7 +1198,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -1369,7 +1369,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for transferring owner'
+        'NameWrapper: Fuse already burned for transferring owner'
       )
     })
 
@@ -1551,7 +1551,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING
         )
-      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+      ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
     it('Will not allow wrapping with a target address of the wrapper contract address', async () => {
       await expect(
@@ -1562,7 +1562,7 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING
         )
       ).to.be.revertedWith(
-        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -1576,7 +1576,7 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
     it('Fuses are not enabled if the parent name does not have CANNOT_REPLACE_SUBDOMAIN burned', async () => {
@@ -1614,7 +1614,7 @@ describe('Name Wrapper', () => {
           CANNOT_REPLACE_SUBDOMAIN
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -1772,7 +1772,7 @@ describe('Name Wrapper', () => {
           0,
           0
         )
-      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+      ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
@@ -1786,7 +1786,7 @@ describe('Name Wrapper', () => {
           0
         )
       ).to.be.revertedWith(
-        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -1803,7 +1803,7 @@ describe('Name Wrapper', () => {
           0
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -1847,7 +1847,7 @@ describe('Name Wrapper', () => {
           CANNOT_REPLACE_SUBDOMAIN
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -1954,7 +1954,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setRecord(wrappedTokenId, account2, account, 50)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -2047,7 +2047,7 @@ describe('Name Wrapper', () => {
           50
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -2124,7 +2124,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -2180,7 +2180,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setResolver(wrappedTokenId, account2)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -2223,7 +2223,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper2.setTTL(wrappedTokenId, 3600)
       ).to.be.revertedWith(
-        'revert NameWrapper: msg.sender is not the owner or approved'
+        'NameWrapper: msg.sender is not the owner or approved'
       )
     })
 
@@ -2272,7 +2272,7 @@ describe('Name Wrapper', () => {
           )
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Wrapper only supports .eth ERC721 token transfers'
+        'NameWrapper: Wrapper only supports .eth ERC721 token transfers'
       )
     })
 
@@ -2361,7 +2361,7 @@ describe('Name Wrapper', () => {
           )
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -2513,7 +2513,7 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for transferring owner'
+        'NameWrapper: Fuse already burned for transferring owner'
       )
     })
 
@@ -2529,7 +2529,7 @@ describe('Name Wrapper', () => {
           '0x'
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Fuse already burned for transferring owner'
+        'NameWrapper: Fuse already burned for transferring owner'
       )
     })
   })
@@ -2784,7 +2784,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING
         )
-      ).to.be.revertedWith('revert ERC1155: mint to the zero address')
+      ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Does not allow wrapping with a target address of the wrapper contract address.', async () => {
@@ -2797,7 +2797,7 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING
         )
       ).to.be.revertedWith(
-        'revert ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract'
       )
     })
 
@@ -2811,7 +2811,7 @@ describe('Name Wrapper', () => {
           CANNOT_SET_RESOLVER
         )
       ).to.be.revertedWith(
-        'revert NameWrapper: Cannot burn fuses: domain can be unwrapped'
+        'NameWrapper: Cannot burn fuses: domain can be unwrapped'
       )
     })
 
@@ -2904,7 +2904,7 @@ describe('Name Wrapper', () => {
     it('non-owner cannot set a new MetadataService', async () => {
       await expect(
         NameWrapper2.setMetadataService(account2)
-      ).to.be.revertedWith('revert Ownable: caller is not the owner')
+      ).to.be.revertedWith('Ownable: caller is not the owner')
     })
   })
 })

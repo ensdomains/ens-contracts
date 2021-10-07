@@ -86,7 +86,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.minCommitmentAge()).toNumber());
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        var tx = await controller.register("newname", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS + 1, gasPrice: 0});
+        var tx = await controller.register("newname", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS + 1});
         assert.equal(tx.logs.length, 1);
         assert.equal(tx.logs[0].event, "NameRegistered");
         assert.equal(tx.logs[0].args.name, "newname");
@@ -105,7 +105,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.minCommitmentAge()).toNumber());
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        var tx = await controller.registerWithConfig("newconfigname", registrantAccount, 28 * DAYS, secret, resolver.address, registrantAccount, {value: 28 * DAYS + 1, gasPrice: 0});
+        var tx = await controller.registerWithConfig("newconfigname", registrantAccount, 28 * DAYS, secret, resolver.address, registrantAccount, {value: 28 * DAYS + 1});
         assert.equal(tx.logs.length, 1);
         assert.equal(tx.logs[0].event, "NameRegistered");
         assert.equal(tx.logs[0].args.name, "newconfigname");
@@ -129,7 +129,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.minCommitmentAge()).toNumber());
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        var tx = await controller.registerWithConfig("newconfigname2", registrantAccount, 28 * DAYS, secret, resolver.address, NULL_ADDRESS, {value: 28 * DAYS + 1, gasPrice: 0});
+        var tx = await controller.registerWithConfig("newconfigname2", registrantAccount, 28 * DAYS, secret, resolver.address, NULL_ADDRESS, {value: 28 * DAYS + 1});
         assert.equal(tx.logs.length, 1);
         assert.equal(tx.logs[0].event, "NameRegistered");
         assert.equal(tx.logs[0].args.name, "newconfigname2");
@@ -146,7 +146,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.minCommitmentAge()).toNumber());
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        await exceptions.expectFailure(controller.register("newname2", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS, gasPrice: 0}));
+        await exceptions.expectFailure(controller.register("newname2", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS}));
     });
 
     it('should reject duplicate registrations', async () => {
@@ -154,7 +154,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.minCommitmentAge()).toNumber());
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        await exceptions.expectFailure(controller.register("newname", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS, gasPrice: 0}));
+        await exceptions.expectFailure(controller.register("newname", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS}));
     });
 
     it('should reject for expired commitments', async () => {
@@ -162,7 +162,7 @@ contract('ETHRegistrarController', function (accounts) {
 
         await evm.advanceTime((await controller.maxCommitmentAge()).toNumber() + 1);
         var balanceBefore = await web3.eth.getBalance(controller.address);
-        await exceptions.expectFailure(controller.register("newname2", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS, gasPrice: 0}));
+        await exceptions.expectFailure(controller.register("newname2", registrantAccount, 28 * DAYS, secret, {value: 28 * DAYS}));
     });
 
     it('should allow anyone to renew a name', async () => {
@@ -179,7 +179,7 @@ contract('ETHRegistrarController', function (accounts) {
     });
 
     it('should allow the registrar owner to withdraw funds', async () => {
-        await controller.withdraw({gasPrice: 0, from: ownerAccount});
+        await controller.withdraw({from: ownerAccount});
         assert.equal(await web3.eth.getBalance(controller.address), 0);
     });
 });
