@@ -5,9 +5,7 @@ dist: trusty
 language: node_js
 
 node_js:
-  - '14'
-install:
-  - npm install
+  - "14"
 env:
   - TASK=test
   - TASK=lint
