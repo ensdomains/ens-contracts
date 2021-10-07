@@ -1,7 +1,8 @@
+node_modules
+artifacts
+cache
+gasreport-*
+.env
 *.DS_Store
 node_modules
 build
-
-#Hardhat files
-cache
-artifacts

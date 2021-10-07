@@ -1,4 +1,4 @@
-const TestBytesUtils = artifacts.require("./test/dnssec-oracle/TestBytesUtils");
+const TestBytesUtils = artifacts.require("test/dnssec-oracle/TestBytesUtils.sol:TestBytesUtils");
 const TestRRUtils = artifacts.require("./test/dnssec-oracle/TestRRUtils");
 
 [TestBytesUtils, TestRRUtils].forEach(function(testsuite) {

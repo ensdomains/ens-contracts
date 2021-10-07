@@ -101,7 +101,7 @@ async function verifyFailedSubmission(instance, data, sig, proof) {
     // Assert ganache revert exception
     assert.equal(
       error.message,
-      'Transaction reverted without a reason'
+      'Transaction reverted without a reason string'
     );
   }
 
