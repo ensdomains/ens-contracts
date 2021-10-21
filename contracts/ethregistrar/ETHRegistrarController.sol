@@ -11,6 +11,29 @@ import "@ensdomains/name-wrapper/interfaces/INameWrapper.sol";
 
 import "hardhat/console.sol";
 
+interface commitmentController {
+    function rentPrice(string memory, uint256) external;
+
+    function available(string memory) external;
+
+    function makeCommitment(
+        string memory,
+        address,
+        bytes32
+    ) external;
+
+    function commit(bytes32) external;
+
+    function register(
+        string calldata,
+        address,
+        uint256,
+        bytes32
+    ) external;
+
+    function renew(string calldata, uint256) external;
+}
+
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
@@ -22,31 +45,23 @@ contract ETHRegistrarController is Ownable {
     bytes4 private constant INTERFACE_META_ID =
         bytes4(keccak256("supportsInterface(bytes4)"));
     bytes4 private constant COMMITMENT_CONTROLLER_ID =
-        bytes4(
-            keccak256("rentPrice(string,uint256)") ^
-                keccak256("available(string)") ^
-                keccak256("makeCommitment(string,address,bytes32)") ^
-                keccak256("commit(bytes32)") ^
-                keccak256("register(string,address,uint256,bytes32)") ^
-                keccak256("renew(string,uint256)")
-        );
-
+        type(commitmentController).interfaceId;
     bytes4 private constant COMMITMENT_WITH_CONFIG_CONTROLLER_ID =
         bytes4(
             keccak256(
-                "registerWithConfig(string,address,uint256,bytes32,address,address)"
+                "register(string,address,uint256,bytes32,address,address)"
             ) ^
                 keccak256(
-                    "makeCommitmentWithConfig(string,address,bytes32,address,address,bool,int96)"
+                    "makeCommitment(string,address,bytes32,address,address,bool,int96)"
                 )
         );
 
     BaseRegistrarImplementation base;
-    PriceOracle prices;
+    PriceOracle public prices;
     uint256 public minCommitmentAge;
     uint256 public maxCommitmentAge;
-    ReverseRegistrar reverseRegistrar;
-    INameWrapper nameWrapper;
+    ReverseRegistrar public reverseRegistrar;
+    INameWrapper public nameWrapper;
 
     mapping(bytes32 => uint256) public commitments;
 
@@ -104,23 +119,6 @@ contract ETHRegistrarController is Ownable {
     function makeCommitment(
         string memory name,
         address owner,
-        bytes32 secret
-    ) public pure returns (bytes32) {
-        return
-            makeCommitmentWithConfig(
-                name,
-                owner,
-                secret,
-                address(0),
-                address(0),
-                false,
-                0
-            );
-    }
-
-    function makeCommitmentWithConfig(
-        string memory name,
-        address owner,
         bytes32 secret,
         address resolver,
         address addr,
@@ -155,24 +153,6 @@ contract ETHRegistrarController is Ownable {
         string calldata name,
         address owner,
         uint256 duration,
-        bytes32 secret
-    ) external payable {
-        registerWithConfig(
-            name,
-            owner,
-            duration,
-            secret,
-            address(0),
-            address(0),
-            false,
-            0
-        );
-    }
-
-    function registerWithConfig(
-        string calldata name,
-        address owner,
-        uint256 duration,
         bytes32 secret,
         address resolver,
         address addr,
@@ -183,7 +163,7 @@ contract ETHRegistrarController is Ownable {
         uint256 cost = _consumeCommitment(
             name,
             duration,
-            makeCommitmentWithConfig(
+            makeCommitment(
                 name,
                 owner,
                 secret,
@@ -327,7 +307,7 @@ contract ETHRegistrarController is Ownable {
         address owner,
         uint256 duration,
         address resolver,
-        address addr,
+        address addr, // bytes[] calldata data
         uint96 fuses
     ) internal returns (uint256 expires) {
         Resolver resolverContract = Resolver(resolver);
@@ -343,6 +323,9 @@ contract ETHRegistrarController is Ownable {
             fuses
         );
         console.log("4 registerAndWrap", gasleft());
+
+        // loop through data and check namehash then call the resolver
+        // address(resolver).call(data[i]) // success, returndata (check success is true)
 
         if (addr != address(0)) {
             resolverContract.setAddr(nodehash, addr);

@@ -151,7 +151,11 @@ describe.only('ETHRegistrarController Tests', () => {
       var commitment = await controller.makeCommitment(
         'newname',
         registrantAccount,
-        secret
+        secret,
+        NULL_ADDRESS,
+        NULL_ADDRESS,
+        false,
+        0
       )
       var tx = await controller.commit(commitment)
       assert.equal(
@@ -166,6 +170,10 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         28 * DAYS,
         secret,
+        NULL_ADDRESS,
+        NULL_ADDRESS,
+        false,
+        0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
@@ -192,7 +200,7 @@ describe.only('ETHRegistrarController Tests', () => {
     })
 
     it('should permit new registrations with config', async () => {
-      var commitment = await controller.makeCommitmentWithConfig(
+      var commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
         secret,
@@ -209,7 +217,7 @@ describe.only('ETHRegistrarController Tests', () => {
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
       var balanceBefore = await web3.eth.getBalance(controller.address)
-      var tx = await controller.registerWithConfig(
+      var tx = await controller.register(
         'newconfigname',
         registrantAccount,
         28 * DAYS,
@@ -256,7 +264,7 @@ describe.only('ETHRegistrarController Tests', () => {
 
     it('should not allow a commitment with addr but not resolver', async () => {
       await exceptions.expectFailure(
-        controller.makeCommitmentWithConfig(
+        controller.makeCommitment(
           'newconfigname2',
           registrantAccount,
           secret,
@@ -269,7 +277,7 @@ describe.only('ETHRegistrarController Tests', () => {
     })
 
     it('should permit a registration with resolver but not addr', async () => {
-      var commitment = await controller.makeCommitmentWithConfig(
+      var commitment = await controller.makeCommitment(
         'newconfigname2',
         registrantAccount,
         secret,
@@ -286,7 +294,7 @@ describe.only('ETHRegistrarController Tests', () => {
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
       var balanceBefore = await web3.eth.getBalance(controller.address)
-      var tx = await controller.registerWithConfig(
+      var tx = await controller.register(
         'newconfigname2',
         registrantAccount,
         28 * DAYS,
@@ -317,37 +325,81 @@ describe.only('ETHRegistrarController Tests', () => {
 
     it('should include the owner in the commitment', async () => {
       await controller.commit(
-        await controller.makeCommitment('newname2', accounts[2], secret)
+        await controller.makeCommitment(
+          'newname2',
+          accounts[2],
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0
+        )
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
       var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
-        controller.register('newname2', registrantAccount, 28 * DAYS, secret, {
-          value: 28 * DAYS,
-          gasPrice: 0,
-        })
+        controller.register(
+          'newname2',
+          registrantAccount,
+          28 * DAYS,
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0,
+          {
+            value: 28 * DAYS,
+            gasPrice: 0,
+          }
+        )
       )
     })
 
     it('should reject duplicate registrations', async () => {
       await controller.commit(
-        await controller.makeCommitment('newname', registrantAccount, secret)
+        await controller.makeCommitment(
+          'newname',
+          registrantAccount,
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0
+        )
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
       var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
-        controller.register('newname', registrantAccount, 28 * DAYS, secret, {
-          value: 28 * DAYS,
-          gasPrice: 0,
-        })
+        controller.register(
+          'newname',
+          registrantAccount,
+          28 * DAYS,
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0,
+          {
+            value: 28 * DAYS,
+            gasPrice: 0,
+          }
+        )
       )
     })
 
     it('should reject for expired commitments', async () => {
       await controller.commit(
-        await controller.makeCommitment('newname2', registrantAccount, secret)
+        await controller.makeCommitment(
+          'newname2',
+          registrantAccount,
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0
+        )
       )
 
       await evm.advanceTime(
@@ -355,10 +407,20 @@ describe.only('ETHRegistrarController Tests', () => {
       )
       var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
-        controller.register('newname2', registrantAccount, 28 * DAYS, secret, {
-          value: 28 * DAYS,
-          gasPrice: 0,
-        })
+        controller.register(
+          'newname2',
+          registrantAccount,
+          28 * DAYS,
+          secret,
+          NULL_ADDRESS,
+          NULL_ADDRESS,
+          false,
+          0,
+          {
+            value: 28 * DAYS,
+            gasPrice: 0,
+          }
+        )
       )
     })
 
@@ -384,7 +446,7 @@ describe.only('ETHRegistrarController Tests', () => {
     })
 
     it('should set the reverse record of the account', async () => {
-      const commitment = await controller.makeCommitmentWithConfig(
+      const commitment = await controller.makeCommitment(
         'reverse',
         registrantAccount,
         secret,
@@ -396,7 +458,7 @@ describe.only('ETHRegistrarController Tests', () => {
       await controller.commit(commitment)
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      await controller.registerWithConfig(
+      await controller.register(
         'reverse',
         registrantAccount,
         28 * DAYS,
@@ -415,7 +477,7 @@ describe.only('ETHRegistrarController Tests', () => {
     it('should auto wrap the name and set the ERC721 owner to the wrapper', async () => {
       const label = 'wrapper'
       const name = label + '.eth'
-      const commitment = await controller.makeCommitmentWithConfig(
+      const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
         secret,
@@ -427,7 +489,7 @@ describe.only('ETHRegistrarController Tests', () => {
       await controller.commit(commitment)
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      await controller.registerWithConfig(
+      await controller.register(
         label,
         registrantAccount,
         28 * DAYS,
@@ -454,7 +516,7 @@ describe.only('ETHRegistrarController Tests', () => {
     it('should auto wrap the name and allow fuses to be set', async () => {
       const label = 'fuses'
       const name = label + '.eth'
-      const commitment = await controller.makeCommitmentWithConfig(
+      const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
         secret,
@@ -466,7 +528,7 @@ describe.only('ETHRegistrarController Tests', () => {
       await controller.commit(commitment)
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      await controller.registerWithConfig(
+      await controller.register(
         label,
         registrantAccount,
         28 * DAYS,
@@ -486,7 +548,7 @@ describe.only('ETHRegistrarController Tests', () => {
       const label = 'other'
       const name = label + '.eth'
       const node = namehash.hash(name)
-      const commitment = await controller.makeCommitmentWithConfig(
+      const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
         secret,
@@ -500,7 +562,7 @@ describe.only('ETHRegistrarController Tests', () => {
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
 
-      const gasA = await controller2.estimateGas.registerWithConfig(
+      const gasA = await controller2.estimateGas.register(
         label,
         registrantAccount,
         28 * DAYS,
@@ -514,7 +576,7 @@ describe.only('ETHRegistrarController Tests', () => {
 
       await resolver2.setApprovalForAll(controller.address, true)
 
-      const gasB = await controller2.estimateGas.registerWithConfig(
+      const gasB = await controller2.estimateGas.register(
         label,
         registrantAccount,
         28 * DAYS,
@@ -526,7 +588,7 @@ describe.only('ETHRegistrarController Tests', () => {
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      const tx = await controller2.registerWithConfig(
+      const tx = await controller2.register(
         label,
         registrantAccount,
         28 * DAYS,
