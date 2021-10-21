@@ -132,7 +132,7 @@ contract ETHRegistrarController is Ownable {
         require(resolver != address(0));
         return
             keccak256(
-                abi.encodePacked(
+                abi.encode(
                     label,
                     owner,
                     resolver,
@@ -178,28 +178,31 @@ contract ETHRegistrarController is Ownable {
 
         bytes32 label = keccak256(bytes(name));
 
-        uint256 expires;
-        if (resolver != address(0)) {
-            expires = _registerWithResolver(
-                label,
-                name,
-                owner,
-                duration,
-                resolver,
-                addr,
-                fuses
-            );
-        } else {
-            require(addr == address(0));
+        // loop through data and check namehash then call the resolver
+        // address(resolver).call(data[i]) // success, returndata (check success is true)
 
-            expires = nameWrapper.registerAndWrapETH2LD(
-                name,
-                owner,
-                duration,
-                address(0),
-                fuses
+        uint256 expires = nameWrapper.registerAndWrapETH2LD(
+            name,
+            owner,
+            duration,
+            resolver,
+            fuses
+        );
+
+        if (resolver != address(0) && addr != address(0)) {
+            Resolver resolverContract = Resolver(resolver);
+            bytes32 nodehash = keccak256(
+                abi.encodePacked(base.baseNode(), label)
             );
+
+            console.log("3 keccak and instiate resolver", gasleft());
+
+            console.log("4 registerAndWrap", gasleft());
+            if (addr != address(0)) {
+                resolverContract.setAddr(nodehash, addr);
+            }
         }
+
         if (reverseRecord) {
             //set reverse record to msg.sender
             reverseRegistrar.setNameForAddr(
@@ -217,7 +220,6 @@ contract ETHRegistrarController is Ownable {
         if (msg.value > cost) {
             payable(msg.sender).transfer(msg.value - cost);
         }
-        console.log("8 transfer back funds", gasleft());
     }
 
     function renew(string calldata name, uint256 duration) external payable {
@@ -299,37 +301,5 @@ contract ETHRegistrarController is Ownable {
         require(msg.value >= cost);
 
         return cost;
-    }
-
-    function _registerWithResolver(
-        bytes32 label,
-        string calldata name,
-        address owner,
-        uint256 duration,
-        address resolver,
-        address addr, // bytes[] calldata data
-        uint96 fuses
-    ) internal returns (uint256 expires) {
-        Resolver resolverContract = Resolver(resolver);
-        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
-
-        console.log("3 keccak and instiate resolver", gasleft());
-
-        expires = nameWrapper.registerAndWrapETH2LD(
-            name,
-            owner,
-            duration,
-            resolver,
-            fuses
-        );
-        console.log("4 registerAndWrap", gasleft());
-
-        // loop through data and check namehash then call the resolver
-        // address(resolver).call(data[i]) // success, returndata (check success is true)
-
-        if (addr != address(0)) {
-            resolverContract.setAddr(nodehash, addr);
-        }
-        console.log("5 setAddr", gasleft());
     }
 }
