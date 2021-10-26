@@ -5,6 +5,7 @@ import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
 import "../resolvers/Resolver.sol";
 import "../registry/ReverseRegistrar.sol";
+import "../dnssec-oracle/BytesUtils.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@ensdomains/name-wrapper/interfaces/INameWrapper.sol";
@@ -39,6 +40,7 @@ interface commitmentController {
  */
 contract ETHRegistrarController is Ownable {
     using StringUtils for *;
+    using BytesUtils for bytes;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
 
@@ -121,22 +123,18 @@ contract ETHRegistrarController is Ownable {
         address owner,
         bytes32 secret,
         address resolver,
-        address addr,
+        bytes[] calldata data,
         bool reverseRecord,
         uint96 fuses
     ) public pure returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
-        if (resolver == address(0) && addr == address(0)) {
-            return keccak256(abi.encodePacked(label, owner, secret));
-        }
-        require(resolver != address(0));
         return
             keccak256(
                 abi.encode(
                     label,
                     owner,
                     resolver,
-                    addr,
+                    data,
                     secret,
                     reverseRecord,
                     fuses
@@ -155,11 +153,10 @@ contract ETHRegistrarController is Ownable {
         uint256 duration,
         bytes32 secret,
         address resolver,
-        address addr,
+        bytes[] calldata data,
         bool reverseRecord,
         uint96 fuses
     ) public payable {
-        console.log("start1", gasleft());
         uint256 cost = _consumeCommitment(
             name,
             duration,
@@ -168,18 +165,13 @@ contract ETHRegistrarController is Ownable {
                 owner,
                 secret,
                 resolver,
-                addr,
+                data,
                 reverseRecord,
                 fuses
             )
         );
 
-        console.log("2 _consumeCommitment", gasleft());
-
         bytes32 label = keccak256(bytes(name));
-
-        // loop through data and check namehash then call the resolver
-        // address(resolver).call(data[i]) // success, returndata (check success is true)
 
         uint256 expires = nameWrapper.registerAndWrapETH2LD(
             name,
@@ -189,34 +181,19 @@ contract ETHRegistrarController is Ownable {
             fuses
         );
 
-        if (resolver != address(0) && addr != address(0)) {
-            Resolver resolverContract = Resolver(resolver);
-            bytes32 nodehash = keccak256(
-                abi.encodePacked(base.baseNode(), label)
-            );
-
-            console.log("3 keccak and instiate resolver", gasleft());
-
-            console.log("4 registerAndWrap", gasleft());
-            if (addr != address(0)) {
-                resolverContract.setAddr(nodehash, addr);
-            }
+        if (resolver != address(0) && data.length > 0) {
+            //Resolver resolverContract = Resolver(resolver);
+            _setRecords(resolver, label, data);
         }
 
         if (reverseRecord) {
             //set reverse record to msg.sender
-            reverseRegistrar.setNameForAddr(
-                msg.sender,
-                msg.sender,
-                string(abi.encodePacked(name, ".eth"))
-            );
+            _setReverseRecord(name);
         }
-        console.log("6 reverse", gasleft());
 
         emit NameRegistered(name, label, owner, cost, expires);
 
         // Refund any extra payment
-        console.log("7 NameRegistered Event ", gasleft());
         if (msg.value > cost) {
             payable(msg.sender).transfer(msg.value - cost);
         }
@@ -249,8 +226,8 @@ contract ETHRegistrarController is Ownable {
         maxCommitmentAge = _maxCommitmentAge;
     }
 
-    function withdraw() public onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);
+    function withdraw() public {
+        payable(owner()).transfer(address(this).balance);
     }
 
     function supportsInterface(bytes4 interfaceID)
@@ -301,5 +278,36 @@ contract ETHRegistrarController is Ownable {
         require(msg.value >= cost);
 
         return cost;
+    }
+
+    function _setRecords(
+        address resolver,
+        bytes32 label,
+        bytes[] calldata data
+    ) internal {
+        // use hardcoded .eth namehash
+        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
+
+        for (uint256 i = 0; i < data.length; i++) {
+            // check first few bytes are namehash
+            bytes32 txNamehash = data[i].readBytes32(4);
+            require(
+                txNamehash == nodehash,
+                "Records being set do not match the name being registered"
+            );
+            (bool success, bytes memory result) = address(resolver).call(
+                data[i]
+            );
+            require(success);
+            //results[i] = result;
+        }
+    }
+
+    function _setReverseRecord(string calldata name) internal {
+        reverseRegistrar.setNameForAddr(
+            msg.sender,
+            msg.sender,
+            string(abi.encodePacked(name, ".eth"))
+        );
     }
 }

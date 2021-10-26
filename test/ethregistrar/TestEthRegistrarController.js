@@ -153,7 +153,7 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         NULL_ADDRESS,
-        NULL_ADDRESS,
+        [],
         false,
         0
       )
@@ -171,7 +171,7 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         NULL_ADDRESS,
-        NULL_ADDRESS,
+        [],
         false,
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -205,7 +205,17 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('newconfigname.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData('setText', [
+            namehash.hash('newconfigname.eth'),
+            'url',
+            'ethereum.com',
+          ]),
+        ],
         false,
         0
       )
@@ -223,15 +233,20 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('newconfigname.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData('setText', [
+            namehash.hash('newconfigname.eth'),
+            'url',
+            'ethereum.com',
+          ]),
+        ],
         false,
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
-      )
-
-      console.log(
-        'no reverse, with address',
-        (await tx.wait()).gasUsed.toString()
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -259,21 +274,8 @@ describe.only('ETHRegistrarController Tests', () => {
         nameWrapper.address
       )
       assert.equal(await resolver['addr(bytes32)'](nodehash), registrantAccount)
+      assert.equal(await resolver['text'](nodehash, 'url'), 'ethereum.com')
       assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
-    })
-
-    it('should not allow a commitment with addr but not resolver', async () => {
-      await exceptions.expectFailure(
-        controller.makeCommitment(
-          'newconfigname2',
-          registrantAccount,
-          secret,
-          NULL_ADDRESS,
-          registrantAccount,
-          false,
-          0
-        )
-      )
     })
 
     it('should permit a registration with resolver but not addr', async () => {
@@ -282,7 +284,7 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         false,
         0
       )
@@ -300,7 +302,7 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         false,
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -330,7 +332,7 @@ describe.only('ETHRegistrarController Tests', () => {
           accounts[2],
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0
         )
@@ -345,7 +347,7 @@ describe.only('ETHRegistrarController Tests', () => {
           28 * DAYS,
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0,
           {
@@ -363,7 +365,7 @@ describe.only('ETHRegistrarController Tests', () => {
           registrantAccount,
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0
         )
@@ -378,7 +380,7 @@ describe.only('ETHRegistrarController Tests', () => {
           28 * DAYS,
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0,
           {
@@ -396,7 +398,7 @@ describe.only('ETHRegistrarController Tests', () => {
           registrantAccount,
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0
         )
@@ -413,7 +415,7 @@ describe.only('ETHRegistrarController Tests', () => {
           28 * DAYS,
           secret,
           NULL_ADDRESS,
-          NULL_ADDRESS,
+          [],
           false,
           0,
           {
@@ -451,7 +453,7 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         0
       )
@@ -464,7 +466,7 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -482,7 +484,7 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         0
       )
@@ -495,7 +497,7 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         0,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -521,7 +523,7 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         1
       )
@@ -534,7 +536,7 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        NULL_ADDRESS,
+        [],
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -553,7 +555,12 @@ describe.only('ETHRegistrarController Tests', () => {
         registrantAccount,
         secret,
         resolver.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            node,
+            registrantAccount,
+          ]),
+        ],
         true,
         1
       )
@@ -568,7 +575,12 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            node,
+            registrantAccount,
+          ]),
+        ],
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -582,7 +594,12 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver2.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            node,
+            registrantAccount,
+          ]),
+        ],
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
@@ -594,7 +611,12 @@ describe.only('ETHRegistrarController Tests', () => {
         28 * DAYS,
         secret,
         resolver2.address,
-        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            node,
+            registrantAccount,
+          ]),
+        ],
         true,
         1,
         { value: 28 * DAYS + 1, gasPrice: 0 }
