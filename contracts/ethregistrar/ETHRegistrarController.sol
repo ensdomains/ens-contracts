@@ -287,13 +287,12 @@ contract ETHRegistrarController is Ownable {
     ) internal {
         // use hardcoded .eth namehash
         bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
-
         for (uint256 i = 0; i < data.length; i++) {
             // check first few bytes are namehash
             bytes32 txNamehash = data[i].readBytes32(4);
             require(
                 txNamehash == nodehash,
-                "Records being set do not match the name being registered"
+                "ETHRegistrarController: Namehash on record do not match the name being registered"
             );
             (bool success, bytes memory result) = address(resolver).call(
                 data[i]

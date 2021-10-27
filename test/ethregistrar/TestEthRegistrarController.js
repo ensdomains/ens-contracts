@@ -199,7 +199,7 @@ describe.only('ETHRegistrarController Tests', () => {
       assert.equal(await controller.available('newname'), false)
     })
 
-    it('should permit new registrations with config', async () => {
+    it('should permit new registrations with resolver and records', async () => {
       var commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
@@ -278,7 +278,107 @@ describe.only('ETHRegistrarController Tests', () => {
       assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
     })
 
-    it('should permit a registration with resolver but not addr', async () => {
+    it('should not permit new registrations with records updating a different name', async () => {
+      var commitment = await controller.makeCommitment(
+        'awesome',
+        registrantAccount,
+        secret,
+        resolver.address,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('othername.eth'),
+            registrantAccount,
+          ]),
+        ],
+        false,
+        0
+      )
+      var tx = await controller.commit(commitment)
+      assert.equal(
+        await controller.commitments(commitment),
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      )
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      var balanceBefore = await web3.eth.getBalance(controller.address)
+
+      await expect(
+        controller.register(
+          'awesome',
+          registrantAccount,
+          28 * DAYS,
+          secret,
+          resolver.address,
+          [
+            resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+              namehash.hash('othername.eth'),
+              registrantAccount,
+            ]),
+          ],
+          false,
+          0,
+          { value: 28 * DAYS + 1, gasPrice: 0 }
+        )
+      ).to.be.revertedWith(
+        'ETHRegistrarController: Namehash on record do not match the name being registered'
+      )
+    })
+
+    it('should not permit new registrations with any record updating a different name', async () => {
+      var commitment = await controller.makeCommitment(
+        'awesome',
+        registrantAccount,
+        secret,
+        resolver.address,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('awesome.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData(
+            'setText(bytes32,string,string)',
+            [namehash.hash('other.eth'), 'url', 'ethereum.com']
+          ),
+        ],
+        false,
+        0
+      )
+      var tx = await controller.commit(commitment)
+      assert.equal(
+        await controller.commitments(commitment),
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      )
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      var balanceBefore = await web3.eth.getBalance(controller.address)
+
+      await expect(
+        controller.register(
+          'awesome',
+          registrantAccount,
+          28 * DAYS,
+          secret,
+          resolver.address,
+          [
+            resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+              namehash.hash('awesome.eth'),
+              registrantAccount,
+            ]),
+            resolver.interface.encodeFunctionData(
+              'setText(bytes32,string,string)',
+              [namehash.hash('other.eth'), 'url', 'ethereum.com']
+            ),
+          ],
+          false,
+          0,
+          { value: 28 * DAYS + 1, gasPrice: 0 }
+        )
+      ).to.be.revertedWith(
+        'ETHRegistrarController: Namehash on record do not match the name being registered'
+      )
+    })
+
+    it('should permit a registration with resolver but no records', async () => {
       var commitment = await controller.makeCommitment(
         'newconfigname2',
         registrantAccount,
