@@ -30,7 +30,8 @@ contract PublicResolver is
 {
     ENS ens;
     INameWrapper nameWrapper;
-    address immutable trustedContract;
+    address immutable trustedETHController;
+    address immutable trustedReverseRegistrar;
 
     /**
      * A mapping of operators. An address that is authorised for an address
@@ -50,11 +51,13 @@ contract PublicResolver is
     constructor(
         ENS _ens,
         INameWrapper wrapperAddress,
-        address _trustedContract
+        address _trustedETHController,
+        address _trustedReverseRegistrar
     ) {
         ens = _ens;
         nameWrapper = wrapperAddress;
-        trustedContract = _trustedContract;
+        trustedETHController = _trustedETHController;
+        trustedReverseRegistrar = _trustedReverseRegistrar;
     }
 
     /**
@@ -71,7 +74,10 @@ contract PublicResolver is
     }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
-        if (msg.sender == trustedContract) {
+        if (
+            msg.sender == trustedETHController ||
+            msg.sender == trustedReverseRegistrar
+        ) {
             return true;
         }
         address owner = ens.owner(node);

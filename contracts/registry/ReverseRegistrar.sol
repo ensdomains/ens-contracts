@@ -50,23 +50,13 @@ contract ReverseRegistrar is Ownable, Controllable {
     }
 
     /**
-     * @dev Claims resolver reverse node
-     *
-     * @return The ENS node hash of the reverse record.
-     */
-
-    function claimResolverReverse() public onlyOwner returns (bytes32) {
-        return claimForAddr(address(defaultResolver), msg.sender);
-    }
-
-    /**
      * @dev Transfers ownership of the reverse ENS record associated with the
      *      calling account.
      * @param owner The address to set as the owner of the reverse record in ENS.
      * @return The ENS node hash of the reverse record.
      */
     function claim(address owner) public returns (bytes32) {
-        return _claimWithResolver(msg.sender, owner, address(0x0));
+        return claimForAddr(msg.sender, msg.sender, address(defaultResolver));
     }
 
     /**
@@ -76,12 +66,19 @@ contract ReverseRegistrar is Ownable, Controllable {
      * @param owner The address to set as the owner of the reverse record in ENS.
      * @return The ENS node hash of the reverse record.
      */
-    function claimForAddr(address addr, address owner)
-        public
-        authorised(addr)
-        returns (bytes32)
-    {
-        return _claimWithResolver(addr, owner, address(0x0));
+    function claimForAddr(
+        address addr,
+        address owner,
+        address resolver
+    ) public authorised(addr) returns (bytes32) {
+        ens.setSubnodeRecord(
+            ADDR_REVERSE_NODE,
+            sha3HexAddress(addr),
+            owner,
+            resolver,
+            0
+        );
+        return node(addr);
     }
 
     /**
@@ -95,23 +92,7 @@ contract ReverseRegistrar is Ownable, Controllable {
         public
         returns (bytes32)
     {
-        return _claimWithResolver(msg.sender, owner, resolver);
-    }
-
-    /**
-     * @dev Transfers ownership of the reverse ENS record specified with the
-     *      address provided
-     * @param addr The reverse record to set
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The address of the resolver to set; 0 to leave unchanged.
-     * @return The ENS node hash of the reverse record.
-     */
-    function claimWithResolverForAddr(
-        address addr,
-        address owner,
-        address resolver
-    ) public authorised(addr) returns (bytes32) {
-        return _claimWithResolver(addr, owner, resolver);
+        return claimForAddr(msg.sender, owner, resolver);
     }
 
     /**
@@ -122,13 +103,13 @@ contract ReverseRegistrar is Ownable, Controllable {
      * @return The ENS node hash of the reverse record.
      */
     function setName(string memory name) public returns (bytes32) {
-        bytes32 node = _claimWithResolver(
-            msg.sender,
-            address(this),
-            address(defaultResolver)
-        );
-        defaultResolver.setName(node, name);
-        return node;
+        return
+            setNameForAddr(
+                msg.sender,
+                msg.sender,
+                address(defaultResolver),
+                name
+            );
     }
 
     /**
@@ -144,15 +125,11 @@ contract ReverseRegistrar is Ownable, Controllable {
     function setNameForAddr(
         address addr,
         address owner,
+        address resolver,
         string memory name
     ) public authorised(addr) returns (bytes32) {
-        bytes32 node = _claimWithResolver(
-            addr,
-            address(this),
-            address(defaultResolver)
-        );
-        defaultResolver.setName(node, name);
-        ens.setSubnodeOwner(ADDR_REVERSE_NODE, sha3HexAddress(addr), owner);
+        bytes32 node = claimForAddr(addr, owner, resolver);
+        NameResolver(resolver).setName(node, name);
         return node;
     }
 

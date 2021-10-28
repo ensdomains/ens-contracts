@@ -97,7 +97,8 @@ describe.only('ETHRegistrarController Tests', () => {
         'PublicResolver',
         ens.address,
         nameWrapper.address,
-        controller.address
+        controller.address,
+        reverseRegistrar.address
       )
 
       resolver2 = await resolver.connect(signers[1])
@@ -572,8 +573,9 @@ describe.only('ETHRegistrarController Tests', () => {
         { value: 28 * DAYS + 1, gasPrice: 0 }
       )
 
-      const name = await reverseResolver.name(getReverseNode(ownerAccount))
-      assert.equal(name, 'reverse.eth')
+      expect(await resolver.name(getReverseNode(ownerAccount))).to.equal(
+        'reverse.eth'
+      )
     })
 
     it('should auto wrap the name and set the ERC721 owner to the wrapper', async () => {

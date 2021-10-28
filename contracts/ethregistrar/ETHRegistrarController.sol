@@ -182,13 +182,11 @@ contract ETHRegistrarController is Ownable {
         );
 
         if (resolver != address(0) && data.length > 0) {
-            //Resolver resolverContract = Resolver(resolver);
             _setRecords(resolver, label, data);
         }
 
         if (reverseRecord) {
-            //set reverse record to msg.sender
-            _setReverseRecord(name);
+            _setReverseRecord(name, resolver, msg.sender);
         }
 
         emit NameRegistered(name, label, owner, cost, expires);
@@ -302,10 +300,15 @@ contract ETHRegistrarController is Ownable {
         }
     }
 
-    function _setReverseRecord(string calldata name) internal {
+    function _setReverseRecord(
+        string calldata name,
+        address resolver,
+        address owner
+    ) internal {
         reverseRegistrar.setNameForAddr(
             msg.sender,
             msg.sender,
+            resolver,
             string(abi.encodePacked(name, ".eth"))
         );
     }
