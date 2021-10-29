@@ -79,22 +79,32 @@ describe.only('ReverseRegistrar Tests', () => {
 
     describe('claimForAddr', () => {
       it('allows an account to claim its address', async () => {
-        await registrar.claimForAddr(accounts[0], accounts[1], {
-          from: accounts[0],
-        })
+        await registrar.claimForAddr(
+          accounts[0],
+          accounts[1],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
         assert.equal(await ens.owner(node), accounts[1])
       })
 
       it('event ReverseClaimed is emitted', async () => {
-        const tx = await registrar.claimForAddr(accounts[0], accounts[1], {
-          from: accounts[0],
-        })
+        const tx = await registrar.claimForAddr(
+          accounts[0],
+          accounts[1],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
         assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
       it('forbids an account to claim another address', async () => {
         await exceptions.expectFailure(
-          registrar.claimForAddr(accounts[1], accounts[0], {
+          registrar.claimForAddr(accounts[1], accounts[0], resolver.address, {
             from: accounts[0],
           })
         )
@@ -102,25 +112,40 @@ describe.only('ReverseRegistrar Tests', () => {
 
       it('allows an authorised account to claim a different address', async () => {
         await ens.setApprovalForAll(accounts[0], true, { from: accounts[1] })
-        await registrar.claimForAddr(accounts[1], accounts[2], {
-          from: accounts[0],
-        })
+        await registrar.claimForAddr(
+          accounts[1],
+          accounts[2],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
         assert.equal(await ens.owner(node2), accounts[2])
       })
 
       it('allows a controller to claim a different address', async () => {
         await registrar.setController(accounts[0], true)
-        await registrar.claimForAddr(accounts[1], accounts[2], {
-          from: accounts[0],
-        })
+        await registrar.claimForAddr(
+          accounts[1],
+          accounts[2],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
         assert.equal(await ens.owner(node2), accounts[2])
       })
 
       it('allows an owner() of a contract to claim the reverse node of that contract', async () => {
         await registrar.setController(accounts[0], true)
-        await registrar.claimForAddr(dummyOwnable.address, accounts[0], {
-          from: accounts[0],
-        })
+        await registrar.claimForAddr(
+          dummyOwnable.address,
+          accounts[0],
+          resolver.address,
+          {
+            from: accounts[0],
+          }
+        )
         assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
       })
     })
@@ -141,126 +166,126 @@ describe.only('ReverseRegistrar Tests', () => {
         assertReverseClaimedEventEmitted(tx, accounts[0], node)
       })
 
-      it('does not overwrite resolver if not specified', async () => {
-        await registrar.claimWithResolver(accounts[1], accounts[2], {
-          from: accounts[0],
-        })
-        await registrar.claim(accounts[3], { from: accounts[0] })
+      // it('does not overwrite resolver if not specified', async () => {
+      //   await registrar.claimWithResolver(accounts[1], accounts[2], {
+      //     from: accounts[0],
+      //   })
+      //   await registrar.claim(accounts[3], { from: accounts[0] })
 
-        assert.equal(await ens.owner(node), accounts[3])
-        assert.equal(await ens.resolver(node), accounts[2])
-      })
+      //   assert.equal(await ens.owner(node), accounts[3])
+      //   assert.equal(await ens.resolver(node), accounts[2])
+      // })
     })
 
-    describe('claimWithResolverForAddr', () => {
-      it('allows an account with the same address to specify resolver', async () => {
-        await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[0],
-          }
-        )
-        assert.equal(await ens.owner(node), accounts[0])
-        assert.equal(await ens.resolver(node), resolver.address)
-      })
+    // describe('claimWithResolverForAddr', () => {
+    //   it('allows an account with the same address to specify resolver', async () => {
+    //     await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[0],
+    //       }
+    //     )
+    //     assert.equal(await ens.owner(node), accounts[0])
+    //     assert.equal(await ens.resolver(node), resolver.address)
+    //   })
 
-      it('event ReverseClaimed is emitted', async () => {
-        const tx = await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[0],
-          }
-        )
-        assertReverseClaimedEventEmitted(tx, accounts[0], node)
-      })
+    //   it('event ReverseClaimed is emitted', async () => {
+    //     const tx = await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[0],
+    //       }
+    //     )
+    //     assertReverseClaimedEventEmitted(tx, accounts[0], node)
+    //   })
 
-      it('allows an account authorised by the address to specify resolver', async () => {
-        await ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
-        await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[1],
-          }
-        )
-        assert.equal(await ens.owner(node), accounts[0])
-        assert.equal(await ens.resolver(node), resolver.address)
-      })
+    //   it('allows an account authorised by the address to specify resolver', async () => {
+    //     await ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
+    //     await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[1],
+    //       }
+    //     )
+    //     assert.equal(await ens.owner(node), accounts[0])
+    //     assert.equal(await ens.resolver(node), resolver.address)
+    //   })
 
-      it('allows a controller specify resolver', async () => {
-        await registrar.setController(accounts[1], true)
-        await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[1],
-          }
-        )
-        assert.equal(await ens.owner(node), accounts[0])
-        assert.equal(await ens.resolver(node), resolver.address)
-      })
+    //   it('allows a controller specify resolver', async () => {
+    //     await registrar.setController(accounts[1], true)
+    //     await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[1],
+    //       }
+    //     )
+    //     assert.equal(await ens.owner(node), accounts[0])
+    //     assert.equal(await ens.resolver(node), resolver.address)
+    //   })
 
-      it('does not overwrite resolver if not specified', async () => {
-        await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[0],
-          }
-        )
+    //   it('does not overwrite resolver if not specified', async () => {
+    //     await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[0],
+    //       }
+    //     )
 
-        assert.equal(await ens.owner(node), accounts[0])
-        assert.equal(await ens.resolver(node), resolver.address)
+    //     assert.equal(await ens.owner(node), accounts[0])
+    //     assert.equal(await ens.resolver(node), resolver.address)
 
-        await registrar.claimWithResolverForAddr(
-          accounts[0],
-          accounts[0],
-          EMPTY_ADDRESS,
-          {
-            from: accounts[0],
-          }
-        )
+    //     await registrar.claimWithResolverForAddr(
+    //       accounts[0],
+    //       accounts[0],
+    //       EMPTY_ADDRESS,
+    //       {
+    //         from: accounts[0],
+    //       }
+    //     )
 
-        assert.equal(await ens.owner(node), accounts[0])
-        assert.equal(await ens.resolver(node), resolver.address)
-      })
+    //     assert.equal(await ens.owner(node), accounts[0])
+    //     assert.equal(await ens.resolver(node), resolver.address)
+    //   })
 
-      it('forbids an account with a different address', async () => {
-        await exceptions.expectFailure(
-          registrar.claimWithResolverForAddr(
-            accounts[0],
-            accounts[0],
-            resolver.address,
-            {
-              from: accounts[1],
-            }
-          )
-        )
-      })
+    //   it('forbids an account with a different address', async () => {
+    //     await exceptions.expectFailure(
+    //       registrar.claimWithResolverForAddr(
+    //         accounts[0],
+    //         accounts[0],
+    //         resolver.address,
+    //         {
+    //           from: accounts[1],
+    //         }
+    //       )
+    //     )
+    //   })
 
-      it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
-        await registrar.claimWithResolverForAddr(
-          dummyOwnable.address,
-          accounts[0],
-          resolver.address,
-          {
-            from: accounts[0],
-          }
-        )
-        assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
-        assert.equal(
-          await ens.resolver(dummyOwnableReverseNode),
-          resolver.address
-        )
-      })
-    })
+    //   it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
+    //     await registrar.claimWithResolverForAddr(
+    //       dummyOwnable.address,
+    //       accounts[0],
+    //       resolver.address,
+    //       {
+    //         from: accounts[0],
+    //       }
+    //     )
+    //     assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
+    //     assert.equal(
+    //       await ens.resolver(dummyOwnableReverseNode),
+    //       resolver.address
+    //     )
+    //   })
+    // })
 
     describe('setName', () => {
       it('sets name records', async () => {
@@ -281,18 +306,25 @@ describe.only('ReverseRegistrar Tests', () => {
     describe('setNameForAddr', () => {
       it('allows controller to set name records for other accounts', async () => {
         await registrar.setController(accounts[0], true)
-        await registrar.setNameForAddr(accounts[1], accounts[0], 'testname', {
-          from: accounts[0],
-          gas: 1000000,
-        })
-        assert.equal(await ens.resolver(node2), defaultResolver.address)
-        assert.equal(await defaultResolver.name(node2), 'testname')
+        await registrar.setNameForAddr(
+          accounts[1],
+          accounts[0],
+          resolver.address,
+          'testname',
+          {
+            from: accounts[0],
+            gas: 1000000,
+          }
+        )
+        assert.equal(await ens.resolver(node2), resolver.address)
+        assert.equal(await resolver.name(node2), 'testname')
       })
 
       it('event ReverseClaimed is emitted', async () => {
         const tx = await registrar.setNameForAddr(
           accounts[0],
           accounts[0],
+          resolver.address,
           'testname',
           {
             from: accounts[0],
@@ -304,36 +336,55 @@ describe.only('ReverseRegistrar Tests', () => {
 
       it('forbids non-controller if address is different from sender and not authorised', async () => {
         await exceptions.expectFailure(
-          registrar.setNameForAddr(accounts[1], accounts[0], 'testname', {
-            from: accounts[0],
-            gas: 1000000,
-          })
+          registrar.setNameForAddr(
+            accounts[1],
+            accounts[0],
+            resolver.address,
+            'testname',
+            {
+              from: accounts[0],
+              gas: 1000000,
+            }
+          )
         )
       })
 
       it('allows name to be set for an address if the sender is the address', async () => {
-        await registrar.setNameForAddr(accounts[0], accounts[0], 'testname', {
-          from: accounts[0],
-          gas: 1000000,
-        })
-        assert.equal(await ens.resolver(node), defaultResolver.address)
-        assert.equal(await defaultResolver.name(node), 'testname')
+        await registrar.setNameForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          'testname',
+          {
+            from: accounts[0],
+            gas: 1000000,
+          }
+        )
+        assert.equal(await ens.resolver(node), resolver.address)
+        assert.equal(await resolver.name(node), 'testname')
       })
 
       it('allows name to be set for an address if the sender is authorised', async () => {
         ens.setApprovalForAll(accounts[1], true, { from: accounts[0] })
-        await registrar.setNameForAddr(accounts[0], accounts[0], 'testname', {
-          from: accounts[1],
-          gas: 1000000,
-        })
-        assert.equal(await ens.resolver(node), defaultResolver.address)
-        assert.equal(await defaultResolver.name(node), 'testname')
+        await registrar.setNameForAddr(
+          accounts[0],
+          accounts[0],
+          resolver.address,
+          'testname',
+          {
+            from: accounts[1],
+            gas: 1000000,
+          }
+        )
+        assert.equal(await ens.resolver(node), resolver.address)
+        assert.equal(await resolver.name(node), 'testname')
       })
 
       it('allows an owner() of a contract to claimWithResolverForAddr on behalf of the contract', async () => {
         await registrar.setNameForAddr(
           dummyOwnable.address,
           accounts[0],
+          resolver.address,
           'dummyownable.eth',
           {
             from: accounts[0],
@@ -341,7 +392,7 @@ describe.only('ReverseRegistrar Tests', () => {
         )
         assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
         assert.equal(
-          await defaultResolver.name(dummyOwnableReverseNode),
+          await resolver.name(dummyOwnableReverseNode),
           'dummyownable.eth'
         )
       })

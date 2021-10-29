@@ -181,7 +181,11 @@ contract ETHRegistrarController is Ownable {
             fuses
         );
 
-        if (resolver != address(0) && data.length > 0) {
+        if (data.length > 0) {
+            require(
+                resolver != address(0),
+                "ETHRegistrarController: resolver is required when data is supplied"
+            );
             _setRecords(resolver, label, data);
         }
 
@@ -292,11 +296,8 @@ contract ETHRegistrarController is Ownable {
                 txNamehash == nodehash,
                 "ETHRegistrarController: Namehash on record do not match the name being registered"
             );
-            (bool success, bytes memory result) = address(resolver).call(
-                data[i]
-            );
-            require(success);
-            //results[i] = result;
+            (bool success, ) = address(resolver).call(data[i]);
+            require(success, "ETHRegistrarController: Failed to set Record");
         }
     }
 

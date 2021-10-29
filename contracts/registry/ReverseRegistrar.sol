@@ -71,14 +71,11 @@ contract ReverseRegistrar is Ownable, Controllable {
         address owner,
         address resolver
     ) public authorised(addr) returns (bytes32) {
-        ens.setSubnodeRecord(
-            ADDR_REVERSE_NODE,
-            sha3HexAddress(addr),
-            owner,
-            resolver,
-            0
+        bytes32 labelHash = sha3HexAddress(addr);
+        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
+        bytes32 reverseNode = keccak256(
+            abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
-        bytes32 reverseNode = node(addr);
         emit ReverseClaimed(addr, reverseNode);
         return reverseNode;
     }
