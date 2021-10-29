@@ -7,11 +7,11 @@ import "./ENS.sol";
  * expires registrations a fixed period after they're initially claimed.
  */
 contract TestRegistrar {
-    uint constant registrationPeriod = 4 weeks;
+    uint256 constant registrationPeriod = 4 weeks;
 
     ENS public ens;
     bytes32 public rootNode;
-    mapping (bytes32 => uint) public expiryTimes;
+    mapping(bytes32 => uint256) public expiryTimes;
 
     /**
      * Constructor.

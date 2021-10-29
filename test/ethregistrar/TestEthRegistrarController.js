@@ -20,7 +20,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-describe.only('ETHRegistrarController Tests', () => {
+describe('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function() {
     let ens
     let resolver
