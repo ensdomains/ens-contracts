@@ -14,7 +14,7 @@ abstract contract NameResolver is ResolverBase {
      * @param node The node to update.
      * @param name The name to set.
      */
-    function setName(bytes32 node, string calldata name) external authorised(node) {
+    function setName(bytes32 node, string calldata name) virtual external authorised(node) {
         names[node] = name;
         emit NameChanged(node, name);
     }
@@ -25,7 +25,7 @@ abstract contract NameResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated name.
      */
-    function name(bytes32 node) external view returns (string memory) {
+    function name(bytes32 node) virtual external view returns (string memory) {
         return names[node];
     }
 

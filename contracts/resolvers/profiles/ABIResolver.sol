@@ -16,7 +16,7 @@ abstract contract ABIResolver is ResolverBase {
      * @param contentType The content type of the ABI
      * @param data The ABI data.
      */
-    function setABI(bytes32 node, uint256 contentType, bytes calldata data) external authorised(node) {
+    function setABI(bytes32 node, uint256 contentType, bytes calldata data) virtual external authorised(node) {
         // Content types must be powers of 2
         require(((contentType - 1) & contentType) == 0);
 
@@ -32,7 +32,7 @@ abstract contract ABIResolver is ResolverBase {
      * @return contentType The content type of the return value
      * @return data The ABI data
      */
-    function ABI(bytes32 node, uint256 contentTypes) external view returns (uint256, bytes memory) {
+    function ABI(bytes32 node, uint256 contentTypes) virtual external view returns (uint256, bytes memory) {
         mapping(uint256=>bytes) storage abiset = abis[node];
 
         for (uint256 contentType = 1; contentType <= contentTypes; contentType <<= 1) {

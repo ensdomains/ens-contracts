@@ -17,7 +17,7 @@ abstract contract AddrResolver is ResolverBase {
      * @param node The node to update.
      * @param a The address to set.
      */
-    function setAddr(bytes32 node, address a) external authorised(node) {
+    function setAddr(bytes32 node, address a) virtual external authorised(node) {
         setAddr(node, COIN_TYPE_ETH, addressToBytes(a));
     }
 
@@ -26,7 +26,7 @@ abstract contract AddrResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated address.
      */
-    function addr(bytes32 node) public view returns (address payable) {
+    function addr(bytes32 node) virtual public view returns (address payable) {
         bytes memory a = addr(node, COIN_TYPE_ETH);
         if(a.length == 0) {
             return payable(0);
@@ -34,7 +34,7 @@ abstract contract AddrResolver is ResolverBase {
         return bytesToAddress(a);
     }
 
-    function setAddr(bytes32 node, uint coinType, bytes memory a) public authorised(node) {
+    function setAddr(bytes32 node, uint coinType, bytes memory a) virtual public authorised(node) {
         emit AddressChanged(node, coinType, a);
         if(coinType == COIN_TYPE_ETH) {
             emit AddrChanged(node, bytesToAddress(a));
@@ -42,7 +42,7 @@ abstract contract AddrResolver is ResolverBase {
         _addresses[node][coinType] = a;
     }
 
-    function addr(bytes32 node, uint coinType) public view returns(bytes memory) {
+    function addr(bytes32 node, uint coinType) virtual public view returns(bytes memory) {
         return _addresses[node][coinType];
     }
 
