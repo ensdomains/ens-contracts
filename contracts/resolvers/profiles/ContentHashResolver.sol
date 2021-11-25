@@ -14,7 +14,7 @@ abstract contract ContentHashResolver is ResolverBase {
      * @param node The node to update.
      * @param hash The contenthash to set
      */
-    function setContenthash(bytes32 node, bytes calldata hash) external authorised(node) {
+    function setContenthash(bytes32 node, bytes calldata hash) virtual external authorised(node) {
         hashes[node] = hash;
         emit ContenthashChanged(node, hash);
     }
@@ -24,7 +24,7 @@ abstract contract ContentHashResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated contenthash.
      */
-    function contenthash(bytes32 node) external view returns (bytes memory) {
+    function contenthash(bytes32 node) virtual external view returns (bytes memory) {
         return hashes[node];
     }
 

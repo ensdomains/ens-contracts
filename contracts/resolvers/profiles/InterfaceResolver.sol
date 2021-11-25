@@ -17,7 +17,7 @@ abstract contract InterfaceResolver is ResolverBase, AddrResolver {
      * @param interfaceID The EIP 165 interface ID.
      * @param implementer The address of a contract that implements this interface for this node.
      */
-    function setInterface(bytes32 node, bytes4 interfaceID, address implementer) external authorised(node) {
+    function setInterface(bytes32 node, bytes4 interfaceID, address implementer) virtual external authorised(node) {
         interfaces[node][interfaceID] = implementer;
         emit InterfaceChanged(node, interfaceID, implementer);
     }
@@ -32,7 +32,7 @@ abstract contract InterfaceResolver is ResolverBase, AddrResolver {
      * @param interfaceID The EIP 165 interface ID to check for.
      * @return The address that implements this interface, or 0 if the interface is unsupported.
      */
-    function interfaceImplementer(bytes32 node, bytes4 interfaceID) external view returns (address) {
+    function interfaceImplementer(bytes32 node, bytes4 interfaceID) virtual external view returns (address) {
         address implementer = interfaces[node][interfaceID];
         if(implementer != address(0)) {
             return implementer;

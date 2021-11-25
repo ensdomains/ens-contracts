@@ -19,7 +19,7 @@ abstract contract PubkeyResolver is ResolverBase {
      * @param x the X coordinate of the curve point for the public key.
      * @param y the Y coordinate of the curve point for the public key.
      */
-    function setPubkey(bytes32 node, bytes32 x, bytes32 y) external authorised(node) {
+    function setPubkey(bytes32 node, bytes32 x, bytes32 y) virtual external authorised(node) {
         pubkeys[node] = PublicKey(x, y);
         emit PubkeyChanged(node, x, y);
     }
@@ -31,7 +31,7 @@ abstract contract PubkeyResolver is ResolverBase {
      * @return x The X coordinate of the curve point for the public key.
      * @return y The Y coordinate of the curve point for the public key.
      */
-    function pubkey(bytes32 node) external view returns (bytes32 x, bytes32 y) {
+    function pubkey(bytes32 node) virtual external view returns (bytes32 x, bytes32 y) {
         return (pubkeys[node].x, pubkeys[node].y);
     }
 
