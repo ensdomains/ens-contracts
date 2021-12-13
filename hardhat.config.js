@@ -52,7 +52,14 @@ module.exports = {
       chainId: 3,
       accounts: real_accounts,
     },
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ['legacy', 'use_root'],
+      chainId: 1,
+      accounts: real_accounts,
+    },
   },
+  mocha: {},
   mocha: {},
   abiExporter: {
     path: './build/contracts',
@@ -61,13 +68,17 @@ module.exports = {
     spacing: 2,
   },
   solidity: {
-    version: '0.8.4',
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 10000,
+    compilers: [
+      {
+        version: '0.8.4',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+        },
       },
-    },
+    ],
   },
   namedAccounts: {
     deployer: {

@@ -59,7 +59,7 @@ abstract contract DNSResolver is ResolverBase {
      * @param node the namehash of the node for which to set the records
      * @param data the DNS wire format records to set
      */
-    function setDNSRecords(bytes32 node, bytes calldata data) external authorised(node) {
+    function setDNSRecords(bytes32 node, bytes calldata data) virtual external authorised(node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -96,7 +96,7 @@ abstract contract DNSResolver is ResolverBase {
      * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
      * @return the DNS record in wire format if present, otherwise empty
      */
-    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) public view returns (bytes memory) {
+    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) virtual public view returns (bytes memory) {
         return records[node][versions[node]][name][resource];
     }
 
@@ -105,7 +105,7 @@ abstract contract DNSResolver is ResolverBase {
      * @param node the namehash of the node for which to check the records
      * @param name the namehash of the node for which to check the records
      */
-    function hasDNSRecords(bytes32 node, bytes32 name) public view returns (bool) {
+    function hasDNSRecords(bytes32 node, bytes32 name) virtual public view returns (bool) {
         return (nameEntriesCount[node][versions[node]][name] != 0);
     }
 
@@ -113,7 +113,7 @@ abstract contract DNSResolver is ResolverBase {
      * Clear all information for a DNS zone.
      * @param node the namehash of the node for which to clear the zone
      */
-    function clearDNSZone(bytes32 node) public authorised(node) {
+    function clearDNSZone(bytes32 node) virtual public authorised(node) {
         versions[node]++;
         emit DNSZoneCleared(node);
     }
@@ -124,7 +124,7 @@ abstract contract DNSResolver is ResolverBase {
      * @param node The node to update.
      * @param hash The zonehash to set
      */
-    function setZonehash(bytes32 node, bytes calldata hash) external authorised(node) {
+    function setZonehash(bytes32 node, bytes calldata hash) virtual external authorised(node) {
         bytes memory oldhash = zonehashes[node];
         zonehashes[node] = hash;
         emit DNSZonehashChanged(node, oldhash, hash);
@@ -135,7 +135,7 @@ abstract contract DNSResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated contenthash.
      */
-    function zonehash(bytes32 node) external view returns (bytes memory) {
+    function zonehash(bytes32 node) virtual external view returns (bytes memory) {
         return zonehashes[node];
     }
 

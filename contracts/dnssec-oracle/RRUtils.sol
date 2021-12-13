@@ -339,4 +339,68 @@ library RRUtils {
     function progress(bytes memory body, uint off) internal pure returns(uint) {
         return off + 1 + body.readUint8(off);
     }
+
+    /**
+     * @dev Computes the keytag for a chunk of data.
+     * @param data The data to compute a keytag for.
+     * @return The computed key tag.
+     */
+    function computeKeytag(bytes memory data) internal pure returns (uint16) {
+        /* This function probably deserves some explanation.
+         * The DNSSEC keytag function is a checksum that relies on summing up individual bytes
+         * from the input string, with some mild bitshifting. Here's a Naive solidity implementation:
+         *
+         *     function computeKeytag(bytes memory data) internal pure returns (uint16) {
+         *         uint ac;
+         *         for (uint i = 0; i < data.length; i++) {
+         *             ac += i & 1 == 0 ? uint16(data.readUint8(i)) << 8 : data.readUint8(i);
+         *         }
+         *         return uint16(ac + (ac >> 16));
+         *     }
+         *
+         * The EVM, with its 256 bit words, is exceedingly inefficient at doing byte-by-byte operations;
+         * the code above, on reasonable length inputs, consumes over 100k gas. But we can make the EVM's
+         * large words work in our favour.
+         *
+         * The code below works by treating the input as a series of 256 bit words. It first masks out
+         * even and odd bytes from each input word, adding them to two separate accumulators `ac1` and `ac2`.
+         * The bytes are separated by empty bytes, so as long as no individual sum exceeds 2^16-1, we're
+         * effectively summing 16 different numbers with each EVM ADD opcode.
+         *
+         * Once it's added up all the inputs, it has to add all the 16 bit values in `ac1` and `ac2` together.
+         * It does this using the same trick - mask out every other value, shift to align them, add them together.
+         * After the first addition on both accumulators, there's enough room to add the two accumulators together,
+         * and the remaining sums can be done just on ac1.
+         */
+        unchecked {
+            require(data.length <= 8192, "Long keys not permitted");
+            uint ac1;
+            uint ac2;
+            for(uint i = 0; i < data.length + 31; i += 32) {
+                uint word;
+                assembly {
+                    word := mload(add(add(data, 32), i))
+                }
+                if(i + 32 > data.length) {
+                    uint unused = 256 - (data.length - i) * 8;
+                    word = (word >> unused) << unused;
+                }
+                ac1 += (word & 0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >> 8;
+                ac2 += (word & 0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF);
+            }
+            ac1 = (ac1 & 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF)
+                + ((ac1 & 0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >> 16);
+            ac2 = (ac2 & 0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF)
+                + ((ac2 & 0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >> 16);
+            ac1 = (ac1 << 8) + ac2;
+            ac1 = (ac1 & 0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF)
+                + ((ac1 & 0xFFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000) >> 32);
+            ac1 = (ac1 & 0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF)
+                + ((ac1 & 0xFFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >> 64);
+            ac1 = (ac1 & 0x00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+                + (ac1 >> 128);
+            ac1 += (ac1 >> 16) & 0xFFFF;
+            return uint16(ac1);
+        }
+    }
 }

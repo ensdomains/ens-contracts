@@ -32,23 +32,23 @@ import {
 
 ```
 // Registry
-import 'ensdomains-ens-contracts/contracts/registry/ENS.sol';
-import 'ensdomains-ens-contracts/contracts/registry/ENSRegistry.sol';
-import 'ensdomains-ens-contracts/contracts/registry/ENSRegistryWithFallback.sol';
-import 'ensdomains-ens-contracts/contracts/registry/ReverseRegistrar.sol';
-import 'ensdomains-ens-contracts/contracts/registry/TestRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/registry/ENS.sol';
+import '@ensdomains/ens-contracts/contracts/registry/ENSRegistry.sol';
+import '@ensdomains/ens-contracts/contracts/registry/ENSRegistryWithFallback.sol';
+import '@ensdomains/ens-contracts/contracts/registry/ReverseRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/registry/TestRegistrar.sol';
 // EthRegistrar
-import 'ensdomains-ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/BaseRegistrarImplementation.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/BulkRenewal.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/ETHRegistrarController.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/LinearPremiumPriceOracle.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/PriceOracle.sol';
-import 'ensdomains-ens-contracts/contracts/ethregistrar/StablePriceOracle.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrarImplementation.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/BulkRenewal.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/ETHRegistrarController.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/LinearPremiumPriceOracle.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/PriceOracle.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/StablePriceOracle.sol';
 // Resolvers
-import 'ensdomains-ens-contracts/contracts/resolvers/PublicResolver.sol';
-import 'ensdomains-ens-contracts/contracts/resolvers/Resolver.sol';
+import '@ensdomains/ens-contracts/contracts/resolvers/PublicResolver.sol';
+import '@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol';
 ```
 
 ##  Accessing to binary file.
@@ -136,14 +136,14 @@ Resolver implements a general-purpose ENS resolver that is suitable for most sta
 
 PublicResolver includes the following profiles that implements different EIPs.
 
-─ ABIResolver = EIP 205 - ABI support (`ABI()`).
-─ AddrResolver = EIP 137 - Contract address interface. EIP 2304 - Multicoin support (`addr()`).
-─ ContentHashResolver = EIP 1577 - Content hash support (`contenthash()`).
-─ InterfaceResolver = EIP 165 - Interface Detection (`supportsInterface()`).
-─ NameResolver = EIP 181 - Reverse resolution (`name()`).
-─ PubkeyResolver = EIP 619 - SECP256k1 public keys (`pubkey()`).
-─ TextResolver = EIP 634 - Text records (`text()`).
-─ DNSResolver = Experimental support is available for hosting DNS domains on the Ethereum blockchain via ENS. [The more detail](https://veox-ens.readthedocs.io/en/latest/dns.html) is on the old ENS doc.
+- ABIResolver = EIP 205 - ABI support (`ABI()`).
+- AddrResolver = EIP 137 - Contract address interface. EIP 2304 - Multicoin support (`addr()`).
+- ContentHashResolver = EIP 1577 - Content hash support (`contenthash()`).
+- InterfaceResolver = EIP 165 - Interface Detection (`supportsInterface()`).
+- NameResolver = EIP 181 - Reverse resolution (`name()`).
+- PubkeyResolver = EIP 619 - SECP256k1 public keys (`pubkey()`).
+- TextResolver = EIP 634 - Text records (`text()`).
+- DNSResolver = Experimental support is available for hosting DNS domains on the Ethereum blockchain via ENS. [The more detail](https://veox-ens.readthedocs.io/en/latest/dns.html) is on the old ENS doc.
 
 ## Developer guide
 

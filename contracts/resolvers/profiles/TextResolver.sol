@@ -15,7 +15,7 @@ abstract contract TextResolver is ResolverBase {
      * @param key The key to set.
      * @param value The text data value to set.
      */
-    function setText(bytes32 node, string calldata key, string calldata value) external authorised(node) {
+    function setText(bytes32 node, string calldata key, string calldata value) virtual external authorised(node) {
         texts[node][key] = value;
         emit TextChanged(node, key, key);
     }
@@ -26,7 +26,7 @@ abstract contract TextResolver is ResolverBase {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string calldata key) external view returns (string memory) {
+    function text(bytes32 node, string calldata key) virtual external view returns (string memory) {
         return texts[node][key];
     }
 
