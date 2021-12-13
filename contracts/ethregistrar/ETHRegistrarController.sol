@@ -176,7 +176,7 @@ contract ETHRegistrarController is Ownable {
         uint256 expires = nameWrapper.registerAndWrapETH2LD(
             name,
             owner,
-            duration,
+            (msg.value / cost) * duration, // Add additional duration if they overpaid
             resolver,
             fuses
         );
@@ -194,11 +194,6 @@ contract ETHRegistrarController is Ownable {
         }
 
         emit NameRegistered(name, label, owner, cost, expires);
-
-        // Refund any extra payment
-        if (msg.value > cost) {
-            payable(msg.sender).transfer(msg.value - cost);
-        }
     }
 
     function renew(string calldata name, uint256 duration) external payable {
