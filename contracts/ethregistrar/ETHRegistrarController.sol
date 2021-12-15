@@ -150,13 +150,18 @@ contract ETHRegistrarController is Ownable {
     function register(
         string calldata name,
         address owner,
-        uint256 duration,
         bytes32 secret,
         address resolver,
         bytes[] calldata data,
         bool reverseRecord,
         uint96 fuses
     ) public payable {
+        bytes32 label = keccak256(bytes(name));
+        uint256 duration = prices.duration(
+            name,
+            base.nameExpires(uint256(label)),
+            msg.value
+        );
         uint256 cost = _consumeCommitment(
             name,
             duration,
@@ -171,12 +176,10 @@ contract ETHRegistrarController is Ownable {
             )
         );
 
-        bytes32 label = keccak256(bytes(name));
-
         uint256 expires = nameWrapper.registerAndWrapETH2LD(
             name,
             owner,
-            (msg.value / cost) * duration, // Add additional duration if they overpaid
+            duration, // Add additional duration if they overpaid
             resolver,
             fuses
         );
@@ -272,7 +275,6 @@ contract ETHRegistrarController is Ownable {
 
         uint256 cost = rentPrice(name, duration);
         require(duration >= MIN_REGISTRATION_DURATION);
-        require(msg.value >= cost);
 
         return cost;
     }

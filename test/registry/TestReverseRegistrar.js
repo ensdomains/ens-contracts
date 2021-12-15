@@ -22,7 +22,7 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
   assert.equal(tx.logs[0].args.node, node)
 }
 
-describe.only('ReverseRegistrar Tests', () => {
+describe('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3, dummyOwnableReverseNode
 

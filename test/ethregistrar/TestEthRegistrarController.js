@@ -20,7 +20,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-describe('ETHRegistrarController Tests', () => {
+describe.only('ETHRegistrarController Tests', () => {
   contract('ETHRegistrarController', function() {
     let ens
     let resolver
@@ -169,13 +169,12 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         'newname',
         registrantAccount,
-        28 * DAYS,
         secret,
         NULL_ADDRESS,
         [],
         false,
         0,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS, gasPrice: 0 }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -231,7 +230,6 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         'newconfigname',
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [
@@ -247,7 +245,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         false,
         0,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS, gasPrice: 0 }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -307,7 +305,6 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'awesome',
           registrantAccount,
-          28 * DAYS,
           secret,
           resolver.address,
           [
@@ -318,7 +315,7 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS + 1, gasPrice: 0 }
+          { value: 28 * DAYS, gasPrice: 0 }
         )
       ).to.be.revertedWith(
         'ETHRegistrarController: Namehash on record do not match the name being registered'
@@ -357,7 +354,6 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'awesome',
           registrantAccount,
-          28 * DAYS,
           secret,
           resolver.address,
           [
@@ -400,13 +396,12 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         'newconfigname2',
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [],
         false,
         0,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS, gasPrice: 0 }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -445,7 +440,6 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'newname2',
           registrantAccount,
-          28 * DAYS,
           secret,
           NULL_ADDRESS,
           [],
@@ -478,7 +472,6 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'newname',
           registrantAccount,
-          28 * DAYS,
           secret,
           NULL_ADDRESS,
           [],
@@ -513,7 +506,6 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'newname2',
           registrantAccount,
-          28 * DAYS,
           secret,
           NULL_ADDRESS,
           [],
@@ -564,7 +556,6 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         'reverse',
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [],
@@ -596,7 +587,6 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         label,
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [],
@@ -635,7 +625,6 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         label,
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [],
@@ -674,7 +663,6 @@ describe('ETHRegistrarController Tests', () => {
       const gasA = await controller2.estimateGas.register(
         label,
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver.address,
         [
@@ -693,7 +681,6 @@ describe('ETHRegistrarController Tests', () => {
       const gasB = await controller2.estimateGas.register(
         label,
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver2.address,
         [
@@ -710,7 +697,6 @@ describe('ETHRegistrarController Tests', () => {
       const tx = await controller2.register(
         label,
         registrantAccount,
-        28 * DAYS,
         secret,
         resolver2.address,
         [
