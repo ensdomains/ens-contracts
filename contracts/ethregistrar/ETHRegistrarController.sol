@@ -103,7 +103,7 @@ contract ETHRegistrarController is Ownable {
     function rentPrice(string memory name, uint256 duration)
         public
         view
-        returns (uint256)
+        returns (uint256, uint256)
     {
         bytes32 hash = keccak256(bytes(name));
         return prices.price(name, base.nameExpires(uint256(hash)), duration);
@@ -162,7 +162,7 @@ contract ETHRegistrarController is Ownable {
             base.nameExpires(uint256(label)),
             msg.value
         );
-        uint256 cost = _consumeCommitment(
+        (uint256 cost, ) = _consumeCommitment(
             name,
             duration,
             makeCommitment(
@@ -200,7 +200,7 @@ contract ETHRegistrarController is Ownable {
     }
 
     function renew(string calldata name, uint256 duration) external payable {
-        uint256 cost = rentPrice(name, duration);
+        (uint256 cost, ) = rentPrice(name, duration);
         require(msg.value >= cost);
 
         bytes32 label = keccak256(bytes(name));
@@ -263,7 +263,7 @@ contract ETHRegistrarController is Ownable {
         string memory name,
         uint256 duration,
         bytes32 commitment
-    ) internal returns (uint256) {
+    ) internal returns (uint256, uint256) {
         // Require a valid commitment
         require(commitments[commitment] + minCommitmentAge <= block.timestamp);
 
@@ -273,10 +273,13 @@ contract ETHRegistrarController is Ownable {
 
         delete (commitments[commitment]);
 
-        uint256 cost = rentPrice(name, duration);
+        (uint256 cost, uint256 premium) = rentPrice(name, duration);
+
+        // add events here
+
         require(duration >= MIN_REGISTRATION_DURATION);
 
-        return cost;
+        return (cost, premium);
     }
 
     function _setRecords(

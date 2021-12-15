@@ -43,7 +43,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
         string calldata name,
         uint256 expires,
         uint256 duration
-    ) external view override returns (uint256) {
+    ) external view override returns (uint256, uint256) {
         uint256 len = name.strlen();
         if (len > rentPrices.length) {
             len = rentPrices.length;
@@ -51,9 +51,11 @@ contract StablePriceOracle is Ownable, PriceOracle {
         require(len > 0);
 
         uint256 basePrice = rentPrices[len - 1].mul(duration);
-        basePrice = basePrice.add(_premium(name, expires, duration));
 
-        return attoUSDToWei(basePrice);
+        return (
+            attoUSDToWei(basePrice),
+            attoUSDToWei(_premium(name, expires, duration))
+        );
     }
 
     function duration(
