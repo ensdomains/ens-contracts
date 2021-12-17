@@ -19,7 +19,7 @@ contract BulkRenewal {
 
     ENS public ens;
 
-    constructor(ENS _ens) public {
+    constructor(ENS _ens) {
         ens = _ens;
     }
 
@@ -38,8 +38,8 @@ contract BulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 cost, ) = controller.rentPrice(names[i], duration);
-            total += cost;
+            Cost memory cost = controller.rentPrice(names[i], duration);
+            total += cost.base;
         }
     }
 
@@ -49,8 +49,8 @@ contract BulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 cost, ) = controller.rentPrice(names[i], duration);
-            controller.renew{value: cost}(names[i], duration);
+            Cost memory cost = controller.rentPrice(names[i], duration);
+            controller.renew{value: cost.base}(names[i], duration);
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);

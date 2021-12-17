@@ -32,9 +32,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
                 keccak256("premium(string,uint256,uint256)")
         );
 
-    constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices)
-        public
-    {
+    constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices) {
         usdOracle = _usdOracle;
         setPrices(_rentPrices);
     }
@@ -43,7 +41,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
         string calldata name,
         uint256 expires,
         uint256 duration
-    ) external view override returns (uint256, uint256) {
+    ) external view override returns (Cost memory) {
         uint256 len = name.strlen();
         if (len > rentPrices.length) {
             len = rentPrices.length;
@@ -52,10 +50,11 @@ contract StablePriceOracle is Ownable, PriceOracle {
 
         uint256 basePrice = rentPrices[len - 1].mul(duration);
 
-        return (
-            attoUSDToWei(basePrice),
-            attoUSDToWei(_premium(name, expires, duration))
-        );
+        return
+            Cost(
+                attoUSDToWei(basePrice),
+                attoUSDToWei(_premium(name, expires, duration))
+            );
     }
 
     function duration(

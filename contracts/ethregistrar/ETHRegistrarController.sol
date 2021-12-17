@@ -71,7 +71,8 @@ contract ETHRegistrarController is Ownable {
         string name,
         bytes32 indexed label,
         address indexed owner,
-        uint256 cost,
+        uint256 baseCost,
+        uint256 premium,
         uint256 expires
     );
     event NameRenewed(
@@ -89,7 +90,7 @@ contract ETHRegistrarController is Ownable {
         uint256 _maxCommitmentAge,
         ReverseRegistrar _reverseRegistrar,
         INameWrapper _nameWrapper
-    ) public {
+    ) {
         require(_maxCommitmentAge > _minCommitmentAge);
 
         base = _base;
@@ -103,7 +104,7 @@ contract ETHRegistrarController is Ownable {
     function rentPrice(string memory name, uint256 duration)
         public
         view
-        returns (uint256, uint256)
+        returns (Cost memory cost)
     {
         bytes32 hash = keccak256(bytes(name));
         return prices.price(name, base.nameExpires(uint256(hash)), duration);
@@ -162,7 +163,7 @@ contract ETHRegistrarController is Ownable {
             base.nameExpires(uint256(label)),
             msg.value
         );
-        (uint256 cost, ) = _consumeCommitment(
+        Cost memory cost = _consumeCommitment(
             name,
             duration,
             makeCommitment(
@@ -179,7 +180,7 @@ contract ETHRegistrarController is Ownable {
         uint256 expires = nameWrapper.registerAndWrapETH2LD(
             name,
             owner,
-            duration, // Add additional duration if they overpaid
+            duration,
             resolver,
             fuses
         );
@@ -196,21 +197,28 @@ contract ETHRegistrarController is Ownable {
             _setReverseRecord(name, resolver, msg.sender);
         }
 
-        emit NameRegistered(name, label, owner, cost, expires);
+        emit NameRegistered(
+            name,
+            label,
+            owner,
+            cost.base,
+            cost.premium,
+            expires
+        );
     }
 
     function renew(string calldata name, uint256 duration) external payable {
-        (uint256 cost, ) = rentPrice(name, duration);
-        require(msg.value >= cost);
+        Cost memory cost = rentPrice(name, duration);
+        require(msg.value >= cost.base);
 
         bytes32 label = keccak256(bytes(name));
         uint256 expires = base.renew(uint256(label), duration);
 
-        if (msg.value > cost) {
-            payable(msg.sender).transfer(msg.value - cost);
+        if (msg.value > cost.base) {
+            payable(msg.sender).transfer(msg.value - cost.base);
         }
 
-        emit NameRenewed(name, label, cost, expires);
+        emit NameRenewed(name, label, cost.base, expires);
     }
 
     function setPriceOracle(PriceOracle _prices) public onlyOwner {
@@ -263,7 +271,7 @@ contract ETHRegistrarController is Ownable {
         string memory name,
         uint256 duration,
         bytes32 commitment
-    ) internal returns (uint256, uint256) {
+    ) internal returns (Cost memory) {
         // Require a valid commitment
         require(commitments[commitment] + minCommitmentAge <= block.timestamp);
 
@@ -273,13 +281,11 @@ contract ETHRegistrarController is Ownable {
 
         delete (commitments[commitment]);
 
-        (uint256 cost, uint256 premium) = rentPrice(name, duration);
-
-        // add events here
+        Cost memory cost = rentPrice(name, duration);
 
         require(duration >= MIN_REGISTRATION_DURATION);
 
-        return (cost, premium);
+        return cost;
     }
 
     function _setRecords(
