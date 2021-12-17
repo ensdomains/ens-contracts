@@ -186,6 +186,7 @@ describe.only('ETHRegistrarController Tests', () => {
           sha3('newname'),
           registrantAccount,
           28 * DAYS,
+          0,
           block.timestamp + 28 * DAYS
         )
 
@@ -257,6 +258,7 @@ describe.only('ETHRegistrarController Tests', () => {
           sha3('newconfigname'),
           registrantAccount,
           28 * DAYS,
+          0,
           block.timestamp + 28 * DAYS
         )
 
@@ -413,6 +415,7 @@ describe.only('ETHRegistrarController Tests', () => {
           sha3('newconfigname2'),
           registrantAccount,
           28 * DAYS,
+          0,
           block.timestamp + 28 * DAYS
         )
 
