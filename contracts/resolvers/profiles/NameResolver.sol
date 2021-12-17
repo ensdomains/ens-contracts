@@ -1,22 +1,20 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
 import "../ResolverBase.sol";
+import "./INameResolver.sol";
 
-abstract contract NameResolver is ResolverBase {
-    bytes4 constant private NAME_INTERFACE_ID = 0x691f3431;
-
-    event NameChanged(bytes32 indexed node, string name);
-
+abstract contract NameResolver is INameResolver, ResolverBase {
     mapping(bytes32=>string) names;
 
     /**
      * Sets the name associated with an ENS node, for reverse records.
      * May only be called by the owner of that node in the ENS registry.
      * @param node The node to update.
-     * @param name The name to set.
      */
-    function setName(bytes32 node, string calldata name) virtual external authorised(node) {
-        names[node] = name;
-        emit NameChanged(node, name);
+    function setName(bytes32 node, string calldata newName) virtual external authorised(node) {
+        names[node] = newName;
+        emit NameChanged(node, newName);
     }
 
     /**
@@ -25,11 +23,11 @@ abstract contract NameResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated name.
      */
-    function name(bytes32 node) virtual external view returns (string memory) {
+    function name(bytes32 node) virtual override external view returns (string memory) {
         return names[node];
     }
 
     function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
-        return interfaceID == NAME_INTERFACE_ID || super.supportsInterface(interfaceID);
+        return interfaceID == type(INameResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

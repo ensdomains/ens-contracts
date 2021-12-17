@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
+import "./IABIResolver.sol";
 import "../ResolverBase.sol";
 
-abstract contract ABIResolver is ResolverBase {
-    bytes4 constant private ABI_INTERFACE_ID = 0x2203ab56;
-
-    event ABIChanged(bytes32 indexed node, uint256 indexed contentType);
-
+abstract contract ABIResolver is IABIResolver, ResolverBase {
     mapping(bytes32=>mapping(uint256=>bytes)) abis;
 
     /**
@@ -32,7 +31,7 @@ abstract contract ABIResolver is ResolverBase {
      * @return contentType The content type of the return value
      * @return data The ABI data
      */
-    function ABI(bytes32 node, uint256 contentTypes) virtual external view returns (uint256, bytes memory) {
+    function ABI(bytes32 node, uint256 contentTypes) virtual override external view returns (uint256, bytes memory) {
         mapping(uint256=>bytes) storage abiset = abis[node];
 
         for (uint256 contentType = 1; contentType <= contentTypes; contentType <<= 1) {
@@ -45,6 +44,6 @@ abstract contract ABIResolver is ResolverBase {
     }
 
     function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
-        return interfaceID == ABI_INTERFACE_ID || super.supportsInterface(interfaceID);
+        return interfaceID == type(IABIResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }
