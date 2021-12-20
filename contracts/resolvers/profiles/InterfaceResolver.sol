@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
 import "../ResolverBase.sol";
+import "../ISupportsInterface.sol";
 import "./AddrResolver.sol";
+import "./IInterfaceResolver.sol";
 
-abstract contract InterfaceResolver is ResolverBase, AddrResolver {
-    bytes4 constant private INTERFACE_INTERFACE_ID = bytes4(keccak256("interfaceImplementer(bytes32,bytes4)"));
-    bytes4 private constant INTERFACE_META_ID = 0x01ffc9a7;
-
-    event InterfaceChanged(bytes32 indexed node, bytes4 indexed interfaceID, address implementer);
-
+abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
     mapping(bytes32=>mapping(bytes4=>address)) interfaces;
 
     /**
@@ -32,7 +31,7 @@ abstract contract InterfaceResolver is ResolverBase, AddrResolver {
      * @param interfaceID The EIP 165 interface ID to check for.
      * @return The address that implements this interface, or 0 if the interface is unsupported.
      */
-    function interfaceImplementer(bytes32 node, bytes4 interfaceID) virtual external view returns (address) {
+    function interfaceImplementer(bytes32 node, bytes4 interfaceID) virtual override external view returns (address) {
         address implementer = interfaces[node][interfaceID];
         if(implementer != address(0)) {
             return implementer;
@@ -43,7 +42,7 @@ abstract contract InterfaceResolver is ResolverBase, AddrResolver {
             return address(0);
         }
 
-        (bool success, bytes memory returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", INTERFACE_META_ID));
+        (bool success, bytes memory returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", type(ISupportsInterface).interfaceId));
         if(!success || returnData.length < 32 || returnData[31] == 0) {
             // EIP 165 not supported by target
             return address(0);
@@ -58,7 +57,7 @@ abstract contract InterfaceResolver is ResolverBase, AddrResolver {
         return a;
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override(AddrResolver, ResolverBase) public pure returns(bool) {
-        return interfaceID == INTERFACE_INTERFACE_ID || super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+        return interfaceID == type(IInterfaceResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

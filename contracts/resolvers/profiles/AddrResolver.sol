@@ -1,13 +1,12 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
 import "../ResolverBase.sol";
+import "./IAddrResolver.sol";
+import "./IAddressResolver.sol";
 
-abstract contract AddrResolver is ResolverBase {
-    bytes4 constant private ADDR_INTERFACE_ID = 0x3b3b57de;
-    bytes4 constant private ADDRESS_INTERFACE_ID = 0xf1cb7e06;
+abstract contract AddrResolver is IAddrResolver, IAddressResolver, ResolverBase {
     uint constant private COIN_TYPE_ETH = 60;
-
-    event AddrChanged(bytes32 indexed node, address a);
-    event AddressChanged(bytes32 indexed node, uint coinType, bytes newAddress);
 
     mapping(bytes32=>mapping(uint=>bytes)) _addresses;
 
@@ -26,7 +25,7 @@ abstract contract AddrResolver is ResolverBase {
      * @param node The ENS node to query.
      * @return The associated address.
      */
-    function addr(bytes32 node) virtual public view returns (address payable) {
+    function addr(bytes32 node) virtual override public view returns (address payable) {
         bytes memory a = addr(node, COIN_TYPE_ETH);
         if(a.length == 0) {
             return payable(0);
@@ -42,12 +41,12 @@ abstract contract AddrResolver is ResolverBase {
         _addresses[node][coinType] = a;
     }
 
-    function addr(bytes32 node, uint coinType) virtual public view returns(bytes memory) {
+    function addr(bytes32 node, uint coinType) virtual override public view returns(bytes memory) {
         return _addresses[node][coinType];
     }
 
     function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
-        return interfaceID == ADDR_INTERFACE_ID || interfaceID == ADDRESS_INTERFACE_ID || super.supportsInterface(interfaceID);
+        return interfaceID == type(IAddrResolver).interfaceId || interfaceID == type(IAddressResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 
     function bytesToAddress(bytes memory b) internal pure returns(address payable a) {
