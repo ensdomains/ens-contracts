@@ -11,8 +11,9 @@
   },
   "files": [
     "build/contracts/*json",
-    "contracts/*",
-    "artifacts/contracts/*/*/*.json"
+    "contracts/**/*.sol",
+    "artifacts/contracts/**/*.json",
+    "deployments/mainnet/*.json"
   ],
   "main": "index.js",
   "devDependencies": {
@@ -34,6 +35,7 @@
     "hardhat-deploy": "^0.8.11",
     "hardhat-deploy-ethers": "^0.3.0-beta.10",
     "hardhat-gas-reporter": "^1.0.4",
+    "np": "^7.6.0",
     "rfc4648": "^1.5.0"
   },
   "resolutions": {
