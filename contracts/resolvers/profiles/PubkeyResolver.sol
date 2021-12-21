@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
 import "../ResolverBase.sol";
+import "./IPubkeyResolver.sol";
 
-abstract contract PubkeyResolver is ResolverBase {
-    bytes4 constant private PUBKEY_INTERFACE_ID = 0xc8690233;
-
-    event PubkeyChanged(bytes32 indexed node, bytes32 x, bytes32 y);
-
+abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
     struct PublicKey {
         bytes32 x;
         bytes32 y;
@@ -31,11 +30,11 @@ abstract contract PubkeyResolver is ResolverBase {
      * @return x The X coordinate of the curve point for the public key.
      * @return y The Y coordinate of the curve point for the public key.
      */
-    function pubkey(bytes32 node) virtual external view returns (bytes32 x, bytes32 y) {
+    function pubkey(bytes32 node) virtual override external view returns (bytes32 x, bytes32 y) {
         return (pubkeys[node].x, pubkeys[node].y);
     }
 
     function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
-        return interfaceID == PUBKEY_INTERFACE_ID || super.supportsInterface(interfaceID);
+        return interfaceID == type(IPubkeyResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

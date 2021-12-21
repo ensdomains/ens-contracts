@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
@@ -9,6 +10,7 @@ import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
+import "./Multicallable.sol";
 
 interface INameWrapper {
     function ownerOf(uint256 id) external view returns (address);
@@ -18,7 +20,7 @@ interface INameWrapper {
  * A simple resolver anyone can use; only allows the owner of a node to set its
  * address.
  */
-contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver {
+contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver {
     ENS ens;
     INameWrapper nameWrapper;
 
@@ -66,17 +68,7 @@ contract PublicResolver is ABIResolver, AddrResolver, ContentHashResolver, DNSRe
         return _operatorApprovals[account][operator];
     }
 
-    function multicall(bytes[] calldata data) external returns(bytes[] memory results) {
-        results = new bytes[](data.length);
-        for(uint i = 0; i < data.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(data[i]);
-            require(success);
-            results[i] = result;
-        }
-        return results;
-    }
-
-    function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public pure returns(bool) {
-        return super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID) public override(Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) pure returns(bool) {
+        return interfaceID == type(IMulticallable).interfaceId || super.supportsInterface(interfaceID);
     }
 }

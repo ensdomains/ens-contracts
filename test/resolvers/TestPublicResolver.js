@@ -47,14 +47,16 @@ contract('PublicResolver', function (accounts) {
     describe('supportsInterface function', async () => {
 
         it('supports known interfaces', async () => {
-            assert.equal(await resolver.supportsInterface("0x3b3b57de"), true);
-            assert.equal(await resolver.supportsInterface("0x691f3431"), true);
-            assert.equal(await resolver.supportsInterface("0x2203ab56"), true);
-            assert.equal(await resolver.supportsInterface("0xc8690233"), true);
-            assert.equal(await resolver.supportsInterface("0x59d1d43c"), true);
-            assert.equal(await resolver.supportsInterface("0xbc1c58d1"), true);
-            assert.equal(await resolver.supportsInterface("0xa8fa5682"), true);
-            assert.equal(await resolver.supportsInterface("0x5c47637c"), true);
+            assert.equal(await resolver.supportsInterface("0x3b3b57de"), true); // IAddrResolver
+            assert.equal(await resolver.supportsInterface("0xf1cb7e06"), true); // IAddressResolver
+            assert.equal(await resolver.supportsInterface("0x691f3431"), true); // INameResolver
+            assert.equal(await resolver.supportsInterface("0x2203ab56"), true); // IABIResolver
+            assert.equal(await resolver.supportsInterface("0xc8690233"), true); // IPubkeyResolver
+            assert.equal(await resolver.supportsInterface("0x59d1d43c"), true); // ITextResolver
+            assert.equal(await resolver.supportsInterface("0xbc1c58d1"), true); // IContentHashResolver
+            assert.equal(await resolver.supportsInterface("0xa8fa5682"), true); // IDNSRecordResolver
+            assert.equal(await resolver.supportsInterface("0x5c98042b"), true); // IDNSZoneResolver
+            assert.equal(await resolver.supportsInterface("0x01ffc9a7"), true); // IInterfaceResolver
         });
 
         it('does not support a random interface', async () => {

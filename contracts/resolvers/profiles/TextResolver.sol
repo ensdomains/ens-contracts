@@ -1,11 +1,10 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
+
 import "../ResolverBase.sol";
+import "./ITextResolver.sol";
 
-abstract contract TextResolver is ResolverBase {
-    bytes4 constant private TEXT_INTERFACE_ID = 0x59d1d43c;
-
-    event TextChanged(bytes32 indexed node, string indexed indexedKey, string key);
-
+abstract contract TextResolver is ITextResolver, ResolverBase {
     mapping(bytes32=>mapping(string=>string)) texts;
 
     /**
@@ -26,11 +25,11 @@ abstract contract TextResolver is ResolverBase {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string calldata key) virtual external view returns (string memory) {
+    function text(bytes32 node, string calldata key) virtual override external view returns (string memory) {
         return texts[node][key];
     }
 
     function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
-        return interfaceID == TEXT_INTERFACE_ID || super.supportsInterface(interfaceID);
+        return interfaceID == type(ITextResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }
