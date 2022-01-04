@@ -8,8 +8,8 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
 
     uint256 GRACE_PERIOD = 90 days;
 
-    uint256 public initialPremium;
-    uint256 public premiumDecreaseRate;
+    uint256 public immutable initialPremium;
+    uint256 public immutable premiumDecreaseRate;
 
     bytes4 private constant TIME_UNTIL_PREMIUM_ID =
         bytes4(keccak256("timeUntilPremium(uint,uint"));

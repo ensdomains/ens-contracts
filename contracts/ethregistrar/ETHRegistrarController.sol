@@ -58,12 +58,12 @@ contract ETHRegistrarController is Ownable {
                 )
         );
 
-    BaseRegistrarImplementation base;
+    BaseRegistrarImplementation immutable base;
     PriceOracle public prices;
-    uint256 public minCommitmentAge;
-    uint256 public maxCommitmentAge;
-    ReverseRegistrar public reverseRegistrar;
-    INameWrapper public nameWrapper;
+    uint256 public immutable minCommitmentAge;
+    uint256 public immutable maxCommitmentAge;
+    ReverseRegistrar public immutable reverseRegistrar;
+    INameWrapper public immutable nameWrapper;
 
     mapping(bytes32 => uint256) public commitments;
 
@@ -224,14 +224,6 @@ contract ETHRegistrarController is Ownable {
     function setPriceOracle(PriceOracle _prices) public onlyOwner {
         prices = _prices;
         emit NewPriceOracle(address(prices));
-    }
-
-    function setCommitmentAges(
-        uint256 _minCommitmentAge,
-        uint256 _maxCommitmentAge
-    ) public onlyOwner {
-        minCommitmentAge = _minCommitmentAge;
-        maxCommitmentAge = _maxCommitmentAge;
     }
 
     function withdraw() public {

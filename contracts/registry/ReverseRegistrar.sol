@@ -16,8 +16,8 @@ bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967f
 // namehash('addr.reverse')
 
 contract ReverseRegistrar is Ownable, Controllable {
-    ENS public ens;
-    DefaultReverseResolver public defaultResolver;
+    ENS public immutable ens;
+    DefaultReverseResolver public immutable defaultResolver;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
@@ -31,7 +31,7 @@ contract ReverseRegistrar is Ownable, Controllable {
 
         // Assign ownership of the reverse record to our deployer
         ReverseRegistrar oldRegistrar = ReverseRegistrar(
-            ens.owner(ADDR_REVERSE_NODE)
+            ensAddr.owner(ADDR_REVERSE_NODE)
         );
         if (address(oldRegistrar) != address(0x0)) {
             oldRegistrar.claim(msg.sender);
