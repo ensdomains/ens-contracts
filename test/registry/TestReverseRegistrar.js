@@ -22,7 +22,7 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
   assert.equal(tx.logs[0].args.node, node)
 }
 
-describe('ReverseRegistrar Tests', () => {
+describe.only('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3, dummyOwnableReverseNode
 
@@ -42,6 +42,7 @@ describe('ReverseRegistrar Tests', () => {
         '0x0000000000000000000000000000000000000000',
         registrar.address
       )
+      await registrar.setResolver(resolver.address)
       defaultResolver = new ethers.Contract(
         await registrar.defaultResolver(),
         ReverseResolver.abi,

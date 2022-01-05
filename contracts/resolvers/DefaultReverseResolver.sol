@@ -33,12 +33,6 @@ contract DefaultReverseResolver {
     constructor(ENS ensAddr, address reverseRegistrar) {
         ens = ensAddr;
         owner = reverseRegistrar;
-
-        // Assign ownership of the reverse record to our deployer
-        // ReverseRegistrar registrar = ReverseRegistrar(reverseRegistrar);
-        // if (address(registrar) != address(0x0)) {
-        //     registrar.claim(msg.sender);
-        // }
     }
 
     /**
