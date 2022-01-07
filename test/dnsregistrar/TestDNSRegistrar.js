@@ -226,6 +226,7 @@ contract('DNSRegistrar', function(accounts) {
     var resolver = await PublicResolver.new(
       ens.address,
       ZERO_ADDRESS,
+      ZERO_ADDRESS,
       ZERO_ADDRESS
     )
 
