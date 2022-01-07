@@ -10,6 +10,7 @@ const { exceptions } = require('../test-utils')
 contract('PublicResolver', function(accounts) {
   let node
   let ens, resolver, nameWrapper
+  const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
   beforeEach(async () => {
     node = namehash.hash('eth')
@@ -18,7 +19,8 @@ contract('PublicResolver', function(accounts) {
     resolver = await PublicResolver.new(
       ens.address,
       nameWrapper.address,
-      '0x0000000000000000000000000000000000000000' //Dummy trusted account
+      EMPTY_ADDRESS,
+      EMPTY_ADDRESS //Dummy trusted account
     )
     await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
       from: accounts[0],

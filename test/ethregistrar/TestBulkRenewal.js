@@ -38,6 +38,7 @@ contract('BulkRenewal', function(accounts) {
     resolver = await PublicResolver.new(
       ens.address,
       nameWrapper.address,
+      EMPTY_ADDRESS,
       EMPTY_ADDRESS
     )
 
