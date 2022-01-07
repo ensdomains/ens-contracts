@@ -8,9 +8,8 @@ import "../dnssec-oracle/BytesUtils.sol";
 import "./IETHRegistrarController.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@ensdomains/name-wrapper/interfaces/INameWrapper.sol";
-
-import "hardhat/console.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "../wrapper/INameWrapper.sol";
 
 struct Cost {
     uint256 base;
@@ -20,16 +19,13 @@ struct Cost {
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
-contract ETHRegistrarController is Ownable, CommitmentController {
+contract ETHRegistrarController is Ownable, IETHRegistrarController {
     using StringUtils for *;
     using BytesUtils for bytes;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
-
-    bytes4 private constant INTERFACE_META_ID =
-        bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 private constant COMMITMENT_CONTROLLER_ID =
-        type(CommitmentController).interfaceId;
+    bytes32 private constant ETH_NODE =
+        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
     BaseRegistrarImplementation immutable base;
     PriceOracle public prices;
@@ -185,36 +181,23 @@ contract ETHRegistrarController is Ownable, CommitmentController {
         );
     }
 
-    function renew(string calldata name, uint256 duration)
-        external
-        payable
-        override
-    {
-        (uint256 basePrice, ) = rentPrice(name, duration);
-        require(msg.value >= basePrice);
-
+    function renew(string calldata name) external payable override {
         bytes32 label = keccak256(bytes(name));
+        (uint256 duration, ) = prices.duration(
+            name,
+            base.nameExpires(uint256(label)),
+            msg.value
+        );
+
         uint256 expires = base.renew(uint256(label), duration);
 
-        if (msg.value > basePrice) {
-            payable(msg.sender).transfer(msg.value - basePrice);
-        }
-
-        emit NameRenewed(name, label, basePrice, expires);
+        emit NameRenewed(name, label, msg.value, expires);
     }
 
     function setPriceOracle(PriceOracle _prices) public onlyOwner {
         prices = _prices;
         emit NewPriceOracle(address(prices));
     }
-
-    // function setCommitmentAges(
-    //     uint256 _minCommitmentAge,
-    //     uint256 _maxCommitmentAge
-    // ) public onlyOwner {
-    //     minCommitmentAge = _minCommitmentAge;
-    //     maxCommitmentAge = _maxCommitmentAge;
-    // }
 
     function withdraw() public {
         payable(owner()).transfer(address(this).balance);
@@ -226,24 +209,8 @@ contract ETHRegistrarController is Ownable, CommitmentController {
         returns (bool)
     {
         return
-            interfaceID == INTERFACE_META_ID ||
-            interfaceID == COMMITMENT_CONTROLLER_ID;
-    }
-
-    function onERC1155Received(
-        address,
-        address,
-        uint256,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        //TODO: guard against any other contract sending erc1155 to it apart from NameWrapper
-        return
-            bytes4(
-                keccak256(
-                    "onERC1155Received(address,address,uint256,uint256,bytes)"
-                )
-            );
+            interfaceID == type(IERC165).interfaceId ||
+            interfaceID == type(IETHRegistrarController).interfaceId;
     }
 
     /* Internal functions */
@@ -271,7 +238,7 @@ contract ETHRegistrarController is Ownable, CommitmentController {
         bytes[] calldata data
     ) internal {
         // use hardcoded .eth namehash
-        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
         for (uint256 i = 0; i < data.length; i++) {
             // check first few bytes are namehash
             bytes32 txNamehash = data[i].readBytes32(4);

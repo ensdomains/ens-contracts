@@ -42,7 +42,7 @@ describe('ReverseRegistrar Tests', () => {
         '0x0000000000000000000000000000000000000000',
         registrar.address
       )
-      await registrar.setResolver(resolver.address)
+      await registrar.setDefaultResolver(resolver.address)
       defaultResolver = new ethers.Contract(
         await registrar.defaultResolver(),
         ReverseResolver.abi,

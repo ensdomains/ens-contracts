@@ -4,6 +4,7 @@ import "./PriceOracle.sol";
 import "./SafeMath.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 interface AggregatorInterface {
     function latestAnswer() external view returns (int256);
@@ -23,14 +24,6 @@ contract StablePriceOracle is Ownable, PriceOracle {
     event OracleChanged(address oracle);
 
     event RentPriceChanged(uint256[] prices);
-
-    bytes4 private constant INTERFACE_META_ID =
-        bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 private constant ORACLE_ID =
-        bytes4(
-            keccak256("price(string,uint256,uint256)") ^
-                keccak256("premium(string,uint256,uint256)")
-        );
 
     constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices) {
         usdOracle = _usdOracle;
@@ -133,6 +126,8 @@ contract StablePriceOracle is Ownable, PriceOracle {
         virtual
         returns (bool)
     {
-        return interfaceID == INTERFACE_META_ID || interfaceID == ORACLE_ID;
+        return
+            interfaceID == type(IERC165).interfaceId ||
+            interfaceID == type(PriceOracle).interfaceId;
     }
 }

@@ -525,7 +525,10 @@ describe('ETHRegistrarController Tests', () => {
     it('should allow anyone to renew a name', async () => {
       var expires = await baseRegistrar.nameExpires(sha3('newname'))
       var balanceBefore = await web3.eth.getBalance(controller.address)
-      await controller.renew('newname', 86400, { value: 86400 + 1 })
+      const duration = 86400
+      const [price] = await controller.rentPrice(sha3('newname'), duration)
+
+      await controller.renew('newname', { value: price })
       var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
       assert.equal(newExpires.toNumber() - expires.toNumber(), 86400)
       assert.equal(
@@ -535,7 +538,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should require sufficient value for a renewal', async () => {
-      await exceptions.expectFailure(controller.renew('name', 86400))
+      await exceptions.expectFailure(controller.renew('name'))
     })
 
     it('should allow the registrar owner to withdraw funds', async () => {

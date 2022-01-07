@@ -3,19 +3,15 @@ pragma experimental ABIEncoderV2;
 
 import "../registry/ENS.sol";
 import "./ETHRegistrarController.sol";
+import "./IETHRegistrarController.sol";
 import "../resolvers/Resolver.sol";
+import "./IBulkRenewal.sol";
 
-contract BulkRenewal {
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+
+contract BulkRenewal is IBulkRenewal {
     bytes32 private constant ETH_NAMEHASH =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
-    bytes4 private constant REGISTRAR_CONTROLLER_ID = 0x018fac06;
-    bytes4 private constant INTERFACE_META_ID =
-        bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 public constant BULK_RENEWAL_ID =
-        bytes4(
-            keccak256("rentPrice(string[],uint)") ^
-                keccak256("renewAll(string[],uint")
-        );
 
     ENS public ens;
 
@@ -27,13 +23,17 @@ contract BulkRenewal {
         Resolver r = Resolver(ens.resolver(ETH_NAMEHASH));
         return
             ETHRegistrarController(
-                r.interfaceImplementer(ETH_NAMEHASH, REGISTRAR_CONTROLLER_ID)
+                r.interfaceImplementer(
+                    ETH_NAMEHASH,
+                    type(IETHRegistrarController).interfaceId
+                )
             );
     }
 
     function rentPrice(string[] calldata names, uint256 duration)
         external
         view
+        override
         returns (uint256 total)
     {
         ETHRegistrarController controller = getController();
@@ -46,11 +46,12 @@ contract BulkRenewal {
     function renewAll(string[] calldata names, uint256 duration)
         external
         payable
+        override
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
             (uint256 basePrice, ) = controller.rentPrice(names[i], duration);
-            controller.renew{value: basePrice}(names[i], duration);
+            controller.renew{value: basePrice}(names[i]);
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);
@@ -62,6 +63,7 @@ contract BulkRenewal {
         returns (bool)
     {
         return
-            interfaceID == INTERFACE_META_ID || interfaceID == BULK_RENEWAL_ID;
+            interfaceID == type(IERC165).interfaceId ||
+            interfaceID == type(IBulkRenewal).interfaceId;
     }
 }
