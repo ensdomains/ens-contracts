@@ -11,11 +11,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../wrapper/INameWrapper.sol";
 
-struct Cost {
-    uint256 base;
-    uint256 premium;
-}
-
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
