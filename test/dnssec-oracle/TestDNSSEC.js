@@ -95,11 +95,14 @@ async function verifyFailedSubmission(instance, data, sig, proof) {
   }
 
   try {
-    var tx = await instance.submitRRSet([data, sig], proof)
+    var tx = expectRevert.unspecified(
+      await instance.submitRRSet([data, sig], proof)
+    )
   } catch (error) {
     // @TODO use: https://github.com/ensdomains/root/blob/master/test/helpers/Utils.js#L8
     // Assert ganache revert exception
-    assert.equal(error.message, 'Transaction reverted without a reason')
+
+    assert.equal(error.message, 'Transaction reverted without a reason string')
   }
 
   // Assert geth failed transaction

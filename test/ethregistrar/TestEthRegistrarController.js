@@ -9,7 +9,6 @@ const { expect } = require('chai')
 
 const { ethers } = require('hardhat')
 const provider = ethers.provider
-const NameWrapperJSON = require('@ensdomains/name-wrapper/artifacts/contracts/NameWrapper.sol/NameWrapper.json')
 const ReverseResolverJSON = require('../../artifacts/contracts/resolvers/DefaultReverseResolver.sol/DefaultReverseResolver.json')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -53,12 +52,13 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       const signer = ethers.provider.getSigner()
-      const factory = new ethers.ContractFactory(
-        NameWrapperJSON.abi,
-        NameWrapperJSON.bytecode,
-        signers[0]
-      )
-      nameWrapper = await factory.deploy(
+      // const factory = new ethers.ContractFactory(
+      //   NameWrapperJSON.abi,
+      //   NameWrapperJSON.bytecode,
+      //   signers[0]
+      // )
+      nameWrapper = await deploy(
+        'NameWrapper',
         ens.address,
         baseRegistrar.address,
         ownerAccount
@@ -174,7 +174,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         false,
         0,
-        { value: 28 * DAYS, gasPrice: 0 }
+        { value: 28 * DAYS }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -246,7 +246,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         false,
         0,
-        { value: 28 * DAYS, gasPrice: 0 }
+        { value: 28 * DAYS }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -317,7 +317,7 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS, gasPrice: 0 }
+          { value: 28 * DAYS }
         )
       ).to.be.revertedWith(
         'ETHRegistrarController: Namehash on record do not match the name being registered'
@@ -370,7 +370,7 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS + 1, gasPrice: 0 }
+          { value: 28 * DAYS + 1 }
         )
       ).to.be.revertedWith(
         'ETHRegistrarController: Namehash on record do not match the name being registered'
@@ -403,7 +403,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         false,
         0,
-        { value: 28 * DAYS, gasPrice: 0 }
+        { value: 28 * DAYS }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -450,7 +450,6 @@ describe('ETHRegistrarController Tests', () => {
           0,
           {
             value: 28 * DAYS,
-            gasPrice: 0,
           }
         )
       )
@@ -482,7 +481,6 @@ describe('ETHRegistrarController Tests', () => {
           0,
           {
             value: 28 * DAYS,
-            gasPrice: 0,
           }
         )
       )
@@ -516,7 +514,6 @@ describe('ETHRegistrarController Tests', () => {
           0,
           {
             value: 28 * DAYS,
-            gasPrice: 0,
           }
         )
       )
@@ -542,7 +539,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should allow the registrar owner to withdraw funds', async () => {
-      await controller.withdraw({ gasPrice: 0, from: ownerAccount })
+      await controller.withdraw({ from: ownerAccount })
       assert.equal(await web3.eth.getBalance(controller.address), 0)
     })
 
@@ -567,7 +564,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         true,
         0,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       expect(await resolver.name(getReverseNode(ownerAccount))).to.equal(
@@ -598,7 +595,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         true,
         0,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       assert.equal(
@@ -636,7 +633,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         true,
         1,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       const [, fuses] = await nameWrapper.getData(namehash.hash(name))
@@ -679,7 +676,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       await resolver2.setApprovalForAll(controller.address, true)
@@ -697,7 +694,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       const tx = await controller2.register(
@@ -713,7 +710,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1, gasPrice: 0 }
+        { value: 28 * DAYS + 1 }
       )
 
       console.log((await tx.wait()).gasUsed.toString())

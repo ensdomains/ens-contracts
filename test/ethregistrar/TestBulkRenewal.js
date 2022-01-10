@@ -82,7 +82,7 @@ describe('Contract', () => {
       )
       await resolver.setInterface(
         ETH_NAMEHASH,
-        '0x0a571659',
+        '0xfb02e959',
         controller.address
       )
       await ens.setOwner(ETH_NAMEHASH, baseRegistrar.address)
