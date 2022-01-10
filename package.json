@@ -43,7 +43,6 @@
   },
   "dependencies": {
     "@ensdomains/buffer": "^0.0.13",
-    "@ensdomains/name-wrapper": "^1.0.0",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
     "dns-packet": "^5.3.0"

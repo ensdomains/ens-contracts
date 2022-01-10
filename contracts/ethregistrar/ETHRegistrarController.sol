@@ -79,6 +79,20 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         );
     }
 
+    function rentDuration(string memory name, uint256 cost)
+        public
+        view
+        override
+        returns (uint256 duration, uint256 premiumPrice)
+    {
+        bytes32 hash = keccak256(bytes(name));
+        (duration, premiumPrice) = prices.duration(
+            name,
+            base.nameExpires(uint256(hash)),
+            cost
+        );
+    }
+
     function valid(string memory name) public pure returns (bool) {
         return name.strlen() >= 3;
     }

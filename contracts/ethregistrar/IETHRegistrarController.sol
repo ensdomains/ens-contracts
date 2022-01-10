@@ -7,6 +7,10 @@ interface IETHRegistrarController {
         external
         returns (uint256 base, uint256 premium);
 
+    function rentDuration(string memory, uint256)
+        external
+        returns (uint256 duration, uint256 premium);
+
     function available(string memory) external returns (bool);
 
     function makeCommitment(
