@@ -112,6 +112,12 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint96 fuses
     ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
+        if (data.length > 0) {
+            require(
+                resolver != address(0),
+                "ETHRegistrarController: resolver is required when data is supplied"
+            );
+        }
         return
             keccak256(
                 abi.encode(
@@ -168,13 +174,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             fuses
         );
 
-        if (data.length > 0) {
-            require(
-                resolver != address(0),
-                "ETHRegistrarController: resolver is required when data is supplied"
-            );
-            _setRecords(resolver, label, data);
-        }
+        _setRecords(resolver, label, data);
 
         if (reverseRecord) {
             _setReverseRecord(name, resolver, msg.sender);

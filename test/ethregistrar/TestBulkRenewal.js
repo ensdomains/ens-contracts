@@ -54,7 +54,13 @@ describe('Contract', () => {
 
       // Set up a dummy price oracle and a controller
       const dummyOracle = await DummyOracle.new(toBN(100000000))
-      priceOracle = await StablePriceOracle.new(dummyOracle.address, [1])
+      priceOracle = await StablePriceOracle.new(dummyOracle.address, [
+        0,
+        0,
+        4,
+        2,
+        1,
+      ])
       controller = await ETHRegistrarController.new(
         baseRegistrar.address,
         priceOracle.address,

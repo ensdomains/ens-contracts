@@ -11,23 +11,29 @@ interface AggregatorInterface {
 }
 
 // StablePriceOracle sets a price in USD, based on an oracle.
-contract StablePriceOracle is Ownable, PriceOracle {
+contract StablePriceOracle is PriceOracle {
     using SafeMath for *;
     using StringUtils for *;
 
-    // Rent in base price units by length. Element 0 is for 1-length names, and so on.
-    uint256[] public rentPrices;
+    // Rent in base price units by length
+    uint256 public immutable price1Letter;
+    uint256 public immutable price2Letter;
+    uint256 public immutable price3Letter;
+    uint256 public immutable price4Letter;
+    uint256 public immutable price5Letter;
 
     // Oracle address
     AggregatorInterface public usdOracle;
-
-    event OracleChanged(address oracle);
 
     event RentPriceChanged(uint256[] prices);
 
     constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices) {
         usdOracle = _usdOracle;
-        setPrices(_rentPrices);
+        price1Letter = _rentPrices[0];
+        price2Letter = _rentPrices[1];
+        price3Letter = _rentPrices[2];
+        price4Letter = _rentPrices[3];
+        price5Letter = _rentPrices[4];
     }
 
     function price(
@@ -36,12 +42,24 @@ contract StablePriceOracle is Ownable, PriceOracle {
         uint256 duration
     ) external view override returns (uint256, uint256) {
         uint256 len = name.strlen();
-        if (len > rentPrices.length) {
-            len = rentPrices.length;
+        if (len > 5) {
+            len = 5;
         }
         require(len > 0);
 
-        uint256 basePrice = rentPrices[len - 1].mul(duration);
+        uint256 basePrice;
+
+        if (len == 1) {
+            basePrice = price1Letter * duration;
+        } else if (len == 2) {
+            basePrice = price2Letter * duration;
+        } else if (len == 3) {
+            basePrice = price3Letter * duration;
+        } else if (len == 4) {
+            basePrice = price4Letter * duration;
+        } else if (len == 5) {
+            basePrice = price5Letter * duration;
+        }
 
         return (
             attoUSDToWei(basePrice),
@@ -55,37 +73,27 @@ contract StablePriceOracle is Ownable, PriceOracle {
         uint256 value
     ) external view override returns (uint256, uint256) {
         uint256 len = name.strlen();
-        if (len > rentPrices.length) {
-            len = rentPrices.length;
+        if (len > 5) {
+            len = 5;
         }
         require(len > 0);
 
-        uint256 premiumCost = _premium(name, expires, 0);
+        uint256 premiumCost = attoUSDToWei(_premium(name, expires, 0));
         uint256 valueLeft = value - premiumCost;
-        uint256 duration = valueLeft / rentPrices[len - 1]; //ether left / price per second
+
+        uint256 duration;
+        if (len == 1) {
+            duration = attoUSDToWei(valueLeft / price1Letter);
+        } else if (len == 2) {
+            duration = attoUSDToWei(valueLeft / price2Letter);
+        } else if (len == 3) {
+            duration = attoUSDToWei(valueLeft / price3Letter);
+        } else if (len == 4) {
+            duration = attoUSDToWei(valueLeft / price4Letter);
+        } else if (len == 5) {
+            duration = attoUSDToWei(valueLeft / price5Letter);
+        }
         return (duration, premiumCost);
-    }
-
-    /**
-     * @dev Sets rent prices.
-     * @param _rentPrices The price array. Each element corresponds to a specific
-     *                    name length; names longer than the length of the array
-     *                    default to the price of the last element. Values are
-     *                    in base price units, equal to one attodollar (1e-18
-     *                    dollar) each.
-     */
-    function setPrices(uint256[] memory _rentPrices) public onlyOwner {
-        rentPrices = _rentPrices;
-        emit RentPriceChanged(_rentPrices);
-    }
-
-    /**
-     * @dev Sets the price oracle address
-     * @param _usdOracle The address of the price oracle to use.
-     */
-    function setOracle(AggregatorInterface _usdOracle) public onlyOwner {
-        usdOracle = _usdOracle;
-        emit OracleChanged(address(_usdOracle));
     }
 
     /**
@@ -112,12 +120,12 @@ contract StablePriceOracle is Ownable, PriceOracle {
 
     function attoUSDToWei(uint256 amount) internal view returns (uint256) {
         uint256 ethPrice = uint256(usdOracle.latestAnswer());
-        return amount.mul(1e8).div(ethPrice);
+        return (amount * 1e8) / ethPrice;
     }
 
     function weiToAttoUSD(uint256 amount) internal view returns (uint256) {
         uint256 ethPrice = uint256(usdOracle.latestAnswer());
-        return amount.mul(ethPrice).div(1e8);
+        return (amount * ethPrice) / 1e8;
     }
 
     function supportsInterface(bytes4 interfaceID)

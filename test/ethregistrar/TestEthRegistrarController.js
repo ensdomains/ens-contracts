@@ -52,11 +52,7 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       const signer = ethers.provider.getSigner()
-      // const factory = new ethers.ContractFactory(
-      //   NameWrapperJSON.abi,
-      //   NameWrapperJSON.bytecode,
-      //   signers[0]
-      // )
+
       nameWrapper = await deploy(
         'NameWrapper',
         ens.address,
@@ -75,7 +71,13 @@ describe('ETHRegistrarController Tests', () => {
       await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
 
       const dummyOracle = await deploy('DummyOracle', '100000000')
-      priceOracle = await deploy('StablePriceOracle', dummyOracle.address, [1])
+      priceOracle = await deploy('StablePriceOracle', dummyOracle.address, [
+        0,
+        0,
+        4,
+        2,
+        1,
+      ])
       controller = await deploy(
         'ETHRegistrarController',
         baseRegistrar.address,
@@ -522,9 +524,13 @@ describe('ETHRegistrarController Tests', () => {
     it('should allow anyone to renew a name', async () => {
       var expires = await baseRegistrar.nameExpires(sha3('newname'))
       var balanceBefore = await web3.eth.getBalance(controller.address)
-      const duration = 86400
-      const [price] = await controller.rentPrice(sha3('newname'), duration)
-
+      const targetDuration = 86400
+      const [price] = await controller.rentPrice(
+        sha3('newname'),
+        targetDuration
+      )
+      const [duration] = await controller.rentDuration(sha3('newname'), price)
+      expect(duration.toNumber()).to.equal(targetDuration)
       await controller.renew('newname', { value: price })
       var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
       assert.equal(newExpires.toNumber() - expires.toNumber(), 86400)
