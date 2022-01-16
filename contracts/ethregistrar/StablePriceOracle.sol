@@ -19,7 +19,7 @@ contract StablePriceOracle is Ownable, PriceOracle {
     uint[] public rentPrices;
 
     // Oracle address
-    AggregatorInterface public usdOracle;
+    AggregatorInterface public immutable usdOracle;
 
     event OracleChanged(address oracle);
 
@@ -57,15 +57,6 @@ contract StablePriceOracle is Ownable, PriceOracle {
     function setPrices(uint[] memory _rentPrices) public onlyOwner {
         rentPrices = _rentPrices;
         emit RentPriceChanged(_rentPrices);
-    }
-
-    /**
-     * @dev Sets the price oracle address
-     * @param _usdOracle The address of the price oracle to use.
-     */
-    function setOracle(AggregatorInterface _usdOracle) public onlyOwner {
-        usdOracle = _usdOracle;
-        emit OracleChanged(address(_usdOracle));
     }
 
     /**

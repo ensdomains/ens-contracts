@@ -6,10 +6,10 @@ import "./StablePriceOracle.sol";
 contract LinearPremiumPriceOracle is StablePriceOracle {
     using SafeMath for *;
 
-    uint GRACE_PERIOD = 90 days;
+    uint immutable GRACE_PERIOD = 90 days;
 
-    uint public initialPremium;
-    uint public premiumDecreaseRate;
+    uint public immutable initialPremium;
+    uint public immutable premiumDecreaseRate;
 
     bytes4 constant private TIME_UNTIL_PREMIUM_ID = bytes4(keccak256("timeUntilPremium(uint,uint"));
 
