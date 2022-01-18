@@ -1,57 +1,36 @@
+//SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
-pragma experimental ABIEncoderV2;
+
+import "./profiles/IABIResolver.sol";
+import "./profiles/IAddressResolver.sol";
+import "./profiles/IAddrResolver.sol";
+import "./profiles/IContentHashResolver.sol";
+import "./profiles/IDNSRecordResolver.sol";
+import "./profiles/IDNSZoneResolver.sol";
+import "./profiles/IInterfaceResolver.sol";
+import "./profiles/INameResolver.sol";
+import "./profiles/IPubkeyResolver.sol";
+import "./profiles/ITextResolver.sol";
+import "./ISupportsInterface.sol";
 
 /**
  * A generic resolver interface which includes all the functions including the ones deprecated
  */
-interface Resolver {
-    event AddrChanged(bytes32 indexed node, address a);
-    event AddressChanged(
-        bytes32 indexed node,
-        uint256 coinType,
-        bytes newAddress
-    );
-    event NameChanged(bytes32 indexed node, string name);
-    event ABIChanged(bytes32 indexed node, uint256 indexed contentType);
-    event PubkeyChanged(bytes32 indexed node, bytes32 x, bytes32 y);
-    event TextChanged(
-        bytes32 indexed node,
-        string indexed indexedKey,
-        string key
-    );
-    event ContenthashChanged(bytes32 indexed node, bytes hash);
+interface Resolver is
+    ISupportsInterface,
+    IABIResolver,
+    IAddressResolver,
+    IAddrResolver,
+    IContentHashResolver,
+    IDNSRecordResolver,
+    IDNSZoneResolver,
+    IInterfaceResolver,
+    INameResolver,
+    IPubkeyResolver,
+    ITextResolver
+{
     /* Deprecated events */
     event ContentChanged(bytes32 indexed node, bytes32 hash);
-
-    function ABI(bytes32 node, uint256 contentTypes)
-        external
-        view
-        returns (uint256, bytes memory);
-
-    function addr(bytes32 node) external view returns (address);
-
-    function addr(bytes32 node, uint256 coinType)
-        external
-        view
-        returns (bytes memory);
-
-    function contenthash(bytes32 node) external view returns (bytes memory);
-
-    function dnsrr(bytes32 node) external view returns (bytes memory);
-
-    function name(bytes32 node) external view returns (string memory);
-
-    function pubkey(bytes32 node) external view returns (bytes32 x, bytes32 y);
-
-    function text(bytes32 node, string calldata key)
-        external
-        view
-        returns (string memory);
-
-    function interfaceImplementer(bytes32 node, bytes4 interfaceID)
-        external
-        view
-        returns (address);
 
     function setABI(
         bytes32 node,
@@ -91,18 +70,9 @@ interface Resolver {
         address implementer
     ) external;
 
-    function supportsInterface(bytes4 interfaceID) external pure returns (bool);
-
     function multicall(bytes[] calldata data)
         external
         returns (bytes[] memory results);
-
-    function setApprovalForAll(address operator, bool approved) external;
-
-    function isApprovedForAll(address account, address operator)
-        external
-        view
-        returns (bool);
 
     /* Deprecated functions */
     function content(bytes32 node) external view returns (bytes32);

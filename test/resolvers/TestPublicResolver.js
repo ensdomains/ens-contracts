@@ -7,35 +7,197 @@ const sha3 = require('web3-utils').sha3
 
 const { exceptions } = require('../test-utils')
 
-contract('PublicResolver', function(accounts) {
-  let node
-  let ens, resolver, nameWrapper
-  const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+describe.only('PublicResolver', () => {
+  contract('PublicResolver', function(accounts) {
+    let node
+    let ens, resolver, nameWrapper
+    const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
 
-  beforeEach(async () => {
-    node = namehash.hash('eth')
-    ens = await ENS.new()
-    nameWrapper = await NameWrapper.new()
-    resolver = await PublicResolver.new(
-      ens.address,
-      nameWrapper.address,
-      EMPTY_ADDRESS,
-      EMPTY_ADDRESS //Dummy trusted account
-    )
-    await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
-      from: accounts[0],
-    })
-  })
-
-  describe('fallback function', async () => {
-    it('forbids calls to the fallback function with 0 value', async () => {
-      await exceptions.expectFailure(
-        web3.eth.sendTransaction({
-          from: accounts[0],
-          to: resolver.address,
-          gas: 3000000,
-        })
+    beforeEach(async () => {
+      node = namehash.hash('eth')
+      ens = await ENS.new()
+      nameWrapper = await NameWrapper.new()
+      resolver = await PublicResolver.new(
+        ens.address,
+        nameWrapper.address,
+        EMPTY_ADDRESS, // dummy addresses for trusted contracts
+        EMPTY_ADDRESS
       )
+      await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
+        from: accounts[0],
+      })
+    })
+
+    describe('fallback function', async () => {
+      it('forbids calls to the fallback function with 0 value', async () => {
+        await exceptions.expectFailure(
+          web3.eth.sendTransaction({
+            from: accounts[0],
+            to: resolver.address,
+            gas: 3000000,
+          })
+        )
+      })
+
+      it('forbids calls to the fallback function with 1 value', async () => {
+        await exceptions.expectFailure(
+          web3.eth.sendTransaction({
+            from: accounts[0],
+            to: resolver.address,
+            gas: 3000000,
+            value: 1,
+          })
+        )
+      })
+    })
+
+    describe('supportsInterface function', async () => {
+      it('supports known interfaces', async () => {
+        assert.equal(await resolver.supportsInterface('0x3b3b57de'), true) // IAddrResolver
+        assert.equal(await resolver.supportsInterface('0xf1cb7e06'), true) // IAddressResolver
+        assert.equal(await resolver.supportsInterface('0x691f3431'), true) // INameResolver
+        assert.equal(await resolver.supportsInterface('0x2203ab56'), true) // IABIResolver
+        assert.equal(await resolver.supportsInterface('0xc8690233'), true) // IPubkeyResolver
+        assert.equal(await resolver.supportsInterface('0x59d1d43c'), true) // ITextResolver
+        assert.equal(await resolver.supportsInterface('0xbc1c58d1'), true) // IContentHashResolver
+        assert.equal(await resolver.supportsInterface('0xa8fa5682'), true) // IDNSRecordResolver
+        assert.equal(await resolver.supportsInterface('0x5c98042b'), true) // IDNSZoneResolver
+        assert.equal(await resolver.supportsInterface('0x01ffc9a7'), true) // IInterfaceResolver
+      })
+
+      it('does not support a random interface', async () => {
+        assert.equal(await resolver.supportsInterface('0x3b3b57df'), false)
+      })
+    })
+
+    describe('addr', async () => {
+      it('permits setting address by owner', async () => {
+        var tx = await resolver.methods['setAddr(bytes32,address)'](
+          node,
+          accounts[1],
+          { from: accounts[0] }
+        )
+        assert.equal(tx.logs.length, 2)
+        assert.equal(tx.logs[0].event, 'AddressChanged')
+        assert.equal(tx.logs[0].args.node, node)
+        assert.equal(tx.logs[0].args.newAddress, accounts[1].toLowerCase())
+        assert.equal(tx.logs[1].event, 'AddrChanged')
+        assert.equal(tx.logs[1].args.node, node)
+        assert.equal(tx.logs[1].args.a, accounts[1])
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
+      })
+
+      it('can overwrite previously set address', async () => {
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        })
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
+
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+          from: accounts[0],
+        })
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[0])
+      })
+
+      it('can overwrite to same address', async () => {
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        })
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
+
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        })
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
+      })
+
+      it('forbids setting new address by non-owners', async () => {
+        await exceptions.expectFailure(
+          resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+            from: accounts[1],
+          })
+        )
+      })
+
+      it('forbids writing same address by non-owners', async () => {
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        })
+
+        await exceptions.expectFailure(
+          resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+            from: accounts[1],
+          })
+        )
+      })
+
+      it('forbids overwriting existing address by non-owners', async () => {
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        })
+
+        await exceptions.expectFailure(
+          resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+            from: accounts[1],
+          })
+        )
+      })
+
+      it('returns zero when fetching nonexistent addresses', async () => {
+        assert.equal(
+          await resolver.methods['addr(bytes32)'](node),
+          '0x0000000000000000000000000000000000000000'
+        )
+      })
+
+      it('permits setting and retrieving addresses for other coin types', async () => {
+        await resolver.methods['setAddr(bytes32,uint256,bytes)'](
+          node,
+          123,
+          accounts[1],
+          { from: accounts[0] }
+        )
+        assert.equal(
+          await resolver.methods['addr(bytes32,uint256)'](node, 123),
+          accounts[1].toLowerCase()
+        )
+      })
+
+      it('returns ETH address for coin type 60', async () => {
+        var tx = await resolver.methods['setAddr(bytes32,address)'](
+          node,
+          accounts[1],
+          { from: accounts[0] }
+        )
+        assert.equal(tx.logs.length, 2)
+        assert.equal(tx.logs[0].event, 'AddressChanged')
+        assert.equal(tx.logs[0].args.node, node)
+        assert.equal(tx.logs[0].args.newAddress, accounts[1].toLowerCase())
+        assert.equal(tx.logs[1].event, 'AddrChanged')
+        assert.equal(tx.logs[1].args.node, node)
+        assert.equal(tx.logs[1].args.a, accounts[1])
+        assert.equal(
+          await resolver.methods['addr(bytes32,uint256)'](node, 60),
+          accounts[1].toLowerCase()
+        )
+      })
+
+      it('setting coin type 60 updates ETH address', async () => {
+        var tx = await resolver.methods['setAddr(bytes32,uint256,bytes)'](
+          node,
+          60,
+          accounts[2],
+          { from: accounts[0] }
+        )
+        assert.equal(tx.logs.length, 2)
+        assert.equal(tx.logs[0].event, 'AddressChanged')
+        assert.equal(tx.logs[0].args.node, node)
+        assert.equal(tx.logs[0].args.newAddress, accounts[2].toLowerCase())
+        assert.equal(tx.logs[1].event, 'AddrChanged')
+        assert.equal(tx.logs[1].args.node, node)
+        assert.equal(tx.logs[1].args.a, accounts[2])
+        assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[2])
+      })
     })
 
     it('forbids calls to the fallback function with 1 value', async () => {
@@ -51,6 +213,7 @@ contract('PublicResolver', function(accounts) {
   })
 
   describe('supportsInterface function', async () => {
+    console.log('resolver', resolver)
     it('supports known interfaces', async () => {
       assert.equal(await resolver.supportsInterface('0x3b3b57de'), true)
       assert.equal(await resolver.supportsInterface('0x691f3431'), true)
@@ -809,7 +972,9 @@ contract('PublicResolver', function(accounts) {
       await resolver.methods['setAddr(bytes32,address)'](
         node,
         resolver.address,
-        { from: accounts[0] }
+        {
+          from: accounts[0],
+        }
       )
       // Check the ID for `addr(bytes32)`
       assert.equal(
@@ -987,30 +1152,30 @@ contract('PublicResolver', function(accounts) {
       )
     })
   })
-})
 
-function dnsName(name) {
-  // strip leading and trailing .
-  const n = name.replace(/^\.|\.$/gm, '')
+  function dnsName(name) {
+    // strip leading and trailing .
+    const n = name.replace(/^\.|\.$/gm, '')
 
-  var bufLen = n === '' ? 1 : n.length + 2
-  var buf = Buffer.allocUnsafe(bufLen)
+    var bufLen = n === '' ? 1 : n.length + 2
+    var buf = Buffer.allocUnsafe(bufLen)
 
-  offset = 0
-  if (n.length) {
-    const list = n.split('.')
-    for (let i = 0; i < list.length; i++) {
-      const len = buf.write(list[i], offset + 1)
-      buf[offset] = len
-      offset += len + 1
+    offset = 0
+    if (n.length) {
+      const list = n.split('.')
+      for (let i = 0; i < list.length; i++) {
+        const len = buf.write(list[i], offset + 1)
+        buf[offset] = len
+        offset += len + 1
+      }
     }
-  }
-  buf[offset++] = 0
-  return (
-    '0x' +
-    buf.reduce(
-      (output, elem) => output + ('0' + elem.toString(16)).slice(-2),
-      ''
+    buf[offset++] = 0
+    return (
+      '0x' +
+      buf.reduce(
+        (output, elem) => output + ('0' + elem.toString(16)).slice(-2),
+        ''
+      )
     )
-  )
-}
+  }
+})

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
@@ -9,6 +10,7 @@ import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
+import "./Multicallable.sol";
 
 interface INameWrapper {
     function ownerOf(uint256 id) external view returns (address);
@@ -19,6 +21,7 @@ interface INameWrapper {
  * address.
  */
 contract PublicResolver is
+    Multicallable,
     ABIResolver,
     AddrResolver,
     ContentHashResolver,
@@ -98,26 +101,11 @@ contract PublicResolver is
         return _operatorApprovals[account][operator];
     }
 
-    function multicall(bytes[] calldata data)
-        external
-        returns (bytes[] memory results)
-    {
-        results = new bytes[](data.length);
-        for (uint256 i = 0; i < data.length; i++) {
-            (bool success, bytes memory result) = address(this).delegatecall(
-                data[i]
-            );
-            require(success);
-            results[i] = result;
-        }
-        return results;
-    }
-
     function supportsInterface(bytes4 interfaceID)
         public
         pure
-        virtual
         override(
+            Multicallable,
             ABIResolver,
             AddrResolver,
             ContentHashResolver,
@@ -129,6 +117,8 @@ contract PublicResolver is
         )
         returns (bool)
     {
-        return super.supportsInterface(interfaceID);
+        return
+            interfaceID == type(IMulticallable).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
