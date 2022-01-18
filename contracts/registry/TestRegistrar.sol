@@ -9,8 +9,8 @@ import "./ENS.sol";
 contract TestRegistrar {
     uint256 constant registrationPeriod = 4 weeks;
 
-    ENS public ens;
-    bytes32 public rootNode;
+    ENS public immutable ens;
+    bytes32 public immutable rootNode;
     mapping(bytes32 => uint256) public expiryTimes;
 
     /**
@@ -18,7 +18,7 @@ contract TestRegistrar {
      * @param ensAddr The address of the ENS registry.
      * @param node The node that this registrar administers.
      */
-    constructor(ENS ensAddr, bytes32 node) public {
+    constructor(ENS ensAddr, bytes32 node) {
         ens = ensAddr;
         rootNode = node;
     }
