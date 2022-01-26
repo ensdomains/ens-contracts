@@ -68,7 +68,7 @@ contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHash
         return _operatorApprovals[account][operator];
     }
 
-    function supportsInterface(bytes4 interfaceID) public override(Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) public override(Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) view returns(bool) {
         return interfaceID == type(IMulticallable).interfaceId || super.supportsInterface(interfaceID);
     }
 }
