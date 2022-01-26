@@ -26,6 +26,8 @@ const SHA256Digest = require('./build/contracts/SHA256Digest')
 const SHA1Digest = require('./build/contracts/SHA1Digest')
 const SHA1NSEC3Digest = require('./build/contracts/SHA1NSEC3Digest')
 
+const UniversalResolver = require('./build/contracts/UniversalResolver')
+
 module.exports = {
   BaseRegistrar,
   BaseRegistrarImplementation,
@@ -52,5 +54,6 @@ module.exports = {
   RSASHA1Algorithm,
   SHA256Digest,
   SHA1Digest,
-  SHA1NSEC3Digest
+  SHA1NSEC3Digest,
+  UniversalResolver
 }
