@@ -9,6 +9,7 @@ const namehash = n.hash
 const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
 const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
+const { deploy } = require('../test-utils/contracts')
 
 const abiCoder = new ethers.utils.AbiCoder()
 
@@ -21,15 +22,6 @@ const ROOT_NODE =
 const EMPTY_BYTES32 =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
-
-async function deploy(name, _args) {
-  const args = _args || []
-
-  const contractArtifacts = await ethers.getContractFactory(name)
-  const contract = await contractArtifacts.deploy(...args)
-  contract.name = name
-  return contract
-}
 
 function increaseTime(delay) {
   return ethers.provider.send('evm_increaseTime', [delay])
@@ -278,9 +270,7 @@ describe('Name Wrapper', () => {
       // wrap using account
       await expect(
         NameWrapper.wrap(encodeName('abc'), account2, 0, EMPTY_ADDRESS)
-      ).to.be.revertedWith(
-        'NameWrapper: Domain is not owned by the sender'
-      )
+      ).to.be.revertedWith('NameWrapper: Domain is not owned by the sender')
     })
 
     it('Does not allow wrapping .eth 2LDs.', async () => {
@@ -290,9 +280,7 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
         NameWrapper.wrap(encodeName('wrapped.eth'), account2, 0, EMPTY_ADDRESS)
-      ).to.be.revertedWith(
-        'NameWrapper: .eth domains need to use wrapETH2LD()'
-      )
+      ).to.be.revertedWith('NameWrapper: .eth domains need to use wrapETH2LD()')
     })
 
     it('Fuses are disabled if CANNOT_REPLACE_SUBDOMAIN has not been burned on the parent domain', async () => {
