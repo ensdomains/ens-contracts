@@ -10,7 +10,7 @@ const LinearPremiumPriceOracle = require('./build/contracts/LinearPremiumPriceOr
 const PriceOracle = require('./build/contracts/PriceOracle')
 const PublicResolver = require('./build/contracts/PublicResolver')
 const Resolver = require('./build/contracts/Resolver')
-const IExtendedResolver = require('./build/contracts/IExtendedResolver')
+const OffchainResolver = require('./build/contracts/OffchainResolver')
 const ReverseRegistrar = require('./build/contracts/ReverseRegistrar')
 const TestRegistrar = require('./build/contracts/TestRegistrar')
 const StablePriceOracle  = require('./build/contracts/StablePriceOracle')
@@ -38,6 +38,7 @@ module.exports = {
   FIFSRegistrar,
   LinearPremiumPriceOracle,
   PriceOracle,
+  OffchainResolver,
   PublicResolver,
   Resolver,
   ReverseRegistrar,
@@ -53,6 +54,5 @@ module.exports = {
   RSASHA1Algorithm,
   SHA256Digest,
   SHA1Digest,
-  SHA1NSEC3Digest,
-  IExtendedResolver
+  SHA1NSEC3Digest
 }
