@@ -135,8 +135,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         override
         returns (bool)
     {
-        return
-            (interfaceID == TIME_UNTIL_PREMIUM_ID) ||
-            super.supportsInterface(interfaceID);
+        return super.supportsInterface(interfaceID);
     }
 }
