@@ -2,10 +2,12 @@ pragma solidity >=0.8.4;
 
 import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
+import "hardhat/console.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
-    uint256 constant START_PREMIUM = 1000000 * 1e18; // $1mil start price
+    uint256 constant START_PREMIUM = 100000000 * 1e18; // $100 mil start price
+    uint256 constant END_VALUE = 372529029846191406; // $0.372...
 
     bytes4 private constant TIME_UNTIL_PREMIUM_ID =
         bytes4(keccak256("timeUntilPremium(uint,uint"));
@@ -41,7 +43,7 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
      */
     function decayedPremium(uint256 startPremium, uint256 elapsed)
         public
-        view
+        pure
         returns (uint256)
     {
         uint256 daysPast = (elapsed * PRECISION) / SECONDS_IN_DAY;
@@ -69,7 +71,10 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         uint256 elapsed = block.timestamp - expires;
         // add in a require that elapse is > than a certain amount e.g. 21 days to return 0
         uint256 premium = decayedPremium(START_PREMIUM, elapsed);
-        return premium;
+        if (premium >= END_VALUE) {
+            return premium - END_VALUE;
+        }
+        return 0;
     }
 
     function addFractionalPremium(uint256 fraction, uint256 premium)
@@ -127,28 +132,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         }
         return premium;
     }
-
-    // /**
-    //  * @dev Returns the timestamp at which a name with the specified expiry date will have
-    //  *      the specified re-registration price premium.
-    //  * @param expires The timestamp at which the name expires.
-    //  * @param amount The amount, in wei, the caller is willing to pay
-    //  * @return The timestamp at which the premium for this domain will be `amount`.
-    //  */
-    // function timeUntilPremium(uint256 expires, uint256 amount)
-    //     external
-    //     view
-    //     returns (uint256)
-    // {
-    //     amount = weiToAttoUSD(amount);
-    //     require(amount <= initialPremium);
-
-    //     expires = expires.add(GRACE_PERIOD);
-
-    //     uint256 discount = initialPremium.sub(amount);
-    //     uint256 duration = discount.div(premiumDecreaseRate);
-    //     return expires.add(duration);
-    // }
 
     function supportsInterface(bytes4 interfaceID)
         public

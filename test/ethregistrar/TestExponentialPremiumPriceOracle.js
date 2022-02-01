@@ -1,3 +1,8 @@
+const { expect } = require('chai')
+const namehash = require('eth-ens-namehash')
+const sha3 = require('web3-utils').sha3
+const toBN = require('web3-utils').toBN
+
 const ENS = artifacts.require('./registry/ENSRegistry')
 const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
 const DummyOracle = artifacts.require('./DummyOracle')
@@ -5,12 +10,15 @@ const ExponentialPremiumPriceOracle = artifacts.require(
   './ExponentialPremiumPriceOracle'
 )
 
-const namehash = require('eth-ens-namehash')
-const sha3 = require('web3-utils').sha3
-const toBN = require('web3-utils').toBN
-
+const LAST_VALUE = 372529029846191400 / 1e18
 const DAY = 86400
-
+function exponentialReduceFloatingPoint(startPrice, days) {
+  const premium = startPrice * 0.5 ** days
+  if (premium > LAST_VALUE) {
+    return premium - LAST_VALUE
+  }
+  return 0
+}
 describe.only('ExponentialPricePremiumOracle Tests', () => {
   contract('ExponentialPricePremiumOracle', function(accounts) {
     let priceOracle
@@ -26,8 +34,6 @@ describe.only('ExponentialPricePremiumOracle Tests', () => {
       // 4 attousd per second for 3 character names, 2 attousd per second for 4 character names,
       // 1 attousd per second for longer names.
       // Pricing premium starts out at 100 USD at expiry and decreases to 0 over 100k seconds (a bit over a day)
-      const premium = toBN('100000000000000000000')
-      const decreaseRate = toBN('1000000000000000')
       priceOracle = await ExponentialPremiumPriceOracle.new(
         dummyOracle.address,
         [0, 0, 4, 2, 1]
@@ -57,30 +63,18 @@ describe.only('ExponentialPricePremiumOracle Tests', () => {
 
     it('should specify the maximum premium at the moment of expiration', async () => {
       const ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
+      const expectedPrice = ((100000000 - LAST_VALUE) / 2) * 1e18 // ETH at $2 for $1 mil in 18 decimal precision
       console.log(
         'price in wei',
         (await priceOracle.premium('foobar', ts, 0)).toString()
       )
       assert.equal(
         (await priceOracle.premium('foobar', ts, 0)).toString(),
-        500000 * 1e18 // 500k ETH in wei
+        expectedPrice
       )
       assert.equal(
         (await priceOracle.price('foobar', ts, 0)).toString(),
-        500000 * 1e18
-      )
-    })
-
-    it('should specify half the premium after half the interval', async () => {
-      const ts =
-        (await web3.eth.getBlock('latest')).timestamp - (90 * DAY + DAY * 2.5)
-      assert.equal(
-        (Number(await priceOracle.premium('foobar', ts, 0)) / 1e18).toFixed(2),
-        (176776.69 / 2).toFixed(2)
-      )
-      assert.equal(
-        (Number(await priceOracle.price('foobar', ts, 0)) / 1e18).toFixed(2),
-        (176776.69 / 2).toFixed(2)
+        expectedPrice
       )
     })
 
@@ -88,50 +82,94 @@ describe.only('ExponentialPricePremiumOracle Tests', () => {
       const ts =
         (await web3.eth.getBlock('latest')).timestamp - (90 * DAY + DAY * 2.5)
       const lengthOfRegistration = DAY * 365
-      assert.equal(
+      const expectedPremium = (
+        exponentialReduceFloatingPoint(100000000, 2.5) / 2
+      ).toFixed(2)
+
+      expect(
         (
           Number(
             await priceOracle.premium('foobar', ts, lengthOfRegistration)
           ) / 1e18
-        ).toFixed(2),
-        (176776.69 / 2).toFixed(2)
-      )
-      assert.equal(
+        ).toFixed(2)
+      ).to.equal(expectedPremium)
+
+      expect(
         (
           Number(await priceOracle.price('foobar', ts, lengthOfRegistration)) /
           1e18
-        ).toFixed(2),
-        (176776.69 / 2).toFixed(2)
-      )
+        ).toFixed(2)
+      ).to.equal(expectedPremium)
     })
 
+    // This test only runs every hour of each day. For an exhaustive test use the exponentialPremiumScript and uncomment the exhaustive test below
     it('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
-      function exponentialReduceFloatingPoint(startPrice, days) {
-        return startPrice * 0.5 ** days
-      }
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
       let differencePercentSum = 0
       let percentMax = 0
 
+      const interval = 3600 // 1 hour
+
       const offset = 0
-      console.log(offset)
-      console.time()
-      for (let i = 0; i <= 86400 * 28; i += 60) {
+      let j
+      for (let i = 0; i <= 86400 * 29; i += interval) {
         const contractResult =
-          Number(await priceOracle.premium('foobar', ts - i + offset, 0)) / 1e18
+          Number(await priceOracle.premium('foobar', ts - (i + offset), 0)) /
+          1e18
 
         const jsResult =
-          exponentialReduceFloatingPoint(1000000, (i + offset) / 86400) / 2
-        const percent = (Math.abs(contractResult - jsResult) / jsResult) * 100
+          exponentialReduceFloatingPoint(100000000, (i + offset) / 86400) / 2
+        let percent = 0
+        if (contractResult !== 0) {
+          percent = Math.abs(contractResult - jsResult) / jsResult
+        }
         if (percent > percentMax) {
           percentMax = percent
         }
+        if (i >= 2419200) {
+          // after or at 28 days premium should be 0
+          expect(contractResult).to.equal(0)
+          expect(jsResult).to.equal(0)
+        }
         differencePercentSum += percent
       }
-      console.timeEnd()
-      console.log('absolute max', absoluteMax)
-      console.log('percent max', percentMax)
-      console.log('percent avg', differencePercentSum / ((86400 * 28) / 60))
+
+      expect(percentMax).to.be.below(0.001) // must be less than 0.1% off JS implementation
     })
   })
+
+  //   it('should not be beyond a certain amount of inaccuracy from floating point calc (exhaustive)', async () => {
+  //     function exponentialReduceFloatingPoint(startPrice, days) {
+  //       return startPrice * 0.5 ** days
+  //     }
+  //     let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
+  //     let differencePercentSum = 0
+  //     let percentMax = 0
+
+  //     const offset = parseInt(process.env.OFFSET)
+  //     console.log(offset)
+  //     console.time()
+  //     for (let i = 0; i <= 86400 * 28; i += 60) {
+  //       const contractResult =
+  //         Number(await priceOracle.premium('foobar', ts - (i + offset), 0)) /
+  //         1e18
+
+  //       const jsResult =
+  //         exponentialReduceFloatingPoint(1000000, (i + offset) / 86400) / 2
+  //       const percent = Math.abs(contractResult - jsResult) / jsResult
+  //       if (percent > percentMax) {
+  //         console.log({ percent, i, contractResult, jsResult })
+  //         percentMax = percent
+  //       }
+  //       differencePercentSum += percent
+  //     }
+  //     console.timeEnd()
+  //     fs.writeFileSync(
+  //       `stats-${offset}.csv`,
+  //       `${percentMax},${differencePercentSum / ((86400 * 28) / 60)}\n`
+  //     )
+  //     console.log('percent max', percentMax)
+  //     console.log('percent avg', differencePercentSum / ((86400 * 28) / 60))
+  //   })
+  // })
 })
