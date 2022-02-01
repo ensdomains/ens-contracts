@@ -11,12 +11,11 @@ import "./profiles/IInterfaceResolver.sol";
 import "./profiles/INameResolver.sol";
 import "./profiles/IPubkeyResolver.sol";
 import "./profiles/ITextResolver.sol";
-import "./profiles/IExtendedResolver.sol";
 import "./ISupportsInterface.sol";
 /**
  * A generic resolver interface which includes all the functions including the ones deprecated
  */
-interface Resolver is ISupportsInterface, IABIResolver, IAddressResolver, IAddrResolver, IContentHashResolver, IDNSRecordResolver, IDNSZoneResolver, IInterfaceResolver, INameResolver, IPubkeyResolver, ITextResolver, IExtendedResolver {
+interface Resolver is ISupportsInterface, IABIResolver, IAddressResolver, IAddrResolver, IContentHashResolver, IDNSRecordResolver, IDNSZoneResolver, IInterfaceResolver, INameResolver, IPubkeyResolver, ITextResolver {
     /* Deprecated events */
     event ContentChanged(bytes32 indexed node, bytes32 hash);
 

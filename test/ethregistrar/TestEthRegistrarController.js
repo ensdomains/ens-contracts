@@ -28,7 +28,7 @@ contract('ETHRegistrarController', function (accounts) {
     before(async () => {
         ens = await ENS.new();
         nameWrapper = await NameWrapper.new();
-        resolver = await PublicResolver.new(ens.address, nameWrapper.address, "", []);
+        resolver = await PublicResolver.new(ens.address, nameWrapper.address);
 
         baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {from: ownerAccount});
         await ens.setSubnodeOwner('0x0', sha3('eth'), baseRegistrar.address);

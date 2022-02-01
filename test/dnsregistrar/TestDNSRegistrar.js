@@ -196,7 +196,7 @@ contract('DNSRegistrar', function(accounts) {
   });
 
   it('sets an address on the resolver if provided', async () => {
-    var resolver = await PublicResolver.new(ens.address, ZERO_ADDRESS, "", []);
+    var resolver = await PublicResolver.new(ens.address, ZERO_ADDRESS);
 
     var proof = utils.hexEncodeTXT({
       name: '_ens.foo.test',

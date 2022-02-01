@@ -10,7 +10,6 @@ import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
-import "./profiles/OffchainResolver.sol";
 import "./Multicallable.sol";
 
 interface INameWrapper {
@@ -21,7 +20,7 @@ interface INameWrapper {
  * A simple resolver anyone can use; only allows the owner of a node to set its
  * address.
  */
-contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver, OffchainResolver {
+contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver {
     ENS ens;
     INameWrapper nameWrapper;
 
@@ -36,7 +35,7 @@ contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHash
     // Logged when an operator is added or removed.
     event ApprovalForAll(address indexed owner, address indexed operator, bool approved);
 
-    constructor(ENS _ens, INameWrapper wrapperAddress, string memory url, address[] memory signers) OffchainResolver(url, signers){
+    constructor(ENS _ens, INameWrapper wrapperAddress){
         ens = _ens;
         nameWrapper = wrapperAddress;
     }
@@ -69,7 +68,7 @@ contract PublicResolver is Multicallable, ABIResolver, AddrResolver, ContentHash
         return _operatorApprovals[account][operator];
     }
 
-    function supportsInterface(bytes4 interfaceID) public override(Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver, OffchainResolver) pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) public override(Multicallable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) pure returns(bool) {
         return interfaceID == type(IMulticallable).interfaceId || super.supportsInterface(interfaceID);
     }
 }

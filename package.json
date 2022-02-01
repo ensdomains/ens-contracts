@@ -43,7 +43,6 @@
     "js-sha3": "0.8.0"
   },
   "dependencies": {
-    "@chainlink/ethers-ccip-read-provider": "^0.2.2",
     "@ensdomains/buffer": "^0.0.13",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
