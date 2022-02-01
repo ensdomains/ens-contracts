@@ -8,9 +8,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant START_PREMIUM = 100000000 * 1e18; // $100 mil start price
     uint256 constant END_VALUE = 372529029846191406; // $0.372...
 
-    bytes4 private constant TIME_UNTIL_PREMIUM_ID =
-        bytes4(keccak256("timeUntilPremium(uint,uint"));
-
     constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices)
         public
         StablePriceOracle(_usdOracle, _rentPrices)
@@ -68,7 +65,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         }
 
         uint256 elapsed = block.timestamp - expires;
-        // add in a require that elapse is > than a certain amount e.g. 21 days to return 0
         uint256 premium = decayedPremium(START_PREMIUM, elapsed);
         if (premium >= END_VALUE) {
             return premium - END_VALUE;
