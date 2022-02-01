@@ -2,7 +2,6 @@ pragma solidity >=0.8.4;
 
 import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
-import "hardhat/console.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
