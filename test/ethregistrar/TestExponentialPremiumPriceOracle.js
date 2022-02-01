@@ -19,7 +19,7 @@ function exponentialReduceFloatingPoint(startPrice, days) {
   }
   return 0
 }
-describe.only('ExponentialPricePremiumOracle Tests', () => {
+describe('ExponentialPricePremiumOracle Tests', () => {
   contract('ExponentialPricePremiumOracle', function(accounts) {
     let priceOracle
 
