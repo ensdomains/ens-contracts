@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "./SupportsInterface.sol";
+import "../SupportsInterface.sol";
 import "./IExtendedResolver.sol";
 
 interface IResolverService {
@@ -83,7 +83,7 @@ contract OffchainResolver is IExtendedResolver, SupportsInterface {
         return result;
     }
 
-    function supportsInterface(bytes4 interfaceID) public pure override returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual public pure override returns(bool) {
         return interfaceID == type(IExtendedResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

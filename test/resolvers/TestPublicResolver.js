@@ -6,6 +6,11 @@ const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 
 const { exceptions } = require("../test-utils");
+const { CCIPReadProvider } = require("@chainlink/ethers-ccip-read-provider");
+const { expect } = require("chai");
+const { defaultAbiCoder, SigningKey, arrayify, hexConcat } = require("ethers/lib/utils");
+
+const TEST_ADDRESS = "0xCAfEcAfeCAfECaFeCaFecaFecaFECafECafeCaFe";
 
 contract('PublicResolver', function (accounts) {
 
@@ -16,7 +21,7 @@ contract('PublicResolver', function (accounts) {
         node = namehash.hash('eth');
         ens = await ENS.new();
         nameWrapper = await NameWrapper.new();
-        resolver = await PublicResolver.new(ens.address, nameWrapper.address);
+        resolver = await PublicResolver.new(ens.address, nameWrapper.address, "", []);
         await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {from: accounts[0]});
     });
 
@@ -57,6 +62,7 @@ contract('PublicResolver', function (accounts) {
             assert.equal(await resolver.supportsInterface("0xa8fa5682"), true); // IDNSRecordResolver
             assert.equal(await resolver.supportsInterface("0x5c98042b"), true); // IDNSZoneResolver
             assert.equal(await resolver.supportsInterface("0x01ffc9a7"), true); // IInterfaceResolver
+            assert.equal(await resolver.supportsInterface("0x9061b923"), true); // IExtendedResolver
         });
 
         it('does not support a random interface', async () => {
@@ -695,6 +701,99 @@ contract('PublicResolver', function (accounts) {
             ]);
             assert.equal(web3.eth.abi.decodeParameters(['address'], results[0])[0], accounts[1]);
             assert.equal(web3.eth.abi.decodeParameters(['string'], results[1])[0], "https://ethereum.org/");
+        });
+    });
+
+    describe('OffchainResolver', function (accounts) {
+        // let provider, signer, resolver, snapshot, signingKey, signingAddress;
+        let provider, ens, nameWrapper, signer, resolver, snapshot, signingKey, signingAddress;
+    
+        async function fetcher(url, json) {
+            console.log({url, json});
+            return {
+                jobRunId: "1",
+                statusCode: 200,
+                data: {
+                    result: "0x"
+                }
+            };
+        }
+    
+        before(async () => {
+            ens = await ENS.new();
+            nameWrapper = await NameWrapper.new();
+            signingKey = new SigningKey(ethers.utils.randomBytes(32));
+            signingAddress = ethers.utils.computeAddress(signingKey.privateKey);
+            provider = new CCIPReadProvider(ethers.provider, fetcher);
+            signer = await provider.getSigner();
+            resolver = await PublicResolver.new(ens.address, nameWrapper.address, "http://localhost:8000/", [signingAddress]);
+        });
+    
+        beforeEach(async () => {
+            snapshot = await ethers.provider.send("evm_snapshot", []);
+        });
+    
+        afterEach(async () => {
+            await ethers.provider.send("evm_revert", [snapshot]);
+        })
+        
+        describe('resolve()', async () => {
+            it('returns a CCIP-read error', async () => {
+                await expect(resolver.resolve(dnsName('test.eth'), '0x')).to.be.revertedWith('OffchainLookup');
+            });
+        });
+    
+        describe('resolveWithProof()', async () => {
+            let name, expires, iface, resolveriface, callData, resultData, sig;
+    
+            before(async () => {
+                name = 'test.eth';
+                expires = Math.floor(Date.now() / 1000 + 3600);
+                // Encode the nested call to 'addr'
+                iface = new ethers.utils.Interface(["function addr(bytes32) returns(address)"]);
+                const addrData = iface.encodeFunctionData("addr", [namehash.hash('test.eth')]);
+                resolveriface = new ethers.utils.Interface(["function resolve(bytes,bytes) returns(bytes,uint64,bytes)"]);
+                // Encode the outer call to 'resolve'
+                callData = resolveriface.encodeFunctionData("resolve", [dnsName('test.eth'), addrData]);
+    
+                // Encode the result data
+                resultData = iface.encodeFunctionResult("addr", [TEST_ADDRESS]);
+    
+                // Generate a signature hash for the response from the gateway
+                const callDataHash = await resolver.makeSignatureHash(resolver.address, expires, callData, resultData);
+    
+                // Sign it
+                sig = signingKey.signDigest(callDataHash);
+            })
+    
+            it('resolves an address given a valid signature', async () => {
+                // Generate the response data
+                const response = defaultAbiCoder.encode(['bytes', 'uint64', 'bytes'], [resultData, expires, hexConcat([sig.r, sig._vs])]);
+    
+                // Call the function with the request and response
+                const [result] = iface.decodeFunctionResult("addr", await resolver.resolveWithProof(response, callData));
+                expect(result).to.equal(TEST_ADDRESS);
+            });
+    
+            it('reverts given an invalid signature', async () => {
+                // Corrupt the sig
+                const deadsig = arrayify(hexConcat([sig.r, sig._vs])).slice();
+                deadsig[0] = deadsig[0] + 1;
+    
+                // Generate the response data
+                const response = defaultAbiCoder.encode(['bytes', 'uint64', 'bytes'], [resultData, expires, deadsig]);
+    
+                // Call the function with the request and response
+                await expect(resolver.resolveWithProof(response, callData)).to.be.reverted;
+            });
+    
+            it('reverts given an expired signature', async () => {
+                // Generate the response data
+                const response = defaultAbiCoder.encode(['bytes', 'uint64', 'bytes'], [resultData, Math.floor(Date.now() / 1000 - 1), hexConcat([sig.r, sig._vs])]);
+    
+                // Call the function with the request and response
+                await expect(resolver.resolveWithProof(response, callData)).to.be.reverted;
+            });
         });
     });
 });

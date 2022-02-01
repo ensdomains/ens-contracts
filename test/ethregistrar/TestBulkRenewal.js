@@ -33,7 +33,7 @@ contract('BulkRenewal', function (accounts) {
 		ens = await ENS.new();
 		nameWrapper = await NameWrapper.new();
 		// Create a public resolver
-		resolver = await PublicResolver.new(ens.address, nameWrapper.address);
+		resolver = await PublicResolver.new(ens.address, nameWrapper.address, "", []);
 
 		// Create a base registrar
 		baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {from: ownerAccount});
