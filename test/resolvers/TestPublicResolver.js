@@ -20,7 +20,7 @@ describe('PublicResolver', () => {
       resolver = await PublicResolver.new(
         ens.address,
         nameWrapper.address,
-        EMPTY_ADDRESS, // dummy addresses for trusted contracts
+        accounts[9], // trusted contract
         EMPTY_ADDRESS
       )
       await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
@@ -1059,6 +1059,13 @@ describe('PublicResolver', () => {
           from: accounts[2],
         })
         assert.equal(await resolver.addr(node), accounts[0])
+      })
+
+      it('trusted contract can bypass authorisation', async () => {
+        await resolver.methods['setAddr(bytes32,address)'](node, accounts[9], {
+          from: accounts[9],
+        })
+        assert.equal(await resolver.addr(node), accounts[9])
       })
 
       it('emits an ApprovalForAll log', async () => {
