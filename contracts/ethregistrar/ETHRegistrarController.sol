@@ -267,7 +267,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     ) internal {
         reverseRegistrar.setNameForAddr(
             msg.sender,
-            msg.sender,
+            owner,
             resolver,
             string(abi.encodePacked(name, ".eth"))
         );
