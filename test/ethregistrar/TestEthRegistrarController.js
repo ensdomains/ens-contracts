@@ -554,7 +554,7 @@ describe('ETHRegistrarController Tests', () => {
       await exceptions.expectFailure(controller.renew('name'))
     })
 
-    it('should allow the registrar owner to withdraw funds', async () => {
+    it('should allow anyone to withdraw funds and transfer to the registrar owner', async () => {
       await controller.withdraw({ from: ownerAccount })
       assert.equal(await web3.eth.getBalance(controller.address), 0)
     })
