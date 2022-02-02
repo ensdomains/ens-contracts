@@ -36,6 +36,38 @@ describe('ETHRegistrarController Tests', () => {
     let registrantAccount // Account that owns test names
     let accounts = []
 
+    async function registerName(name) {
+      var commitment = await controller.makeCommitment(
+        name,
+        registrantAccount,
+        secret,
+        NULL_ADDRESS,
+        [],
+        false,
+        0
+      )
+      var tx = await controller.commit(commitment)
+      assert.equal(
+        await controller.commitments(commitment),
+        (await provider.getBlock(tx.blockNumber)).timestamp
+      )
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+
+      var tx = await controller.register(
+        name,
+        registrantAccount,
+        secret,
+        NULL_ADDRESS,
+        [],
+        false,
+        0,
+        { value: 28 * DAYS }
+      )
+
+      return tx
+    }
+
     before(async () => {
       signers = await ethers.getSigners()
       ownerAccount = await signers[0].getAddress()
@@ -109,6 +141,13 @@ describe('ETHRegistrarController Tests', () => {
       )
     })
 
+    beforeEach(async () => {
+      result = await ethers.provider.send('evm_snapshot')
+    })
+    afterEach(async () => {
+      await ethers.provider.send('evm_revert', [result])
+    })
+
     const checkLabels = {
       testing: true,
       longname12345678: true,
@@ -144,41 +183,15 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should permit new registrations', async () => {
-      var commitment = await controller.makeCommitment(
-        'newname',
-        registrantAccount,
-        secret,
-        NULL_ADDRESS,
-        [],
-        false,
-        0
-      )
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
-        (await provider.getBlock(tx.blockNumber)).timestamp
-      )
-
-      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
-      var tx = await controller.register(
-        'newname',
-        registrantAccount,
-        secret,
-        NULL_ADDRESS,
-        [],
-        false,
-        0,
-        { value: 28 * DAYS }
-      )
-
+      const name = 'newname'
+      const balanceBefore = await web3.eth.getBalance(controller.address)
+      const tx = await registerName(name)
       const block = await provider.getBlock(tx.blockNumber)
-
       await expect(tx)
         .to.emit(controller, 'NameRegistered')
         .withArgs(
-          'newname',
-          sha3('newname'),
+          name,
+          sha3(name),
           registrantAccount,
           28 * DAYS,
           0,
@@ -192,6 +205,8 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should report registered names as unavailable', async () => {
+      const name = 'newname'
+      await registerName(name)
       assert.equal(await controller.available('newname'), false)
     })
 
@@ -451,6 +466,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should reject duplicate registrations', async () => {
+      await registerName('newname')
       await controller.commit(
         await controller.makeCommitment(
           'newname',
@@ -515,6 +531,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should allow anyone to renew a name', async () => {
+      await registerName('newname')
       var expires = await baseRegistrar.nameExpires(sha3('newname'))
       var balanceBefore = await web3.eth.getBalance(controller.address)
       const targetDuration = 86400
@@ -569,6 +586,33 @@ describe('ETHRegistrarController Tests', () => {
       expect(await resolver.name(getReverseNode(ownerAccount))).to.equal(
         'reverse.eth'
       )
+    })
+
+    it('should not set the reverse record of the account when set to false', async () => {
+      const commitment = await controller.makeCommitment(
+        'noreverse',
+        registrantAccount,
+        secret,
+        resolver.address,
+        [],
+        false,
+        0
+      )
+      await controller.commit(commitment)
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await controller.register(
+        'noreverse',
+        registrantAccount,
+        secret,
+        resolver.address,
+        [],
+        false,
+        0,
+        { value: 28 * DAYS + 1 }
+      )
+
+      expect(await resolver.name(getReverseNode(ownerAccount))).to.equal('')
     })
 
     it('should auto wrap the name and set the ERC721 owner to the wrapper', async () => {
