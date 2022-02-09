@@ -9,7 +9,9 @@ import "./IETHRegistrarController.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
 import "../wrapper/INameWrapper.sol";
+import "hardhat/console.sol";
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
@@ -17,6 +19,7 @@ import "../wrapper/INameWrapper.sol";
 contract ETHRegistrarController is Ownable, IETHRegistrarController {
     using StringUtils for *;
     using BytesUtils for bytes;
+    using Address for address;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
     bytes32 private constant ETH_NODE =
@@ -249,8 +252,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                 txNamehash == nodehash,
                 "ETHRegistrarController: Namehash on record do not match the name being registered"
             );
-            (bool success, ) = address(resolver).call(data[i]);
-            require(success, "ETHRegistrarController: Failed to set Record");
+            address(resolver).functionCall(data[i], "ETHRegistrarController: Failed to set Record");
         }
     }
 

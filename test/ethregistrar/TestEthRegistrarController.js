@@ -288,6 +288,142 @@ describe('ETHRegistrarController Tests', () => {
       assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
     })
 
+    it('should not permit new registrations with 0 resolver', async () => {
+      await expect(controller.makeCommitment(
+        'newconfigname',
+        registrantAccount,
+        secret,
+        NULL_ADDRESS,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('newconfigname.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData('setText', [
+            namehash.hash('newconfigname.eth'),
+            'url',
+            'ethereum.com',
+          ]),
+        ],
+        false,
+        0
+      )).to.be.revertedWith(
+        'ETHRegistrarController: resolver is required when data is supplied'
+      )
+    })
+
+
+    it('should not permit new registrations with EoA resolver', async () => {
+      var commitment = await controller.makeCommitment(
+        'newconfigname',
+        registrantAccount,
+        secret,
+        registrantAccount,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('newconfigname.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData('setText', [
+            namehash.hash('newconfigname.eth'),
+            'url',
+            'ethereum.com',
+          ]),
+        ],
+        false,
+        0
+      )
+
+      var tx = await controller.commit(commitment)
+      assert.equal(
+        await controller.commitments(commitment),
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      )
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await expect(
+        controller.register(
+          'newconfigname',
+          registrantAccount,
+          secret,
+          registrantAccount,
+          [
+            resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+              namehash.hash('newconfigname.eth'),
+              registrantAccount,
+            ]),
+            resolver.interface.encodeFunctionData('setText', [
+              namehash.hash('newconfigname.eth'),
+              'url',
+              'ethereum.com',
+            ]),
+          ],
+          false,
+          0,
+          { value: 28 * DAYS }
+        )
+      ).to.be.revertedWith(
+        'Address: call to non-contract'
+      )
+
+    })
+
+    it('should not permit new registrations with EoA resolver', async () => {
+      var commitment = await controller.makeCommitment(
+        'newconfigname',
+        registrantAccount,
+        secret,
+        controller.address,
+        [
+          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+            namehash.hash('newconfigname.eth'),
+            registrantAccount,
+          ]),
+          resolver.interface.encodeFunctionData('setText', [
+            namehash.hash('newconfigname.eth'),
+            'url',
+            'ethereum.com',
+          ]),
+        ],
+        false,
+        0
+      )
+
+      var tx = await controller.commit(commitment)
+      assert.equal(
+        await controller.commitments(commitment),
+        (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      )
+
+      await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+      await expect(
+        controller.register(
+          'newconfigname',
+          registrantAccount,
+          secret,
+          controller.address,
+          [
+            resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+              namehash.hash('newconfigname.eth'),
+              registrantAccount,
+            ]),
+            resolver.interface.encodeFunctionData('setText', [
+              namehash.hash('newconfigname.eth'),
+              'url',
+              'ethereum.com',
+            ]),
+          ],
+          false,
+          0,
+          { value: 28 * DAYS }
+        )
+      ).to.be.revertedWith(
+        'ETHRegistrarController: Failed to set Record'
+      )
+    })
+
+
+
     it('should not permit new registrations with records updating a different name', async () => {
       var commitment = await controller.makeCommitment(
         'awesome',
@@ -310,7 +446,6 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
 
       await expect(
         controller.register(
