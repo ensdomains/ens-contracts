@@ -28,6 +28,7 @@
     "chai": "^4.3.4",
     "dotenv": "^10.0.0",
     "elliptic-solidity": "^1.0.0",
+    "eslint-plugin-babel": "^5.3.1",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.1.4",
     "hardhat": "^2.6.5",
