@@ -71,17 +71,14 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         public
         view
         override
-        returns (uint256[2] memory)
+        returns (uint256 basePrice, uint256 premiumPrice)
     {
-        bytes32 hash = keccak256(bytes(name));
-        (uint256 basePrice, uint256 premiumPrice) = prices.price(
+        bytes32 label = keccak256(bytes(name));
+        (basePrice, premiumPrice) = prices.price(
             name,
-            base.nameExpires(uint256(hash)),
+            base.nameExpires(uint256(label)),
             duration
         );
-
-        uint256[2] memory price = [basePrice, premiumPrice];
-        return price;
     }
 
     function rentDuration(string memory name, uint256 cost)
@@ -155,7 +152,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint96 fuses
     ) public payable override {
         bytes32 label = keccak256(bytes(name));
-        uint256[2] memory cost = rentPrice(name, duration);
+        uint256[2] memory cost = _rentPrice(name, duration);
         require(
             msg.value >= (cost[0] + cost[1]),
             "ETHRegistrarController: Not enough ether provided"
@@ -275,5 +272,15 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             resolver,
             string(abi.encodePacked(name, ".eth"))
         );
+    }
+
+    function _rentPrice(string memory name, uint256 duration)
+        internal
+        view
+        returns (uint256[2] memory)
+    {
+        (uint256 basePrice, uint256 premiumPrice) = rentPrice(name, duration);
+        uint256[2] memory price = [basePrice, premiumPrice];
+        return price;
     }
 }
