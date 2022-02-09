@@ -71,14 +71,17 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         public
         view
         override
-        returns (uint256 basePrice, uint256 premiumPrice)
+        returns (uint256[2] memory)
     {
         bytes32 hash = keccak256(bytes(name));
-        (basePrice, premiumPrice) = prices.price(
+        (uint256 basePrice, uint256 premiumPrice) = prices.price(
             name,
             base.nameExpires(uint256(hash)),
             duration
         );
+
+        uint256[2] memory price = [basePrice, premiumPrice];
+        return price;
     }
 
     function rentDuration(string memory name, uint256 cost)
@@ -107,6 +110,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     function makeCommitment(
         string memory name,
         address owner,
+        uint256 duration,
         bytes32 secret,
         address resolver,
         bytes[] calldata data,
@@ -125,6 +129,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                 abi.encode(
                     label,
                     owner,
+                    duration,
                     resolver,
                     data,
                     secret,
@@ -142,6 +147,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     function register(
         string calldata name,
         address owner,
+        uint256 duration,
         bytes32 secret,
         address resolver,
         bytes[] calldata data,
@@ -149,17 +155,19 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint96 fuses
     ) public payable override {
         bytes32 label = keccak256(bytes(name));
-        (uint256 duration, uint256 premiumCost) = prices.duration(
-            name,
-            base.nameExpires(uint256(label)),
-            msg.value
+        uint256[2] memory cost = rentPrice(name, duration);
+        require(
+            msg.value >= (cost[0] + cost[1]),
+            "ETHRegistrarController: Not enough ether provided"
         );
+
         _consumeCommitment(
             name,
             duration,
             makeCommitment(
                 name,
                 owner,
+                duration,
                 secret,
                 resolver,
                 data,
@@ -182,14 +190,11 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             _setReverseRecord(name, resolver, msg.sender);
         }
 
-        emit NameRegistered(
-            name,
-            label,
-            owner,
-            msg.value - premiumCost,
-            premiumCost,
-            expires
-        );
+        emit NameRegistered(name, label, owner, cost[0], cost[1], expires);
+
+        if (msg.value > (cost[0] + cost[1])) {
+            payable(msg.sender).transfer(msg.value - (cost[0] + cost[1]));
+        }
     }
 
     function renew(string calldata name) external payable override {
@@ -252,7 +257,10 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                 txNamehash == nodehash,
                 "ETHRegistrarController: Namehash on record do not match the name being registered"
             );
-            address(resolver).functionCall(data[i], "ETHRegistrarController: Failed to set Record");
+            address(resolver).functionCall(
+                data[i],
+                "ETHRegistrarController: Failed to set Record"
+            );
         }
     }
 

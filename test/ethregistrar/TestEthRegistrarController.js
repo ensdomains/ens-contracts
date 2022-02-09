@@ -14,6 +14,8 @@ const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
 
 const DAYS = 24 * 60 * 60
+const REGISTRATION_TIME = 28 * DAYS
+const BUFFERED_REGISTRATION_COST = REGISTRATION_TIME + 3 * DAYS
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
@@ -40,6 +42,7 @@ describe('ETHRegistrarController Tests', () => {
       var commitment = await controller.makeCommitment(
         name,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         NULL_ADDRESS,
         [],
@@ -57,12 +60,13 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         name,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         NULL_ADDRESS,
         [],
         false,
         0,
-        { value: 28 * DAYS }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       return tx
@@ -192,14 +196,14 @@ describe('ETHRegistrarController Tests', () => {
           name,
           sha3(name),
           registrantAccount,
-          28 * DAYS,
+          REGISTRATION_TIME,
           0,
-          block.timestamp + 28 * DAYS
+          block.timestamp + REGISTRATION_TIME
         )
 
       assert.equal(
         (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        28 * DAYS
+        REGISTRATION_TIME
       )
     })
 
@@ -213,6 +217,7 @@ describe('ETHRegistrarController Tests', () => {
       var commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -240,6 +245,7 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         'newconfigname',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -255,7 +261,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         false,
         0,
-        { value: 28 * DAYS }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -266,14 +272,14 @@ describe('ETHRegistrarController Tests', () => {
           'newconfigname',
           sha3('newconfigname'),
           registrantAccount,
-          28 * DAYS,
+          REGISTRATION_TIME,
           0,
-          block.timestamp + 28 * DAYS
+          block.timestamp + REGISTRATION_TIME
         )
 
       assert.equal(
         (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        28 * DAYS
+        REGISTRATION_TIME
       )
 
       var nodehash = namehash.hash('newconfigname.eth')
@@ -289,34 +295,37 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should not permit new registrations with 0 resolver', async () => {
-      await expect(controller.makeCommitment(
-        'newconfigname',
-        registrantAccount,
-        secret,
-        NULL_ADDRESS,
-        [
-          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-            namehash.hash('newconfigname.eth'),
-            registrantAccount,
-          ]),
-          resolver.interface.encodeFunctionData('setText', [
-            namehash.hash('newconfigname.eth'),
-            'url',
-            'ethereum.com',
-          ]),
-        ],
-        false,
-        0
-      )).to.be.revertedWith(
+      await expect(
+        controller.makeCommitment(
+          'newconfigname',
+          registrantAccount,
+          REGISTRATION_TIME,
+          secret,
+          NULL_ADDRESS,
+          [
+            resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+              namehash.hash('newconfigname.eth'),
+              registrantAccount,
+            ]),
+            resolver.interface.encodeFunctionData('setText', [
+              namehash.hash('newconfigname.eth'),
+              'url',
+              'ethereum.com',
+            ]),
+          ],
+          false,
+          0
+        )
+      ).to.be.revertedWith(
         'ETHRegistrarController: resolver is required when data is supplied'
       )
     })
-
 
     it('should not permit new registrations with EoA resolver', async () => {
       var commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         registrantAccount,
         [
@@ -345,6 +354,7 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'newconfigname',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           registrantAccount,
           [
@@ -360,18 +370,16 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS }
+          { value: BUFFERED_REGISTRATION_COST }
         )
-      ).to.be.revertedWith(
-        'Address: call to non-contract'
-      )
-
+      ).to.be.revertedWith('Address: call to non-contract')
     })
 
-    it('should not permit new registrations with EoA resolver', async () => {
+    it('should not permit new registrations with an incompatible contract', async () => {
       var commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         controller.address,
         [
@@ -400,6 +408,7 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'newconfigname',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           controller.address,
           [
@@ -415,19 +424,16 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS }
+          { value: BUFFERED_REGISTRATION_COST }
         )
-      ).to.be.revertedWith(
-        'ETHRegistrarController: Failed to set Record'
-      )
+      ).to.be.revertedWith('ETHRegistrarController: Failed to set Record')
     })
-
-
 
     it('should not permit new registrations with records updating a different name', async () => {
       var commitment = await controller.makeCommitment(
         'awesome',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -451,6 +457,7 @@ describe('ETHRegistrarController Tests', () => {
         controller.register(
           'awesome',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           resolver.address,
           [
@@ -461,7 +468,7 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS }
+          { value: BUFFERED_REGISTRATION_COST }
         )
       ).to.be.revertedWith(
         'ETHRegistrarController: Namehash on record do not match the name being registered'
@@ -472,6 +479,7 @@ describe('ETHRegistrarController Tests', () => {
       var commitment = await controller.makeCommitment(
         'awesome',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -494,12 +502,12 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
 
       await expect(
         controller.register(
           'awesome',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           resolver.address,
           [
@@ -514,7 +522,7 @@ describe('ETHRegistrarController Tests', () => {
           ],
           false,
           0,
-          { value: 28 * DAYS + 1 }
+          { value: BUFFERED_REGISTRATION_COST }
         )
       ).to.be.revertedWith(
         'ETHRegistrarController: Namehash on record do not match the name being registered'
@@ -525,6 +533,7 @@ describe('ETHRegistrarController Tests', () => {
       var commitment = await controller.makeCommitment(
         'newconfigname2',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
@@ -542,12 +551,13 @@ describe('ETHRegistrarController Tests', () => {
       var tx = await controller.register(
         'newconfigname2',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
         false,
         0,
-        { value: 28 * DAYS }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       const block = await provider.getBlock(tx.blockNumber)
@@ -558,14 +568,18 @@ describe('ETHRegistrarController Tests', () => {
           'newconfigname2',
           sha3('newconfigname2'),
           registrantAccount,
-          28 * DAYS,
+          REGISTRATION_TIME,
           0,
-          block.timestamp + 28 * DAYS
+          block.timestamp + REGISTRATION_TIME
         )
 
       var nodehash = namehash.hash('newconfigname2.eth')
       assert.equal(await ens.resolver(nodehash), resolver.address)
       assert.equal(await resolver['addr(bytes32)'](nodehash), 0)
+      assert.equal(
+        (await web3.eth.getBalance(controller.address)) - balanceBefore,
+        REGISTRATION_TIME
+      )
     })
 
     it('should include the owner in the commitment', async () => {
@@ -573,6 +587,7 @@ describe('ETHRegistrarController Tests', () => {
         await controller.makeCommitment(
           'newname2',
           accounts[2],
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
@@ -582,18 +597,18 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
         controller.register(
           'newname2',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
           false,
           0,
           {
-            value: 28 * DAYS,
+            value: BUFFERED_REGISTRATION_COST,
           }
         )
       )
@@ -605,6 +620,7 @@ describe('ETHRegistrarController Tests', () => {
         await controller.makeCommitment(
           'newname',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
@@ -614,18 +630,18 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
         controller.register(
           'newname',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
           false,
           0,
           {
-            value: 28 * DAYS,
+            value: BUFFERED_REGISTRATION_COST,
           }
         )
       )
@@ -636,6 +652,7 @@ describe('ETHRegistrarController Tests', () => {
         await controller.makeCommitment(
           'newname2',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
@@ -647,18 +664,18 @@ describe('ETHRegistrarController Tests', () => {
       await evm.advanceTime(
         (await controller.maxCommitmentAge()).toNumber() + 1
       )
-      var balanceBefore = await web3.eth.getBalance(controller.address)
       await exceptions.expectFailure(
         controller.register(
           'newname2',
           registrantAccount,
+          REGISTRATION_TIME,
           secret,
           NULL_ADDRESS,
           [],
           false,
           0,
           {
-            value: 28 * DAYS,
+            value: BUFFERED_REGISTRATION_COST,
           }
         )
       )
@@ -697,6 +714,7 @@ describe('ETHRegistrarController Tests', () => {
       const commitment = await controller.makeCommitment(
         'reverse',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
@@ -709,12 +727,13 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         'reverse',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
         true,
         0,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       expect(await resolver.name(getReverseNode(ownerAccount))).to.equal(
@@ -726,6 +745,7 @@ describe('ETHRegistrarController Tests', () => {
       const commitment = await controller.makeCommitment(
         'noreverse',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
@@ -738,12 +758,13 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         'noreverse',
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
         false,
         0,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       expect(await resolver.name(getReverseNode(ownerAccount))).to.equal('')
@@ -755,6 +776,7 @@ describe('ETHRegistrarController Tests', () => {
       const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
@@ -767,12 +789,13 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
         true,
         0,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       assert.equal(
@@ -793,6 +816,7 @@ describe('ETHRegistrarController Tests', () => {
       const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
@@ -805,12 +829,13 @@ describe('ETHRegistrarController Tests', () => {
       await controller.register(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [],
         true,
         1,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       const [, fuses] = await nameWrapper.getData(namehash.hash(name))
@@ -824,6 +849,7 @@ describe('ETHRegistrarController Tests', () => {
       const commitment = await controller.makeCommitment(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -843,6 +869,7 @@ describe('ETHRegistrarController Tests', () => {
       const gasA = await controller2.estimateGas.register(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver.address,
         [
@@ -853,7 +880,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       await resolver2.setApprovalForAll(controller.address, true)
@@ -861,6 +888,7 @@ describe('ETHRegistrarController Tests', () => {
       const gasB = await controller2.estimateGas.register(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver2.address,
         [
@@ -871,12 +899,13 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       const tx = await controller2.register(
         label,
         registrantAccount,
+        REGISTRATION_TIME,
         secret,
         resolver2.address,
         [
@@ -887,7 +916,7 @@ describe('ETHRegistrarController Tests', () => {
         ],
         true,
         1,
-        { value: 28 * DAYS + 1 }
+        { value: BUFFERED_REGISTRATION_COST }
       )
 
       console.log((await tx.wait()).gasUsed.toString())

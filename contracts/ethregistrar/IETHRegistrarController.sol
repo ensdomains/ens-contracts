@@ -5,7 +5,7 @@ import "./PriceOracle.sol";
 interface IETHRegistrarController {
     function rentPrice(string memory, uint256)
         external
-        returns (uint256 base, uint256 premium);
+        returns (uint256[2] memory);
 
     function rentDuration(string memory, uint256)
         external
@@ -16,6 +16,7 @@ interface IETHRegistrarController {
     function makeCommitment(
         string memory,
         address,
+        uint256,
         bytes32,
         address,
         bytes[] calldata,
@@ -28,6 +29,7 @@ interface IETHRegistrarController {
     function register(
         string calldata,
         address,
+        uint256,
         bytes32,
         address,
         bytes[] calldata,

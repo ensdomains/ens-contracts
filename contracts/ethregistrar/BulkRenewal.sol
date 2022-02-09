@@ -38,8 +38,8 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 basePrice, uint256 premium) = controller.rentPrice(names[i], duration);
-            total += (basePrice + premium);
+            uint256[2] memory price = controller.rentPrice(names[i], duration);
+            total += (price[0] + price[1]);
         }
     }
 
@@ -50,8 +50,8 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 basePrice, uint256 premium) = controller.rentPrice(names[i], duration);
-            controller.renew{value: basePrice + premium}(names[i]);
+            uint256[2] memory price = controller.rentPrice(names[i], duration);
+            controller.renew{value: (price[0] + price[1])}(names[i]);
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);
