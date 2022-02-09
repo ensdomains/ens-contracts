@@ -118,7 +118,6 @@ describe('ETHRegistrarController Tests', () => {
       await nameWrapper.setController(controller.address, true)
       await baseRegistrar.addController(nameWrapper.address)
       await reverseRegistrar.setController(controller.address, true)
-      await controller.setPriceOracle(priceOracle.address)
 
       resolver = await deploy(
         'PublicResolver',

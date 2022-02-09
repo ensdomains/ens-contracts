@@ -23,7 +23,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
     BaseRegistrarImplementation immutable base;
-    PriceOracle public prices;
+    PriceOracle public immutable prices;
     uint256 public immutable minCommitmentAge;
     uint256 public immutable maxCommitmentAge;
     ReverseRegistrar public immutable reverseRegistrar;
@@ -45,7 +45,6 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint256 cost,
         uint256 expires
     );
-    event NewPriceOracle(address indexed oracle);
 
     constructor(
         BaseRegistrarImplementation _base,
@@ -201,11 +200,6 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint256 expires = base.renew(uint256(label), duration);
 
         emit NameRenewed(name, label, msg.value, expires);
-    }
-
-    function setPriceOracle(PriceOracle _prices) public onlyOwner {
-        prices = _prices;
-        emit NewPriceOracle(address(prices));
     }
 
     function withdraw() public {
