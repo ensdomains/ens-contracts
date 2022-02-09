@@ -38,8 +38,8 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 basePrice, ) = controller.rentPrice(names[i], duration);
-            total += basePrice;
+            (uint256 basePrice, uint256 premium) = controller.rentPrice(names[i], duration);
+            total += (basePrice + premium);
         }
     }
 
