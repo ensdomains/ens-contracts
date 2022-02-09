@@ -43,12 +43,13 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
                 controllers[msg.sender] ||
                 ens.isApprovedForAll(addr, msg.sender) ||
                 ownsContract(addr),
-            "Caller is not a controller or authorised by address or the address itself"
+            "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
         );
         _;
     }
 
     function setDefaultResolver(address resolver) public override onlyOwner {
+        require(address(resolver) != address(0), "ReverseRegistrar: Resolver address must not be 0");
         defaultResolver = NameResolver(resolver);
     }
 
@@ -59,7 +60,6 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @return The ENS node hash of the reverse record.
      */
     function claim(address owner) public override returns (bytes32) {
-        require(address(defaultResolver) != address(0));
         return claimForAddr(msg.sender, owner, address(defaultResolver));
     }
 
