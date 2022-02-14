@@ -2,16 +2,20 @@ pragma solidity >=0.8.4;
 
 import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
+import "hardhat/console.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
     uint256 constant START_PREMIUM = 100000000 * 1e18; // $100 mil start price
-    uint256 constant END_VALUE = 372529029846191406; // $0.372...
+    uint256 immutable endValue; // $0.372...
 
-    constructor(AggregatorInterface _usdOracle, uint256[] memory _rentPrices)
-        public
-        StablePriceOracle(_usdOracle, _rentPrices)
-    {}
+    constructor(
+        AggregatorInterface _usdOracle,
+        uint256[] memory _rentPrices,
+        uint256 lastDay
+    ) StablePriceOracle(_usdOracle, _rentPrices) {
+        endValue = START_PREMIUM >> lastDay;
+    }
 
     uint256 constant PRECISION = 1e18;
     uint256 constant SECONDS_IN_DAY = 86400;
@@ -39,9 +43,10 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
      */
     function decayedPremium(uint256 startPremium, uint256 elapsed)
         public
-        pure
+        view
         returns (uint256)
     {
+        console.log("endValue", endValue);
         uint256 daysPast = (elapsed * PRECISION) / SECONDS_IN_DAY;
         uint256 intDays = daysPast / PRECISION;
         uint256 premium = startPremium >> intDays;
@@ -66,8 +71,8 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
 
         uint256 elapsed = block.timestamp - expires;
         uint256 premium = decayedPremium(START_PREMIUM, elapsed);
-        if (premium >= END_VALUE) {
-            return premium - END_VALUE;
+        if (premium >= endValue) {
+            return premium - endValue;
         }
         return 0;
     }
