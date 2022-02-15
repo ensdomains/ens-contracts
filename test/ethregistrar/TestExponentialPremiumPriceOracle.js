@@ -101,16 +101,20 @@ describe('ExponentialPricePremiumOracle Tests', () => {
           1e18
         ).toFixed(2)
       ).to.equal(expectedPremium)
-    });
+    })
 
     it('should produce a 0 premium at the end of the decay period', async () => {
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
-      expect((await priceOracle.premium('foobar', ts - 21 * DAY + 1, 0)).toNumber()).to.be.greaterThan(0);
-      expect((await priceOracle.premium('foobar', ts - 21 * DAY, 0)).toNumber()).to.equal(0);
-    });
+      expect(
+        (await priceOracle.premium('foobar', ts - 21 * DAY + 1, 0)).toNumber()
+      ).to.be.greaterThan(0)
+      expect(
+        (await priceOracle.premium('foobar', ts - 21 * DAY, 0)).toNumber()
+      ).to.equal(0)
+    })
 
     // This test only runs every hour of each day. For an exhaustive test use the exponentialPremiumScript and uncomment the exhaustive test below
-    it.only('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
+    it('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
       let differencePercentSum = 0
       let percentMax = 0
@@ -131,14 +135,19 @@ describe('ExponentialPricePremiumOracle Tests', () => {
         }
         if (percent > percentMax) {
           percentMax = percent
-          console.log({ percent, i, contractResult, jsResult })
         }
         differencePercentSum += percent
       }
       console.timeEnd()
-      console.log(percentMax)
-      expect(percentMax).to.be.below(0.001) // must be less than 0.1% off JS implementation
+      expect(percentMax).to.be.below(0.001) // must be less than 0.1% off JS implementation on an hourly resolution
     })
+
+    /***
+     * Exhaustive tests
+     * In the exhaustive tests, the last few mins, the absolute difference between JS and Solidity will creep up.
+     * And specifically the last few seconds go up to 31% difference. However the absolute difference is in the fractions
+     * and therefore can be discounted
+     */
 
     // it('should not be beyond a certain amount of inaccuracy from floating point calc (exhaustive)', async () => {
     //   function exponentialReduceFloatingPoint(startPrice, days) {
