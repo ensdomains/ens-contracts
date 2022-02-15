@@ -106,10 +106,12 @@ describe('ExponentialPricePremiumOracle Tests', () => {
     it('should produce a 0 premium at the end of the decay period', async () => {
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
       expect(
-        (await priceOracle.premium('foobar', ts - 21 * DAY + 1, 0)).toNumber()
+        (
+          await priceOracle.premium('foobar', ts - LAST_DAY * DAY + 1, 0)
+        ).toNumber()
       ).to.be.greaterThan(0)
       expect(
-        (await priceOracle.premium('foobar', ts - 21 * DAY, 0)).toNumber()
+        (await priceOracle.premium('foobar', ts - LAST_DAY * DAY, 0)).toNumber()
       ).to.equal(0)
     })
 
