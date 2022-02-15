@@ -103,14 +103,14 @@ describe('ExponentialPricePremiumOracle Tests', () => {
       ).to.equal(expectedPremium)
     });
 
-    it.only('should produce a 0 premium at the end of the decay period', async () => {
+    it('should produce a 0 premium at the end of the decay period', async () => {
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
       expect((await priceOracle.premium('foobar', ts - 21 * DAY + 1, 0)).toNumber()).to.be.greaterThan(0);
       expect((await priceOracle.premium('foobar', ts - 21 * DAY, 0)).toNumber()).to.equal(0);
     });
 
     // This test only runs every hour of each day. For an exhaustive test use the exponentialPremiumScript and uncomment the exhaustive test below
-    it('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
+    it.only('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
       let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
       let differencePercentSum = 0
       let percentMax = 0
