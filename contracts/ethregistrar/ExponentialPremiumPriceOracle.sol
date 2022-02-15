@@ -2,7 +2,6 @@ pragma solidity >=0.8.4;
 
 import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
-import "hardhat/console.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
@@ -46,7 +45,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         view
         returns (uint256)
     {
-        console.log("endValue", endValue);
         uint256 daysPast = (elapsed * PRECISION) / SECONDS_IN_DAY;
         uint256 intDays = daysPast / PRECISION;
         uint256 premium = startPremium >> intDays;

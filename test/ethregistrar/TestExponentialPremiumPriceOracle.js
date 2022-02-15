@@ -101,7 +101,13 @@ describe('ExponentialPricePremiumOracle Tests', () => {
           1e18
         ).toFixed(2)
       ).to.equal(expectedPremium)
-    })
+    });
+
+    it.only('should produce a 0 premium at the end of the decay period', async () => {
+      let ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
+      expect((await priceOracle.premium('foobar', ts - 21 * DAY + 1, 0)).toNumber()).to.be.greaterThan(0);
+      expect((await priceOracle.premium('foobar', ts - 21 * DAY, 0)).toNumber()).to.equal(0);
+    });
 
     // This test only runs every hour of each day. For an exhaustive test use the exponentialPremiumScript and uncomment the exhaustive test below
     it('should not be beyond a certain amount of inaccuracy from floating point calc', async () => {
@@ -109,10 +115,10 @@ describe('ExponentialPricePremiumOracle Tests', () => {
       let differencePercentSum = 0
       let percentMax = 0
 
-      const interval = 1 // 1 hour
+      const interval = 3600 // 1 hour
       const offset = 0
       console.time()
-      for (let i = 0; i <= 86400; i += interval) {
+      for (let i = 0; i <= 1814400; i += interval) {
         const contractResult =
           Number(await priceOracle.premium('foobar', ts - (i + offset), 0)) /
           1e18
@@ -123,14 +129,9 @@ describe('ExponentialPricePremiumOracle Tests', () => {
         if (contractResult !== 0) {
           percent = Math.abs(contractResult - jsResult) / jsResult
         }
-        console.log({ percent, i, contractResult, jsResult })
         if (percent > percentMax) {
           percentMax = percent
-        }
-        if (i >= LAST_DAY * DAY) {
-          // after or at 21 days premium should be 0
-          expect(contractResult).to.equal(0)
-          expect(jsResult).to.equal(0)
+          console.log({ percent, i, contractResult, jsResult })
         }
         differencePercentSum += percent
       }
