@@ -121,10 +121,10 @@ describe('ExponentialPricePremiumOracle Tests', () => {
       let differencePercentSum = 0
       let percentMax = 0
 
-      const interval = 3600 // 1 hour
+      const interval = 1 // 1 hour
       const offset = 0
       console.time()
-      for (let i = 0; i <= 1814400; i += interval) {
+      for (let i = 1814400 - 120; i <= 1814400; i += interval) {
         const contractResult =
           Number(await priceOracle.premium('foobar', ts - (i + offset), 0)) /
           1e18
@@ -132,10 +132,16 @@ describe('ExponentialPricePremiumOracle Tests', () => {
         const jsResult =
           exponentialReduceFloatingPoint(100000000, (i + offset) / 86400) / 2
         let percent = 0
+        let absoluteDifference
         if (contractResult !== 0) {
-          percent = Math.abs(contractResult - jsResult) / jsResult
+          absoluteDifference = Math.abs(contractResult - jsResult)
+          percent = Math.abs(absoluteDifference) / jsResult
         }
-        if (percent > percentMax) {
+
+        console.log({ percent, i, contractResult, jsResult })
+
+        // discounts absolute differences of less than 1c
+        if (percent > percentMax && absoluteDifference > 0.01) {
           percentMax = percent
         }
         differencePercentSum += percent
