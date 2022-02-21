@@ -61,13 +61,13 @@ describe('Contract', () => {
     })
 
     it('should work with larger values', async () => {
-      // 1 USD per second!
       const dummyOracle2 = await DummyOracle.new(1000000000n)
       // 4 attousd per second for 3 character names, 2 attousd per second for 4 character names,
       // 1 attousd per second for longer names.
       const priceOracle2 = await StablePriceOracle.new(dummyOracle2.address, [
         0,
         0,
+        // 1 USD per second!
         1000000000000000000n,
         2,
         1,
