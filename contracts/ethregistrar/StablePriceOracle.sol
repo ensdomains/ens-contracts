@@ -5,6 +5,7 @@ import "./SafeMath.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "hardhat/console.sol";
 
 interface AggregatorInterface {
     function latestAnswer() external view returns (int256);

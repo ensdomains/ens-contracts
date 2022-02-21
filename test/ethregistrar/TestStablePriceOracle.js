@@ -1,5 +1,3 @@
-const ENS = artifacts.require('./registry/ENSRegistry')
-const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
 const DummyOracle = artifacts.require('./DummyOracle')
 const StablePriceOracle = artifacts.require('./StablePriceOracle')
 
@@ -12,9 +10,6 @@ describe('Contract', () => {
     let priceOracle
 
     before(async () => {
-      ens = await ENS.new()
-      registrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'))
-
       // Dummy oracle with 1 ETH == 10 USD
       var dummyOracle = await DummyOracle.new(1000000000n)
       // 4 attousd per second for 3 character names, 2 attousd per second for 4 character names,
@@ -47,10 +42,6 @@ describe('Contract', () => {
       )
     })
 
-    // string calldata name,
-    //     uint256 expires,
-    //     uint256 value
-
     it('should return correct duration', async () => {
       expect(
         (await priceOracle.duration('foo', 1, 1000000n))[0].toNumber()
@@ -69,13 +60,22 @@ describe('Contract', () => {
       ).to.equal(100000)
     })
 
-    // it('should work with larger values', async () => {
-    //   // 1 USD per second!
-    //   await priceOracle.setPrices([toBN('1000000000000000000')])
-    //   assert.equal(
-    //     (await priceOracle.price('foo', 0, 86400))[0].toString(),
-    //     '8640000000000000000000'
-    //   )
-    // })
+    it('should work with larger values', async () => {
+      // 1 USD per second!
+      const dummyOracle2 = await DummyOracle.new(1000000000n)
+      // 4 attousd per second for 3 character names, 2 attousd per second for 4 character names,
+      // 1 attousd per second for longer names.
+      const priceOracle2 = await StablePriceOracle.new(dummyOracle2.address, [
+        0,
+        0,
+        1000000000000000000n,
+        2,
+        1,
+      ])
+      assert.equal(
+        (await priceOracle2.price('foo', 0, 86400))[0].toString(),
+        '8640000000000000000000'
+      )
+    })
   })
 })
