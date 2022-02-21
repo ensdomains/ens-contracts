@@ -1,6 +1,5 @@
 const {
   evm,
-  exceptions,
   reverse: { getReverseNode },
   contracts: { deploy },
 } = require('../test-utils')
