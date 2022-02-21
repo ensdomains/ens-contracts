@@ -81,6 +81,15 @@ module.exports = {
       },
     ],
   },
+  abiExporter: {
+    path: './build/contracts',
+    runOnCompile: true,
+    clear: true,
+    flat: true,
+    except: ['Controllable$', 'INameWrapper$', 'SHA1$', 'Ownable$', 'NameResolver$', 'TestBytesUtils$'],
+    spacing: 2,
+    pretty: true,
+  },
   namedAccounts: {
     deployer: {
       default: 0,
