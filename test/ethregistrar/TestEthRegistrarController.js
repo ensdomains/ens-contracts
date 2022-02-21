@@ -86,8 +86,6 @@ describe('ETHRegistrarController Tests', () => {
         namehash.hash('eth')
       )
 
-      const signer = ethers.provider.getSigner()
-
       nameWrapper = await deploy(
         'NameWrapper',
         ens.address,

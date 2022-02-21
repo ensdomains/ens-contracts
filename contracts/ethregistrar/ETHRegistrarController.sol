@@ -11,7 +11,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../wrapper/INameWrapper.sol";
-import "hardhat/console.sol";
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
