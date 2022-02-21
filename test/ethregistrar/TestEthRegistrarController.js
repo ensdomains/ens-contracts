@@ -11,7 +11,6 @@ const { ethers } = require('hardhat')
 const provider = ethers.provider
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
-const toBN = require('web3-utils').toBN
 
 const DAYS = 24 * 60 * 60
 const REGISTRATION_TIME = 28 * DAYS
@@ -38,7 +37,10 @@ describe('ETHRegistrarController Tests', () => {
     let registrantAccount // Account that owns test names
     let accounts = []
 
-    async function registerName(name) {
+    async function registerName(
+      name,
+      txOptions = { value: BUFFERED_REGISTRATION_COST }
+    ) {
       var commitment = await controller.makeCommitment(
         name,
         registrantAccount,
@@ -50,8 +52,7 @@ describe('ETHRegistrarController Tests', () => {
         0
       )
       var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      expect(await controller.commitments(commitment)).to.equal(
         (await provider.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -66,7 +67,7 @@ describe('ETHRegistrarController Tests', () => {
         [],
         false,
         0,
-        { value: BUFFERED_REGISTRATION_COST }
+        txOptions
       )
 
       return tx
@@ -177,12 +178,15 @@ describe('ETHRegistrarController Tests', () => {
 
     it('should report label validity', async () => {
       for (const label in checkLabels) {
-        assert.equal(await controller.valid(label), checkLabels[label], label)
+        expect(await controller.valid(label)).to.equal(
+          checkLabels[label],
+          label
+        )
       }
     })
 
     it('should report unused names as available', async () => {
-      assert.equal(await controller.available(sha3('available')), true)
+      expect(await controller.available(sha3('available'))).to.equal(true)
     })
 
     it('should permit new registrations', async () => {
@@ -201,16 +205,21 @@ describe('ETHRegistrarController Tests', () => {
           block.timestamp + REGISTRATION_TIME
         )
 
-      assert.equal(
-        (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        REGISTRATION_TIME
+      expect(
+        (await web3.eth.getBalance(controller.address)) - balanceBefore
+      ).to.equal(REGISTRATION_TIME)
+    })
+
+    it('should revert when not enough ether is transferred', async () => {
+      await expect(registerName('newname', { value: 0 })).to.be.revertedWith(
+        'ETHRegistrarController: Not enough ether provided'
       )
     })
 
     it('should report registered names as unavailable', async () => {
       const name = 'newname'
       await registerName(name)
-      assert.equal(await controller.available('newname'), false)
+      expect(await controller.available(name)).to.equal(false)
     })
 
     it('should permit new registrations with resolver and records', async () => {
@@ -235,8 +244,7 @@ describe('ETHRegistrarController Tests', () => {
         0
       )
       var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -277,21 +285,21 @@ describe('ETHRegistrarController Tests', () => {
           block.timestamp + REGISTRATION_TIME
         )
 
-      assert.equal(
-        (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        REGISTRATION_TIME
-      )
+      expect(
+        (await web3.eth.getBalance(controller.address)) - balanceBefore
+      ).to.equal(REGISTRATION_TIME)
 
       var nodehash = namehash.hash('newconfigname.eth')
-      assert.equal(await ens.resolver(nodehash), resolver.address)
-      assert.equal(await ens.owner(nodehash), nameWrapper.address)
-      assert.equal(
-        await baseRegistrar.ownerOf(sha3('newconfigname')),
+      expect(await ens.resolver(nodehash)).to.equal(resolver.address)
+      expect(await ens.owner(nodehash)).to.equal(nameWrapper.address)
+      expect(await baseRegistrar.ownerOf(sha3('newconfigname'))).to.equal(
         nameWrapper.address
       )
-      assert.equal(await resolver['addr(bytes32)'](nodehash), registrantAccount)
-      assert.equal(await resolver['text'](nodehash, 'url'), 'ethereum.com')
-      assert.equal(await nameWrapper.ownerOf(nodehash), registrantAccount)
+      expect(await resolver['addr(bytes32)'](nodehash)).to.equal(
+        registrantAccount
+      )
+      expect(await resolver['text'](nodehash, 'url')).to.equal('ethereum.com')
+      expect(await nameWrapper.ownerOf(nodehash)).to.equal(registrantAccount)
     })
 
     it('should not permit new registrations with 0 resolver', async () => {
@@ -322,7 +330,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should not permit new registrations with EoA resolver', async () => {
-      var commitment = await controller.makeCommitment(
+      const commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
         REGISTRATION_TIME,
@@ -343,9 +351,8 @@ describe('ETHRegistrarController Tests', () => {
         0
       )
 
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      const tx = await controller.commit(commitment)
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -376,7 +383,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should not permit new registrations with an incompatible contract', async () => {
-      var commitment = await controller.makeCommitment(
+      const commitment = await controller.makeCommitment(
         'newconfigname',
         registrantAccount,
         REGISTRATION_TIME,
@@ -397,9 +404,8 @@ describe('ETHRegistrarController Tests', () => {
         0
       )
 
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      const tx = await controller.commit(commitment)
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -430,7 +436,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should not permit new registrations with records updating a different name', async () => {
-      var commitment = await controller.makeCommitment(
+      const commitment = await controller.makeCommitment(
         'awesome',
         registrantAccount,
         REGISTRATION_TIME,
@@ -445,9 +451,8 @@ describe('ETHRegistrarController Tests', () => {
         false,
         0
       )
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      const tx = await controller.commit(commitment)
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -476,7 +481,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should not permit new registrations with any record updating a different name', async () => {
-      var commitment = await controller.makeCommitment(
+      const commitment = await controller.makeCommitment(
         'awesome',
         registrantAccount,
         REGISTRATION_TIME,
@@ -495,9 +500,8 @@ describe('ETHRegistrarController Tests', () => {
         false,
         0
       )
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      const tx = await controller.commit(commitment)
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
@@ -530,7 +534,7 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should permit a registration with resolver but no records', async () => {
-      var commitment = await controller.makeCommitment(
+      const commitment = await controller.makeCommitment(
         'newconfigname2',
         registrantAccount,
         REGISTRATION_TIME,
@@ -540,15 +544,14 @@ describe('ETHRegistrarController Tests', () => {
         false,
         0
       )
-      var tx = await controller.commit(commitment)
-      assert.equal(
-        await controller.commitments(commitment),
+      let tx = await controller.commit(commitment)
+      expect(await controller.commitments(commitment)).to.equal(
         (await web3.eth.getBlock(tx.blockNumber)).timestamp
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      var balanceBefore = await web3.eth.getBalance(controller.address)
-      var tx = await controller.register(
+      const balanceBefore = await web3.eth.getBalance(controller.address)
+      let tx2 = await controller.register(
         'newconfigname2',
         registrantAccount,
         REGISTRATION_TIME,
@@ -560,9 +563,9 @@ describe('ETHRegistrarController Tests', () => {
         { value: BUFFERED_REGISTRATION_COST }
       )
 
-      const block = await provider.getBlock(tx.blockNumber)
+      const block = await provider.getBlock(tx2.blockNumber)
 
-      await expect(tx)
+      await expect(tx2)
         .to.emit(controller, 'NameRegistered')
         .withArgs(
           'newconfigname2',
@@ -573,13 +576,12 @@ describe('ETHRegistrarController Tests', () => {
           block.timestamp + REGISTRATION_TIME
         )
 
-      var nodehash = namehash.hash('newconfigname2.eth')
-      assert.equal(await ens.resolver(nodehash), resolver.address)
-      assert.equal(await resolver['addr(bytes32)'](nodehash), 0)
-      assert.equal(
-        (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        REGISTRATION_TIME
-      )
+      const nodehash = namehash.hash('newconfigname2.eth')
+      expect(await ens.resolver(nodehash)).to.equal(resolver.address)
+      expect(await resolver['addr(bytes32)'](nodehash)).to.equal(NULL_ADDRESS)
+      expect(
+        (await web3.eth.getBalance(controller.address)) - balanceBefore
+      ).to.equal(REGISTRATION_TIME)
     })
 
     it('should include the owner in the commitment', async () => {
@@ -597,7 +599,7 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      await exceptions.expectFailure(
+      await expect(
         controller.register(
           'newname2',
           registrantAccount,
@@ -611,7 +613,7 @@ describe('ETHRegistrarController Tests', () => {
             value: BUFFERED_REGISTRATION_COST,
           }
         )
-      )
+      ).to.be.reverted
     })
 
     it('should reject duplicate registrations', async () => {
@@ -630,7 +632,7 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-      await exceptions.expectFailure(
+      expect(
         controller.register(
           'newname',
           registrantAccount,
@@ -644,7 +646,7 @@ describe('ETHRegistrarController Tests', () => {
             value: BUFFERED_REGISTRATION_COST,
           }
         )
-      )
+      ).to.be.revertedWith('ETHRegistrarController: Name is unavailable')
     })
 
     it('should reject for expired commitments', async () => {
@@ -664,7 +666,7 @@ describe('ETHRegistrarController Tests', () => {
       await evm.advanceTime(
         (await controller.maxCommitmentAge()).toNumber() + 1
       )
-      await exceptions.expectFailure(
+      expect(
         controller.register(
           'newname2',
           registrantAccount,
@@ -678,7 +680,7 @@ describe('ETHRegistrarController Tests', () => {
             value: BUFFERED_REGISTRATION_COST,
           }
         )
-      )
+      ).to.be.revertedWith('ETHRegistrarController: Commitment has expired')
     })
 
     it('should allow anyone to renew a name', async () => {
@@ -694,20 +696,23 @@ describe('ETHRegistrarController Tests', () => {
       expect(duration.toNumber()).to.equal(targetDuration)
       await controller.renew('newname', { value: price })
       var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
-      assert.equal(newExpires.toNumber() - expires.toNumber(), 86400)
-      assert.equal(
-        (await web3.eth.getBalance(controller.address)) - balanceBefore,
-        86400
-      )
+      expect(newExpires.toNumber() - expires.toNumber()).to.equal(86400)
+      expect(
+        (await web3.eth.getBalance(controller.address)) - balanceBefore
+      ).to.equal(86400)
     })
 
     it('should require sufficient value for a renewal', async () => {
-      await exceptions.expectFailure(controller.renew('name'))
+      expect(controller.renew('name')).to.be.revertedWith(
+        'ETHController: No ether provided for renewal'
+      )
     })
 
     it('should allow anyone to withdraw funds and transfer to the registrar owner', async () => {
       await controller.withdraw({ from: ownerAccount })
-      assert.equal(await web3.eth.getBalance(controller.address), 0)
+      expect(parseInt(await web3.eth.getBalance(controller.address))).to.equal(
+        0
+      )
     })
 
     it('should set the reverse record of the account', async () => {
@@ -798,14 +803,12 @@ describe('ETHRegistrarController Tests', () => {
         { value: BUFFERED_REGISTRATION_COST }
       )
 
-      assert.equal(
-        await nameWrapper.ownerOf(namehash.hash(name)),
+      expect(await nameWrapper.ownerOf(namehash.hash(name))).to.equal(
         registrantAccount
       )
 
-      assert.equal(await ens.owner(namehash.hash(name)), nameWrapper.address)
-      assert.equal(
-        await baseRegistrar.ownerOf(sha3(label)),
+      expect(await ens.owner(namehash.hash(name))).to.equal(nameWrapper.address)
+      expect(await baseRegistrar.ownerOf(sha3(label))).to.equal(
         nameWrapper.address
       )
     })
@@ -839,7 +842,7 @@ describe('ETHRegistrarController Tests', () => {
       )
 
       const [, fuses] = await nameWrapper.getData(namehash.hash(name))
-      assert.equal(fuses, 1)
+      expect(fuses).to.equal(1)
     })
 
     it('approval should reduce gas for registration', async () => {

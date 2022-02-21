@@ -196,6 +196,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
     function renew(string calldata name) external payable override {
         bytes32 label = keccak256(bytes(name));
+        require(msg.value > 0, "ETHController: No ether provided for renewal");
         (uint256 duration, ) = prices.duration(
             name,
             base.nameExpires(uint256(label)),
@@ -229,11 +230,18 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         bytes32 commitment
     ) internal {
         // Require a valid commitment
-        require(commitments[commitment] + minCommitmentAge <= block.timestamp);
+        require(
+            commitments[commitment] + minCommitmentAge <= block.timestamp,
+            "ETHRegistrarController: Commitment is not valid"
+        );
 
         // If the commitment is too old, or the name is registered, stop
-        require(commitments[commitment] + maxCommitmentAge > block.timestamp);
-        require(available(name));
+        require(
+            // 0 + 800000
+            commitments[commitment] + maxCommitmentAge > block.timestamp,
+            "ETHRegistrarController: Commitment has expired"
+        );
+        require(available(name), "ETHRegistrarController: Name is unavailable");
 
         delete (commitments[commitment]);
 

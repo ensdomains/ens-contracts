@@ -5,7 +5,6 @@ import "./SafeMath.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "hardhat/console.sol";
 
 interface AggregatorInterface {
     function latestAnswer() external view returns (int256);
@@ -78,6 +77,7 @@ contract StablePriceOracle is PriceOracle {
             len = 5;
         }
         require(len > 0);
+        require(value > 0);
 
         uint256 premiumCost = attoUSDToWei(_premium(name, expires, 0));
         uint256 valueLeft = value - premiumCost;
