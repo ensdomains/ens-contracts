@@ -684,14 +684,9 @@ describe('ETHRegistrarController Tests', () => {
       await registerName('newname')
       var expires = await baseRegistrar.nameExpires(sha3('newname'))
       var balanceBefore = await web3.eth.getBalance(controller.address)
-      const targetDuration = 86400
-      const [price] = await controller.rentPrice(
-        sha3('newname'),
-        targetDuration
-      )
-      const [duration] = await controller.rentDuration(sha3('newname'), price)
-      expect(duration.toNumber()).to.equal(targetDuration)
-      await controller.renew('newname', { value: price })
+      const duration = 86400
+      const [price] = await controller.rentPrice(sha3('newname'), duration)
+      await controller.renew('newname', duration, { value: price })
       var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
       expect(newExpires.toNumber() - expires.toNumber()).to.equal(86400)
       expect(
@@ -700,8 +695,8 @@ describe('ETHRegistrarController Tests', () => {
     })
 
     it('should require sufficient value for a renewal', async () => {
-      expect(controller.renew('name')).to.be.revertedWith(
-        'ETHController: No ether provided for renewal'
+      expect(controller.renew('name', 86400)).to.be.revertedWith(
+        'ETHController: Not enough Ether provided for renewal'
       )
     })
 

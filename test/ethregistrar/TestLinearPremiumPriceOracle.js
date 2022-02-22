@@ -47,32 +47,33 @@ describe('Contract', () => {
 
     it('should return correct base prices', async () => {
       assert.equal(
-        (await priceOracle.price('foo', 0, 3600))[0].toNumber(),
+        parseInt((await priceOracle.price('foo', 0, 3600)).base),
         7200
       )
+
       assert.equal(
-        (await priceOracle.price('quux', 0, 3600))[0].toNumber(),
+        parseInt((await priceOracle.price('quux', 0, 3600)).base),
         3600
       )
       assert.equal(
-        (await priceOracle.price('fubar', 0, 3600))[0].toNumber(),
+        parseInt((await priceOracle.price('fubar', 0, 3600)).base),
         1800
       )
       assert.equal(
-        (await priceOracle.price('foobie', 0, 3600))[0].toNumber(),
+        parseInt((await priceOracle.price('foobie', 0, 3600)).base),
         1800
       )
     })
 
     it('should not specify a premium for first-time registrations', async () => {
       assert.equal((await priceOracle.premium('foobar', 0, 0)).toNumber(), 0)
-      assert.equal((await priceOracle.price('foobar', 0, 0))[0].toNumber(), 0)
+      assert.equal(parseInt((await priceOracle.price('foobar', 0, 0)).base), 0)
     })
 
     it('should not specify a premium for renewals', async () => {
       const ts = (await web3.eth.getBlock('latest')).timestamp
       assert.equal((await priceOracle.premium('foobar', ts, 0)).toNumber(), 0)
-      assert.equal((await priceOracle.price('foobar', ts, 0))[0].toNumber(), 0)
+      assert.equal(parseInt((await priceOracle.price('foobar', ts, 0)).base), 0)
     })
 
     it('should specify the maximum premium at the moment of expiration', async () => {
@@ -82,7 +83,7 @@ describe('Contract', () => {
         '50000000000000000000'
       )
       assert.equal(
-        (await priceOracle.price('foobar', ts, 0))[1].toString(),
+        (await priceOracle.price('foobar', ts, 0)).premium,
         '50000000000000000000'
       )
     })
@@ -95,7 +96,7 @@ describe('Contract', () => {
         '25000000000000000000'
       )
       assert.equal(
-        (await priceOracle.price('foobar', ts, 0))[1].toString(),
+        (await priceOracle.price('foobar', ts, 0)).premium,
         '25000000000000000000'
       )
     })

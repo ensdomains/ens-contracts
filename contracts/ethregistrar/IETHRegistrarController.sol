@@ -1,15 +1,11 @@
 pragma solidity >=0.8.4;
 
-import "./PriceOracle.sol";
+import "./IPriceOracle.sol";
 
 interface IETHRegistrarController {
     function rentPrice(string memory, uint256)
         external
-        returns (uint256 base, uint256 premium);
-
-    function rentDuration(string memory, uint256)
-        external
-        returns (uint256 duration, uint256 premium);
+        returns (PriceOracle.Price memory);
 
     function available(string memory) external returns (bool);
 
@@ -37,5 +33,5 @@ interface IETHRegistrarController {
         uint96
     ) external payable;
 
-    function renew(string calldata) external payable;
+    function renew(string calldata, uint256) external payable;
 }

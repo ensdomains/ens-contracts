@@ -4,7 +4,6 @@ import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
 import "../resolvers/Resolver.sol";
 import "../registry/ReverseRegistrar.sol";
-import "../dnssec-oracle/BytesUtils.sol";
 import "./IETHRegistrarController.sol";
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -17,7 +16,6 @@ import "../wrapper/INameWrapper.sol";
  */
 contract ETHRegistrarController is Ownable, IETHRegistrarController {
     using StringUtils for *;
-    using BytesUtils for bytes;
     using Address for address;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
@@ -70,28 +68,10 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         public
         view
         override
-        returns (uint256 basePrice, uint256 premiumPrice)
+        returns (PriceOracle.Price memory price)
     {
         bytes32 label = keccak256(bytes(name));
-        (basePrice, premiumPrice) = prices.price(
-            name,
-            base.nameExpires(uint256(label)),
-            duration
-        );
-    }
-
-    function rentDuration(string memory name, uint256 cost)
-        public
-        view
-        override
-        returns (uint256 duration, uint256 premiumPrice)
-    {
-        bytes32 hash = keccak256(bytes(name));
-        (duration, premiumPrice) = prices.duration(
-            name,
-            base.nameExpires(uint256(hash)),
-            cost
-        );
+        price = prices.price(name, base.nameExpires(uint256(label)), duration);
     }
 
     function valid(string memory name) public pure returns (bool) {
@@ -151,9 +131,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint96 fuses
     ) public payable override {
         bytes32 label = keccak256(bytes(name));
-        uint256[2] memory cost = _rentPrice(name, duration);
+        PriceOracle.Price memory price = rentPrice(name, duration);
         require(
-            msg.value >= (cost[0] + cost[1]),
+            msg.value >= (price.base + price.premium),
             "ETHRegistrarController: Not enough ether provided"
         );
 
@@ -186,23 +166,39 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             _setReverseRecord(name, resolver, msg.sender);
         }
 
-        emit NameRegistered(name, label, owner, cost[0], cost[1], expires);
+        emit NameRegistered(
+            name,
+            label,
+            owner,
+            price.base,
+            price.premium,
+            expires
+        );
 
-        if (msg.value > (cost[0] + cost[1])) {
-            payable(msg.sender).transfer(msg.value - (cost[0] + cost[1]));
+        if (msg.value > (price.base + price.premium)) {
+            payable(msg.sender).transfer(
+                msg.value - (price.base + price.premium)
+            );
         }
     }
 
-    function renew(string calldata name) external payable override {
+    function renew(string calldata name, uint256 duration)
+        external
+        payable
+        override
+    {
         bytes32 label = keccak256(bytes(name));
-        require(msg.value > 0, "ETHController: No ether provided for renewal");
-        (uint256 duration, ) = prices.duration(
-            name,
-            base.nameExpires(uint256(label)),
-            msg.value
+        PriceOracle.Price memory price = rentPrice(name, duration);
+        require(
+            msg.value >= price.base,
+            "ETHController: Not enough Ether provided for renewal"
         );
 
         uint256 expires = base.renew(uint256(label), duration);
+
+        if (msg.value > price.base) {
+            payable(msg.sender).transfer(msg.value - price.base);
+        }
 
         emit NameRenewed(name, label, msg.value, expires);
     }
@@ -228,7 +224,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint256 duration,
         bytes32 commitment
     ) internal {
-        // Require a valid commitment
+        // Require a valid commitment (is old enough and is committed)
         require(
             commitments[commitment] + minCommitmentAge <= block.timestamp,
             "ETHRegistrarController: Commitment is not valid"
@@ -236,7 +232,6 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
         // If the commitment is too old, or the name is registered, stop
         require(
-            // 0 + 800000
             commitments[commitment] + maxCommitmentAge > block.timestamp,
             "ETHRegistrarController: Commitment has expired"
         );
@@ -261,7 +256,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                 txNamehash == nodehash,
                 "ETHRegistrarController: Namehash on record do not match the name being registered"
             );
-            address(resolver).functionCall(
+            resolver.functionCall(
                 data[i],
                 "ETHRegistrarController: Failed to set Record"
             );
@@ -277,17 +272,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             msg.sender,
             owner,
             resolver,
-            string(abi.encodePacked(name, ".eth"))
+            string.concat(name, ".eth")
         );
-    }
-
-    function _rentPrice(string memory name, uint256 duration)
-        internal
-        view
-        returns (uint256[2] memory)
-    {
-        (uint256 basePrice, uint256 premiumPrice) = rentPrice(name, duration);
-        uint256[2] memory price = [basePrice, premiumPrice];
-        return price;
     }
 }

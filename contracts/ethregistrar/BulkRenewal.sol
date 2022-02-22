@@ -6,6 +6,7 @@ import "./ETHRegistrarController.sol";
 import "./IETHRegistrarController.sol";
 import "../resolvers/Resolver.sol";
 import "./IBulkRenewal.sol";
+import "./IPriceOracle.sol";
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
@@ -38,11 +39,11 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 basePrice, uint256 premium) = controller.rentPrice(
+            PriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
-            total += (basePrice + premium);
+            total += (price.base + price.premium);
         }
     }
 
@@ -53,11 +54,14 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            (uint256 basePrice, uint256 premium) = controller.rentPrice(
+            PriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
-            controller.renew{value: basePrice + premium}(names[i]);
+            controller.renew{value: price.base + price.premium}(
+                names[i],
+                duration
+            );
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);

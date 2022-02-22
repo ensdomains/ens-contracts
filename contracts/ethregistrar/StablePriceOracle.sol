@@ -1,6 +1,6 @@
 pragma solidity >=0.8.4;
 
-import "./PriceOracle.sol";
+import "./IPriceOracle.sol";
 import "./SafeMath.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -40,7 +40,7 @@ contract StablePriceOracle is PriceOracle {
         string calldata name,
         uint256 expires,
         uint256 duration
-    ) external view override returns (uint256, uint256) {
+    ) external view override returns (PriceOracle.Price memory) {
         uint256 len = name.strlen();
         if (len > 5) {
             len = 5;
@@ -61,40 +61,11 @@ contract StablePriceOracle is PriceOracle {
             basePrice = price5Letter * duration;
         }
 
-        return (
-            attoUSDToWei(basePrice),
-            attoUSDToWei(_premium(name, expires, duration))
-        );
-    }
-
-    function duration(
-        string calldata name,
-        uint256 expires,
-        uint256 value
-    ) external view override returns (uint256, uint256) {
-        uint256 len = name.strlen();
-        if (len > 5) {
-            len = 5;
-        }
-        require(len > 0);
-        require(value > 0);
-
-        uint256 premiumCost = attoUSDToWei(_premium(name, expires, 0));
-        uint256 valueLeft = value - premiumCost;
-
-        uint256 duration;
-        if (len == 1) {
-            duration = attoUSDToWei(valueLeft / price1Letter);
-        } else if (len == 2) {
-            duration = attoUSDToWei(valueLeft / price2Letter);
-        } else if (len == 3) {
-            duration = attoUSDToWei(valueLeft / price3Letter);
-        } else if (len == 4) {
-            duration = attoUSDToWei(valueLeft / price4Letter);
-        } else if (len == 5) {
-            duration = attoUSDToWei(valueLeft / price5Letter);
-        }
-        return (duration, premiumCost);
+        return
+            PriceOracle.Price({
+                base: attoUSDToWei(basePrice),
+                premium: attoUSDToWei(_premium(name, expires, duration))
+            });
     }
 
     /**
