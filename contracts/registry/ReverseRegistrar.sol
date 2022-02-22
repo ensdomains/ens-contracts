@@ -49,7 +49,10 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     }
 
     function setDefaultResolver(address resolver) public override onlyOwner {
-        require(address(resolver) != address(0), "ReverseRegistrar: Resolver address must not be 0");
+        require(
+            address(resolver) != address(0),
+            "ReverseRegistrar: Resolver address must not be 0"
+        );
         defaultResolver = NameResolver(resolver);
     }
 
@@ -76,11 +79,11 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address resolver
     ) public override authorised(addr) returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
-        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
         emit ReverseClaimed(addr, reverseNode);
+        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
         return reverseNode;
     }
 
@@ -131,7 +134,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address owner,
         address resolver,
         string memory name
-    ) public override authorised(addr) returns (bytes32) {
+    ) public override returns (bytes32) {
         bytes32 node = claimForAddr(addr, owner, resolver);
         NameResolver(resolver).setName(node, name);
         return node;

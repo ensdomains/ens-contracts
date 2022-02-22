@@ -31,8 +31,8 @@ contract PublicResolver is
     PubkeyResolver,
     TextResolver
 {
-    ENS ens;
-    INameWrapper nameWrapper;
+    ENS immutable ens;
+    INameWrapper immutable nameWrapper;
     address immutable trustedETHController;
     address immutable trustedReverseRegistrar;
 
@@ -76,6 +76,17 @@ contract PublicResolver is
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
+    /**
+     * @dev See {IERC1155-isApprovedForAll}.
+     */
+    function isApprovedForAll(address account, address operator)
+        public
+        view
+        returns (bool)
+    {
+        return _operatorApprovals[account][operator];
+    }
+
     function isAuthorised(bytes32 node) internal view override returns (bool) {
         if (
             msg.sender == trustedETHController ||
@@ -88,17 +99,6 @@ contract PublicResolver is
             owner = nameWrapper.ownerOf(uint256(node));
         }
         return owner == msg.sender || isApprovedForAll(owner, msg.sender);
-    }
-
-    /**
-     * @dev See {IERC1155-isApprovedForAll}.
-     */
-    function isApprovedForAll(address account, address operator)
-        public
-        view
-        returns (bool)
-    {
-        return _operatorApprovals[account][operator];
     }
 
     function supportsInterface(bytes4 interfaceID)
@@ -117,8 +117,6 @@ contract PublicResolver is
         )
         returns (bool)
     {
-        return
-            interfaceID == type(IMulticallable).interfaceId ||
-            super.supportsInterface(interfaceID);
+        return super.supportsInterface(interfaceID);
     }
 }

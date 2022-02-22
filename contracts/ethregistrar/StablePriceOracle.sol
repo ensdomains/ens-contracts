@@ -42,11 +42,6 @@ contract StablePriceOracle is PriceOracle {
         uint256 duration
     ) external view override returns (PriceOracle.Price memory) {
         uint256 len = name.strlen();
-        if (len > 5) {
-            len = 5;
-        }
-        require(len > 0);
-
         uint256 basePrice;
 
         if (len == 1) {
@@ -57,7 +52,7 @@ contract StablePriceOracle is PriceOracle {
             basePrice = price3Letter * duration;
         } else if (len == 4) {
             basePrice = price4Letter * duration;
-        } else if (len == 5) {
+        } else {
             basePrice = price5Letter * duration;
         }
 
