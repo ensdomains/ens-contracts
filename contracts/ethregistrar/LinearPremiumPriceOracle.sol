@@ -1,46 +1,40 @@
 pragma solidity >=0.8.4;
 
+import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
-import "./ILinearPremiumPriceOracle.sol";
 
-contract LinearPremiumPriceOracle is
-    StablePriceOracle,
-    ILinearPremiumPriceOracle
-{
-    uint256 constant GRACE_PERIOD = 90 days;
+contract LinearPremiumPriceOracle is StablePriceOracle {
+    using SafeMath for *;
 
-    uint256 public immutable initialPremium;
-    uint256 public immutable premiumDecreaseRate;
+    uint immutable GRACE_PERIOD = 90 days;
 
-    constructor(
-        AggregatorInterface _usdOracle,
-        uint256[] memory _rentPrices,
-        uint256 _initialPremium,
-        uint256 _premiumDecreaseRate
-    ) public StablePriceOracle(_usdOracle, _rentPrices) {
+    uint public immutable initialPremium;
+    uint public immutable premiumDecreaseRate;
+
+    bytes4 constant private TIME_UNTIL_PREMIUM_ID = bytes4(keccak256("timeUntilPremium(uint,uint"));
+
+    constructor(AggregatorInterface _usdOracle, uint[] memory _rentPrices, uint _initialPremium, uint _premiumDecreaseRate) public
+        StablePriceOracle(_usdOracle, _rentPrices)
+    {
         initialPremium = _initialPremium;
         premiumDecreaseRate = _premiumDecreaseRate;
     }
 
-    function _premium(
-        string memory name,
-        uint256 expires,
-        uint256 /*duration*/
-    ) internal view override returns (uint256) {
-        expires = expires + GRACE_PERIOD;
-        if (expires > block.timestamp) {
+    function _premium(string memory name, uint expires, uint /*duration*/) override internal view returns(uint) {
+        expires = expires.add(GRACE_PERIOD);
+        if(expires > block.timestamp) {
             // No premium for renewals
             return 0;
         }
 
         // Calculate the discount off the maximum premium
-        uint256 discount = premiumDecreaseRate * (block.timestamp - expires);
+        uint discount = premiumDecreaseRate.mul(block.timestamp.sub(expires));
 
         // If we've run out the premium period, return 0.
-        if (discount > initialPremium) {
+        if(discount > initialPremium) {
             return 0;
         }
-
+        
         return initialPremium - discount;
     }
 
@@ -51,31 +45,18 @@ contract LinearPremiumPriceOracle is
      * @param amount The amount, in wei, the caller is willing to pay
      * @return The timestamp at which the premium for this domain will be `amount`.
      */
-    function timeUntilPremium(uint256 expires, uint256 amount)
-        external
-        view
-        override
-        returns (uint256)
-    {
+    function timeUntilPremium(uint expires, uint amount) external view returns(uint) {
         amount = weiToAttoUSD(amount);
         require(amount <= initialPremium);
 
-        expires = expires + GRACE_PERIOD;
+        expires = expires.add(GRACE_PERIOD);
 
-        uint256 discount = initialPremium - amount;
-        uint256 duration = discount / premiumDecreaseRate;
-        return expires + duration;
+        uint discount = initialPremium.sub(amount);
+        uint duration = discount.div(premiumDecreaseRate);
+        return expires.add(duration);
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            (interfaceID == type(ILinearPremiumPriceOracle).interfaceId) ||
-            super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID) public view virtual override returns (bool) {
+        return (interfaceID == TIME_UNTIL_PREMIUM_ID) || super.supportsInterface(interfaceID);
     }
 }
