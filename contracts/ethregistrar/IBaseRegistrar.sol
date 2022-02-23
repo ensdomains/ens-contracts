@@ -1,4 +1,22 @@
-interface IBaseRegistrar {
+import "../registry/ENS.sol";
+import "./IBaseRegistrar.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+
+interface IBaseRegistrar is IERC721 {
+
+    event ControllerAdded(address indexed controller);
+    event ControllerRemoved(address indexed controller);
+    event NameMigrated(
+        uint256 indexed id,
+        address indexed owner,
+        uint256 expires
+    );
+    event NameRegistered(
+        uint256 indexed id,
+        address indexed owner,
+        uint256 expires
+    );
+    event NameRenewed(uint256 indexed id, uint256 expires);
     // Authorises a controller, who can register and renew domains.
     function addController(address controller) external;
 

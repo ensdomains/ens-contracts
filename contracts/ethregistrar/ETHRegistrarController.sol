@@ -23,7 +23,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
     BaseRegistrarImplementation immutable base;
-    PriceOracle public immutable prices;
+    IPriceOracle public immutable prices;
     uint256 public immutable minCommitmentAge;
     uint256 public immutable maxCommitmentAge;
     ReverseRegistrar public immutable reverseRegistrar;
@@ -48,7 +48,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
     constructor(
         BaseRegistrarImplementation _base,
-        PriceOracle _prices,
+        IPriceOracle _prices,
         uint256 _minCommitmentAge,
         uint256 _maxCommitmentAge,
         ReverseRegistrar _reverseRegistrar,
@@ -68,7 +68,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         public
         view
         override
-        returns (PriceOracle.Price memory price)
+        returns (IPriceOracle.Price memory price)
     {
         bytes32 label = keccak256(bytes(name));
         price = prices.price(name, base.nameExpires(uint256(label)), duration);
@@ -131,7 +131,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint96 fuses
     ) public payable override {
         bytes32 label = keccak256(bytes(name));
-        PriceOracle.Price memory price = rentPrice(name, duration);
+        IPriceOracle.Price memory price = rentPrice(name, duration);
         require(
             msg.value >= (price.base + price.premium),
             "ETHRegistrarController: Not enough ether provided"
@@ -188,7 +188,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         override
     {
         bytes32 label = keccak256(bytes(name));
-        PriceOracle.Price memory price = rentPrice(name, duration);
+        IPriceOracle.Price memory price = rentPrice(name, duration);
         require(
             msg.value >= price.base,
             "ETHController: Not enough Ether provided for renewal"

@@ -11,7 +11,7 @@ interface AggregatorInterface {
 }
 
 // StablePriceOracle sets a price in USD, based on an oracle.
-contract StablePriceOracle is PriceOracle {
+contract StablePriceOracle is IPriceOracle {
     using SafeMath for *;
     using StringUtils for *;
 
@@ -40,7 +40,7 @@ contract StablePriceOracle is PriceOracle {
         string calldata name,
         uint256 expires,
         uint256 duration
-    ) external view override returns (PriceOracle.Price memory) {
+    ) external view override returns (IPriceOracle.Price memory) {
         uint256 len = name.strlen();
         uint256 basePrice;
 
@@ -57,7 +57,7 @@ contract StablePriceOracle is PriceOracle {
         }
 
         return
-            PriceOracle.Price({
+            IPriceOracle.Price({
                 base: attoUSDToWei(basePrice),
                 premium: attoUSDToWei(_premium(name, expires, duration))
             });
@@ -103,6 +103,6 @@ contract StablePriceOracle is PriceOracle {
     {
         return
             interfaceID == type(IERC165).interfaceId ||
-            interfaceID == type(PriceOracle).interfaceId;
+            interfaceID == type(IPriceOracle).interfaceId;
     }
 }

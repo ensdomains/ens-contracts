@@ -1,6 +1,6 @@
 pragma solidity >=0.8.4;
 
-interface PriceOracle {
+interface IPriceOracle {
     struct Price {
         uint256 base;
         uint256 premium;

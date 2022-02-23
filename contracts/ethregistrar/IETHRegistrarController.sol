@@ -5,7 +5,7 @@ import "./IPriceOracle.sol";
 interface IETHRegistrarController {
     function rentPrice(string memory, uint256)
         external
-        returns (PriceOracle.Price memory);
+        returns (IPriceOracle.Price memory);
 
     function available(string memory) external returns (bool);
 

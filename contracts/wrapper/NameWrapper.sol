@@ -6,7 +6,7 @@ import "./Controllable.sol";
 import "./INameWrapper.sol";
 import "./IMetadataService.sol";
 import "../registry/ENS.sol";
-import "../ethregistrar/BaseRegistrar.sol";
+import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
@@ -20,7 +20,7 @@ contract NameWrapper is
 {
     using BytesUtils for bytes;
     ENS public immutable override ens;
-    BaseRegistrar public immutable override registrar;
+    IBaseRegistrar public immutable override registrar;
     IMetadataService public override metadataService;
     mapping(bytes32 => bytes) public override names;
 
@@ -31,7 +31,7 @@ contract NameWrapper is
 
     constructor(
         ENS _ens,
-        BaseRegistrar _registrar,
+        IBaseRegistrar _registrar,
         IMetadataService _metadataService
     ) {
         ens = _ens;

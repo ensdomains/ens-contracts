@@ -39,7 +39,7 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            PriceOracle.Price memory price = controller.rentPrice(
+            IPriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
@@ -54,7 +54,7 @@ contract BulkRenewal is IBulkRenewal {
     {
         ETHRegistrarController controller = getController();
         for (uint256 i = 0; i < names.length; i++) {
-            PriceOracle.Price memory price = controller.rentPrice(
+            IPriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
