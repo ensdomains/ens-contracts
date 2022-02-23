@@ -237,7 +237,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         );
         require(available(name), "ETHRegistrarController: Name is unavailable");
 
-        delete (commitments[commitment]);
+        delete(commitments[commitment]);
 
         require(duration >= MIN_REGISTRATION_DURATION);
     }
