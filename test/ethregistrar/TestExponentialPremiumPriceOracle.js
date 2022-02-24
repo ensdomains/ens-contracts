@@ -68,7 +68,7 @@ describe('ExponentialPricePremiumOracle Tests', () => {
 
     it('should specify the maximum premium at the moment of expiration', async () => {
       const ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
-      const expectedPrice = ((100000000 - LAST_VALUE) / 2) * 1e18 // ETH at $2 for $1 mil in 18 decimal precision
+      const expectedPrice = ((START_PRICE - LAST_VALUE) / 2) * 1e18 // ETH at $2 for $1 mil in 18 decimal precision
       assert.equal(
         (await priceOracle.premium('foobar', ts, 0)).toString(),
         expectedPrice
@@ -84,7 +84,7 @@ describe('ExponentialPricePremiumOracle Tests', () => {
         (await web3.eth.getBlock('latest')).timestamp - (90 * DAY + DAY * 2.5)
       const lengthOfRegistration = DAY * 365
       const expectedPremium = (
-        exponentialReduceFloatingPoint(100000000, 2.5) / 2
+        exponentialReduceFloatingPoint(START_PRICE, 2.5) / 2
       ).toFixed(2)
 
       expect(
@@ -130,7 +130,7 @@ describe('ExponentialPricePremiumOracle Tests', () => {
           1e18
 
         const jsResult =
-          exponentialReduceFloatingPoint(100000000, (i + offset) / 86400) / 2
+          exponentialReduceFloatingPoint(START_PRICE, (i + offset) / 86400) / 2
         let percent = 0
         let absoluteDifference
         if (contractResult !== 0) {
