@@ -51,7 +51,10 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
 
         uint256 elapsed = block.timestamp - expires;
         uint256 premium = decayedPremium(startPremium, elapsed);
-        return premium - endValue;
+        if (premium >= endValue) {
+            return premium - endValue;
+        }
+        return 0;
     }
 
     /**

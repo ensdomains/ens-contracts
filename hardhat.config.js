@@ -59,9 +59,8 @@ module.exports = {
       accounts: real_accounts,
     },
   },
-  mocha: {
-    timeout: 999999999999,
-  },
+  mocha: {},
+  mocha: {},
   abiExporter: {
     path: './build/contracts',
     clear: true,
@@ -71,7 +70,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: '0.8.4',
+        version: '0.8.12',
         settings: {
           optimizer: {
             enabled: true,

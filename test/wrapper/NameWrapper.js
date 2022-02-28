@@ -88,25 +88,28 @@ describe('Name Wrapper', () => {
     EnsRegistry = await deploy('ENSRegistry')
     EnsRegistry2 = EnsRegistry.connect(signers[1])
 
-    BaseRegistrar = await deploy('BaseRegistrarImplementation', [
+    BaseRegistrar = await deploy(
+      'BaseRegistrarImplementation',
       EnsRegistry.address,
-      namehash('eth'),
-    ])
+      namehash('eth')
+    )
 
     BaseRegistrar2 = BaseRegistrar.connect(signers[1])
 
     await BaseRegistrar.addController(account)
     await BaseRegistrar.addController(account2)
 
-    MetaDataservice = await deploy('StaticMetadataService', [
-      'https://ens.domains',
-    ])
+    MetaDataservice = await deploy(
+      'StaticMetadataService',
+      'https://ens.domains'
+    )
 
-    NameWrapper = await deploy('NameWrapper', [
+    NameWrapper = await deploy(
+      'NameWrapper',
       EnsRegistry.address,
       BaseRegistrar.address,
-      MetaDataservice.address,
-    ])
+      MetaDataservice.address
+    )
     NameWrapper2 = NameWrapper.connect(signers[1])
 
     // setup .eth
@@ -474,7 +477,7 @@ describe('Name Wrapper', () => {
       )
 
       // Deploy the destroy-your-name contract
-      const NameGriefer = await deploy('NameGriefer', [NameWrapper.address])
+      const NameGriefer = await deploy('NameGriefer', NameWrapper.address)
 
       // Try and burn the name
       expect(NameGriefer.destroy(encodeName('xyz'))).to.be.reverted
