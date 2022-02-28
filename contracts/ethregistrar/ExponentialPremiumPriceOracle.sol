@@ -5,19 +5,20 @@ import "./StablePriceOracle.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
-    uint256 constant START_PREMIUM = 100000000 * 1e18; // $100 mil start price
+    uint256 immutable startPremium; // $100 mil start price
     uint256 immutable endValue; // $0.372...
 
     constructor(
         AggregatorInterface _usdOracle,
         uint256[] memory _rentPrices,
-        uint256 lastDay
+        uint256 _startPremium,
+        uint256 totalDays
     ) StablePriceOracle(_usdOracle, _rentPrices) {
-        endValue = START_PREMIUM >> lastDay;
+        startPremium = _startPremium;
+        endValue = _startPremium >> totalDays;
     }
 
     uint256 constant PRECISION = 1e18;
-    uint256 constant SECONDS_IN_DAY = 86400;
     uint256 constant bit1 = 999989423469314432; // 0.5 ^ 1/65536 * (10 ** 18)
     uint256 constant bit2 = 999978847050491904; // 0.5 ^ 2/65536 * (10 ** 18)
     uint256 constant bit3 = 999957694548431104;
@@ -36,25 +37,6 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant bit16 = 707106781186547584;
 
     /**
-     * @dev Store value in variable
-     * @param startPremium value to store
-     * @param elapsed time past since expiry
-     */
-    function decayedPremium(uint256 startPremium, uint256 elapsed)
-        public
-        view
-        returns (uint256)
-    {
-        uint256 daysPast = (elapsed * PRECISION) / SECONDS_IN_DAY;
-        uint256 intDays = daysPast / PRECISION;
-        uint256 premium = startPremium >> intDays;
-        uint256 partDay = (daysPast - intDays * PRECISION);
-        uint256 fraction = (partDay * (2**16)) / PRECISION;
-        uint256 totalPremium = addFractionalPremium(fraction, premium);
-        return totalPremium;
-    }
-
-    /**
      * @dev Returns the pricing premium in internal base units.
      */
     function _premium(
@@ -68,11 +50,27 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         }
 
         uint256 elapsed = block.timestamp - expires;
-        uint256 premium = decayedPremium(START_PREMIUM, elapsed);
-        if (premium >= endValue) {
-            return premium - endValue;
-        }
-        return 0;
+        uint256 premium = decayedPremium(startPremium, elapsed);
+        return premium - endValue;
+    }
+
+    /**
+     * @dev Returns the premium price at current time elapsed
+     * @param startPremium starting price
+     * @param elapsed time past since expiry
+     */
+    function decayedPremium(uint256 startPremium, uint256 elapsed)
+        public
+        pure
+        returns (uint256)
+    {
+        uint256 daysPast = (elapsed * PRECISION) / 1 days;
+        uint256 intDays = daysPast / PRECISION;
+        uint256 premium = startPremium >> intDays;
+        uint256 partDay = (daysPast - intDays * PRECISION);
+        uint256 fraction = (partDay * (2**16)) / PRECISION;
+        uint256 totalPremium = addFractionalPremium(fraction, premium);
+        return totalPremium;
     }
 
     function addFractionalPremium(uint256 fraction, uint256 premium)

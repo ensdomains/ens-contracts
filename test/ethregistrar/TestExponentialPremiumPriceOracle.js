@@ -41,6 +41,7 @@ describe('ExponentialPricePremiumOracle Tests', () => {
       priceOracle = await ExponentialPremiumPriceOracle.new(
         dummyOracle.address,
         [0, 0, 4, 2, 1],
+        BigInt(START_PRICE * 1e18),
         LAST_DAY
       )
     })
