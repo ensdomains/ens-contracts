@@ -45,10 +45,7 @@ contract('LinearPremiumPriceOracle', function(accounts) {
   })
 
   it('should return correct base prices', async () => {
-    assert.equal(
-      parseInt((await priceOracle.price('foo', 0, 3600)).base),
-      7200
-    )
+    assert.equal(parseInt((await priceOracle.price('foo', 0, 3600)).base), 7200)
 
     assert.equal(
       parseInt((await priceOracle.price('quux', 0, 3600)).base),
