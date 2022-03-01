@@ -2,7 +2,6 @@ const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
-const fs = require('fs')
 
 const ENS = artifacts.require('./registry/ENSRegistry')
 const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
@@ -15,7 +14,6 @@ const START_PRICE = 100000000
 const DAY = 86400
 const LAST_DAY = 21
 const LAST_VALUE = START_PRICE * 0.5 ** LAST_DAY
-console.log(LAST_VALUE)
 function exponentialReduceFloatingPoint(startPrice, days) {
   const premium = startPrice * 0.5 ** days
   if (premium >= LAST_VALUE) {
@@ -128,10 +126,9 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
     let differencePercentSum = 0
     let percentMax = 0
 
-    const interval = 1 // 1 hour
+    const interval = 3600 // 1 hour
     const offset = 0
-    console.time()
-    for (let i = 1814400 - 120; i <= 1814400; i += interval) {
+    for (let i = 1814400; i <= 0; i += interval) {
       const contractResult =
         Number(await priceOracle.premium('foobar', ts - (i + offset), 0)) / 1e18
 
@@ -144,15 +141,12 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
         percent = Math.abs(absoluteDifference) / jsResult
       }
 
-      console.log({ percent, i, contractResult, jsResult })
-
       // discounts absolute differences of less than 1c
       if (percent > percentMax && absoluteDifference > 0.01) {
         percentMax = percent
       }
       differencePercentSum += percent
     }
-    console.timeEnd()
     expect(percentMax).to.be.below(0.001) // must be less than 0.1% off JS implementation on an hourly resolution
   })
 
