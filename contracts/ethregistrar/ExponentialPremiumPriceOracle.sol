@@ -5,8 +5,8 @@ import "./StablePriceOracle.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant GRACE_PERIOD = 90 days;
-    uint256 immutable startPremium; // $100 mil start price
-    uint256 immutable endValue; // $0.372...
+    uint256 immutable startPremium;
+    uint256 immutable endValue;
 
     constructor(
         AggregatorInterface _usdOracle,
