@@ -3,6 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import "./LowLevelCallUtils.sol";
 import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
@@ -48,36 +49,19 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
     }
 
     function callWithOffchainLookupPropagation(address target, bytes memory data, bytes4 callbackFunction) internal view returns(bytes memory ret) {
-        uint256 result;
-        uint256 size;
-        
-        assembly {
-            result := staticcall(gas(), target, add(data, 32), mload(data), 0, 0)
-            size := returndatasize()
-        }
+        bool result = LowLevelCallUtils.functionStaticCall(target, data);
+        uint256 size = LowLevelCallUtils.returnDataSize();
 
-        if(result == 1) {
-            // Success
-            ret = new bytes(size);
-            assembly {
-                returndatacopy(add(ret, 32), 0, size)
-            }
-            return ret;
+        if(result) {
+            return LowLevelCallUtils.readReturnData(0, size);
         }
 
         // Failure
         if(size >= 4) {
-            bytes4 errorId;
-            assembly {
-                returndatacopy(0, 0, 4)
-                errorId := mload(0)
-            }
-            if(errorId == OffchainLookup.selector) {
+            bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
+            if(bytes4(errorId) == OffchainLookup.selector) {
                 // Offchain lookup. Decode the revert message and create our own that nests it.
-                bytes memory revertData = new bytes(size);
-                assembly {
-                    returndatacopy(add(revertData, 32), 4, sub(size, 4))
-                }
+                bytes memory revertData = LowLevelCallUtils.readReturnData(4, size - 4);
                 (address sender, string[] memory urls, bytes memory callData, bytes4 innerCallbackFunction, bytes memory extraData) = abi.decode(revertData, (address,string[],bytes,bytes4,bytes));
                 if(sender == target) {
                     revert OffchainLookup(address(this), urls, callData, callbackFunction, abi.encode(sender, innerCallbackFunction, extraData));
@@ -85,10 +69,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             }
         }
 
-        assembly {
-            returndatacopy(0, 0, size)
-            revert(0, size)
-        }
+        LowLevelCallUtils.propagateRevert();
     }
 
     function resolveCallback(bytes calldata response, bytes calldata extraData) external view returns(bytes memory) {
