@@ -37,7 +37,7 @@ module.exports = {
   networks: {
     hardhat: {
       // Required for real DNS record tests
-      initialDate: "2019-03-15T14:06:45.000+13:00",
+      // initialDate: "2019-03-15T14:06:45.000+13:00",
       saveDeployments: false,
       tags: ["test", "legacy", "use_root"],
     },
@@ -50,6 +50,12 @@ module.exports = {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`,
       tags: ["test", "legacy", "use_root"],
       chainId: 3,
+      accounts: real_accounts,
+    },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["test", "legacy", "use_root"],
+      chainId: 5,
       accounts: real_accounts,
     },
     mainnet: {
