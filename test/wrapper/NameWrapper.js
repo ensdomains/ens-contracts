@@ -1395,12 +1395,10 @@ describe('Name Wrapper', () => {
       //try to set the resolver and ttl
       await expect(
         NameWrapper.setResolver(wrappedTokenId, account)
-      ).to.be.revertedWith(
-        'OperationProhibited("0x7c821a701a797228659ed908a216eab6cbb2cc04cc9e8faacb762e901c8946ec")'
-      )
+      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 1000)).to.be.revertedWith(
-        'OperationProhibited("0x7c821a701a797228659ed908a216eab6cbb2cc04cc9e8faacb762e901c8946ec")'
+        `OperationProhibited("${wrappedTokenId}")`
       )
     })
 
@@ -1464,9 +1462,7 @@ describe('Name Wrapper', () => {
           labelhash('uncreateable'),
           account
         )
-      ).to.be.revertedWith(
-        'OperationProhibited("0x38c046bce0c3c97dec6b25422c6aec76d5161dfbc01c1d159dce46c45f933cde")'
-      )
+      ).to.be.revertedWith(`OperationProhibited(${namehash('fuses2.eth')})`)
 
       //expect replacing subdomain to succeed
     })
