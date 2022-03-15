@@ -1462,7 +1462,7 @@ describe('Name Wrapper', () => {
           labelhash('uncreateable'),
           account
         )
-      ).to.be.revertedWith(`OperationProhibited(${namehash('fuses2.eth')})`)
+      ).to.be.revertedWith(`OperationProhibited("${namehash('fuses2.eth')}")`)
 
       //expect replacing subdomain to succeed
     })
