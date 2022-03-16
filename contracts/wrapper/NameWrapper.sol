@@ -175,8 +175,8 @@ contract NameWrapper is
         address registrant = registrar.ownerOf(tokenId);
         if (
             registrant != msg.sender &&
-                !isApprovedForAll(registrant, msg.sender) &&
-                !registrar.isApprovedForAll(registrant, msg.sender)
+            !isApprovedForAll(registrant, msg.sender) &&
+            !registrar.isApprovedForAll(registrant, msg.sender)
         ) {
             revert UnauthorisedEthWrap(bytes32(tokenId), msg.sender);
         }
@@ -254,8 +254,8 @@ contract NameWrapper is
 
         if (
             owner != msg.sender &&
-                !isApprovedForAll(owner, msg.sender) &&
-                !ens.isApprovedForAll(owner, msg.sender)
+            !isApprovedForAll(owner, msg.sender) &&
+            !ens.isApprovedForAll(owner, msg.sender)
         ) {
             revert Unauthorised(node, msg.sender);
         }
@@ -507,7 +507,7 @@ contract NameWrapper is
 
         if (
             (owner == address(0) && fuses & CANNOT_CREATE_SUBDOMAIN != 0) ||
-                (owner != address(0) && fuses & CANNOT_REPLACE_SUBDOMAIN != 0)
+            (owner != address(0) && fuses & CANNOT_REPLACE_SUBDOMAIN != 0)
         ) {
             revert OperationProhibited(node);
         }
@@ -585,7 +585,7 @@ contract NameWrapper is
         returns (bytes memory ret)
     {
         if (bytes(label).length < 1) {
-            revert LabelTooShort(label);
+            revert LabelTooShort("");
         }
         if (bytes(label).length > 255) {
             revert LabelTooLong(label);
@@ -665,7 +665,7 @@ contract NameWrapper is
         address owner,
         uint96 fuses
     ) internal override {
-        if (fuses != CAN_DO_EVERYTHING && fuses & CANNOT_UNWRAP == 0)) {
+        if (fuses != CAN_DO_EVERYTHING && fuses & CANNOT_UNWRAP == 0) {
             revert OperationProhibited(bytes32(tokenId));
         }
         super._setData(tokenId, owner, fuses);
