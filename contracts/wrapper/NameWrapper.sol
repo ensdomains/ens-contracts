@@ -174,9 +174,9 @@ contract NameWrapper is
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
-            !(registrant == msg.sender ||
-                isApprovedForAll(registrant, msg.sender) ||
-                registrar.isApprovedForAll(registrant, msg.sender))
+            registrant != msg.sender &&
+                !isApprovedForAll(registrant, msg.sender) &&
+                !registrar.isApprovedForAll(registrant, msg.sender)
         ) {
             revert UnauthorisedEthWrap(bytes32(tokenId), msg.sender);
         }
@@ -253,9 +253,9 @@ contract NameWrapper is
         address owner = ens.owner(node);
 
         if (
-            !(owner == msg.sender ||
-                isApprovedForAll(owner, msg.sender) ||
-                ens.isApprovedForAll(owner, msg.sender))
+            owner != msg.sender &&
+                !isApprovedForAll(owner, msg.sender) &&
+                !ens.isApprovedForAll(owner, msg.sender)
         ) {
             revert Unauthorised(node, msg.sender);
         }
@@ -484,7 +484,7 @@ contract NameWrapper is
      */
     modifier operationAllowed(bytes32 node, uint96 fuseMask) {
         (, uint96 fuses) = getData(uint256(node));
-        if (!(fuses & fuseMask == 0)) {
+        if (fuses & fuseMask != 0) {
             revert OperationProhibited(node);
         }
         _;
@@ -506,8 +506,8 @@ contract NameWrapper is
         (, uint96 fuses) = getData(uint256(node));
 
         if (
-            !((owner == address(0) && fuses & CANNOT_CREATE_SUBDOMAIN == 0) ||
-                (owner != address(0) && fuses & CANNOT_REPLACE_SUBDOMAIN == 0))
+            (owner == address(0) && fuses & CANNOT_CREATE_SUBDOMAIN != 0) ||
+                (owner != address(0) && fuses & CANNOT_REPLACE_SUBDOMAIN != 0)
         ) {
             revert OperationProhibited(node);
         }
@@ -539,7 +539,7 @@ contract NameWrapper is
         bytes calldata data
     ) public override returns (bytes4) {
         //check if it's the eth registrar ERC721
-        if (!(msg.sender == address(registrar))) {
+        if (msg.sender != address(registrar)) {
             revert IncorrectTokenType();
         }
 
@@ -665,7 +665,7 @@ contract NameWrapper is
         address owner,
         uint96 fuses
     ) internal override {
-        if (!(fuses == CAN_DO_EVERYTHING || fuses & CANNOT_UNWRAP != 0)) {
+        if (fuses != CAN_DO_EVERYTHING && fuses & CANNOT_UNWRAP == 0)) {
             revert OperationProhibited(bytes32(tokenId));
         }
         super._setData(tokenId, owner, fuses);
