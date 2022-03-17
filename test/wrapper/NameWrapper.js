@@ -949,7 +949,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
-      ).to.be.revertedWith(`UnauthorisedEthWrap("${labelHash}", "${account2}")`)
+      ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
     })
 
     it('Can wrap a name even if the controller address is different to the registrant address.', async () => {

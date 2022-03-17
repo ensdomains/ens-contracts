@@ -12,7 +12,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
 
 error Unauthorised(bytes32 node, address addr);
-error UnauthorisedEthWrap(bytes32 label, address addr);
 error NameNotFound();
 error IncompatibleParent();
 error IncompatibleName(bytes name);
@@ -178,7 +177,10 @@ contract NameWrapper is
             !isApprovedForAll(registrant, msg.sender) &&
             !registrar.isApprovedForAll(registrant, msg.sender)
         ) {
-            revert UnauthorisedEthWrap(bytes32(tokenId), msg.sender);
+            revert Unauthorised(
+                _makeNode(ETH_NODE, bytes32(tokenId)),
+                msg.sender
+            );
         }
 
         // transfer the token from the user to this contract
@@ -272,17 +274,17 @@ contract NameWrapper is
     /**
      * @notice Unwraps a .eth domain. e.g. vitalik.eth
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
-     * @param label label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
+     * @param labelhash label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
      * @param newRegistrant sets the owner in the .eth registrar to this address
      * @param newController sets the owner in the registry to this address
      */
 
     function unwrapETH2LD(
-        bytes32 label,
+        bytes32 labelhash,
         address newRegistrant,
         address newController
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
-        _unwrap(_makeNode(ETH_NODE, label), newController);
+        _unwrap(_makeNode(ETH_NODE, labelhash), newController);
         registrar.transferFrom(address(this), newRegistrant, uint256(label));
     }
 
@@ -290,19 +292,19 @@ contract NameWrapper is
      * @notice Unwraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
      * @param parentNode parent namehash of the name to wrap e.g. vitalik.xyz would be namehash('xyz')
-     * @param label label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
+     * @param labelhash label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
      * @param newController sets the owner in the registry to this address
      */
 
     function unwrap(
         bytes32 parentNode,
-        bytes32 label,
+        bytes32 labelhash,
         address newController
-    ) public override onlyTokenOwner(_makeNode(parentNode, label)) {
+    ) public override onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         if (parentNode == ETH_NODE) {
             revert IncompatibleParent();
         }
-        _unwrap(_makeNode(parentNode, label), newController);
+        _unwrap(_makeNode(parentNode, labelhash), newController);
     }
 
     /**
@@ -330,7 +332,7 @@ contract NameWrapper is
     /**
      * @notice Sets records for the subdomain in the ENS Registry
      * @param parentNode namehash of the parent name
-     * @param label labelhash of the subnode
+     * @param labelhash labelhash of the subnode
      * @param owner newOwner in the registry
      * @param resolver the resolver contract in the registry
      * @param ttl ttl in the registry
@@ -338,7 +340,7 @@ contract NameWrapper is
 
     function setSubnodeRecord(
         bytes32 parentNode,
-        bytes32 label,
+        bytes32 labelhash,
         address owner,
         address resolver,
         uint64 ttl
@@ -346,30 +348,30 @@ contract NameWrapper is
         public
         override
         onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, label)
+        canCallSetSubnodeOwner(parentNode, labelhash)
     {
-        ens.setSubnodeRecord(parentNode, label, owner, resolver, ttl);
+        ens.setSubnodeRecord(parentNode, labelhash, owner, resolver, ttl);
     }
 
     /**
      * @notice Sets the subnode owner in the registry
      * @param parentNode namehash of the parent name
-     * @param label labelhash of the subnode
+     * @param labelhash labelhash of the subnode
      * @param owner newOwner in the registry
      */
 
     function setSubnodeOwner(
         bytes32 parentNode,
-        bytes32 label,
+        bytes32 labelhash,
         address owner
     )
         public
         override
         onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, label)
+        canCallSetSubnodeOwner(parentNode, labelhash)
         returns (bytes32)
     {
-        return ens.setSubnodeOwner(parentNode, label, owner);
+        return ens.setSubnodeOwner(parentNode, labelhash, owner);
     }
 
     /**
@@ -500,8 +502,8 @@ contract NameWrapper is
      * @param label labelhash of the name to check
      */
 
-    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 label) {
-        bytes32 subnode = _makeNode(node, label);
+    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 labelhash) {
+        bytes32 subnode = _makeNode(node, labelhash);
         address owner = ens.owner(subnode);
         (, uint96 fuses) = getData(uint256(node));
 
@@ -571,12 +573,12 @@ contract NameWrapper is
         return fuses & CANNOT_TRANSFER == 0;
     }
 
-    function _makeNode(bytes32 node, bytes32 label)
+    function _makeNode(bytes32 node, bytes32 labelhash)
         private
         pure
         returns (bytes32)
     {
-        return keccak256(abi.encodePacked(node, label));
+        return keccak256(abi.encodePacked(node, labelhash));
     }
 
     function _addLabel(string memory label, bytes memory name)
