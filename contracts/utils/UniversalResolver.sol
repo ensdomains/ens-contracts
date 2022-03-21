@@ -38,7 +38,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         if(resolver.supportsInterface(type(IExtendedResolver).interfaceId)) {
             return callWithOffchainLookupPropagation(
                 address(resolver),
-                abi.encodeWithSelector(IExtendedResolver.resolve.selector, name, data),
+                abi.encodeCall(IExtendedResolver.resolve, (name, data)),
                 UniversalResolver.resolveCallback.selector
             );
         } else {
