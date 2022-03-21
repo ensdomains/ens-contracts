@@ -23,6 +23,12 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         registry = ENS(_registry);
     }
 
+    /**
+     * @dev Performs ENS name resolution for the supplied name and resolution data.
+     * @param name The name to resolve, in normalised and DNS-encoded form.
+     * @param data The resolution data, as specified in ENSIP-10.
+     * @return The result of resolving the name.
+     */
     function resolve(bytes calldata name, bytes memory data) external override view returns(bytes memory) {
         Resolver resolver = findResolver(name);
         if(address(resolver) == address(0)) {
@@ -48,6 +54,15 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         return interfaceId == type(IExtendedResolver).interfaceId || super.supportsInterface(interfaceId);
     }
 
+    /**
+     * @dev Makes a call to `target` with `data`. If the call reverts with an `OffchainLookup` error, wraps
+     *      the error with the data necessary to continue the request where it left off.
+     * @param target The address to call.
+     * @param data The data to call `target` with.
+     * @param callbackFunction The function ID of a function on this contract to use as an EIP 3668 callback.
+     *        This function's `extraData` argument will be passed `(address target, bytes4 innerCallback, bytes innerExtraData)`.
+     * @return ret If `target` did not revert, contains the return data from the call to `target`.
+     */
     function callWithOffchainLookupPropagation(address target, bytes memory data, bytes4 callbackFunction) internal view returns(bytes memory ret) {
         bool result = LowLevelCallUtils.functionStaticCall(target, data);
         uint256 size = LowLevelCallUtils.returnDataSize();
@@ -72,6 +87,11 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         LowLevelCallUtils.propagateRevert();
     }
 
+    /**
+     * @dev Callback function for `resolve`.
+     * @param response Response data returned by the target address that invoked the inner `OffchainData` revert.
+     * @param extraData Extra data encoded by `callWithOffchainLookupPropagation` to allow completing the request.
+     */
     function resolveCallback(bytes calldata response, bytes calldata extraData) external view returns(bytes memory) {
         (address target, bytes4 innerCallbackFunction, bytes memory innerExtraData) = abi.decode(extraData, (address, bytes4, bytes));
         return abi.decode(target.functionStaticCall(abi.encodeWithSelector(innerCallbackFunction, response, innerExtraData)), (bytes));
@@ -80,6 +100,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
     /**
      * @dev Finds a resolver by recursively querying the registry, starting at the longest name and progressively
      *      removing labels until it finds a result.
+     * @param name The name to resolve, in DNS-encoded and normalised form.
      * @return The Resolver responsible for this name, and the namehash of the full name.
      */
     function findResolver(bytes calldata name) public view returns(Resolver) {
