@@ -189,7 +189,7 @@ contract('UniversalResolver', function(accounts) {
   })
   describe('encode()', () => {
     it('should encode a name', async () => {
-      const result = await universalResolver.encode('vitalik.eth')
+      const result = await universalResolver.encodeName('vitalik.eth')
       console.dir(result)
       expect(result).to.equal(dns.hexEncodeName('vitalik.eth'))
     })

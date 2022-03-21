@@ -33,7 +33,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         registry = ENS(_registry);
     }
 
-    function encode(string memory name) public view returns (bytes memory) {
+    function encodeName(string memory name) public view returns (bytes memory) {
         return name.encode();
     }
 
