@@ -7,9 +7,7 @@ import "./LowLevelCallUtils.sol";
 import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
-import "../resolvers/profiles/INameResolver.sol";
 import "./NameEncoder.sol";
-import "hardhat/console.sol";
 
 error OffchainLookup(
     address sender,
@@ -75,20 +73,33 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         }
     }
 
-    function reverse(bytes calldata name) external view returns (bytes memory) {
+    /**
+     * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
+     * @param name The address to resolve, in normalised and DNS-encoded form.
+     * @param data The resolution data, as specified in ENSIP-10.
+     * @return The resolved name, and the resolved data.
+     */
+    function reverse(bytes calldata name, bytes memory data)
+        external
+        view
+        returns (string memory, bytes memory)
+    {
         (Resolver resolver, bytes32 labelhash) = findResolver(name);
         if (address(resolver) == address(0)) {
-            return "";
+            return ("", "");
         }
-        bool success = LowLevelCallUtils.functionStaticCall(
-            address(resolver),
-            abi.encodeWithSelector(INameResolver.name.selector, labelhash)
+        string memory resolvedName = resolver.name(labelhash);
+        if (bytes(resolvedName).length == 0) {
+            return ("", "");
+        }
+        (, bytes memory resolvedData) = address(this).staticcall(
+            abi.encodeWithSignature(
+                "resolve(bytes,bytes)",
+                encodeName(resolvedName),
+                data
+            )
         );
-        if (!success) {
-            return "";
-        }
-        uint256 length = LowLevelCallUtils.returnDataSize();
-        return LowLevelCallUtils.readReturnData(0, length);
+        return (resolvedName, abi.decode(resolvedData, (bytes)));
     }
 
     function supportsInterface(bytes4 interfaceId)
