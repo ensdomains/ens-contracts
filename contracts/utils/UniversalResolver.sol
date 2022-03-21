@@ -7,6 +7,7 @@ import "./LowLevelCallUtils.sol";
 import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
+import "../resolvers/profiles/INameResolver.sol";
 
 error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData);
 
@@ -30,7 +31,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
      * @return The result of resolving the name.
      */
     function resolve(bytes calldata name, bytes memory data) external override view returns(bytes memory) {
-        Resolver resolver = findResolver(name);
+        (Resolver resolver, ) = findResolver(name);
         if(address(resolver) == address(0)) {
             return "";
         }
@@ -48,6 +49,22 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
                 UniversalResolver.resolveCallback.selector
             );
         }
+    }
+
+    function reverse(bytes calldata name) external view returns (bytes memory) {
+        (Resolver resolver, bytes32 labelhash) = findResolver(name);
+        if (address(resolver) == address(0)) {
+            return "";
+        }
+        bool success = LowLevelCallUtils.functionStaticCall(
+            address(resolver),
+            abi.encodeWithSelector(INameResolver.name.selector, labelhash)
+        );
+        if (!success) {
+            return "";
+        }
+        uint256 length = LowLevelCallUtils.returnDataSize();
+        return LowLevelCallUtils.readReturnData(0, length);
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override returns(bool) {
@@ -103,9 +120,13 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
      * @param name The name to resolve, in DNS-encoded and normalised form.
      * @return The Resolver responsible for this name, and the namehash of the full name.
      */
-    function findResolver(bytes calldata name) public view returns(Resolver) {
-        (address resolver,) = findResolver(name, 0);
-        return Resolver(resolver);
+    function findResolver(bytes calldata name)
+        public
+        view
+        returns (Resolver, bytes32)
+    {
+        (address resolver, bytes32 labelhash) = findResolver(name, 0);
+        return (Resolver(resolver), labelhash);
     }
 
     function findResolver(bytes calldata name, uint256 offset) internal view returns(address, bytes32) {
