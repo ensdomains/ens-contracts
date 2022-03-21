@@ -27,6 +27,9 @@ library NameEncoder {
 
     function encode(string memory name) internal view returns (bytes memory) {
         strings.slice memory sliceName = name.toSlice();
+        if (sliceName.empty()) {
+            return abi.encodePacked(uint8(0), uint8(0));
+        }
         return encodePart(sliceName);
     }
 }

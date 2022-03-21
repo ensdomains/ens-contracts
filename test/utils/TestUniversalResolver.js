@@ -187,11 +187,22 @@ contract('UniversalResolver', function(accounts) {
       expect(ret).to.equal('test.eth')
     })
   })
-  describe('encode()', () => {
+  describe('encodeName()', () => {
     it('should encode a name', async () => {
       const result = await universalResolver.encodeName('vitalik.eth')
-      console.dir(result)
       expect(result).to.equal(dns.hexEncodeName('vitalik.eth'))
+    })
+
+    it('should encode an empty name', async () => {
+      const result = await universalResolver.encodeName('')
+      expect(result).to.equal(dns.hexEncodeName(''))
+    })
+
+    it('should encode a long name', async () => {
+      const result = await universalResolver.encodeName(
+        'something.else.test.eth'
+      )
+      expect(result).to.equal(dns.hexEncodeName('something.else.test.eth'))
     })
   })
 })
