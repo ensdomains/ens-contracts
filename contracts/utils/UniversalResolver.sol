@@ -8,7 +8,7 @@ import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
 import "../resolvers/profiles/INameResolver.sol";
-import "./Strings.sol";
+import "./NameEncoder.sol";
 import "hardhat/console.sol";
 
 error OffchainLookup(
@@ -25,7 +25,7 @@ error OffchainLookup(
  */
 contract UniversalResolver is IExtendedResolver, ERC165 {
     using Address for address;
-    using strings for *;
+    using NameEncoder for string;
 
     ENS public immutable registry;
 
@@ -33,29 +33,8 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         registry = ENS(_registry);
     }
 
-    function encodePart(strings.slice memory name)
-        internal
-        view
-        returns (bytes memory)
-    {
-        bytes memory dnsname;
-        strings.slice memory label = name.split(".".toSlice());
-        if (label.empty()) {
-            return abi.encodePacked(uint8(0));
-        }
-        dnsname = encodePart(name);
-
-        return
-            abi.encodePacked(
-                uint8(label.len()),
-                bytes(label.toString()),
-                dnsname
-            );
-    }
-
     function encode(string memory name) public view returns (bytes memory) {
-        strings.slice memory sliceName = name.toSlice();
-        return encodePart(sliceName);
+        return name.encode();
     }
 
     /**
