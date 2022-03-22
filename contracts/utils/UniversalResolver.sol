@@ -73,33 +73,119 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         }
     }
 
+    struct ReverseData {
+        string dataType;
+        bytes data;
+    }
+
+    struct ReverseCall {
+        string sig;
+        ReverseData[] data;
+    }
+
     /**
      * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
      * @param name The address to resolve, in normalised and DNS-encoded form.
-     * @param data The resolution data, as specified in ENSIP-10.
+     * @param calls The resolution data, as specified in ENSIP-10.
      * @return The resolved name, and the resolved data.
      */
-    function reverse(bytes calldata name, bytes memory data)
+    function reverse(bytes calldata name, ReverseCall[] memory calls)
         external
         view
-        returns (string memory, bytes memory)
+        returns (string memory, bytes[] memory)
     {
-        (Resolver resolver, bytes32 labelhash) = findResolver(name);
+        (Resolver resolver, bytes32 reverseNamehash) = findResolver(name);
         if (address(resolver) == address(0)) {
-            return ("", "");
+            return ("", new bytes[](0));
         }
-        string memory resolvedName = resolver.name(labelhash);
+
+        string memory resolvedName = resolver.name(reverseNamehash);
         if (bytes(resolvedName).length == 0) {
-            return ("", "");
+            return ("", new bytes[](0));
         }
-        (, bytes memory resolvedData) = address(this).staticcall(
+
+        (bytes memory encodedName, bytes32 namehash) = resolvedName
+            .encodeAndHash();
+        bytes[] memory inputData = new bytes[](calls.length);
+
+        for (uint256 i = 0; i < calls.length; i++) {
+            ReverseCall memory call = calls[i];
+            if (call.data.length == 0) {
+                inputData[i] = abi.encodeWithSignature(calls[i].sig, namehash);
+            } else {
+                ReverseData memory data = call.data[0];
+                if (
+                    keccak256(bytes(data.dataType)) == keccak256(bytes("bytes"))
+                ) {
+                    inputData[i] = abi.encodeWithSignature(
+                        calls[i].sig,
+                        namehash,
+                        data.data
+                    );
+                } else if (
+                    keccak256(bytes(data.dataType)) ==
+                    keccak256(bytes("string"))
+                ) {
+                    inputData[i] = abi.encodeWithSignature(
+                        calls[i].sig,
+                        namehash,
+                        abi.decode(data.data, (string))
+                    );
+                } else if (
+                    keccak256(bytes(data.dataType)) ==
+                    keccak256(bytes("uint256"))
+                ) {
+                    inputData[i] = abi.encodeWithSignature(
+                        calls[i].sig,
+                        namehash,
+                        abi.decode(data.data, (uint256))
+                    );
+                } else if (
+                    keccak256(bytes(data.dataType)) ==
+                    keccak256(bytes("bytes32"))
+                ) {
+                    inputData[i] = abi.encodeWithSignature(
+                        calls[i].sig,
+                        namehash,
+                        abi.decode(data.data, (bytes32))
+                    );
+                } else if (
+                    keccak256(bytes(data.dataType)) ==
+                    keccak256(bytes("bytes4"))
+                ) {
+                    inputData[i] = abi.encodeWithSignature(
+                        calls[i].sig,
+                        namehash,
+                        abi.decode(data.data, (bytes4))
+                    );
+                } else {
+                    continue;
+                }
+            }
+        }
+
+        bytes memory replacedData = abi.encodeWithSignature(
+            "multicall(bytes[])",
+            inputData
+        );
+        (bool success, bytes memory resolvedData) = address(this).staticcall(
             abi.encodeWithSignature(
                 "resolve(bytes,bytes)",
-                encodeName(resolvedName),
-                data
+                encodedName,
+                replacedData
             )
         );
-        return (resolvedName, abi.decode(resolvedData, (bytes)));
+
+        if (!success) {
+            bytes[] memory returnable = new bytes[](1);
+            returnable[0] = resolvedData;
+            return (resolvedName, returnable);
+        }
+
+        return (
+            resolvedName,
+            abi.decode(abi.decode(resolvedData, (bytes)), (bytes[]))
+        );
     }
 
     function supportsInterface(bytes4 interfaceId)
