@@ -1,7 +1,6 @@
 pragma solidity ^0.8.4;
 
 import "./Strings.sol";
-import "hardhat/console.sol";
 
 library NameEncoder {
     using strings for *;
