@@ -19,7 +19,7 @@ function getReverseNode(addr) {
   return namehash.hash(addr.slice(2).toLowerCase() + '.addr.reverse')
 }
 
-describe.only('ReverseRegistrar Tests', () => {
+describe('ReverseRegistrar Tests', () => {
   contract('ReverseRegistar', function(accounts) {
     let node, node2, node3, dummyOwnableReverseNode
 
