@@ -1,13 +1,20 @@
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
+import "./IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "./BaseRegistrar.sol";
-contract BaseRegistrarImplementation is ERC721, BaseRegistrar  {
+contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable  {
     // A map of expiry times
     mapping(uint256=>uint) expiries;
-
+    // The ENS registry
+    ENS public ens;
+    // The namehash of the TLD this registrar owns (eg, .eth)
+    bytes32 public baseNode;
+    // A map of addresses that are authorised to register and renew names.
+    mapping(address => bool) public controllers;
+    uint256 public constant GRACE_PERIOD = 90 days;
     bytes4 constant private INTERFACE_META_ID = bytes4(keccak256("supportsInterface(bytes4)"));
     bytes4 constant private ERC721_ID = bytes4(
         keccak256("balanceOf(address)") ^
