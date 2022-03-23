@@ -176,6 +176,14 @@ contract("UniversalResolver", function(accounts) {
   });
 
   describe("reverse()", () => {
+    let addrData;
+    before(async () => {
+      addrData = (
+        await publicResolver.methods["addr(bytes32)"].request(
+          namehash.hash(reverseNode)
+        )
+      ).data;
+    });
     it("should resolve a reverse record with no calls", async () => {
       const result = await universalResolver.reverse(
         dns.hexEncodeName(reverseNode),
@@ -183,79 +191,49 @@ contract("UniversalResolver", function(accounts) {
       );
       expect(result["0"]).to.equal("test.eth");
     });
-    it("should resolve a reverse record with 1 call with no arguments", async () => {
+    it("should resolve a reverse record with 1 call", async () => {
       const result = await universalResolver.reverse(
         dns.hexEncodeName(reverseNode),
-        [
-          {
-            sig: "addr(bytes32)",
-            data: [],
-          },
-        ]
-      );
-      const [ret] = ethers.utils.defaultAbiCoder.decode(
-        ["address"],
-        result["1"][0]
-      );
-      expect(result["0"]).to.equal("test.eth");
-      expect(ret).to.equal(accounts[1]);
-    });
-    it("should resolve a reverse record with 1 call and arguments", async () => {
-      const result = await universalResolver.reverse(
-        dns.hexEncodeName(reverseNode),
-        [
-          {
-            sig: "addr(bytes32,uint256)",
-            data: [
-              {
-                dataType: "uint256",
-                data: ethers.utils.defaultAbiCoder.encode(["uint256"], [60]),
-              },
-            ],
-          },
-        ]
-      );
-      const [ret] = ethers.utils.defaultAbiCoder.decode(
-        ["bytes"],
-        result["1"][0]
-      );
-      expect(result["0"]).to.equal("test.eth");
-      expect(ret).to.equal(accounts[1].toLowerCase());
-    });
-    it("should resolve a reverse record with multiple calls and arguments", async () => {
-      const result = await universalResolver.reverse(
-        dns.hexEncodeName(reverseNode),
-        [
-          {
-            sig: "addr(bytes32,uint256)",
-            data: [
-              {
-                dataType: "uint256",
-                data: ethers.utils.defaultAbiCoder.encode(["uint256"], [60]),
-              },
-            ],
-          },
-          {
-            sig: "text(bytes32,string)",
-            data: [
-              {
-                dataType: "string",
-                data: ethers.utils.defaultAbiCoder.encode(["string"], ["foo"]),
-              },
-            ],
-          },
-        ]
+        addrData
       );
       const [addr] = ethers.utils.defaultAbiCoder.decode(
-        ["bytes"],
-        result["1"][0]
+        ["address"],
+        result["1"]
+      );
+      expect(result["0"]).to.equal("test.eth");
+      expect(addr).to.equal(accounts[1]);
+    });
+    it("should resolve a reverse record with a multicall", async () => {
+      const textData = (
+        await publicResolver.methods["text(bytes32,string)"].request(
+          namehash.hash(reverseNode),
+          "foo"
+        )
+      ).data;
+      const multicallData = (
+        await publicResolver.methods["multicall(bytes[])"].request([
+          addrData,
+          textData,
+        ])
+      ).data;
+      const result = await universalResolver.reverse(
+        dns.hexEncodeName(reverseNode),
+        multicallData
+      );
+      const [multicallRet] = ethers.utils.defaultAbiCoder.decode(
+        ["bytes[]"],
+        result["1"]
+      );
+      const [addr] = ethers.utils.defaultAbiCoder.decode(
+        ["address"],
+        multicallRet[0]
       );
       const [text] = ethers.utils.defaultAbiCoder.decode(
         ["string"],
-        result["1"][1]
+        multicallRet[1]
       );
       expect(result["0"]).to.equal("test.eth");
-      expect(addr).to.equal(accounts[1].toLowerCase());
+      expect(addr).to.equal(accounts[1]);
       expect(text).to.equal("bar");
     });
   });

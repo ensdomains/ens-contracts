@@ -8,6 +8,7 @@ import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
 import "./NameEncoder.sol";
+import "./BytesLib.sol";
 
 error OffchainLookup(
     address sender,
@@ -24,6 +25,7 @@ error OffchainLookup(
 contract UniversalResolver is IExtendedResolver, ERC165 {
     using Address for address;
     using NameEncoder for string;
+    using BytesLib for bytes;
 
     ENS public immutable registry;
 
@@ -73,119 +75,55 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         }
     }
 
-    struct ReverseData {
-        string dataType;
-        bytes data;
-    }
-
-    struct ReverseCall {
-        string sig;
-        ReverseData[] data;
-    }
-
     /**
      * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
      * @param name The address to resolve, in normalised and DNS-encoded form.
-     * @param calls The resolution data, as specified in ENSIP-10.
+     * @param data The resolution data, as specified in ENSIP-10.
      * @return The resolved name, and the resolved data.
      */
-    function reverse(bytes calldata name, ReverseCall[] memory calls)
+    function reverse(bytes calldata name, bytes memory data)
         external
         view
-        returns (string memory, bytes[] memory)
+        returns (string memory, bytes memory)
     {
-        (Resolver resolver, bytes32 reverseNamehash) = findResolver(name);
+        (Resolver resolver, bytes32 reverseNodehash) = findResolver(name);
         if (address(resolver) == address(0)) {
-            return ("", new bytes[](0));
+            return ("", "");
         }
 
-        string memory resolvedName = resolver.name(reverseNamehash);
+        string memory resolvedName = resolver.name(reverseNodehash);
         if (bytes(resolvedName).length == 0) {
-            return ("", new bytes[](0));
+            return ("", "");
         }
 
         (bytes memory encodedName, bytes32 namehash) = resolvedName
             .encodeAndHash();
-        bytes[] memory inputData = new bytes[](calls.length);
 
-        for (uint256 i = 0; i < calls.length; i++) {
-            ReverseCall memory call = calls[i];
-            if (call.data.length == 0) {
-                inputData[i] = abi.encodeWithSignature(calls[i].sig, namehash);
-            } else {
-                ReverseData memory data = call.data[0];
-                if (
-                    keccak256(bytes(data.dataType)) == keccak256(bytes("bytes"))
-                ) {
-                    inputData[i] = abi.encodeWithSignature(
-                        calls[i].sig,
+        if (data.length >= 36) {
+            bytes memory reverseNodehashBytes = abi.encodePacked(
+                reverseNodehash
+            );
+            for (uint256 i = 0; i <= data.length - 32; i++) {
+                bytes memory slice = data.slice(i, 32);
+                if (slice.equal(reverseNodehashBytes)) {
+                    data = abi.encodePacked(
+                        data.slice(0, i),
                         namehash,
-                        data.data
+                        data.slice(i + 32, data.length - (i + 32))
                     );
-                } else if (
-                    keccak256(bytes(data.dataType)) ==
-                    keccak256(bytes("string"))
-                ) {
-                    inputData[i] = abi.encodeWithSignature(
-                        calls[i].sig,
-                        namehash,
-                        abi.decode(data.data, (string))
-                    );
-                } else if (
-                    keccak256(bytes(data.dataType)) ==
-                    keccak256(bytes("uint256"))
-                ) {
-                    inputData[i] = abi.encodeWithSignature(
-                        calls[i].sig,
-                        namehash,
-                        abi.decode(data.data, (uint256))
-                    );
-                } else if (
-                    keccak256(bytes(data.dataType)) ==
-                    keccak256(bytes("bytes32"))
-                ) {
-                    inputData[i] = abi.encodeWithSignature(
-                        calls[i].sig,
-                        namehash,
-                        abi.decode(data.data, (bytes32))
-                    );
-                } else if (
-                    keccak256(bytes(data.dataType)) ==
-                    keccak256(bytes("bytes4"))
-                ) {
-                    inputData[i] = abi.encodeWithSignature(
-                        calls[i].sig,
-                        namehash,
-                        abi.decode(data.data, (bytes4))
-                    );
-                } else {
-                    continue;
                 }
             }
         }
 
-        bytes memory replacedData = abi.encodeWithSignature(
-            "multicall(bytes[])",
-            inputData
-        );
         (bool success, bytes memory resolvedData) = address(this).staticcall(
-            abi.encodeWithSignature(
-                "resolve(bytes,bytes)",
-                encodedName,
-                replacedData
-            )
+            abi.encodeWithSignature("resolve(bytes,bytes)", encodedName, data)
         );
 
         if (!success) {
-            bytes[] memory returnable = new bytes[](1);
-            returnable[0] = resolvedData;
-            return (resolvedName, returnable);
+            return (resolvedName, resolvedData);
         }
 
-        return (
-            resolvedName,
-            abi.decode(abi.decode(resolvedData, (bytes)), (bytes[]))
-        );
+        return (resolvedName, abi.decode(resolvedData, (bytes)));
     }
 
     function supportsInterface(bytes4 interfaceId)
