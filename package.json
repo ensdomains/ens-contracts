@@ -1,9 +1,10 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "ENS contracts",
   "scripts": {
     "test": "npx hardhat test",
+    "test:local": "hardhat --network localhost test",
     "lint": "npx hardhat check",
     "build": "npx hardhat compile",
     "prepublishOnly": "yarn build",

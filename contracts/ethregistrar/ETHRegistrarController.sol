@@ -1,178 +1,278 @@
 pragma solidity >=0.8.4;
 
-import "./PriceOracle.sol";
 import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "../resolvers/Resolver.sol";
+import "../registry/ReverseRegistrar.sol";
+import "./IETHRegistrarController.sol";
+
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "../wrapper/INameWrapper.sol";
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
-contract ETHRegistrarController is Ownable {
+contract ETHRegistrarController is Ownable, IETHRegistrarController {
     using StringUtils for *;
+    using Address for address;
 
-    uint constant public MIN_REGISTRATION_DURATION = 28 days;
+    uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
+    bytes32 private constant ETH_NODE =
+        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
-    bytes4 constant private INTERFACE_META_ID = bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 constant private COMMITMENT_CONTROLLER_ID = bytes4(
-        keccak256("rentPrice(string,uint256)") ^
-        keccak256("available(string)") ^
-        keccak256("makeCommitment(string,address,bytes32)") ^
-        keccak256("commit(bytes32)") ^
-        keccak256("register(string,address,uint256,bytes32)") ^
-        keccak256("renew(string,uint256)")
+    BaseRegistrarImplementation immutable base;
+    IPriceOracle public immutable prices;
+    uint256 public immutable minCommitmentAge;
+    uint256 public immutable maxCommitmentAge;
+    ReverseRegistrar public immutable reverseRegistrar;
+    INameWrapper public immutable nameWrapper;
+
+    mapping(bytes32 => uint256) public commitments;
+
+    event NameRegistered(
+        string name,
+        bytes32 indexed label,
+        address indexed owner,
+        uint256 baseCost,
+        uint256 premium,
+        uint256 expires
+    );
+    event NameRenewed(
+        string name,
+        bytes32 indexed label,
+        uint256 cost,
+        uint256 expires
     );
 
-    bytes4 constant private COMMITMENT_WITH_CONFIG_CONTROLLER_ID = bytes4(
-        keccak256("registerWithConfig(string,address,uint256,bytes32,address,address)") ^
-        keccak256("makeCommitmentWithConfig(string,address,bytes32,address,address)")
-    );
-
-    BaseRegistrarImplementation base;
-    PriceOracle prices;
-    uint public minCommitmentAge;
-    uint public maxCommitmentAge;
-
-    mapping(bytes32=>uint) public commitments;
-
-    event NameRegistered(string name, bytes32 indexed label, address indexed owner, uint cost, uint expires);
-    event NameRenewed(string name, bytes32 indexed label, uint cost, uint expires);
-    event NewPriceOracle(address indexed oracle);
-
-    constructor(BaseRegistrarImplementation _base, PriceOracle _prices, uint _minCommitmentAge, uint _maxCommitmentAge) public {
+    constructor(
+        BaseRegistrarImplementation _base,
+        IPriceOracle _prices,
+        uint256 _minCommitmentAge,
+        uint256 _maxCommitmentAge,
+        ReverseRegistrar _reverseRegistrar,
+        INameWrapper _nameWrapper
+    ) {
         require(_maxCommitmentAge > _minCommitmentAge);
 
         base = _base;
         prices = _prices;
         minCommitmentAge = _minCommitmentAge;
         maxCommitmentAge = _maxCommitmentAge;
+        reverseRegistrar = _reverseRegistrar;
+        nameWrapper = _nameWrapper;
     }
 
-    function rentPrice(string memory name, uint duration) view public returns(uint) {
-        bytes32 hash = keccak256(bytes(name));
-        return prices.price(name, base.nameExpires(uint256(hash)), duration);
+    function rentPrice(string memory name, uint256 duration)
+        public
+        view
+        override
+        returns (IPriceOracle.Price memory price)
+    {
+        bytes32 label = keccak256(bytes(name));
+        price = prices.price(name, base.nameExpires(uint256(label)), duration);
     }
 
-    function valid(string memory name) public pure returns(bool) {
+    function valid(string memory name) public pure returns (bool) {
         return name.strlen() >= 3;
     }
 
-    function available(string memory name) public view returns(bool) {
+    function available(string memory name) public view override returns (bool) {
         bytes32 label = keccak256(bytes(name));
         return valid(name) && base.available(uint256(label));
     }
 
-    function makeCommitment(string memory name, address owner, bytes32 secret) pure public returns(bytes32) {
-        return makeCommitmentWithConfig(name, owner, secret, address(0), address(0));
-    }
-
-    function makeCommitmentWithConfig(string memory name, address owner, bytes32 secret, address resolver, address addr) pure public returns(bytes32) {
+    function makeCommitment(
+        string memory name,
+        address owner,
+        uint256 duration,
+        bytes32 secret,
+        address resolver,
+        bytes[] calldata data,
+        bool reverseRecord,
+        uint96 fuses
+    ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
-        if (resolver == address(0) && addr == address(0)) {
-            return keccak256(abi.encodePacked(label, owner, secret));
+        if (data.length > 0) {
+            require(
+                resolver != address(0),
+                "ETHRegistrarController: resolver is required when data is supplied"
+            );
         }
-        require(resolver != address(0));
-        return keccak256(abi.encodePacked(label, owner, resolver, addr, secret));
+        return
+            keccak256(
+                abi.encode(
+                    label,
+                    owner,
+                    duration,
+                    resolver,
+                    data,
+                    secret,
+                    reverseRecord,
+                    fuses
+                )
+            );
     }
 
-    function commit(bytes32 commitment) public {
+    function commit(bytes32 commitment) public override {
         require(commitments[commitment] + maxCommitmentAge < block.timestamp);
         commitments[commitment] = block.timestamp;
     }
 
-    function register(string calldata name, address owner, uint duration, bytes32 secret) external payable {
-      registerWithConfig(name, owner, duration, secret, address(0), address(0));
-    }
-
-    function registerWithConfig(string memory name, address owner, uint duration, bytes32 secret, address resolver, address addr) public payable {
-        bytes32 commitment = makeCommitmentWithConfig(name, owner, secret, resolver, addr);
-        uint cost = _consumeCommitment(name, duration, commitment);
-
+    function register(
+        string calldata name,
+        address owner,
+        uint256 duration,
+        bytes32 secret,
+        address resolver,
+        bytes[] calldata data,
+        bool reverseRecord,
+        uint96 fuses
+    ) public payable override {
         bytes32 label = keccak256(bytes(name));
-        uint256 tokenId = uint256(label);
+        IPriceOracle.Price memory price = rentPrice(name, duration);
+        require(
+            msg.value >= (price.base + price.premium),
+            "ETHRegistrarController: Not enough ether provided"
+        );
 
-        uint expires;
-        if(resolver != address(0)) {
-            // Set this contract as the (temporary) owner, giving it
-            // permission to set up the resolver.
-            expires = base.register(tokenId, address(this), duration);
+        _consumeCommitment(
+            name,
+            duration,
+            makeCommitment(
+                name,
+                owner,
+                duration,
+                secret,
+                resolver,
+                data,
+                reverseRecord,
+                fuses
+            )
+        );
 
-            // The nodehash of this label
-            bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
+        uint256 expires = nameWrapper.registerAndWrapETH2LD(
+            name,
+            owner,
+            duration,
+            resolver,
+            fuses
+        );
 
-            // Set the resolver
-            base.ens().setResolver(nodehash, resolver);
+        _setRecords(resolver, label, data);
 
-            // Configure the resolver
-            if (addr != address(0)) {
-                Resolver(resolver).setAddr(nodehash, addr);
-            }
-
-            // Now transfer full ownership to the expeceted owner
-            base.reclaim(tokenId, owner);
-            base.transferFrom(address(this), owner, tokenId);
-        } else {
-            require(addr == address(0));
-            expires = base.register(tokenId, owner, duration);
+        if (reverseRecord) {
+            _setReverseRecord(name, resolver, msg.sender);
         }
 
-        emit NameRegistered(name, label, owner, cost, expires);
+        emit NameRegistered(
+            name,
+            label,
+            owner,
+            price.base,
+            price.premium,
+            expires
+        );
 
-        // Refund any extra payment
-        if(msg.value > cost) {
-            payable(msg.sender).transfer(msg.value - cost);
+        if (msg.value > (price.base + price.premium)) {
+            payable(msg.sender).transfer(
+                msg.value - (price.base + price.premium)
+            );
         }
     }
 
-    function renew(string calldata name, uint duration) external payable {
-        uint cost = rentPrice(name, duration);
-        require(msg.value >= cost);
-
+    function renew(string calldata name, uint256 duration)
+        external
+        payable
+        override
+    {
         bytes32 label = keccak256(bytes(name));
-        uint expires = base.renew(uint256(label), duration);
+        IPriceOracle.Price memory price = rentPrice(name, duration);
+        require(
+            msg.value >= price.base,
+            "ETHController: Not enough Ether provided for renewal"
+        );
 
-        if(msg.value > cost) {
-            payable(msg.sender).transfer(msg.value - cost);
+        uint256 expires = base.renew(uint256(label), duration);
+
+        if (msg.value > price.base) {
+            payable(msg.sender).transfer(msg.value - price.base);
         }
 
-        emit NameRenewed(name, label, cost, expires);
+        emit NameRenewed(name, label, msg.value, expires);
     }
 
-    function setPriceOracle(PriceOracle _prices) public onlyOwner {
-        prices = _prices;
-        emit NewPriceOracle(address(prices));
+    function withdraw() public {
+        payable(owner()).transfer(address(this).balance);
     }
 
-    function setCommitmentAges(uint _minCommitmentAge, uint _maxCommitmentAge) public onlyOwner {
-        minCommitmentAge = _minCommitmentAge;
-        maxCommitmentAge = _maxCommitmentAge;
+    function supportsInterface(bytes4 interfaceID)
+        external
+        pure
+        returns (bool)
+    {
+        return
+            interfaceID == type(IERC165).interfaceId ||
+            interfaceID == type(IETHRegistrarController).interfaceId;
     }
 
-    function withdraw() public onlyOwner {
-        payable(msg.sender).transfer(address(this).balance);        
-    }
+    /* Internal functions */
 
-    function supportsInterface(bytes4 interfaceID) external pure returns (bool) {
-        return interfaceID == INTERFACE_META_ID ||
-               interfaceID == COMMITMENT_CONTROLLER_ID ||
-               interfaceID == COMMITMENT_WITH_CONFIG_CONTROLLER_ID;
-    }
-
-    function _consumeCommitment(string memory name, uint duration, bytes32 commitment) internal returns (uint256) {
-        // Require a valid commitment
-        require(commitments[commitment] + minCommitmentAge <= block.timestamp);
+    function _consumeCommitment(
+        string memory name,
+        uint256 duration,
+        bytes32 commitment
+    ) internal {
+        // Require a valid commitment (is old enough and is committed)
+        require(
+            commitments[commitment] + minCommitmentAge <= block.timestamp,
+            "ETHRegistrarController: Commitment is not valid"
+        );
 
         // If the commitment is too old, or the name is registered, stop
-        require(commitments[commitment] + maxCommitmentAge > block.timestamp);
-        require(available(name));
+        require(
+            commitments[commitment] + maxCommitmentAge > block.timestamp,
+            "ETHRegistrarController: Commitment has expired"
+        );
+        require(available(name), "ETHRegistrarController: Name is unavailable");
 
         delete(commitments[commitment]);
 
-        uint cost = rentPrice(name, duration);
         require(duration >= MIN_REGISTRATION_DURATION);
-        require(msg.value >= cost);
+    }
 
-        return cost;
+    function _setRecords(
+        address resolver,
+        bytes32 label,
+        bytes[] calldata data
+    ) internal {
+        // use hardcoded .eth namehash
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
+        for (uint256 i = 0; i < data.length; i++) {
+            // check first few bytes are namehash
+            bytes32 txNamehash = bytes32(data[i][4:36]);
+            require(
+                txNamehash == nodehash,
+                "ETHRegistrarController: Namehash on record do not match the name being registered"
+            );
+            resolver.functionCall(
+                data[i],
+                "ETHRegistrarController: Failed to set Record"
+            );
+        }
+    }
+
+    function _setReverseRecord(
+        string calldata name,
+        address resolver,
+        address owner
+    ) internal {
+        reverseRegistrar.setNameForAddr(
+            msg.sender,
+            owner,
+            resolver,
+            string.concat(name, ".eth")
+        );
     }
 }
