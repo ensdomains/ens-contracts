@@ -13,13 +13,12 @@ import "./profiles/INameResolver.sol";
 import "./profiles/IPubkeyResolver.sol";
 import "./profiles/ITextResolver.sol";
 import "./profiles/IExtendedResolver.sol";
-import "./ISupportsInterface.sol";
 
 /**
  * A generic resolver interface which includes all the functions including the ones deprecated
  */
 interface Resolver is
-    ISupportsInterface,
+    IERC165,
     IABIResolver,
     IAddressResolver,
     IAddrResolver,

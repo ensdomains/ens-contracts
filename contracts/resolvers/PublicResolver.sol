@@ -103,7 +103,7 @@ contract PublicResolver is
 
     function supportsInterface(bytes4 interfaceID)
         public
-        pure
+        view
         override(
             Multicallable,
             ABIResolver,
