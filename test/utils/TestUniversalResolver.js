@@ -9,6 +9,8 @@ const sha3 = require('web3-utils').sha3;
 const ethers = require('ethers');
 const { dns } = require("../test-utils");
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 contract('UniversalResolver', function (accounts) {
 
     let ens, publicResolver, universalResolver, dummyOffchainResolver, nameWrapper;
@@ -17,7 +19,7 @@ contract('UniversalResolver', function (accounts) {
         node = namehash.hash('eth');
         ens = await ENS.new();
         nameWrapper = await NameWrapper.new();
-        publicResolver = await PublicResolver.new(ens.address, nameWrapper.address);
+        publicResolver = await PublicResolver.new(ens.address, nameWrapper.address, ZERO_ADDRESS, ZERO_ADDRESS);
         universalResolver = await UniversalResolver.new(ens.address);
         dummyOffchainResolver = await DummyOffchainResolver.new();
 
