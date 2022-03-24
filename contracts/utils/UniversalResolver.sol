@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -47,15 +47,15 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         external
         view
         override
-        returns (bytes memory)
+        returns (bytes memory, address)
     {
         (Resolver resolver, ) = findResolver(name);
         if (address(resolver) == address(0)) {
-            return "";
+            return ("", address(0));
         }
 
         if (resolver.supportsInterface(type(IExtendedResolver).interfaceId)) {
-            return
+            return (
                 callWithOffchainLookupPropagation(
                     address(resolver),
                     abi.encodeWithSelector(
@@ -64,53 +64,37 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
                         data
                     ),
                     UniversalResolver.resolveCallback.selector
-                );
+                ),
+                address(resolver)
+            );
         } else {
-            return
+            return (
                 callWithOffchainLookupPropagation(
                     address(resolver),
                     data,
                     UniversalResolver.resolveCallback.selector
-                );
+                ),
+                address(resolver)
+            );
         }
-    }
-
-    function replaceHash(
-        bytes32 replacementHash,
-        bytes memory data,
-        uint256[] memory locations
-    ) internal pure returns (bytes memory) {
-        assembly {
-            let offset := add(data, 0x20)
-            for {
-                let i := 0
-            } lt(i, mload(add(locations, 0))) {
-                i := add(i, 1)
-            } {
-                let location := mload(add(locations, add(0x20, mul(i, 0x20))))
-                mstore(add(offset, location), replacementHash)
-            }
-        }
-        return data;
     }
 
     /**
      * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
-     * @param name The address to resolve, in normalised and DNS-encoded form.
-     * @param data The resolution data, as specified in ENSIP-10.
+     * @param nodehash The hash of the address to resolve.
      * @return The resolved name, and the resolved data.
      */
-    function reverse(
-        bytes calldata name,
-        bytes memory data,
-        uint256[] memory locations
-    ) external view returns (string memory, bytes memory) {
-        (Resolver resolver, bytes32 reverseNodehash) = findResolver(name);
+    function reverse(bytes32 nodehash)
+        external
+        view
+        returns (string memory, bytes memory)
+    {
+        Resolver resolver = Resolver(registry.resolver(nodehash));
         if (address(resolver) == address(0)) {
             return ("", "");
         }
 
-        string memory resolvedName = resolver.name(reverseNodehash);
+        string memory resolvedName = resolver.name(nodehash);
         if (bytes(resolvedName).length == 0) {
             return ("", "");
         }
@@ -118,19 +102,18 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         (bytes memory encodedName, bytes32 namehash) = resolvedName
             .encodeAndHash();
 
-        if (data.length >= 36) {
-            data = replaceHash(namehash, data, locations);
-        }
-
         (bool success, bytes memory resolvedData) = address(this).staticcall(
-            abi.encodeWithSignature("resolve(bytes,bytes)", encodedName, data)
+            abi.encodeCall(
+                this.resolve,
+                (encodedName, abi.encodeCall(IAddrResolver.addr, namehash))
+            )
         );
 
         if (!success) {
-            return (resolvedName, resolvedData);
+            return (resolvedName, "");
         }
 
-        return (resolvedName, abi.decode(resolvedData, (bytes)));
+        return (resolvedName, resolvedData);
     }
 
     function supportsInterface(bytes4 interfaceId)

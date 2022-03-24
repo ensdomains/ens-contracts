@@ -125,7 +125,10 @@ contract("UniversalResolver", function(accounts) {
         dns.hexEncodeName("test.eth"),
         data
       );
-      const [ret] = ethers.utils.defaultAbiCoder.decode(["address"], result);
+      const [ret] = ethers.utils.defaultAbiCoder.decode(
+        ["address"],
+        result["0"]
+      );
       expect(ret).to.equal(accounts[1]);
     });
 
@@ -176,82 +179,36 @@ contract("UniversalResolver", function(accounts) {
   });
 
   describe("reverse()", () => {
-    let addrData;
-    const makeHashIndexes = (data, name) =>
-      [...data.matchAll(namehash.hash(name).substring(2))].map(
-        (x) => x.index / 2 - 1
-      );
     const makeEstimateAndResult = async (func, ...args) => ({
       estimate: await func.estimateGas(...args),
       result: await func(...args),
     });
-    before(async () => {
-      addrData = (
-        await publicResolver.methods["addr(bytes32)"].request(
-          namehash.hash(reverseNode)
-        )
-      ).data;
-    });
-    it("should resolve a reverse record with no calls", async () => {
+    it("should resolve a reverse record with name and addr", async () => {
       const { estimate, result } = await makeEstimateAndResult(
         universalResolver.reverse,
-        dns.hexEncodeName(reverseNode),
-        [],
-        []
+        namehash.hash(reverseNode)
       );
       console.log("GAS ESTIMATE:", estimate);
-      expect(result["0"]).to.equal("test.eth");
-    });
-    it("should resolve a reverse record with 1 call", async () => {
-      const { estimate, result } = await makeEstimateAndResult(
-        universalResolver.reverse,
-        dns.hexEncodeName(reverseNode),
-        addrData,
-        makeHashIndexes(addrData, reverseNode)
-      );
-      console.log("GAS ESTIMATE:", estimate);
-      const [addr] = ethers.utils.defaultAbiCoder.decode(
-        ["address"],
+      const [
+        encodedAddr,
+        decodedResolverAddr,
+      ] = ethers.utils.defaultAbiCoder.decode(
+        ["bytes", "address"],
         result["1"]
       );
-      expect(result["0"]).to.equal("test.eth");
-      expect(addr).to.equal(accounts[1]);
-    });
-    it("should resolve a reverse record with a multicall", async () => {
-      const textData = (
-        await publicResolver.methods["text(bytes32,string)"].request(
-          namehash.hash(reverseNode),
-          "foo"
-        )
-      ).data;
-      const multicallData = (
-        await publicResolver.methods["multicall(bytes[])"].request([
-          addrData,
-          textData,
-        ])
-      ).data;
-      const { estimate, result } = await makeEstimateAndResult(
-        universalResolver.reverse,
-        dns.hexEncodeName(reverseNode),
-        multicallData,
-        makeHashIndexes(multicallData, reverseNode)
-      );
-      console.log("GAS ESTIMATE:", estimate);
-      const [multicallRet] = ethers.utils.defaultAbiCoder.decode(
-        ["bytes[]"],
-        result["1"]
-      );
-      const [addr] = ethers.utils.defaultAbiCoder.decode(
+      const [decodedAddr] = ethers.utils.defaultAbiCoder.decode(
         ["address"],
-        multicallRet[0]
-      );
-      const [text] = ethers.utils.defaultAbiCoder.decode(
-        ["string"],
-        multicallRet[1]
+        encodedAddr
       );
       expect(result["0"]).to.equal("test.eth");
-      expect(addr).to.equal(accounts[1]);
-      expect(text).to.equal("bar");
+      expect(decodedAddr).to.equal(accounts[1]);
+      expect(decodedResolverAddr).to.equal(publicResolver.address);
+      // const [addr] = ethers.utils.defaultAbiCoder.decode(
+      //   ["address"],
+      //   result["1"]
+      // );
+      // expect(result["0"]).to.equal("test.eth");
+      // expect(addr).to.equal(accounts[1]);
     });
   });
   describe("encodeName()", () => {
