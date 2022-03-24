@@ -51,16 +51,13 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             return ("", address(0));
         }
 
-        bool success = true;
         bool interfaceSupported = true;
         try
             resolver.supportsInterface(type(IExtendedResolver).interfaceId)
         returns (bool result) {
             interfaceSupported = result;
-            success = true;
         } catch {
             interfaceSupported = false;
-            success = false;
         }
 
         if (interfaceSupported) {
