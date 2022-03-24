@@ -183,7 +183,7 @@ contract("UniversalResolver", function(accounts) {
       estimate: await func.estimateGas(...args),
       result: await func(...args),
     });
-    it("should resolve a reverse record with name and addr", async () => {
+    it("should resolve a reverse record with name and resolver address", async () => {
       const { estimate, result } = await makeEstimateAndResult(
         universalResolver.reverse,
         namehash.hash(reverseNode)
@@ -203,30 +203,6 @@ contract("UniversalResolver", function(accounts) {
       expect(result["0"]).to.equal("test.eth");
       expect(decodedAddr).to.equal(accounts[1]);
       expect(decodedResolverAddr).to.equal(publicResolver.address);
-      // const [addr] = ethers.utils.defaultAbiCoder.decode(
-      //   ["address"],
-      //   result["1"]
-      // );
-      // expect(result["0"]).to.equal("test.eth");
-      // expect(addr).to.equal(accounts[1]);
-    });
-  });
-  describe("encodeName()", () => {
-    it("should encode a name", async () => {
-      const result = await universalResolver.encodeName("vitalik.eth");
-      expect(result).to.equal(dns.hexEncodeName("vitalik.eth"));
-    });
-
-    it("should encode an empty name", async () => {
-      const result = await universalResolver.encodeName("");
-      expect(result).to.equal(dns.hexEncodeName(""));
-    });
-
-    it("should encode a long name", async () => {
-      const result = await universalResolver.encodeName(
-        "something.else.test.eth"
-      );
-      expect(result).to.equal(dns.hexEncodeName("something.else.test.eth"));
     });
   });
 });

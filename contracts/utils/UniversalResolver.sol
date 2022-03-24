@@ -33,10 +33,6 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         registry = ENS(_registry);
     }
 
-    function encodeName(string memory name) public view returns (bytes memory) {
-        return name.encode();
-    }
-
     /**
      * @dev Performs ENS name resolution for the supplied name and resolution data.
      * @param name The name to resolve, in normalised and DNS-encoded form.
