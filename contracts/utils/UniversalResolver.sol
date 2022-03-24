@@ -75,17 +75,36 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         }
     }
 
+    function replaceHash(
+        bytes32 replacementHash,
+        bytes memory data,
+        uint256[] memory locations
+    ) internal pure returns (bytes memory) {
+        assembly {
+            let offset := add(data, 0x20)
+            for {
+                let i := 0
+            } lt(i, mload(add(locations, 0))) {
+                i := add(i, 1)
+            } {
+                let location := mload(add(locations, add(0x20, mul(i, 0x20))))
+                mstore(add(offset, location), replacementHash)
+            }
+        }
+        return data;
+    }
+
     /**
      * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
      * @param name The address to resolve, in normalised and DNS-encoded form.
      * @param data The resolution data, as specified in ENSIP-10.
      * @return The resolved name, and the resolved data.
      */
-    function reverse(bytes calldata name, bytes memory data)
-        external
-        view
-        returns (string memory, bytes memory)
-    {
+    function reverse(
+        bytes calldata name,
+        bytes memory data,
+        uint256[] memory locations
+    ) external view returns (string memory, bytes memory) {
         (Resolver resolver, bytes32 reverseNodehash) = findResolver(name);
         if (address(resolver) == address(0)) {
             return ("", "");
@@ -100,19 +119,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             .encodeAndHash();
 
         if (data.length >= 36) {
-            bytes memory reverseNodehashBytes = abi.encodePacked(
-                reverseNodehash
-            );
-            for (uint256 i = 0; i <= data.length - 32; i++) {
-                bytes memory slice = data.slice(i, 32);
-                if (slice.equal(reverseNodehashBytes)) {
-                    data = abi.encodePacked(
-                        data.slice(0, i),
-                        namehash,
-                        data.slice(i + 32, data.length - (i + 32))
-                    );
-                }
-            }
+            data = replaceHash(namehash, data, locations);
         }
 
         (bool success, bytes memory resolvedData) = address(this).staticcall(

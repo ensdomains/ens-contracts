@@ -9,7 +9,7 @@ const ReverseRegistrar = artifacts.require("ReverseRegistrar.sol");
 const { expect } = require("chai");
 const namehash = require("eth-ens-namehash");
 const sha3 = require("web3-utils").sha3;
-const ethers = require("ethers");
+const { ethers } = require("hardhat");
 const { dns } = require("../test-utils");
 
 contract("UniversalResolver", function(accounts) {
@@ -177,6 +177,14 @@ contract("UniversalResolver", function(accounts) {
 
   describe("reverse()", () => {
     let addrData;
+    const makeHashIndexes = (data, name) =>
+      [...data.matchAll(namehash.hash(name).substring(2))].map(
+        (x) => x.index / 2 - 1
+      );
+    const makeEstimateAndResult = async (func, ...args) => ({
+      estimate: await func.estimateGas(...args),
+      result: await func(...args),
+    });
     before(async () => {
       addrData = (
         await publicResolver.methods["addr(bytes32)"].request(
@@ -185,17 +193,23 @@ contract("UniversalResolver", function(accounts) {
       ).data;
     });
     it("should resolve a reverse record with no calls", async () => {
-      const result = await universalResolver.reverse(
+      const { estimate, result } = await makeEstimateAndResult(
+        universalResolver.reverse,
         dns.hexEncodeName(reverseNode),
+        [],
         []
       );
+      console.log("GAS ESTIMATE:", estimate);
       expect(result["0"]).to.equal("test.eth");
     });
     it("should resolve a reverse record with 1 call", async () => {
-      const result = await universalResolver.reverse(
+      const { estimate, result } = await makeEstimateAndResult(
+        universalResolver.reverse,
         dns.hexEncodeName(reverseNode),
-        addrData
+        addrData,
+        makeHashIndexes(addrData, reverseNode)
       );
+      console.log("GAS ESTIMATE:", estimate);
       const [addr] = ethers.utils.defaultAbiCoder.decode(
         ["address"],
         result["1"]
@@ -216,10 +230,13 @@ contract("UniversalResolver", function(accounts) {
           textData,
         ])
       ).data;
-      const result = await universalResolver.reverse(
+      const { estimate, result } = await makeEstimateAndResult(
+        universalResolver.reverse,
         dns.hexEncodeName(reverseNode),
-        multicallData
+        multicallData,
+        makeHashIndexes(multicallData, reverseNode)
       );
+      console.log("GAS ESTIMATE:", estimate);
       const [multicallRet] = ethers.utils.defaultAbiCoder.decode(
         ["bytes[]"],
         result["1"]
