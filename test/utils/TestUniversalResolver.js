@@ -186,7 +186,7 @@ contract("UniversalResolver", function(accounts) {
     it("should resolve a reverse record with name and resolver address", async () => {
       const { estimate, result } = await makeEstimateAndResult(
         universalResolver.reverse,
-        namehash.hash(reverseNode)
+        dns.hexEncodeName(reverseNode)
       );
       console.log("GAS ESTIMATE:", estimate);
       const [

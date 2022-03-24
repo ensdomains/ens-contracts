@@ -25,6 +25,7 @@ error OffchainLookup(
 contract UniversalResolver is IExtendedResolver, ERC165 {
     using Address for address;
     using NameEncoder for string;
+    using NameEncoder for bytes;
     using BytesLib for bytes;
 
     ENS public immutable registry;
@@ -50,7 +51,19 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             return ("", address(0));
         }
 
-        if (resolver.supportsInterface(type(IExtendedResolver).interfaceId)) {
+        bool success = true;
+        bool interfaceSupported = true;
+        try
+            resolver.supportsInterface(type(IExtendedResolver).interfaceId)
+        returns (bool result) {
+            interfaceSupported = result;
+            success = true;
+        } catch {
+            interfaceSupported = false;
+            success = false;
+        }
+
+        if (interfaceSupported) {
             return (
                 callWithOffchainLookupPropagation(
                     address(resolver),
@@ -77,23 +90,36 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
 
     /**
      * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
-     * @param nodehash The hash of the address to resolve.
+     * @param reverseNode The reverse node to resolve, in normalised and DNS-encoded form.
      * @return The resolved name, and the resolved data.
      */
-    function reverse(bytes32 nodehash)
+    function reverse(bytes memory reverseNode)
         external
         view
         returns (string memory, bytes memory)
     {
-        Resolver resolver = Resolver(registry.resolver(nodehash));
-        if (address(resolver) == address(0)) {
+        (bool reverseSuccess, bytes memory resolvedReverseData) = address(this)
+            .staticcall(
+                abi.encodeCall(
+                    this.resolve,
+                    (
+                        reverseNode,
+                        abi.encodeCall(
+                            INameResolver.name,
+                            reverseNode.namehash(0)
+                        )
+                    )
+                )
+            );
+
+        if (!reverseSuccess) {
             return ("", "");
         }
 
-        string memory resolvedName = resolver.name(nodehash);
-        if (bytes(resolvedName).length == 0) {
-            return ("", "");
-        }
+        string memory resolvedName = abi.decode(
+            abi.decode(resolvedReverseData, (bytes)),
+            (string)
+        );
 
         (bytes memory encodedName, bytes32 namehash) = resolvedName
             .encodeAndHash();
