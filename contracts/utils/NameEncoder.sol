@@ -1,36 +1,23 @@
 pragma solidity ^0.8.4;
 
-import "./Strings.sol";
-
 library NameEncoder {
-    using strings for *;
-
-    function encodePart(strings.slice memory name)
-        internal
-        view
-        returns (bytes memory)
-    {
-        bytes memory encodedName;
-        strings.slice memory label = name.split(".".toSlice());
-        if (label.empty()) {
-            return abi.encodePacked(uint8(0));
-        }
-        encodedName = encodePart(name);
-
-        return
-            abi.encodePacked(
-                uint8(label.len()),
-                bytes(label.toString()),
-                encodedName
-            );
-    }
-
     function encode(string memory name) internal view returns (bytes memory) {
-        strings.slice memory sliceName = name.toSlice();
-        if (sliceName.empty()) {
-            return abi.encodePacked(uint8(0), uint8(0));
+        uint8 labelLength = 0;
+        bytes memory bytesName = bytes(name);
+        uint256 length = bytesName.length;
+        bytes memory dnsName = new bytes(length + 2);
+        for (uint256 i = 0; i < length; i++) {
+            if (bytesName[i] == ".") {
+                dnsName[i - labelLength] = bytes1(labelLength);
+                labelLength = 0;
+            } else {
+                labelLength += 1;
+                dnsName[i + 1] = bytesName[i];
+            }
         }
-        return encodePart(sliceName);
+
+        dnsName[length - labelLength] = bytes1(labelLength);
+        return dnsName;
     }
 
     function encodeAndHash(string memory name)
