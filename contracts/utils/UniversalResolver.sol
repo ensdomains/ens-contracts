@@ -8,7 +8,6 @@ import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
 import "./NameEncoder.sol";
-import "./BytesLib.sol";
 
 error OffchainLookup(
     address sender,
@@ -26,7 +25,6 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
     using Address for address;
     using NameEncoder for string;
     using NameEncoder for bytes;
-    using BytesLib for bytes;
 
     ENS public immutable registry;
 
