@@ -17,7 +17,7 @@ error IncompatibleParent();
 error IncompatibleName(bytes name);
 error IncorrectTokenType();
 error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
-error LabelTooShort(string label);
+error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 
@@ -503,7 +503,7 @@ contract NameWrapper is
      *      replacing a subdomain. If either conditions are true, then it is possible to call
      *      setSubnodeOwner
      * @param node namehash of the name to check
-     * @param label labelhash of the name to check
+     * @param labelhash labelhash of the name to check
      */
 
     modifier canCallSetSubnodeOwner(bytes32 node, bytes32 labelhash) {
