@@ -68,6 +68,7 @@ contract NameWrapper is
     {
         return
             interfaceId == type(INameWrapper).interfaceId ||
+            interfaceId == type(INameWrapperUpgrade).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
