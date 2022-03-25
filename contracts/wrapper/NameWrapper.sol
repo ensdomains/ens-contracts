@@ -283,9 +283,13 @@ contract NameWrapper is
         bytes32 labelhash,
         address newRegistrant,
         address newController
-    ) public override onlyTokenOwner(_makeNode(ETH_NODE, label)) {
+    ) public override onlyTokenOwner(_makeNode(ETH_NODE, labelhash)) {
         _unwrap(_makeNode(ETH_NODE, labelhash), newController);
-        registrar.transferFrom(address(this), newRegistrant, uint256(label));
+        registrar.transferFrom(
+            address(this),
+            newRegistrant,
+            uint256(labelhash)
+        );
     }
 
     /**
@@ -587,7 +591,7 @@ contract NameWrapper is
         returns (bytes memory ret)
     {
         if (bytes(label).length < 1) {
-            revert LabelTooShort("");
+            revert LabelTooShort();
         }
         if (bytes(label).length > 255) {
             revert LabelTooLong(label);
@@ -641,13 +645,7 @@ contract NameWrapper is
     }
 
     function _unwrap(bytes32 node, address newOwner) private {
-        if (newOwner == address(0x0)) {
-            // Target owner cannot be the 0x0 contract
-            revert IncorrectTargetOwner(newOwner);
-        }
-
-        if (newOwner == address(this)) {
-            // Target owner cannot be the NameWrapper contract
+        if (newOwner == address(0x0) || newOwner == address(this)) {
             revert IncorrectTargetOwner(newOwner);
         }
 
