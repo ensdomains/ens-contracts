@@ -60,13 +60,6 @@ module.exports = {
     },
   },
   mocha: {},
-  mocha: {},
-  abiExporter: {
-    path: './build/contracts',
-    clear: true,
-    flat: true,
-    spacing: 2,
-  },
   solidity: {
     compilers: [
       {
