@@ -10,7 +10,7 @@ This repo doubles as an npm package with the compiled JSON contracts
 
 ```js
 import {
-  BaseRegistrar,
+  IBaseRegistrar,
   BaseRegistrarImplementation,
   BulkRenewal,
   ENS,
@@ -19,7 +19,7 @@ import {
   ETHRegistrarController,
   FIFSRegistrar,
   LinearPremiumPriceOracle,
-  PriceOracle,
+  IPriceOracle,
   PublicResolver,
   Resolver,
   ReverseRegistrar,
@@ -38,10 +38,10 @@ import '@ensdomains/ens-contracts/contracts/registry/ENSRegistryWithFallback.sol
 import '@ensdomains/ens-contracts/contracts/registry/ReverseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/registry/TestRegistrar.sol';
 // EthRegistrar
-import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/IBaseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrarImplementation.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BulkRenewal.sol';
-import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
+import '@ensdomains/ens-contracts/contracts/ethregistrar/IETHRegistrarController.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/ETHRegistrarController.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/LinearPremiumPriceOracle.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/PriceOracle.sol';
@@ -121,10 +121,6 @@ The commit/reveal process is used to avoid frontrunning, and operates as follows
  2. After a minimum delay period and before the commitment expires, the user calls the register function with the name to register and the secret value from the commitment. If a valid commitment is found and the other preconditions are met, the name is registered.
 
 The minimum delay and expiry for commitments exist to prevent miners or other users from effectively frontrunnig registrations.
-
-### SimplePriceOracle
-
-SimplePriceOracle is a trivial implementation of the pricing oracle for the EthRegistrarController that always returns a fixed price per domain per year, determined by the contract owner.
 
 ### StablePriceOracle
 
