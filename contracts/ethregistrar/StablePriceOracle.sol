@@ -1,7 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "./IPriceOracle.sol";
-import "./SafeMath.sol";
+// import "./SafeMath.sol";
 import "./StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -12,7 +12,7 @@ interface AggregatorInterface {
 
 // StablePriceOracle sets a price in USD, based on an oracle.
 contract StablePriceOracle is IPriceOracle {
-    using SafeMath for *;
+    // using SafeMath for *;
     using StringUtils for *;
 
     // Rent in base price units by length
