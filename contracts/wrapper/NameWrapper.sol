@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "./ERC1155Fuse.sol";
 import "./Controllable.sol";
 import "./INameWrapper.sol";
+import "./INameWrapperUpgrade.sol";
 import "./IMetadataService.sol";
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -20,11 +21,13 @@ error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
 error LabelTooShort(string label);
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
+error ZeroAddress();
 
 contract NameWrapper is
     Ownable,
     ERC1155Fuse,
     INameWrapper,
+    INameWrapperUpgrade,
     Controllable,
     IERC721Receiver
 {
@@ -38,6 +41,9 @@ contract NameWrapper is
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
+
+    //A contract address to a new upgraded contract if any
+    address public upgradeAddress;
 
     constructor(
         ENS _ens,
@@ -73,6 +79,7 @@ contract NameWrapper is
     {
         return
             interfaceId == type(INameWrapper).interfaceId ||
+            interfaceId == type(INameWrapperUpgrade).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -96,6 +103,18 @@ contract NameWrapper is
 
     function uri(uint256 tokenId) public view override returns (string memory) {
         return metadataService.uri(tokenId);
+    }
+
+    /**
+     * @notice Set the upgradeAddress of the contract. only admin can do this
+     * @param _upgradeAddress address of an upgraded contract
+     */
+
+    function setUpgradeAddress(address _upgradeAddress)
+        public
+        onlyOwner
+    {
+            upgradeAddress = _upgradeAddress;
     }
 
     /**
@@ -169,7 +188,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint96 _fuses,
         address resolver
-    ) public override {
+    ) public override(INameWrapper, INameWrapperUpgrade) {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
@@ -243,7 +262,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint96 _fuses,
         address resolver
-    ) public override {
+    ) public override (INameWrapper, INameWrapperUpgrade) {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
         bytes32 node = _makeNode(parentNode, labelhash);
@@ -327,6 +346,79 @@ contract NameWrapper is
         _setData(uint256(node), owner, newFuses);
 
         emit FusesBurned(node, newFuses);
+    }
+
+    /**
+     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeAddress
+     *  contract and burning the token of this contract.  
+     * @dev Can be called by the owner of the name (ERC721 token) in the registrar contract  
+     * @param label label as a string of the .eth domain to wrap
+     * @param wrappedOwner The owner of the wrapped name.
+     * @param _fuses initial fuses to set
+     * @param resolver the resolver contract in the registry
+     */
+
+    function upgradeETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        uint96 _fuses,
+        address resolver
+    ) 
+        public 
+        override
+    {
+
+        if (upgradeAddress == address(0)){
+            revert ZeroAddress();
+        }
+
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);       
+
+        if (!isTokenOwnerOrApproved(node, msg.sender)){
+            revert Unauthorised(node, msg.sender);
+        }
+
+        INameWrapperUpgrade(upgradeAddress).wrapETH2LD(label, wrappedOwner, _fuses, resolver);
+
+
+        // burn token and fuse data
+        _burn(uint256(node));
+
+    }
+
+    /**
+     * @notice Wraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @dev Can be called by the owner in the registry or an authorised caller in the registry
+     * @param name The name to wrap, in DNS format
+     * @param wrappedOwner Owner of the name in this contract
+     * @param _fuses initial fuses to set represented as a number. Check getFuses() for more info
+     * @param resolver the resolver contract in the registry
+     */
+
+    function upgrade(
+        bytes calldata name,
+        address wrappedOwner,
+        uint96 _fuses,
+        address resolver
+    ) public override{
+
+        if (upgradeAddress == address(0)){
+            revert ZeroAddress();
+        }
+
+        (bytes32 labelhash, uint offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
+        bytes32 node = _makeNode(parentNode, labelhash);
+
+        if (!isTokenOwnerOrApproved(node, msg.sender)){
+            revert Unauthorised(node, msg.sender);
+        }
+
+        INameWrapperUpgrade(upgradeAddress).wrap(name, wrappedOwner, _fuses, resolver);
+
+        // burn token and fuse data
+        _burn(uint256(node));
     }
 
     /**
