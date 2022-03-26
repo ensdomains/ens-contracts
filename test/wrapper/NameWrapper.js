@@ -1001,7 +1001,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await expect(
         NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, ZERO_ADDRESS)
-      ).to.be.revertedWith(`LabelTooShort("")`)
+      ).to.be.revertedWith(`LabelTooShort()`)
     })
 
     it('Will not wrap a label greater than 255 characters', async () => {
@@ -1678,7 +1678,7 @@ describe('Name Wrapper', () => {
           account,
           CAN_DO_EVERYTHING
         )
-      ).to.be.revertedWith(`LabelTooShort("")`)
+      ).to.be.revertedWith(`LabelTooShort()`)
     })
   })
 
@@ -1907,7 +1907,7 @@ describe('Name Wrapper', () => {
           0,
           0
         )
-      ).to.be.revertedWith(`LabelTooShort("")`)
+      ).to.be.revertedWith(`LabelTooShort()`)
     })
   })
 
@@ -2807,7 +2807,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING
         )
-      ).to.be.revertedWith(`LabelTooShort("")`)
+      ).to.be.revertedWith(`LabelTooShort()`)
     })
 
     it('Will not wrap a name with a label more than 255 characters', async () => {
