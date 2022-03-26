@@ -10,7 +10,6 @@ This repo doubles as an npm package with the compiled JSON contracts
 
 ```js
 import {
-  IBaseRegistrar,
   BaseRegistrarImplementation,
   BulkRenewal,
   ENS,
@@ -19,7 +18,6 @@ import {
   ETHRegistrarController,
   FIFSRegistrar,
   LinearPremiumPriceOracle,
-  IPriceOracle,
   PublicResolver,
   Resolver,
   ReverseRegistrar,
@@ -38,10 +36,8 @@ import '@ensdomains/ens-contracts/contracts/registry/ENSRegistryWithFallback.sol
 import '@ensdomains/ens-contracts/contracts/registry/ReverseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/registry/TestRegistrar.sol';
 // EthRegistrar
-import '@ensdomains/ens-contracts/contracts/ethregistrar/IBaseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrarImplementation.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BulkRenewal.sol';
-import '@ensdomains/ens-contracts/contracts/ethregistrar/IETHRegistrarController.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/ETHRegistrarController.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/LinearPremiumPriceOracle.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/PriceOracle.sol';
