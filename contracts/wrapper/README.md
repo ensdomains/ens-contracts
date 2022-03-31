@@ -20,7 +20,7 @@ With the exception of the functionality to upgrade the metadata generation for t
 
 In order to wrap a `.eth` 2LD, the owner of the name must have authorised the wrapper by calling `setApprovalForAll` on the registrar, and the caller of `wrapETH2LD` must be either the owner, or authorised by the owner on either the wrapper or the registrar.
 
-All other domains (non `.eth` names as well as `.eth` subdomains such as `sub.example.eth` can be wrapped by calling `wrap(parentNode, label, wrappedOwner, fuses)`. `parentNode` is the namehash of the name one level higher than the name to be wrapped, `label` is the first part of the name, `wrappedOwner` is the address that should own the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevocably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name. For example, to wrap `sub.example.eth`, you should call `wrap(namehash('example.eth'), 'example', owner, fuses)`.
+All other domains (non `.eth` names as well as `.eth` subdomains such as `sub.example.eth` can be wrapped by calling `wrap(dnsEncodedName, wrappedOwner, fuses, resolver)`. `parentNode` is the namehash of the name one level higher than the name to be wrapped, `dnsEncodedName` is the full [DNS encoded name](http://www.tcpipguide.com/free/t_DNSNameNotationandMessageCompressionTechnique.htm#:~:text=Instead%2C%20DNS%20uses%20a%20special,are%20encoded%2C%20one%20per%20byte.), `wrappedOwner` is the address that should own the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevocably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name. For example, to wrap `sub.example.eth`, you should call `wrap(encodeDNSName('example.eth'), owner, fuses, resolver)`.
 
 In order to wrap a domain that is not a `.eth` 2LD, the owner of the name must have authorised the wrapper by calling `setApprovalForAll` on the registry, and the caller of `wrap` must be either the owner, or authorised by the owner on either the wrapper or the registry.
 
@@ -42,7 +42,7 @@ abiCoder.encode(
 
 ## Unwrapping a name
 
-Wrapped names can be unwrapped by calling either `unwrapETH2LD(label, newRegistrant, newController)` or `unwrap(parentNode, label, newController)` as appropriate. `label` and `parentNode` have meanings as described under "Wrapping a name", while `newRegistrant` is the address that should own the .eth registrar token, and `newController` is the address that should be set as the owner of the ENS registry record.
+Wrapped names can be unwrapped by calling either `unwrapETH2LD(labelHash, newRegistrant, newController)` or `unwrap(parentNode, label, newController)` as appropriate. `label` and `parentNode` have meanings as described under "Wrapping a name", while `newRegistrant` is the address that should own the .eth registrar token, and `newController` is the address that should be set as the owner of the ENS registry record.
 
 ## Working with wrapped names
 

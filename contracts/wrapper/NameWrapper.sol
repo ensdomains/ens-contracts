@@ -274,7 +274,7 @@ contract NameWrapper is
     /**
      * @notice Unwraps a .eth domain. e.g. vitalik.eth
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
-     * @param labelhash label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
+     * @param labelhash labelhash of the .eth domain
      * @param newRegistrant sets the owner in the .eth registrar to this address
      * @param newController sets the owner in the registry to this address
      */
@@ -296,7 +296,7 @@ contract NameWrapper is
      * @notice Unwraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
      * @param parentNode parent namehash of the name to wrap e.g. vitalik.xyz would be namehash('xyz')
-     * @param labelhash label as a string of the .eth domain to wrap e.g. vitalik.xyz would be 'vitalik'
+     * @param labelhash labelhash of the .eth domain
      * @param newController sets the owner in the registry to this address
      */
 
