@@ -16,18 +16,4 @@ interface INameWrapperUpgrade {
         address resolver
     ) external;
 
-    function upgradeETH2LD(
-        string calldata label,
-        address wrappedOwner,
-        uint96 _fuses,
-        address resolver
-    ) external;
-
-    function upgrade(
-        bytes calldata name,
-        address wrappedOwner,
-        uint96 _fuses,
-        address resolver
-    ) external;
-
 }
