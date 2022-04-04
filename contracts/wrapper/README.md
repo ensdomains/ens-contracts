@@ -20,7 +20,7 @@ With the exception of the functionality to upgrade the metadata generation for t
 
 In order to wrap a `.eth` 2LD, the owner of the name must have authorised the wrapper by calling `setApprovalForAll` on the registrar, and the caller of `wrapETH2LD` must be either the owner, or authorised by the owner on either the wrapper or the registrar.
 
-All other domains (non `.eth` names as well as `.eth` subdomains such as `sub.example.eth` can be wrapped by calling `wrap(parentNode, label, wrappedOwner, fuses)`. `parentNode` is the namehash of the name one level higher than the name to be wrapped, `label` is the first part of the name, `wrappedOwner` is the address that should own the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevocably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name. For example, to wrap `sub.example.eth`, you should call `wrap(namehash('example.eth'), 'example', owner, fuses)`.
+All other domains (non `.eth` names as well as `.eth` subdomains such as `sub.example.eth` can be wrapped by calling `wrap(dnsEncodedName, wrappedOwner, fuses, resolver)`. `parentNode` is the namehash of the name one level higher than the name to be wrapped, `dnsEncodedName` is the full [DNS encoded name](http://www.tcpipguide.com/free/t_DNSNameNotationandMessageCompressionTechnique.htm#:~:text=Instead%2C%20DNS%20uses%20a%20special,are%20encoded%2C%20one%20per%20byte.), `wrappedOwner` is the address that should own the wrapped name, and `fuses` is a bitfield representing permissions over the name that should be irrevocably burned (see 'Fuses' below). A `fuses` value of `0` represents no restrictions on the name. For example, to wrap `sub.example.eth`, you should call `wrap(encodeDNSName('example.eth'), owner, fuses, resolver)`.
 
 In order to wrap a domain that is not a `.eth` 2LD, the owner of the name must have authorised the wrapper by calling `setApprovalForAll` on the registry, and the caller of `wrap` must be either the owner, or authorised by the owner on either the wrapper or the registry.
 
@@ -42,7 +42,7 @@ abiCoder.encode(
 
 ## Unwrapping a name
 
-Wrapped names can be unwrapped by calling either `unwrapETH2LD(label, newRegistrant, newController)` or `unwrap(parentNode, label, newController)` as appropriate. `label` and `parentNode` have meanings as described under "Wrapping a name", while `newRegistrant` is the address that should own the .eth registrar token, and `newController` is the address that should be set as the owner of the ENS registry record.
+Wrapped names can be unwrapped by calling either `unwrapETH2LD(labelHash, newRegistrant, newController)` or `unwrap(parentNode, label, newController)` as appropriate. `label` and `parentNode` have meanings as described under "Wrapping a name", while `newRegistrant` is the address that should own the .eth registrar token, and `newController` is the address that should be set as the owner of the ENS registry record.
 
 ## Working with wrapped names
 
@@ -56,7 +56,9 @@ All functions for working with wrapped names utilise ERC1155's authorisation mec
 
 `NameWrapper` also implements a permissions mechanism called 'fuses'. Each name has a set of fuses representing permissions over that name. Fuses can be 'burned' either at the time the name is wrapped or at any subsequent time when the owner or authorised operator calls `burnFuses`. Once a fuse is burned, it cannot be 'unburned' - the permission that fuse represents is permanently revoked.
 
-Before any fuses can be burned on a name, the parent name's "replace subdomain" fuse must first be burned. Without this restriction, any permissions revoked via fuses can be evaded by the parent name replacing the subdomain and then re-wrapping it with a more permissive fuse field. Likewise, when any fuses on a name are burned, the "unwrap" fuse must also be burned, to prevent the name being directly unwrapped and re-wrapped to reset the fuses. These restrictions have the effect of allowing applications to simply check the fuse value they care about on the name they are examining without having to be aware of the entire chain of custody up to the root.
+Before any fuses can be burned on a name, the parent name's "replace subdomain" fuse should be burned first. Without this restriction, any permissions revoked via fuses can be evaded by the parent name replacing the subdomain and then re-wrapping it with a more permissive fuse field. This is not enforced by the contract, but can be checked using `getFuses(node)`.
+
+When any fuses on a name are burned, the "unwrap" fuse must also be burned, to prevent the name being directly unwrapped and re-wrapped to reset the fuses. This restriction *is* enforced by the contract, but you must also check `getFuses(node)` to check the safety of the parent(s) node.
 
 The ENS root and the .eth 2LD are treated as having the "replace subdomain" and "unwrap" fuses burned. There is one edge-case here insofar as a .eth name's registration can expire; at that point the name can be purchased by a new registrant and effectively becomes unwrapped despite any fuse restrictions. When that name is re-wrapped, fuse fields can be set to a more permissive value than the name previously had. Any application relying on fuse values for .eth subdomains should check the expiration date of the .eth name and warn users if this is likely to expire soon.
 
