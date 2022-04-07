@@ -22,6 +22,20 @@ library LowLevelCallUtils {
     }
 
     /**
+     * @dev Makes a delegate call to the specified `target` with `data`. Return data can be fetched with
+     *      `returnDataSize` and `readReturnData`.
+     * @param target The address to delegatecall.
+     * @param data The data to pass to the call.
+     * @return success True if the call succeeded, or false if it reverts.
+     */
+    function functionDelegateCall(address target, bytes memory data) internal returns(bool success) {
+        require(target.isContract(), "LowLevelCallUtils: delegate call to non-contract");
+        assembly {
+            success := delegatecall(gas(), target, add(data, 32), mload(data), 0, 0)
+        }
+    }
+
+    /**
      * @dev Returns the size of the return data of the most recent external call.
      */
     function returnDataSize() internal pure returns(uint256 len) {

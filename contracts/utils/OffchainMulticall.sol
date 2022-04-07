@@ -2,8 +2,98 @@
 
 pragma solidity ^0.8.13;
 
+import "./LowLevelCallUtils.sol";
+
+error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData);
+
+struct OffchainLookupCallData {
+    string[] urls;
+    bytes callData;
+}
+
+struct OffchainLookupExtraData {
+    bytes4 callbackFunction;
+    bytes data;
+}
+
+interface BatchGateway {
+    function query(OffchainLookupCallData[] memory data) external returns(bytes[] memory responses);
+}
+
 /**
+ * @dev Implements a multicall pattern that understands CCIP read.
  */
 contract OffchainMulticall {
+    string[] public batchGatewayURLs;
 
+    constructor(string[] memory _batchGatewayURLs) {
+        batchGatewayURLs = _batchGatewayURLs;
+    }
+
+    function multicall(bytes[] memory data) public virtual returns (bytes[] memory results) {
+        uint256 length = data.length;
+        uint256 offchainCount = 0;
+        OffchainLookupCallData[] memory callDatas = new OffchainLookupCallData[](length);
+        OffchainLookupExtraData[] memory extraDatas = new OffchainLookupExtraData[](length);
+        results = new bytes[](length);
+        for(uint256 i = 0; i < length; i++) {
+            bool result = LowLevelCallUtils.functionDelegateCall(address(this), data[i]);
+            uint256 size = LowLevelCallUtils.returnDataSize();
+
+            if(result) {
+                results[i] = LowLevelCallUtils.readReturnData(0, size);
+                extraDatas[i].data = data[i];
+                continue;
+            }
+
+            // Failure
+            if(size >= 4) {
+                bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
+                if(bytes4(errorId) == OffchainLookup.selector) {
+                    // Offchain lookup. Decode the revert message and create our own that nests it.
+                    bytes memory revertData = LowLevelCallUtils.readReturnData(4, size - 4);
+                    (address sender, string[] memory urls, bytes memory callData, bytes4 innerCallbackFunction, bytes memory extraData) = abi.decode(revertData, (address,string[],bytes,bytes4,bytes));
+                    if(sender == address(this)) {
+                        callDatas[i] = OffchainLookupCallData(urls, callData);
+                        extraDatas[i] = OffchainLookupExtraData(innerCallbackFunction, extraData);
+                        offchainCount += 1;
+                    }
+                }
+            }
+
+            // Unexpected response, revert the whole batch
+            LowLevelCallUtils.propagateRevert();
+        }
+
+        if(offchainCount == 0) {
+            return results;
+        }
+
+        revert OffchainLookup(
+            address(this),
+            batchGatewayURLs,
+            abi.encodeCall(BatchGateway.query, callDatas),
+            OffchainMulticall.multicallCallback.selector,
+            abi.encode(extraDatas)
+        );
+    }
+
+    function multicallCallback(bytes calldata response, bytes calldata extraData) external virtual returns(bytes[] memory) {
+        bytes[] memory responses = abi.decode(response, (bytes[]));
+        OffchainLookupExtraData[] memory extraDatas = abi.decode(extraData, (OffchainLookupExtraData[]));
+        require(responses.length == extraDatas.length);
+
+        bytes[] memory data = new bytes[](responses.length);
+        for(uint256 i = 0; i < responses.length; i++) {
+            if(extraDatas[i].callbackFunction == bytes4(0)) {
+                // This call did not require an offchain lookup; use the previous input data.
+                data[i] = extraDatas[i].data;
+            } else {
+                // Encode the callback as another multicall
+                data[i] = abi.encodeWithSelector(extraDatas[i].callbackFunction, responses[i], extraDatas[i].data);
+            }
+        }
+
+        return multicall(data);
+    }
 }
