@@ -23,12 +23,8 @@ interface BatchGateway {
 /**
  * @dev Implements a multicall pattern that understands CCIP read.
  */
-contract OffchainMulticall {
-    string[] public batchGatewayURLs;
-
-    constructor(string[] memory _batchGatewayURLs) {
-        batchGatewayURLs = _batchGatewayURLs;
-    }
+abstract contract OffchainMulticallable {
+    function batchGatewayURLs() internal virtual view returns(string[] memory);
 
     function multicall(bytes[] memory data) public virtual returns (bytes[] memory results) {
         uint256 length = data.length;
@@ -71,9 +67,9 @@ contract OffchainMulticall {
 
         revert OffchainLookup(
             address(this),
-            batchGatewayURLs,
+            batchGatewayURLs(),
             abi.encodeCall(BatchGateway.query, callDatas),
-            OffchainMulticall.multicallCallback.selector,
+            OffchainMulticallable.multicallCallback.selector,
             abi.encode(extraDatas)
         );
     }
