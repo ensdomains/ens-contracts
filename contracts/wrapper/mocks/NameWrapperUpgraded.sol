@@ -1,16 +1,17 @@
+
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "./ERC1155Fuse.sol";
-import "./Controllable.sol";
-import "./INameWrapper.sol";
-import "./INameWrapperUpgrade.sol";
-import "./IMetadataService.sol";
-import "../registry/ENS.sol";
-import "../ethregistrar/IBaseRegistrar.sol";
+import "../ERC1155Fuse.sol";
+import "../Controllable.sol";
+import "../INameWrapper.sol";
+import "../INameWrapperUpgrade.sol";
+import "../IMetadataService.sol";
+import "../../registry/ENS.sol";
+import "../../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BytesUtil.sol";
+import "../BytesUtil.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -23,10 +24,11 @@ error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error ZeroAddress();
 
-contract NameWrapper is
+contract NameWrapperUpgraded is
     Ownable,
     ERC1155Fuse,
     INameWrapper,
+    INameWrapperUpgrade,
     Controllable,
     IERC721Receiver
 {
@@ -113,8 +115,6 @@ contract NameWrapper is
         onlyOwner
     {
             upgradeContract = INameWrapperUpgrade(_upgradeAddress);
-            registrar.setApprovalForAll(address(upgradeContract), true);
-
     }
 
     /**
@@ -188,7 +188,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint96 _fuses,
         address resolver
-    ) public override {
+    ) public override (INameWrapper, INameWrapperUpgrade){
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
@@ -262,7 +262,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint96 _fuses,
         address resolver
-    ) public override {
+    ) public override (INameWrapper, INameWrapperUpgrade){
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
         bytes32 node = _makeNode(parentNode, labelhash);

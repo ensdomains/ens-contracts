@@ -61,6 +61,7 @@ describe('Name Wrapper', () => {
   let BaseRegistrar2
   let NameWrapper
   let NameWrapper2
+  let NameWrapperUpgraded
   let MetaDataservice
   let signers
   let accounts
@@ -111,6 +112,16 @@ describe('Name Wrapper', () => {
       MetaDataservice.address
     )
     NameWrapper2 = NameWrapper.connect(signers[1])
+
+    NameWrapperUpgraded = await deploy(
+      'NameWrapperUpgraded',
+      EnsRegistry.address,
+      BaseRegistrar.address,
+      MetaDataservice.address
+    )
+
+    //set the upgradeContract of the NameWrapper contract
+    await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
     // setup .eth
     await EnsRegistry.setSubnodeOwner(
@@ -1142,6 +1153,62 @@ describe('Name Wrapper', () => {
       const owner = await NameWrapper.ownerOf(wrappedTokenId)
 
       expect(owner).to.equal(account)
+    })
+  })
+
+  describe('upgradeETH2LD()', () => {
+    const label = 'wrapped2'
+    const labelHash = labelhash(label)
+    const nameHash = namehash(label + '.eth')
+
+    it('upgrades a name if sender is owner', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      //make sure reclaim claimed ownership for the wrapper in registry
+
+      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
+
+      //make sure owner in the wrapper is the user
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(account)
+
+      // make sure registrar ERC721 is owned by Wrapper
+
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapper.address
+      )
+
+      await NameWrapper.upgradeETH2LD(
+        label,
+        account,
+        EMPTY_ADDRESS
+      )
+
+      //make sure owner of the registry is updated to the new upgraded contract
+
+      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapperUpgraded.address)
+
+      //make sure owner in the upgraded NameWrapper contract is the user
+
+      expect(await NameWrapperUpgraded.ownerOf(nameHash)).to.equal(account)
+
+      // make sure registrar ERC721 is owned by the upgraded NameWrapper contract
+
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapperUpgraded.address
+      )
     })
   })
 
