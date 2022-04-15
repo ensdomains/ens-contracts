@@ -114,7 +114,7 @@ describe('Name Wrapper', () => {
     NameWrapper2 = NameWrapper.connect(signers[1])
 
     NameWrapperUpgraded = await deploy(
-      'NameWrapperUpgraded',
+      'NameWrapper',
       EnsRegistry.address,
       BaseRegistrar.address,
       MetaDataservice.address

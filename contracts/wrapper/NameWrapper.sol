@@ -114,7 +114,6 @@ contract NameWrapper is
     {
             upgradeContract = INameWrapperUpgrade(_upgradeAddress);
             registrar.setApprovalForAll(address(upgradeContract), true);
-
     }
 
     /**
