@@ -105,6 +105,8 @@ contract NameWrapper is
 
     /**
      * @notice Set the address of the upgradeContract of the contract. only admin can do this
+     * @dev The default value of upgradeContract is the 0 address. Use the 0 address at any time 
+     * to make the contract not upgradable. 
      * @param _upgradeAddress address of an upgraded contract
      */
 
@@ -112,8 +114,17 @@ contract NameWrapper is
         public
         onlyOwner
     {
+            if (address(upgradeContract) != address(0)){
+                registrar.setApprovalForAll(address(upgradeContract), false);
+                ens.setApprovalForAll(address(upgradeContract), false);
+            }
+
             upgradeContract = INameWrapperUpgrade(_upgradeAddress);
-            registrar.setApprovalForAll(address(upgradeContract), true);
+
+            if (address(upgradeContract) != address(0)){
+                registrar.setApprovalForAll(address(upgradeContract), true);
+                ens.setApprovalForAll(address(upgradeContract), true);
+            }
     }
 
     /**
