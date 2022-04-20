@@ -368,13 +368,11 @@ contract NameWrapper is
      * @dev Can be called by the owner of the name (ERC721 token) in the registrar contract  
      * @param label label as a string of the .eth domain to wrap
      * @param wrappedOwner The owner of the wrapped name.
-     * @param resolver the resolver contract in the registry
      */
 
     function upgradeETH2LD(
         string calldata label,
-        address wrappedOwner,
-        address resolver
+        address wrappedOwner
     ) 
         public 
     {
@@ -392,6 +390,8 @@ contract NameWrapper is
 
         (uint96 fuses,,) = getFuses(node);
 
+        address resolver = ens.resolver(node);
+
         upgradeContract.wrapETH2LD(label, wrappedOwner, fuses, resolver);
 
         // burn token and fuse data
@@ -404,13 +404,11 @@ contract NameWrapper is
      * @dev Can be called by the owner in the registry or an authorised caller in the registry
      * @param name The name to wrap, in DNS format
      * @param wrappedOwner Owner of the name in this contract
-     * @param resolver the resolver contract in the registry
      */
 
     function upgrade(
         bytes calldata name,
-        address wrappedOwner,
-        address resolver
+        address wrappedOwner
     ) public {
 
         if (address(upgradeContract) == address(0)){
@@ -424,6 +422,8 @@ contract NameWrapper is
         if (!isTokenOwnerOrApproved(node, msg.sender)){
             revert Unauthorised(node, msg.sender);
         }
+
+        address resolver = ens.resolver(node);
 
         (uint96 fuses,,) = getFuses(node);
 

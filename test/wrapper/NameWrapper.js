@@ -1224,8 +1224,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.upgradeETH2LD(
         label,
-        account,
-        EMPTY_ADDRESS
+        account
       )
 
       //make sure owner of the registry is updated to the new upgraded contract
@@ -1242,7 +1241,119 @@ describe('Name Wrapper', () => {
         NameWrapperUpgraded.address
       )
     })
+
+    it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+    
+      await expect(
+        NameWrapper.upgradeETH2LD(
+        label,
+        account
+      )
+      ).to.be.reverted
+    })
+  
+    it('Cannot upgrade a name if the upgradeContract has been set and then set back to the 0 address.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+     //make sure reclaim claimed ownership for the wrapper in registry
+      expect(await NameWrapper.upgradeContract()).to.equal(NameWrapperUpgraded.address)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(EMPTY_ADDRESS)
+
+      await expect(
+        NameWrapper.upgradeETH2LD(
+        label,
+        account
+      )
+      ).to.be.reverted
+    })
+
+    it('Will pass fuses to the upgradedContract without any changes.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(
+        label,
+        account
+      )
+
+      const [fuses, ,] = await NameWrapperUpgraded.getFuses(nameHash)
+
+      expect(fuses).to.equal(MINIMUM_PARENT_FUSES)
+      
+    })
+
+    it('Will burn the token and fuses of the name in the NameWrapper contract when upgraded.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(
+        label,
+        account
+      )
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      const [fuses, ,] = await NameWrapper.getFuses(nameHash)
+
+      expect(fuses).to.equal(0)
+      
+    })
   })
+
 
   describe('upgrade()', () => {
     it('Allows owner to upgrade name', async () => {
@@ -1274,7 +1385,7 @@ describe('Name Wrapper', () => {
 
       expect(await EnsRegistry.isApprovedForAll(NameWrapper.address,NameWrapperUpgraded.address)).to.equal(true)
 
-      await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account, EMPTY_ADDRESS)
+      await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account)
 
       //make sure owner of the registry is updated to the new upgraded contract
 
