@@ -2,8 +2,10 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol');
 const PublicResolver = artifacts.require('PublicResolver.sol');
 const NameWrapper = artifacts.require('DummyNameWrapper.sol');
 const UniversalResolver = artifacts.require('UniversalResolver.sol');
+const LegacyResolver = artifacts.require('LegacyResolver.sol');
 const DummyOffchainResolver = artifacts.require('DummyOffchainResolver.sol');
 
+const { expect } = require('chai');
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
 const ethers = require('ethers');
@@ -51,6 +53,16 @@ contract('UniversalResolver', function (accounts) {
     });
 
     describe('resolve()', () => {
+        it('should resolve a record if `supportsInterface` throws', async () => {
+            const legacyResolver = await LegacyResolver.new();
+            await ens.setSubnodeOwner(namehash.hash('eth'), sha3('test2'), accounts[0], {from: accounts[0]});
+            await ens.setResolver(namehash.hash('test2.eth'), legacyResolver.address, {from: accounts[0]});
+            const data = (await legacyResolver.methods['addr(bytes32)'].request(namehash.hash('test.eth'))).data;
+            const result = await universalResolver.resolve(dns.hexEncodeName('test2.eth'), data);
+            const [ret] = ethers.utils.defaultAbiCoder.decode(["address"], result);
+            expect(ret).to.equal(legacyResolver.address);
+        });
+
         it('should resolve a record via legacy methods', async () => {
             const data = (await publicResolver.methods["addr(bytes32)"].request(namehash.hash('test.eth'))).data;
             const result = await universalResolver.resolve(dns.hexEncodeName('test.eth'), data);

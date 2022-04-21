@@ -35,19 +35,20 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             return "";
         }
 
-        if(resolver.supportsInterface(type(IExtendedResolver).interfaceId)) {
-            return callWithOffchainLookupPropagation(
-                address(resolver),
-                abi.encodeCall(IExtendedResolver.resolve, (name, data)),
-                UniversalResolver.resolveCallback.selector
-            );
-        } else {
-            return callWithOffchainLookupPropagation(
-                address(resolver),
-                data,
-                UniversalResolver.resolveCallback.selector
-            );
-        }
+        try resolver.supportsInterface(type(IExtendedResolver).interfaceId) returns (bool supported) {
+            if(supported) {
+                return callWithOffchainLookupPropagation(
+                    address(resolver),
+                    abi.encodeCall(IExtendedResolver.resolve, (name, data)),
+                    UniversalResolver.resolveCallback.selector
+                );
+            }
+        } catch { }
+        return callWithOffchainLookupPropagation(
+            address(resolver),
+            data,
+            UniversalResolver.resolveCallback.selector
+        );
     }
 
     function supportsInterface(bytes4 interfaceId) public view virtual override returns(bool) {
