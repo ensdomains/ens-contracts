@@ -1,7 +1,8 @@
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
-import "../registry/ReverseRegistrar.sol";
+import "../registry/IReverseRegistrar.sol";
+import "./profiles/NameResolver.sol";
 
 error NotAuthorised();
 
@@ -9,13 +10,12 @@ error NotAuthorised();
  * @dev Provides a default implementation of a resolver for reverse records,
  * which permits only the owner to update it.
  */
-contract DefaultReverseResolver {
+contract DefaultReverseResolver is NameResolver {
     // namehash('addr.reverse')
     bytes32 constant ADDR_REVERSE_NODE =
         0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
     ENS public ens;
-    mapping(bytes32 => string) public name;
     address immutable trustedReverseRegistrar;
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
@@ -33,7 +33,7 @@ contract DefaultReverseResolver {
         ens = ensAddr;
 
         // Assign ownership of the reverse record to our deployer
-        ReverseRegistrar registrar = ReverseRegistrar(
+        IReverseRegistrar registrar = IReverseRegistrar(
             ens.owner(ADDR_REVERSE_NODE)
         );
         trustedReverseRegistrar = address(registrar);
@@ -66,7 +66,7 @@ contract DefaultReverseResolver {
         return _operatorApprovals[account][operator];
     }
 
-    function isAuthorised(bytes32 node) internal view returns (bool) {
+    function isAuthorised(bytes32 node) internal view override returns (bool) {
         if (msg.sender == trustedReverseRegistrar) {
             return true;
         }
@@ -74,15 +74,10 @@ contract DefaultReverseResolver {
         return owner == msg.sender || isApprovedForAll(owner, msg.sender);
     }
 
-    /**
-     * @dev Sets the name for a node.
-     * @param node The node to update.
-     * @param _name The name to set.
-     */
-    function setName(bytes32 node, string memory _name) public {
-        if (!isAuthorised(node)) {
+    modifier authorised(bytes32 node) override {
+        if (isAuthorised(node)) {
             revert NotAuthorised();
         }
-        name[node] = _name;
+        _;
     }
 }
