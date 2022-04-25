@@ -34,7 +34,7 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         return (pubkeys[node].x, pubkeys[node].y);
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IPubkeyResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

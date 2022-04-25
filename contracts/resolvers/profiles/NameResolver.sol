@@ -27,7 +27,7 @@ abstract contract NameResolver is INameResolver, ResolverBase {
         return names[node];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(INameResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

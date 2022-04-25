@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../ResolverBase.sol";
-import "../ISupportsInterface.sol";
 import "./AddrResolver.sol";
 import "./IInterfaceResolver.sol";
 
@@ -42,7 +42,7 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
             return address(0);
         }
 
-        (bool success, bytes memory returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", type(ISupportsInterface).interfaceId));
+        (bool success, bytes memory returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", type(IERC165).interfaceId));
         if(!success || returnData.length < 32 || returnData[31] == 0) {
             // EIP 165 not supported by target
             return address(0);
@@ -57,7 +57,7 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         return a;
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IInterfaceResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }
