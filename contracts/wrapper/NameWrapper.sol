@@ -110,7 +110,7 @@ contract NameWrapper is
      * @param _upgradeAddress address of an upgraded contract
      */
 
-    function setUpgradeContract(address _upgradeAddress)
+    function setUpgradeContract(INameWrapperUpgrade _upgradeAddress)
         public
         onlyOwner
     {
@@ -119,7 +119,7 @@ contract NameWrapper is
                 ens.setApprovalForAll(address(upgradeContract), false);
             }
 
-            upgradeContract = INameWrapperUpgrade(_upgradeAddress);
+            upgradeContract = _upgradeAddress;
 
             if (address(upgradeContract) != address(0)){
                 registrar.setApprovalForAll(address(upgradeContract), true);
@@ -365,8 +365,8 @@ contract NameWrapper is
     /**
      * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeAddress
      *  contract and burning the token of this contract.  
-     * @dev Can be called by the owner of the name (ERC721 token) in the registrar contract  
-     * @param label label as a string of the .eth domain to wrap
+     * @dev Can be called by the owner of the name in this contract  
+     * @param label label as a string of the .eth domain to upgrade
      * @param wrappedOwner The owner of the wrapped name.
      */
 
@@ -400,10 +400,10 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Wraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
-     * @dev Can be called by the owner in the registry or an authorised caller in the registry
-     * @param name The name to wrap, in DNS format
-     * @param wrappedOwner Owner of the name in this contract
+     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @dev Can be called by the owner or an authorised caller
+     * @param name The name to upgrade, in DNS format
+     * @param wrappedOwner owner of the name in this contract
      */
 
     function upgrade(

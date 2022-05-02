@@ -1352,6 +1352,34 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(0)
       
     })
+
+    it('Will pass resolver to the upgradedContract without any changes.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        MINIMUM_PARENT_FUSES,
+        DUMMY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(
+        label,
+        account
+      )
+
+      const resolver = await EnsRegistry.resolver(nameHash)
+
+      expect(resolver).to.equal(DUMMY_ADDRESS)
+      
+    })
   })
 
 
@@ -1395,6 +1423,168 @@ describe('Name Wrapper', () => {
 
       expect(await NameWrapperUpgraded.ownerOf(namehash('to-upgrade.xyz'))).to.equal(account)
     })
+
+    it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
+
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(
+        encodeName('xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('to-upgrade'),
+        account
+      )
+      await NameWrapper.wrap(
+        encodeName('to-upgrade.xyz'),
+        account,
+        0,
+        EMPTY_ADDRESS
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      await expect(
+       NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account)
+      ).to.be.reverted
+    })
+
+    it('Will pass fuses to the upgradedContract without any changes.', async () => {
+   
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(
+        encodeName('xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('to-upgrade'),
+        account
+      )
+      await NameWrapper.wrap(
+        encodeName('to-upgrade.xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(await EnsRegistry.isApprovedForAll(NameWrapper.address,NameWrapperUpgraded.address)).to.equal(true)
+
+      await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account)
+
+      //make sure owner of the registry is updated to the new upgraded contract
+
+      expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(NameWrapperUpgraded.address)
+
+      //make sure owner in the upgraded NameWrapper contract is the user
+
+      expect(await NameWrapperUpgraded.ownerOf(namehash('to-upgrade.xyz'))).to.equal(account)
+
+
+      const [fuses, ,] = await NameWrapperUpgraded.getFuses(namehash('to-upgrade.xyz'))
+
+      expect(fuses).to.equal(MINIMUM_PARENT_FUSES)
+     }) 
+
+     it('Will burn the token and fuses of the name in the NameWrapper contract when upgraded.', async () => {
+
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await EnsRegistry.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('to-upgrade'),
+        account
+      )
+
+      await NameWrapper.wrap(
+        encodeName('to-upgrade.xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account)
+
+      //make sure owner in the upgraded NameWrapper contract is the user
+      expect(await NameWrapperUpgraded.ownerOf(namehash('to-upgrade.xyz'))).to.equal(account)
+
+      expect(await NameWrapper.ownerOf(namehash('to-upgrade.xyz'))).to.equal(EMPTY_ADDRESS)
+
+      const [fuses, ,] = await NameWrapper.getFuses(namehash('to-upgrade.xyz'))
+
+      expect(fuses).to.equal(0)
+     })
+
+    it('Will pass resolver to the upgradedContract without any changes.', async () => {
+
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrap(
+        encodeName('xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('to-upgrade'),
+        account
+      )
+      await NameWrapper.wrap(
+        encodeName('to-upgrade.xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        DUMMY_ADDRESS
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(await EnsRegistry.isApprovedForAll(NameWrapper.address,NameWrapperUpgraded.address)).to.equal(true)
+
+      await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), account)
+
+      //make sure owner of the registry is updated to the new upgraded contract
+
+      expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(NameWrapperUpgraded.address)
+
+      //make sure owner in the upgraded NameWrapper contract is the user
+
+      expect(await NameWrapperUpgraded.ownerOf(namehash('to-upgrade.xyz'))).to.equal(account)
+
+      const resolver = await EnsRegistry.resolver(namehash('to-upgrade.xyz'))
+
+      expect(resolver).to.equal(DUMMY_ADDRESS)
+
+    })
+  
   })
   describe('burnFuses()', () => {
     const label = 'fuses'
