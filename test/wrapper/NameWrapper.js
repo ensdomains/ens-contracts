@@ -1184,7 +1184,23 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)).to.equal(false)
 
     })
+    it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(await BaseRegistrar.isApprovedForAll(NameWrapper.address, NameWrapperUpgraded.address)).to.equal(true)
+      expect(await EnsRegistry.isApprovedForAll(NameWrapper.address, NameWrapperUpgraded.address)).to.equal(true)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(ZERO_ADDRESS)
+
+      expect(await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)).to.equal(false)
+      expect(await EnsRegistry.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)).to.equal(false)
+
+    })
   })
+
   describe('upgradeETH2LD()', () => {
     const label = 'wrapped2'
     const labelHash = labelhash(label)
@@ -1380,6 +1396,34 @@ describe('Name Wrapper', () => {
       expect(resolver).to.equal(DUMMY_ADDRESS)
       
     })
+    it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+     
+      await expect(
+        NameWrapper2.upgradeETH2LD(
+          label,
+          EMPTY_ADDRESS
+        )
+      ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
+
+    })
+
   })
 
 
@@ -1584,6 +1628,42 @@ describe('Name Wrapper', () => {
       expect(resolver).to.equal(DUMMY_ADDRESS)
 
     })
+    it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrap(
+        encodeName('xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        labelhash('to-upgrade'),
+        account
+      )
+      await NameWrapper.wrap(
+        encodeName('to-upgrade.xyz'),
+        account,
+        MINIMUM_PARENT_FUSES,
+        DUMMY_ADDRESS
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await expect(
+        NameWrapper2.upgrade(encodeName('to-upgrade.xyz'), account)
+      ).to.be.revertedWith(`Unauthorised("${namehash('to-upgrade.xyz')}", "${account2}")`)
+
+    })
+
   
   })
   describe('burnFuses()', () => {
