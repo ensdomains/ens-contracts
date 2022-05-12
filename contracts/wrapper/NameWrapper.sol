@@ -363,44 +363,8 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeAddress
-     *  contract and burning the token of this contract.  
-     * @dev Can be called by the owner of the name in this contract  
-     * @param label label as a string of the .eth domain to upgrade
-     * @param wrappedOwner The owner of the wrapped name.
-     */
-
-    function upgradeETH2LD(
-        string calldata label,
-        address wrappedOwner
-    ) 
-        public 
-    {
-
-        if (address(upgradeContract) == address(0)){
-            revert ZeroAddress();
-        }
-
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);       
-
-        if (!isTokenOwnerOrApproved(node, msg.sender)){
-            revert Unauthorised(node, msg.sender);
-        }
-
-        (uint96 fuses,,) = getFuses(node);
-
-        address resolver = ens.resolver(node);
-
-        upgradeContract.wrapETH2LD(label, wrappedOwner, fuses, resolver);
-
-        // burn token and fuse data
-        _burn(uint256(node));
-
-    }
-
     /**
-     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @notice Upgrades a domain to a new name wrapper version.
      * @dev Can be called by the owner or an authorised caller
      * @param name The name to upgrade, in DNS format
      * @param wrappedOwner owner of the name in this contract
@@ -412,7 +376,7 @@ contract NameWrapper is
     ) public {
 
         if (address(upgradeContract) == address(0)){
-            revert ZeroAddress();
+            revert CannotUpgrade();
         }
 
         (bytes32 labelhash, uint offset) = name.readLabel(0);
@@ -427,7 +391,11 @@ contract NameWrapper is
 
         (uint96 fuses,,) = getFuses(node);
 
-        upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
+        if(parentNode == ETH_NODE) {
+            upgradeContract.wrapETH2LD(name[1:offset], wrappedOwner, fuses, resolver);
+        } else {
+            upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
+        }
 
         // burn token and fuse data
         _burn(uint256(node));
