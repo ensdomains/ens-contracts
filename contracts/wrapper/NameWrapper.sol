@@ -21,7 +21,7 @@ error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
 error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
-error ZeroAddress();
+error CannotUpgrade();
 
 contract NameWrapper is
     Ownable,
