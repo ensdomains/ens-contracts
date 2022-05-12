@@ -363,7 +363,6 @@ contract NameWrapper is
     }
 
     /**
-    /**
      * @notice Upgrades a domain to a new name wrapper version.
      * @dev Can be called by the owner or an authorised caller
      * @param name The name to upgrade, in DNS format
@@ -392,7 +391,7 @@ contract NameWrapper is
         (uint96 fuses,,) = getFuses(node);
 
         if(parentNode == ETH_NODE) {
-            upgradeContract.wrapETH2LD(name[1:offset], wrappedOwner, fuses, resolver);
+            upgradeContract.wrapETH2LD(string(name[1:offset]), wrappedOwner, fuses, resolver);
         } else {
             upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
         }
