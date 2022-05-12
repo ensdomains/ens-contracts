@@ -43,7 +43,7 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         return (0, bytes(""));
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IABIResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }
