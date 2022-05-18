@@ -334,68 +334,6 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${node}")`)
     })
 
-    it('Can re-wrap a name that was reassigned by a wrapped parent', async () => {
-      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
-
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        CAN_DO_EVERYTHING,
-        EMPTY_ADDRESS
-      )
-      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
-
-      await NameWrapper.setSubnodeOwner(
-        namehash('xyz'),
-        'sub',
-        account,
-        CAN_DO_EVERYTHING
-      )
-      await NameWrapper.setSubnodeOwner(
-        namehash('xyz'),
-        labelhash('sub'),
-        account2
-      )
-
-      //confirm the registry has been switched, but the token holder has not
-      expect(await EnsRegistry.owner(namehash('sub.xyz'))).to.equal(account2)
-      expect(await NameWrapper.ownerOf(namehash('sub.xyz'))).to.equal(account)
-
-      //allow the NameWrapper to make txs on behalf of account2
-      await EnsRegistry2.setApprovalForAll(NameWrapper.address, true)
-      const tx = await NameWrapper2.wrap(
-        encodeName('sub.xyz'),
-        account2,
-        CAN_DO_EVERYTHING,
-        EMPTY_ADDRESS
-      )
-
-      // Check the 4 events
-      // Unwrap of the original owner
-      // TransferSingle burn of the original token
-      // Wrap to the new owner with fuses
-      // TransferSingle to mint the new token
-
-      const nameHash = namehash('sub.xyz')
-
-      await expect(tx)
-        .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(nameHash, EMPTY_ADDRESS)
-      await expect(tx)
-        .to.emit(NameWrapper, 'TransferSingle')
-        .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
-      await expect(tx)
-        .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(nameHash, encodeName('sub.xyz'), account2, CAN_DO_EVERYTHING)
-      await expect(tx)
-        .to.emit(NameWrapper, 'TransferSingle')
-        .withArgs(account2, EMPTY_ADDRESS, account2, nameHash, 1)
-
-      expect(await NameWrapper2.ownerOf(nameHash)).to.equal(account2)
-      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
-    })
-
     it('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
@@ -492,15 +430,11 @@ describe('Name Wrapper', () => {
       )
       await NameWrapper.setSubnodeOwner(
         namehash('xyz'),
-        labelhash('unwrapped'),
-        account
-      )
-      await NameWrapper.wrap(
-        encodeName('unwrapped.xyz'),
+        'unwrapped',
         account,
-        0,
-        EMPTY_ADDRESS
+        0
       )
+
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
         namehash('unwrapped.xyz')
       )
@@ -1160,7 +1094,12 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      await NameWrapper.wrap(encodeName('sub.abc'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(
+        encodeName('sub.abc'),
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
 
       await NameWrapper.burnFuses(
         namehash('sub.abc'),
@@ -1456,7 +1395,8 @@ describe('Name Wrapper', () => {
         NameWrapper.setSubnodeOwner(
           namehash('fuses2.eth'),
           labelhash('uncreateable'),
-          account
+          account,
+          0
         )
       ).to.be.revertedWith(`OperationProhibited("${namehash('fuses2.eth')}")`)
 

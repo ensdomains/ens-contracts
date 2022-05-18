@@ -60,11 +60,9 @@ const INTERFACES = {
     'unwrapETH2LD(bytes32,address,address)',
     'burnFuses(bytes32,uint96)',
     'burnChildFuses(bytes32,bytes32,uint96)',
-    'setSubnodeRecord(bytes32,bytes32,address,address,uint64)',
-    'setSubnodeRecordAndWrap(bytes32,string,address,address,uint64,uint96)',
+    'setSubnodeRecord(bytes32,string,address,address,uint64,uint96)',
     'setRecord(bytes32,address,address,uint64)',
-    'setSubnodeOwner(bytes32,bytes32,address)',
-    'setSubnodeOwnerAndWrap(bytes32,string,address,uint96)',
+    'setSubnodeOwner(bytes32,string,address,uint96)',
     'isTokenOwnerOrApproved(bytes32,address)',
     'setResolver(bytes32,address)',
     'setTTL(bytes32,uint64)',
@@ -84,16 +82,16 @@ for (const k of Object.getOwnPropertyNames(INTERFACES)) {
 }
 
 function shouldSupportInterfaces(contractUnderTest, interfaces = []) {
-  describe('Contract interface', function () {
-    beforeEach(function () {
+  describe('Contract interface', function() {
+    beforeEach(function() {
       this.contractUnderTest = contractUnderTest()
     })
 
     for (const k of interfaces) {
       const interfaceId = INTERFACE_IDS[k]
-      describe(k, function () {
-        describe("ERC165's supportsInterface(bytes4)", function () {
-          it('uses less than 30k gas [skip-on-coverage]', async function () {
+      describe(k, function() {
+        describe("ERC165's supportsInterface(bytes4)", function() {
+          it('uses less than 30k gas [skip-on-coverage]', async function() {
             expect(
               await this.contractUnderTest.estimateGas.supportsInterface(
                 interfaceId
@@ -101,7 +99,7 @@ function shouldSupportInterfaces(contractUnderTest, interfaces = []) {
             ).to.be.lte(30000)
           })
 
-          it('claims support', async function () {
+          it('claims support', async function() {
             expect(
               await this.contractUnderTest.supportsInterface(interfaceId)
             ).to.equal(true)
@@ -110,8 +108,8 @@ function shouldSupportInterfaces(contractUnderTest, interfaces = []) {
 
         for (const fnName of INTERFACES[k]) {
           const fnSig = FN_SIGNATURES[fnName]
-          describe(fnName, function () {
-            it('has to be implemented', function () {
+          describe(fnName, function() {
+            it('has to be implemented', function() {
               expect(
                 this.contractUnderTest.interface.getFunction(fnSig)
               ).to.not.throw
@@ -121,7 +119,7 @@ function shouldSupportInterfaces(contractUnderTest, interfaces = []) {
       })
     }
 
-    it('does not implement the forbidden interface', async function () {
+    it('does not implement the forbidden interface', async function() {
       expect(
         await this.contractUnderTest.supportsInterface('0xffffffff')
       ).to.equal(false)
