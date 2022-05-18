@@ -346,7 +346,7 @@ describe('Name Wrapper', () => {
       )
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
 
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         namehash('xyz'),
         'sub',
         account,
@@ -803,12 +803,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, DAY)
 
       // Wrap it
-      await NameWrapper.wrapETH2LD(
-        label,
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS
-      )
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
       let [fuses, vulnerability, nodeVulnerable] = await NameWrapper.getFuses(
         namehash('wrapped2.eth')
       )
@@ -816,7 +811,7 @@ describe('Name Wrapper', () => {
       expect(vulnerability).to.equal(ParentVulnerability.Safe)
 
       // Create a subdomain that can't be unwrapped
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         namehash('wrapped2.eth'),
         'sub',
         account,
@@ -1208,7 +1203,9 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.burnFuses(wrappedTokenId, CANNOT_TRANSFER)
       ;[fuses, vulnerability] = await NameWrapper.getFuses(wrappedTokenId)
-      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+      )
       expect(vulnerability).to.equal(ParentVulnerability.Safe)
     })
 
@@ -1223,10 +1220,15 @@ describe('Name Wrapper', () => {
 
       await expect(tx)
         .to.emit(NameWrapper, 'FusesBurned')
-        .withArgs(wrappedTokenId, CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL)
+        .withArgs(
+          wrappedTokenId,
+          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+        )
 
       const [fuses, vulnerability] = await NameWrapper.getFuses(wrappedTokenId)
-      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+      )
       expect(vulnerability).to.equal(ParentVulnerability.Safe)
     })
 
@@ -1291,12 +1293,7 @@ describe('Name Wrapper', () => {
 
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await NameWrapper.wrapETH2LD(
-        label,
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS
-      )
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
 
       await NameWrapper.burnFuses(wrappedTokenId, 128)
 
@@ -1422,7 +1419,7 @@ describe('Name Wrapper', () => {
       // can create before burn
 
       //revert not approved and isn't sender because subdomain isnt owned by contract?
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'creatable',
         account,
@@ -1467,23 +1464,19 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('setSubnodeOwnerAndWrap()', async () => {
+  describe('setSubnodeOwner()', async () => {
     const label = 'ownerandwrap'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
 
     before(async () => {
-      await registerSetupAndWrapName(
-        label,
-        account,
-        CANNOT_UNWRAP
-      )
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
 
     it('Can be called by the owner of a name and sets this contract as owner on the ENS registry.', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
@@ -1501,12 +1494,7 @@ describe('Name Wrapper', () => {
     it('Can be called by an account authorised by the owner.', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NameWrapper.setApprovalForAll(account2, true)
-      await NameWrapper2.setSubnodeOwnerAndWrap(
-        wrappedTokenId,
-        'sub',
-        account,
-        0
-      )
+      await NameWrapper2.setSubnodeOwner(wrappedTokenId, 'sub', account, 0)
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
         NameWrapper.address
@@ -1518,7 +1506,7 @@ describe('Name Wrapper', () => {
     })
     it('Transfers the wrapped token to the target address.', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
@@ -1536,7 +1524,7 @@ describe('Name Wrapper', () => {
     it('Will not allow wrapping with a target address of 0x0.', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await expect(
-        NameWrapper.setSubnodeOwnerAndWrap(
+        NameWrapper.setSubnodeOwner(
           wrappedTokenId,
           'sub',
           EMPTY_ADDRESS,
@@ -1546,7 +1534,7 @@ describe('Name Wrapper', () => {
     })
     it('Will not allow wrapping with a target address of the wrapper contract address', async () => {
       await expect(
-        NameWrapper.setSubnodeOwnerAndWrap(
+        NameWrapper.setSubnodeOwner(
           wrappedTokenId,
           'sub',
           NameWrapper.address,
@@ -1560,7 +1548,7 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await EnsRegistry.setApprovalForAll(account2, true)
       await expect(
-        NameWrapper2.setSubnodeOwnerAndWrap(
+        NameWrapper2.setSubnodeOwner(
           wrappedTokenId,
           'sub',
           account,
@@ -1573,7 +1561,7 @@ describe('Name Wrapper', () => {
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
@@ -1591,13 +1579,9 @@ describe('Name Wrapper', () => {
       const label2 = 'sub'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(
-        label,
-        account,
-        CAN_DO_EVERYTHING
-      )
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
       await expect(
-        NameWrapper.setSubnodeOwnerAndWrap(
+        NameWrapper.setSubnodeOwner(
           wrappedTokenId,
           label2,
           account,
@@ -1617,7 +1601,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING | CANNOT_UNWRAP
       )
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
@@ -1633,7 +1617,7 @@ describe('Name Wrapper', () => {
     })
     it('Emits Wrap event', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      const tx = await NameWrapper.setSubnodeOwnerAndWrap(
+      const tx = await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
@@ -1651,7 +1635,7 @@ describe('Name Wrapper', () => {
 
     it('Emits TransferSingle event', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      const tx = await NameWrapper.setSubnodeOwnerAndWrap(
+      const tx = await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
@@ -1671,7 +1655,7 @@ describe('Name Wrapper', () => {
     it('Will not create a subdomain with an empty label', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.setSubnodeOwnerAndWrap(
+        NameWrapper.setSubnodeOwner(
           wrappedTokenId,
           '',
           account,
@@ -1681,7 +1665,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('setSubnodeRecordAndWrap()', async () => {
+  describe('setSubnodeRecord()', async () => {
     const label = 'subdomain2'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -1689,16 +1673,12 @@ describe('Name Wrapper', () => {
 
     before(async () => {
       resolver = account // dummy address for resolver
-      await registerSetupAndWrapName(
-        label,
-        account,
-        CANNOT_UNWRAP
-      )
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
 
     it('Can be called by the owner of a name', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setSubnodeRecordAndWrap(
+      await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account,
@@ -1719,7 +1699,7 @@ describe('Name Wrapper', () => {
     it('Can be called by an account authorised by the owner.', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await NameWrapper.setApprovalForAll(account2, true)
-      await NameWrapper2.setSubnodeRecordAndWrap(
+      await NameWrapper2.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account,
@@ -1738,7 +1718,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Transfers the wrapped token to the target address.', async () => {
-      await NameWrapper.setSubnodeRecordAndWrap(
+      await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account2,
@@ -1754,7 +1734,7 @@ describe('Name Wrapper', () => {
 
     it('Will not allow wrapping with a target address of 0x0', async () => {
       await expect(
-        NameWrapper.setSubnodeRecordAndWrap(
+        NameWrapper.setSubnodeRecord(
           wrappedTokenId,
           'sub',
           EMPTY_ADDRESS,
@@ -1767,7 +1747,7 @@ describe('Name Wrapper', () => {
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
       await expect(
-        NameWrapper.setSubnodeRecordAndWrap(
+        NameWrapper.setSubnodeRecord(
           wrappedTokenId,
           'sub',
           NameWrapper.address,
@@ -1784,7 +1764,7 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await EnsRegistry.setApprovalForAll(account2, true)
       await expect(
-        NameWrapper2.setSubnodeRecordAndWrap(
+        NameWrapper2.setSubnodeRecord(
           wrappedTokenId,
           'sub',
           account,
@@ -1800,7 +1780,7 @@ describe('Name Wrapper', () => {
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
-      await NameWrapper.setSubnodeRecordAndWrap(
+      await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account,
@@ -1820,13 +1800,9 @@ describe('Name Wrapper', () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(
-        label,
-        account,
-        CAN_DO_EVERYTHING
-      )
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
       await expect(
-        NameWrapper.setSubnodeRecordAndWrap(
+        NameWrapper.setSubnodeRecord(
           wrappedTokenId,
           'sub',
           account,
@@ -1840,7 +1816,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Emits Wrap event', async () => {
-      const tx = await NameWrapper.setSubnodeRecordAndWrap(
+      const tx = await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account2,
@@ -1859,7 +1835,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Emits TransferSingle event', async () => {
-      const tx = await NameWrapper.setSubnodeRecordAndWrap(
+      const tx = await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account2,
@@ -1879,7 +1855,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Sets the appropriate values on the ENS registry', async () => {
-      await NameWrapper.setSubnodeRecordAndWrap(
+      await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
         account2,
@@ -1898,7 +1874,7 @@ describe('Name Wrapper', () => {
     it('Will not create a subdomain with an empty label', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       await expect(
-        NameWrapper.setSubnodeRecordAndWrap(
+        NameWrapper.setSubnodeRecord(
           wrappedTokenId,
           '',
           account,
@@ -1964,167 +1940,6 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
-    })
-  })
-
-  describe('setSubnodeRecord', () => {
-    const label = 'setsubnoderecord'
-    const labelHash = labelhash(label)
-    const wrappedTokenId = namehash(label + '.eth')
-    const subLabel = 'sub'
-    const subLabelHash = labelhash(subLabel)
-    const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
-
-    before(async () => {
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
-    })
-
-    it('Can be called by the owner', async () => {
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setSubnodeRecord(
-        wrappedTokenId,
-        subLabelHash,
-        account2,
-        account,
-        50
-      )
-    })
-
-    it('Performs the appropriate function on the ENS registry.', async () => {
-      //Make sure the registry is clear
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
-      expect(await EnsRegistry.resolver(subWrappedTokenId)).to.equal(
-        EMPTY_ADDRESS
-      )
-      expect(await EnsRegistry.ttl(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
-      await NameWrapper.setSubnodeRecord(
-        wrappedTokenId,
-        subLabelHash,
-        account2,
-        account,
-        50
-      )
-
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(account2)
-      expect(await EnsRegistry.resolver(subWrappedTokenId)).to.equal(account)
-      expect(await EnsRegistry.ttl(subWrappedTokenId)).to.equal(50)
-    })
-
-    it('Can be called by an account authorised by the owner.', async () => {
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setApprovalForAll(account2, true)
-      await NameWrapper2.setSubnodeRecord(
-        wrappedTokenId,
-        subLabelHash,
-        account2,
-        account,
-        50
-      )
-    })
-
-    it('Cannot be called by anyone else.', async () => {
-      await expect(
-        NameWrapper2.setSubnodeRecord(
-          wrappedTokenId,
-          subLabelHash,
-          account2,
-          account,
-          50
-        )
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
-    })
-
-    it('Cannot be called if CANNOT_CREATE_SUBDOMAIN is burned and is a new subdomain', async () => {
-      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_CREATE_SUBDOMAIN)
-
-      //Check the subdomain has not been created yet
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
-      await expect(
-        NameWrapper.setSubnodeRecord(
-          wrappedTokenId,
-          subLabelHash,
-          account2,
-          account,
-          50
-        )
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
-    })
-
-    it('Cannot be called if PARENT_CANNOT_CONTROL is burned and is an existing subdomain', async () => {
-      await NameWrapper.setSubnodeRecordAndWrap(
-        wrappedTokenId,
-        subLabel,
-        account2,
-        account,
-        50,
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL
-      )
-      await expect(
-        NameWrapper.setSubnodeRecord(
-          wrappedTokenId,
-          subLabelHash,
-          account,
-          account,
-          50
-        )
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
-    })
-  })
-
-  describe('setSubnodeOwner', () => {
-    const label = 'setsubnodeowner'
-    const labelHash = labelhash(label)
-    const wrappedTokenId = namehash(label + '.eth')
-    const subLabel = 'sub'
-    const subLabelHash = labelhash(subLabel)
-    const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
-
-    before(async () => {
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
-    })
-
-    it('Can be called by the owner', async () => {
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
-    })
-
-    it('Performs the appropriate function on the ENS registry.', async () => {
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
-      await NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(account2)
-    })
-
-    it('Can be called by an account authorised by the owner.', async () => {
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      await NameWrapper.setApprovalForAll(account2, true)
-      await NameWrapper2.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
-    })
-
-    it('Cannot be called by anyone else.', async () => {
-      await expect(
-        NameWrapper2.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
-    })
-
-    it('Cannot be called if CREATE_SUBDOMAIN is burned and is a new subdomain', async () => {
-      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_CREATE_SUBDOMAIN)
-
-      //Check the subdomain has not been created yet
-      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
-      await expect(
-        NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account2)
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
-    })
-
-    it('Cannot be called if PARENT_CANNOT_CONTROL is burned and is an existing subdomain', async () => {
-      await NameWrapper.setSubnodeOwnerAndWrap(
-        wrappedTokenId,
-        subLabel,
-        account2,
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
-      await expect(
-        NameWrapper.setSubnodeOwner(wrappedTokenId, subLabelHash, account)
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
   })
@@ -2352,10 +2167,15 @@ describe('Name Wrapper', () => {
         NameWrapper.address
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL)
+      expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+      )
 
       expect(
-        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+        await NameWrapper.allFusesBurned(
+          wrappedTokenId,
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL
+        )
       ).to.equal(true)
     })
 
@@ -2525,7 +2345,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         nameHash,
         subLabel,
         account,
@@ -2553,7 +2373,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         nameHash,
         subLabel,
         account,
@@ -2581,7 +2401,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, DAY)
       await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         nameHash,
         subLabel,
         account,
@@ -2611,14 +2431,14 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, DAY)
       await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         nameHash,
         subLabel,
         account,
         initialFuses
       )
 
-      await NameWrapper.setSubnodeOwnerAndWrap(
+      await NameWrapper.setSubnodeOwner(
         subNameHash,
         subSubLabel,
         account,

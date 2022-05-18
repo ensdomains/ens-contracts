@@ -323,7 +323,7 @@ contract NameWrapper is
         onlyTokenOwner(node)
         operationAllowed(node, CANNOT_BURN_FUSES)
     {
-        if(_fuses & PARENT_CANNOT_CONTROL != 0) {
+        if (_fuses & PARENT_CANNOT_CONTROL != 0) {
             // Only the parent can burn the PARENT_CANNOT_REPLACE fuse.
             revert Unauthorised(node, msg.sender);
         }
@@ -344,11 +344,18 @@ contract NameWrapper is
      * @param labelhash keccak256 hash of the subdomain label
      * @param _fuses Fuses you want to burn.
      */
-    function burnChildFuses(bytes32 parentNode, bytes32 labelhash, uint96 _fuses) 
+    function burnChildFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint96 _fuses
+    )
         public
         override
         onlyTokenOwner(parentNode)
-        operationAllowed(_makeNode(parentNode, labelhash), PARENT_CANNOT_CONTROL)
+        operationAllowed(
+            _makeNode(parentNode, labelhash),
+            PARENT_CANNOT_CONTROL
+        )
     {
         bytes32 subnode = _makeNode(parentNode, labelhash);
         (address owner, uint96 fuses) = getData(uint256(subnode));
@@ -361,51 +368,6 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Sets records for the subdomain in the ENS Registry
-     * @param parentNode namehash of the parent name
-     * @param labelhash labelhash of the subnode
-     * @param owner newOwner in the registry
-     * @param resolver the resolver contract in the registry
-     * @param ttl ttl in the registry
-     */
-
-    function setSubnodeRecord(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        address owner,
-        address resolver,
-        uint64 ttl
-    )
-        public
-        override
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, labelhash)
-    {
-        ens.setSubnodeRecord(parentNode, labelhash, owner, resolver, ttl);
-    }
-
-    /**
-     * @notice Sets the subnode owner in the registry
-     * @param parentNode namehash of the parent name
-     * @param labelhash labelhash of the subnode
-     * @param owner newOwner in the registry
-     */
-
-    function setSubnodeOwner(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        address owner
-    )
-        public
-        override
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, labelhash)
-        returns (bytes32)
-    {
-        return ens.setSubnodeOwner(parentNode, labelhash, owner);
-    }
-
-    /**
      * @notice Sets the subdomain owner in the registry and then wraps the subdomain
      * @param parentNode parent namehash of the subdomain
      * @param label label of the subdomain as a string
@@ -413,19 +375,25 @@ contract NameWrapper is
      * @param _fuses initial fuses for the wrapped subdomain
      */
 
-    function setSubnodeOwnerAndWrap(
+    function setSubnodeOwner(
         bytes32 parentNode,
         string calldata label,
         address newOwner,
         uint96 _fuses
-    ) public override returns (bytes32 node) {
+    )
+        public
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        returns (bytes32 node)
+    {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        bytes memory name = _addLabel(label, names[parentNode]);
 
-        setSubnodeOwner(parentNode, labelhash, address(this));
-
-        _wrap(node, name, newOwner, _fuses);
+        if (ens.owner(node) != address(this)) {
+            _setSubnodeOwnerAndWrap(parentNode, label, newOwner, _fuses);
+        } else {
+            _transferAndBurnFuses(parentNode, labelhash, newOwner, _fuses);
+        }
     }
 
     /**
@@ -438,21 +406,40 @@ contract NameWrapper is
      * @param _fuses initial fuses for the wrapped subdomain
      */
 
-    function setSubnodeRecordAndWrap(
+    function setSubnodeRecord(
         bytes32 parentNode,
         string calldata label,
         address newOwner,
         address resolver,
         uint64 ttl,
         uint96 _fuses
-    ) public override {
+    )
+        public
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+    {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        bytes memory name = _addLabel(label, names[parentNode]);
 
-        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-
-        _wrap(node, name, newOwner, _fuses);
+        if (ens.owner(node) != address(this)) {
+            ens.setSubnodeRecord(
+                parentNode,
+                labelhash,
+                address(this),
+                resolver,
+                ttl
+            );
+            _addLabelAndWrap(parentNode, label, newOwner, _fuses);
+        } else {
+            ens.setSubnodeRecord(
+                parentNode,
+                labelhash,
+                address(this),
+                resolver,
+                ttl
+            );
+            _transferAndBurnFuses(parentNode, labelhash, newOwner, _fuses);
+        }
     }
 
     /**
@@ -537,14 +524,14 @@ contract NameWrapper is
         bytes32 subnode = _makeNode(node, labelhash);
         address owner = ens.owner(subnode);
 
-        if(owner == address(0)) { 
+        if (owner == address(0)) {
             (, uint96 fuses) = getData(uint256(node));
-            if(fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
+            if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
         } else {
             (, uint96 subnodeFuses) = getData(uint256(subnode));
-            if(subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
+            if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
         }
@@ -657,6 +644,53 @@ contract NameWrapper is
         emit NameWrapped(node, name, wrappedOwner, fuses);
     }
 
+    function _addLabelAndWrap(
+        bytes32 parentNode,
+        string memory label,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(parentNode, labelhash);
+        bytes memory name = _addLabel(label, names[parentNode]);
+        _wrap(node, name, newOwner, _fuses);
+    }
+
+    function _setSubnodeOwnerAndWrap(
+        bytes32 parentNode,
+        string memory label,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(parentNode, labelhash);
+        bytes memory name = _addLabel(label, names[parentNode]);
+        ens.setSubnodeOwner(parentNode, labelhash, address(this));
+        _wrap(node, name, newOwner, _fuses);
+    }
+
+    function _transferAndBurnFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        bytes32 subnode = _makeNode(parentNode, labelhash);
+        (, uint96 fuses) = getData(uint256(subnode));
+
+        uint96 newFuses = fuses | _fuses;
+
+        _setData(uint256(subnode), newOwner, newFuses);
+        emit TransferSingle(
+            msg.sender,
+            address(0x0),
+            newOwner,
+            uint256(subnode),
+            1
+        );
+        emit FusesBurned(subnode, newFuses);
+    }
+
     function _wrapETH2LD(
         string memory label,
         address wrappedOwner,
@@ -758,7 +792,10 @@ contract NameWrapper is
             return (node, vulnerability, vulnerableNode);
         }
 
-        if (!allFusesBurned(node, PARENT_CANNOT_CONTROL) || !allFusesBurned(parentNode, CANNOT_UNWRAP)) {
+        if (
+            !allFusesBurned(node, PARENT_CANNOT_CONTROL) ||
+            !allFusesBurned(parentNode, CANNOT_UNWRAP)
+        ) {
             return (node, NameSafety.SubdomainReplacementAllowed, parentNode);
         }
 
