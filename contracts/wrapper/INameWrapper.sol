@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "../registry/ENS.sol";
@@ -11,7 +12,7 @@ uint96 constant CANNOT_TRANSFER = 4;
 uint96 constant CANNOT_SET_RESOLVER = 8;
 uint96 constant CANNOT_SET_TTL = 16;
 uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
-uint96 constant CANNOT_REPLACE_SUBDOMAIN = 64;
+uint96 constant PARENT_CANNOT_CONTROL = 64;
 uint96 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
@@ -77,6 +78,8 @@ interface INameWrapper is IERC1155 {
     ) external;
 
     function burnFuses(bytes32 node, uint96 _fuses) external;
+
+    function burnChildFuses(bytes32 parentNode, bytes32 labelhash, uint96 _fuses) external;
 
     function setSubnodeRecord(
         bytes32 node,
