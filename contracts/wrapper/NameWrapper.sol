@@ -390,7 +390,8 @@ contract NameWrapper is
         node = _makeNode(parentNode, labelhash);
 
         if (ens.owner(node) != address(this)) {
-            _setSubnodeOwnerAndWrap(parentNode, label, newOwner, _fuses);
+            ens.setSubnodeOwner(parentNode, labelhash, address(this));
+            _addLabelAndWrap(parentNode, label, newOwner, _fuses);
         } else {
             _transferAndBurnFuses(parentNode, labelhash, newOwner, _fuses);
         }
@@ -653,19 +654,6 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
         bytes memory name = _addLabel(label, names[parentNode]);
-        _wrap(node, name, newOwner, _fuses);
-    }
-
-    function _setSubnodeOwnerAndWrap(
-        bytes32 parentNode,
-        string memory label,
-        address newOwner,
-        uint96 _fuses
-    ) internal {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(parentNode, labelhash);
-        bytes memory name = _addLabel(label, names[parentNode]);
-        ens.setSubnodeOwner(parentNode, labelhash, address(this));
         _wrap(node, name, newOwner, _fuses);
     }
 
