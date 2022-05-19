@@ -650,9 +650,9 @@ contract NameWrapper is
         string memory label,
         address newOwner,
         uint96 _fuses
-    ) internal {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(parentNode, labelhash);
+    ) internal returns (bytes32 node, bytes32 labelhash) {
+        labelhash = keccak256(bytes(label));
+        node = _makeNode(parentNode, labelhash);
         bytes memory name = _addLabel(label, names[parentNode]);
         _wrap(node, name, newOwner, _fuses);
     }
@@ -685,17 +685,18 @@ contract NameWrapper is
         uint96 _fuses,
         address resolver
     ) private returns (bytes32 labelhash) {
-        labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
-        bytes memory name = _addLabel(label, "\x03eth\x00");
-
+        // mint a new ERC1155 token with fuses
+        // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
+        bytes32 node;
+        (node, labelhash) = _addLabelAndWrap(
+            ETH_NODE,
+            label,
+            wrappedOwner,
+            _fuses | PARENT_CANNOT_CONTROL
+        );
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
-
-        // mint a new ERC1155 token with fuses
-        // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
-        _wrap(node, name, wrappedOwner, _fuses | PARENT_CANNOT_CONTROL);
     }
 
     function _unwrap(bytes32 node, address newOwner) private {
