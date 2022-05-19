@@ -833,7 +833,7 @@ contract('ETHRegistrarController', function() {
     )
 
     const [, fuses] = await nameWrapper.getData(namehash.hash(name))
-    expect(fuses).to.equal(1)
+    expect(fuses).to.equal(65)
   })
 
   it('approval should reduce gas for registration', async () => {
