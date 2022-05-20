@@ -1467,6 +1467,129 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('burnChildFuses()', () => {
+    const label = 'fuses'
+    const tokenId = labelhash('fuses')
+    const wrappedTokenId = namehash('fuses.eth')
+    const subTokenId = namehash('sub.fuses.eth')
+    it('Will not allow burning fuses unless CANNOT_UNWRAP is also burned.', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, labelhash('sub'), account, 0)
+
+      await expect(
+        NameWrapper.burnChildFuses(wrappedTokenId, labelhash('sub'), CANNOT_TRANSFER)
+      ).to.be.revertedWith(`OperationProhibited("${subTokenId}")`)
+    })
+
+    it('Can be called by the owner of the parent domain', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, 'sub', account, CANNOT_UNWRAP)
+
+      await NameWrapper.burnChildFuses(wrappedTokenId, labelhash('sub'), CANNOT_TRANSFER)
+      ;[fuses, vulnerability] = await NameWrapper.getFuses(subTokenId)
+      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
+      expect(vulnerability).to.equal(ParentVulnerability.Fuses)
+    })
+
+    it('Emits BurnFusesEvent', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, 'sub', account, CANNOT_UNWRAP)
+
+      const tx = await NameWrapper.burnChildFuses(wrappedTokenId, labelhash('sub'), CANNOT_TRANSFER)
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'FusesBurned')
+        .withArgs(subTokenId, CANNOT_UNWRAP | CANNOT_TRANSFER)
+
+      const [fuses, vulnerability] = await NameWrapper.getFuses(subTokenId)
+      expect(fuses).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER)
+      expect(vulnerability).to.equal(ParentVulnerability.Fuses)
+    })
+
+    it('Can be called by an account authorised by the owner', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, 'sub', account, 0)
+
+      await NameWrapper.setApprovalForAll(account2, true)
+
+      await NameWrapper2.burnChildFuses(wrappedTokenId, labelhash('sub'), CANNOT_UNWRAP)
+
+      const [fuses, vulnerability] = await NameWrapper.getFuses(subTokenId)
+      expect(fuses).to.equal(CANNOT_UNWRAP)
+      expect(vulnerability).to.equal(ParentVulnerability.Fuses)
+    })
+    it('Cannot be called by an unauthorised account', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, 'sub', account, CANNOT_UNWRAP)
+
+      await expect(
+        NameWrapper2.burnChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_UNWRAP
+        )
+      ).to.be.reverted
+    })
+
+    it('Allows burning unknown fuses', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwnerAndWrap(wrappedTokenId, 'sub', account, CANNOT_UNWRAP)
+
+      // Each fuse is represented by the next bit, 128 is the next undefined fuse
+
+      await NameWrapper.burnChildFuses(wrappedTokenId, labelhash('sub'), 128)
+
+      const [fuses, vulnerability] = await NameWrapper.getFuses(subTokenId)
+      expect(fuses).to.equal(CANNOT_UNWRAP | 128)
+      expect(vulnerability).to.equal(ParentVulnerability.Fuses)
+    })
+  })
+
   describe('setSubnodeOwnerAndWrap()', async () => {
     const label = 'ownerandwrap'
     const tokenId = labelhash(label)
