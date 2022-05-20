@@ -363,10 +363,32 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Upgrades a domain to a new name wrapper version.
+     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeContract
+     *     and burning the token of this contract  
+     * @dev Can be called by the owner of the name in this contract  
+     * @param label Label as a string of the .eth domain to upgrade
+     * @param wrappedOwner The owner of the wrapped name
+     */
+
+    function upgradeETH2LD(
+        string calldata label,
+        address wrappedOwner
+    ) 
+        public 
+    {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);       
+
+        (uint96 fuses, address resolver) = _prepareUpgrade(node);
+
+        upgradeContract.wrapETH2LD(label, wrappedOwner, fuses, resolver);
+    }
+
+    /**
+     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner or an authorised caller
-     * @param name The name to upgrade, in DNS format
-     * @param wrappedOwner owner of the name in this contract
+     * @param name The name to upgrade in DNS format, i.e., "\x03eth\x00"
+     * @param wrappedOwner Owner of the name in this contract
      */
 
     function upgrade(
@@ -374,30 +396,13 @@ contract NameWrapper is
         address wrappedOwner
     ) public {
 
-        if (address(upgradeContract) == address(0)){
-            revert CannotUpgrade();
-        }
-
         (bytes32 labelhash, uint offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
         bytes32 node = _makeNode(parentNode, labelhash);
 
-        if (!isTokenOwnerOrApproved(node, msg.sender)){
-            revert Unauthorised(node, msg.sender);
-        }
+        (uint96 fuses, address resolver) = _prepareUpgrade(node);
 
-        address resolver = ens.resolver(node);
-
-        (uint96 fuses,,) = getFuses(node);
-
-        if(parentNode == ETH_NODE) {
-            upgradeContract.wrapETH2LD(string(name[1:offset]), wrappedOwner, fuses, resolver);
-        } else {
-            upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
-        }
-
-        // burn token and fuse data
-        _burn(uint256(node));
+        upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
     }
 
     /**
@@ -736,6 +741,24 @@ contract NameWrapper is
             revert OperationProhibited(bytes32(tokenId));
         }
         super._setData(tokenId, owner, fuses);
+    }
+
+    function _prepareUpgrade(bytes32 node) private returns (uint96 fuses, address resolver) {
+
+        if (address(upgradeContract) == address(0)){
+            revert CannotUpgrade();
+        }
+            
+        if (!isTokenOwnerOrApproved(node, msg.sender)){
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (fuses,,) = getFuses(node);
+
+        resolver = ens.resolver(node);
+
+        // burn token and fuse data
+        _burn(uint256(node));
     }
 
     /**
