@@ -8,6 +8,7 @@ import "../registry/ENS.sol";
 import "../resolvers/profiles/IExtendedResolver.sol";
 import "../resolvers/Resolver.sol";
 import "./NameEncoder.sol";
+import "../wrapper/BytesUtil.sol";
 
 error OffchainLookup(
     address sender,
@@ -24,7 +25,7 @@ error OffchainLookup(
 contract UniversalResolver is IExtendedResolver, ERC165 {
     using Address for address;
     using NameEncoder for string;
-    using NameEncoder for bytes;
+    using BytesUtils for bytes;
 
     ENS public immutable registry;
 
@@ -106,8 +107,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
             (string)
         );
 
-        (bytes memory encodedName, bytes32 namehash) = resolvedName
-            .encodeAndHash();
+        (bytes memory encodedName, bytes32 namehash) = resolvedName.encode();
 
         (bool success, bytes memory resolvedData) = address(this).staticcall(
             abi.encodeCall(

@@ -6,7 +6,11 @@ import "./NameEncoder.sol";
 contract TestNameEncoder {
     using NameEncoder for string;
 
-    function encodeName(string memory name) public view returns (bytes memory) {
+    function encodeName(string memory name)
+        public
+        pure
+        returns (bytes memory, bytes32)
+    {
         return name.encode();
     }
 }

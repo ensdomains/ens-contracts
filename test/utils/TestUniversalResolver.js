@@ -3,7 +3,7 @@ const PublicResolver = artifacts.require("PublicResolver.sol");
 const NameWrapper = artifacts.require("DummyNameWrapper.sol");
 const UniversalResolver = artifacts.require("UniversalResolver.sol");
 const DummyOffchainResolver = artifacts.require("DummyOffchainResolver.sol");
-const DefaultReverseResolver = artifacts.require("DefaultReverseResolver.sol");
+const LegacyResolver = artifacts.require("LegacyResolver.sol");
 const ReverseRegistrar = artifacts.require("ReverseRegistrar.sol");
 
 const { expect } = require("chai");
@@ -20,7 +20,7 @@ contract("UniversalResolver", function(accounts) {
     universalResolver,
     dummyOffchainResolver,
     nameWrapper,
-    reverseResolver,
+    reverseRegistrar,
     reverseNode;
 
   beforeEach(async () => {
@@ -35,11 +35,7 @@ contract("UniversalResolver", function(accounts) {
     );
     universalResolver = await UniversalResolver.new(ens.address);
     dummyOffchainResolver = await DummyOffchainResolver.new();
-    reverseResolver = await DefaultReverseResolver.new(ens.address);
-    reverseRegistrar = await ReverseRegistrar.new(
-      ens.address,
-      reverseResolver.address
-    );
+    reverseRegistrar = await ReverseRegistrar.new(ens.address);
     reverseNode = accounts[0].toLowerCase().substring(2) + ".addr.reverse";
 
     await ens.setSubnodeOwner("0x0", sha3("eth"), accounts[0], {
@@ -92,10 +88,10 @@ contract("UniversalResolver", function(accounts) {
     await reverseRegistrar.claim(accounts[0], {
       from: accounts[0],
     });
-    await ens.setResolver(namehash.hash(reverseNode), reverseResolver.address, {
+    await ens.setResolver(namehash.hash(reverseNode), publicResolver.address, {
       from: accounts[0],
     });
-    await reverseResolver.setName(namehash.hash(reverseNode), "test.eth");
+    await publicResolver.setName(namehash.hash(reverseNode), "test.eth");
   });
 
   describe("findResolver()", () => {
@@ -162,7 +158,10 @@ contract("UniversalResolver", function(accounts) {
           dns.hexEncodeName("test2.eth"),
           data
         );
-        const [ret] = ethers.utils.defaultAbiCoder.decode(["address"], result);
+        const [ret] = ethers.utils.defaultAbiCoder.decode(
+          ["address"],
+          result["0"]
+        );
         expect(ret).to.equal(legacyResolver.address);
       });
 
@@ -176,7 +175,10 @@ contract("UniversalResolver", function(accounts) {
           dns.hexEncodeName("test.eth"),
           data
         );
-        const [ret] = ethers.utils.defaultAbiCoder.decode(["address"], result);
+        const [ret] = ethers.utils.defaultAbiCoder.decode(
+          ["address"],
+          result["0"]
+        );
         expect(ret).to.equal(accounts[1]);
       });
 
