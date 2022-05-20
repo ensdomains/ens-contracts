@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "./ERC1155Fuse.sol";
 import "./Controllable.sol";
 import "./INameWrapper.sol";
+import "./INameWrapperUpgrade.sol";
 import "./IMetadataService.sol";
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -20,6 +21,7 @@ error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
 error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
+error CannotUpgrade();
 
 contract NameWrapper is
     Ownable,
@@ -38,6 +40,9 @@ contract NameWrapper is
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
+
+    //A contract address to a new upgraded contract if any
+    INameWrapperUpgrade public upgradeContract;
 
     constructor(
         ENS _ens,
@@ -96,6 +101,30 @@ contract NameWrapper is
 
     function uri(uint256 tokenId) public view override returns (string memory) {
         return metadataService.uri(tokenId);
+    }
+
+    /**
+     * @notice Set the address of the upgradeContract of the contract. only admin can do this
+     * @dev The default value of upgradeContract is the 0 address. Use the 0 address at any time 
+     * to make the contract not upgradable. 
+     * @param _upgradeAddress address of an upgraded contract
+     */
+
+    function setUpgradeContract(INameWrapperUpgrade _upgradeAddress)
+        public
+        onlyOwner
+    {
+            if (address(upgradeContract) != address(0)){
+                registrar.setApprovalForAll(address(upgradeContract), false);
+                ens.setApprovalForAll(address(upgradeContract), false);
+            }
+
+            upgradeContract = _upgradeAddress;
+
+            if (address(upgradeContract) != address(0)){
+                registrar.setApprovalForAll(address(upgradeContract), true);
+                ens.setApprovalForAll(address(upgradeContract), true);
+            }
     }
 
     /**
@@ -331,6 +360,49 @@ contract NameWrapper is
         _setData(uint256(node), owner, newFuses);
 
         emit FusesBurned(node, newFuses);
+    }
+
+    /**
+     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeContract
+     *     and burning the token of this contract  
+     * @dev Can be called by the owner of the name in this contract  
+     * @param label Label as a string of the .eth domain to upgrade
+     * @param wrappedOwner The owner of the wrapped name
+     */
+
+    function upgradeETH2LD(
+        string calldata label,
+        address wrappedOwner
+    ) 
+        public 
+    {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);       
+
+        (uint96 fuses, address resolver) = _prepareUpgrade(node);
+
+        upgradeContract.wrapETH2LD(label, wrappedOwner, fuses, resolver);
+    }
+
+    /**
+     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @dev Can be called by the owner or an authorised caller
+     * @param name The name to upgrade in DNS format, i.e., "\x03eth\x00"
+     * @param wrappedOwner Owner of the name in this contract
+     */
+
+    function upgrade(
+        bytes calldata name,
+        address wrappedOwner
+    ) public {
+
+        (bytes32 labelhash, uint offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
+        bytes32 node = _makeNode(parentNode, labelhash);
+
+        (uint96 fuses, address resolver) = _prepareUpgrade(node);
+
+        upgradeContract.wrap(name, wrappedOwner, fuses, resolver);
     }
 
     /**
@@ -669,6 +741,24 @@ contract NameWrapper is
             revert OperationProhibited(bytes32(tokenId));
         }
         super._setData(tokenId, owner, fuses);
+    }
+
+    function _prepareUpgrade(bytes32 node) private returns (uint96 fuses, address resolver) {
+
+        if (address(upgradeContract) == address(0)){
+            revert CannotUpgrade();
+        }
+            
+        if (!isTokenOwnerOrApproved(node, msg.sender)){
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (fuses,,) = getFuses(node);
+
+        resolver = ens.resolver(node);
+
+        // burn token and fuse data
+        _burn(uint256(node));
     }
 
     /**
