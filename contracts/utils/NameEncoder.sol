@@ -9,19 +9,18 @@ library NameEncoder {
     function encode(string memory name)
         internal
         pure
-        returns (bytes memory, bytes32)
+        returns (bytes memory dnsname, bytes32 node)
     {
         uint8 labelLength = 0;
         bytes memory bytesName = bytes(name);
         uint256 length = bytesName.length;
         bytes memory dnsName = new bytes(length + 2);
-        bytes32 node = bytes32(0);
+        node = 0;
         if (length == 0) {
-            dnsName[0] = bytes1(0);
+            dnsName[0] = 0;
             return (dnsName, node);
         }
-        uint256 i = length - 1;
-        while (i >= 0) {
+        for (uint256 i = length - 1; i >= 0; i--) {
             if (bytesName[i] == ".") {
                 dnsName[i + 1] = bytes1(labelLength);
                 node = keccak256(
@@ -35,7 +34,6 @@ library NameEncoder {
             if (i == 0) {
                 break;
             }
-            i--;
         }
 
         node = keccak256(
