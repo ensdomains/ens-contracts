@@ -1603,6 +1603,23 @@ describe('Name Wrapper', () => {
         )
       ).to.be.revertedWith(`LabelTooShort()`)
     })
+
+    it('should be able to call twice and change the owner', async () => {
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0)
+      // Check the gas is reduced to confirm it is not being wrapped
+      console.log(
+        (
+          await NameWrapper.estimateGas.setSubnodeOwner(
+            wrappedTokenId,
+            'sub',
+            account,
+            0
+          )
+        ).toNumber()
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+    })
   })
 
   describe('setSubnodeRecord()', async () => {
@@ -1823,6 +1840,39 @@ describe('Name Wrapper', () => {
           0
         )
       ).to.be.revertedWith(`LabelTooShort()`)
+    })
+
+    it('should be able to call twice and change the owner', async () => {
+      await NameWrapper.setSubnodeRecord(
+        wrappedTokenId,
+        'sub',
+        account2,
+        resolver,
+        0,
+        0
+      )
+      // Check the gas is reduced to confirm it is not being wrapped
+      console.log(
+        (
+          await NameWrapper.estimateGas.setSubnodeRecord(
+            wrappedTokenId,
+            'sub',
+            account2,
+            resolver,
+            0,
+            0
+          )
+        ).toNumber()
+      )
+      await NameWrapper.setSubnodeRecord(
+        wrappedTokenId,
+        'sub',
+        account2,
+        resolver,
+        0,
+        0
+      )
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
     })
   })
 
