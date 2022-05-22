@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
 import "../wrapper/BytesUtil.sol";
 
@@ -20,19 +20,27 @@ library NameEncoder {
             dnsName[0] = 0;
             return (dnsName, node);
         }
-        for (uint256 i = length - 1; i >= 0; i--) {
-            if (bytesName[i] == ".") {
-                dnsName[i + 1] = bytes1(labelLength);
-                node = keccak256(
-                    abi.encodePacked(node, bytesName.keccak(i + 1, labelLength))
-                );
-                labelLength = 0;
-            } else {
-                labelLength += 1;
-                dnsName[i + 1] = bytesName[i];
-            }
-            if (i == 0) {
-                break;
+
+        // use unchecked to save gas since we check for an underflow
+        // and we check for the length before the loop
+        unchecked {
+            for (uint256 i = length - 1; i >= 0; i--) {
+                if (bytesName[i] == ".") {
+                    dnsName[i + 1] = bytes1(labelLength);
+                    node = keccak256(
+                        abi.encodePacked(
+                            node,
+                            bytesName.keccak(i + 1, labelLength)
+                        )
+                    );
+                    labelLength = 0;
+                } else {
+                    labelLength += 1;
+                    dnsName[i + 1] = bytesName[i];
+                }
+                if (i == 0) {
+                    break;
+                }
             }
         }
 

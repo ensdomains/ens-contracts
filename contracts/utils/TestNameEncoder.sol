@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
-import "./NameEncoder.sol";
+import {NameEncoder} from "./NameEncoder.sol";
 
 contract TestNameEncoder {
     using NameEncoder for string;

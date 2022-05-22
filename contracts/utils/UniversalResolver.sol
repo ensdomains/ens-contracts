@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "./LowLevelCallUtils.sol";
-import "../registry/ENS.sol";
-import "../resolvers/profiles/IExtendedResolver.sol";
-import "../resolvers/Resolver.sol";
-import "./NameEncoder.sol";
-import "../wrapper/BytesUtil.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
+import {ENS} from "../registry/ENS.sol";
+import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
+import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
+import {NameEncoder} from "./NameEncoder.sol";
+import {BytesUtils} from "../wrapper/BytesUtil.sol";
 
 error OffchainLookup(
     address sender,
