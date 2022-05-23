@@ -324,7 +324,7 @@ contract NameWrapper is
         operationAllowed(node, CANNOT_BURN_FUSES)
     {
         if(_fuses & PARENT_CANNOT_CONTROL != 0) {
-            // Only the parent can burn the PARENT_CANNOT_REPLACE fuse.
+            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
             revert Unauthorised(node, msg.sender);
         }
 
