@@ -59,6 +59,7 @@ const INTERFACES = {
     'unwrap(bytes32,bytes32,address)',
     'unwrapETH2LD(bytes32,address,address)',
     'burnFuses(bytes32,uint96)',
+    'burnChildFuses(bytes32,bytes32,uint96)',
     'setSubnodeRecord(bytes32,bytes32,address,address,uint64)',
     'setSubnodeRecordAndWrap(bytes32,string,address,address,uint64,uint96)',
     'setRecord(bytes32,address,address,uint64)',
