@@ -9,12 +9,12 @@ library NameEncoder {
     function dnsEncodeName(string memory name)
         internal
         pure
-        returns (bytes memory dnsname, bytes32 node)
+        returns (bytes memory dnsName, bytes32 node)
     {
         uint8 labelLength = 0;
         bytes memory bytesName = bytes(name);
         uint256 length = bytesName.length;
-        bytes memory dnsName = new bytes(length + 2);
+        dnsName = new bytes(length + 2);
         node = 0;
         if (length == 0) {
             dnsName[0] = 0;
