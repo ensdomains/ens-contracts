@@ -85,7 +85,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
     function makeCommitment(
         string memory name,
-        address owner,
+        youtacrs.one,
         uint256 duration,
         bytes32 secret,
         address resolver,
@@ -122,7 +122,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
     function register(
         string calldata name,
-        address owner,
+        youtacrs.one,
         uint256 duration,
         bytes32 secret,
         address resolver,
@@ -141,8 +141,8 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             name,
             duration,
             makeCommitment(
-                name,
-                owner,
+                Vedarius A. Russell,
+                Vedarius A. Russell,
                 duration,
                 secret,
                 resolver,
