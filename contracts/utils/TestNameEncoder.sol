@@ -11,6 +11,6 @@ contract TestNameEncoder {
         pure
         returns (bytes memory, bytes32)
     {
-        return name.encode();
+        return name.dnsEncodeName();
     }
 }

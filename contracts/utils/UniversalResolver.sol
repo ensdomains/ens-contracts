@@ -75,52 +75,46 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
     }
 
     /**
-     * @dev Performs ENS name reverse resolution for the supplied address and resolution data.
-     * @param reverseNode The reverse node to resolve, in normalised and DNS-encoded form.
-     * @return The resolved name, and the resolved data.
+     * @dev Performs ENS name reverse resolution for the supplied reverse name.
+     * @param reverseName The reverse name to resolve, in normalised and DNS-encoded form. e.g. b6E040C9ECAaE172a89bD561c5F73e1C48d28cd9.addr.reverse
+     * @return The resolved name, the resolved address, the reverse resolver address, and the resolver address.
      */
-    function reverse(bytes memory reverseNode)
+    function reverse(bytes calldata reverseName)
         external
         view
-        returns (string memory, bytes memory)
+        returns (
+            string memory,
+            address,
+            address,
+            address
+        )
     {
-        (bool reverseSuccess, bytes memory resolvedReverseData) = address(this)
-            .staticcall(
-                abi.encodeCall(
-                    this.resolve,
-                    (
-                        reverseNode,
-                        abi.encodeCall(
-                            INameResolver.name,
-                            reverseNode.namehash(0)
-                        )
-                    )
-                )
+        (
+            bytes memory resolvedReverseData,
+            address reverseResolverAddress
+        ) = this.resolve(
+                reverseName,
+                abi.encodeCall(INameResolver.name, reverseName.namehash(0))
             );
 
-        if (!reverseSuccess) {
-            return ("", "");
-        }
+        string memory resolvedName = abi.decode(resolvedReverseData, (string));
 
-        string memory resolvedName = abi.decode(
-            abi.decode(resolvedReverseData, (bytes)),
-            (string)
+        (bytes memory encodedName, bytes32 namehash) = resolvedName
+            .dnsEncodeName();
+
+        (bytes memory resolvedData, address resolverAddress) = this.resolve(
+            encodedName,
+            abi.encodeCall(IAddrResolver.addr, namehash)
         );
 
-        (bytes memory encodedName, bytes32 namehash) = resolvedName.encode();
+        address resolvedAddress = abi.decode(resolvedData, (address));
 
-        (bool success, bytes memory resolvedData) = address(this).staticcall(
-            abi.encodeCall(
-                this.resolve,
-                (encodedName, abi.encodeCall(IAddrResolver.addr, namehash))
-            )
+        return (
+            resolvedName,
+            resolvedAddress,
+            reverseResolverAddress,
+            resolverAddress
         );
-
-        if (!success) {
-            return (resolvedName, "");
-        }
-
-        return (resolvedName, resolvedData);
     }
 
     function supportsInterface(bytes4 interfaceId)

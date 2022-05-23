@@ -231,20 +231,10 @@ contract("UniversalResolver", function(accounts) {
         dns.hexEncodeName(reverseNode)
       );
       console.log("GAS ESTIMATE:", estimate);
-      const [
-        encodedAddr,
-        decodedResolverAddr,
-      ] = ethers.utils.defaultAbiCoder.decode(
-        ["bytes", "address"],
-        result["1"]
-      );
-      const [decodedAddr] = ethers.utils.defaultAbiCoder.decode(
-        ["address"],
-        encodedAddr
-      );
       expect(result["0"]).to.equal("test.eth");
-      expect(decodedAddr).to.equal(accounts[1]);
-      expect(decodedResolverAddr).to.equal(publicResolver.address);
+      expect(result["1"]).to.equal(accounts[1]);
+      expect(result["2"]).to.equal(publicResolver.address);
+      expect(result["3"]).to.equal(publicResolver.address);
     });
   });
 });

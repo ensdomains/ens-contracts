@@ -6,7 +6,7 @@ import "../wrapper/BytesUtil.sol";
 library NameEncoder {
     using BytesUtils for bytes;
 
-    function encode(string memory name)
+    function dnsEncodeName(string memory name)
         internal
         pure
         returns (bytes memory dnsname, bytes32 node)
