@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.13;
 
 import "../wrapper/INameWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -45,7 +45,6 @@ contract SubdomainRegistrar is ERC1155Holder {
     }
 
     function available(bytes32 node) public view returns (bool) {
-        // Not available if it's registered here or in its grace period.
         return expiries[node] < block.timestamp;
     }
 
