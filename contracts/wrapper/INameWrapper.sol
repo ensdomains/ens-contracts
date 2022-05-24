@@ -34,10 +34,13 @@ interface INameWrapper is IERC1155 {
 
     event FusesBurned(bytes32 indexed node, uint96 fuses);
 
-    function ens() external view returns(ENS);
-    function registrar() external view returns(IBaseRegistrar);
-    function metadataService() external view returns(IMetadataService);
-    function names(bytes32) external view returns(bytes memory);
+    function ens() external view returns (ENS);
+
+    function registrar() external view returns (IBaseRegistrar);
+
+    function metadataService() external view returns (IMetadataService);
+
+    function names(bytes32) external view returns (bytes memory);
 
     function wrap(
         bytes calldata name,
@@ -79,7 +82,11 @@ interface INameWrapper is IERC1155 {
 
     function burnFuses(bytes32 node, uint96 _fuses) external;
 
-    function burnChildFuses(bytes32 parentNode, bytes32 labelhash, uint96 _fuses) external;
+    function burnChildFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint96 _fuses
+    ) external;
 
     function setSubnodeRecord(
         bytes32 node,
@@ -125,6 +132,8 @@ interface INameWrapper is IERC1155 {
     function setResolver(bytes32 node, address resolver) external;
 
     function setTTL(bytes32 node, uint64 ttl) external;
+
+    function ownerOf(uint256 id) external returns (address owner);
 
     function getFuses(bytes32 node)
         external
