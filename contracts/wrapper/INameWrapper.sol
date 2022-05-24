@@ -42,6 +42,8 @@ interface INameWrapper is IERC1155 {
 
     function names(bytes32) external view returns (bytes memory);
 
+    function ownerOf(uint256) external view returns (address);
+
     function wrap(
         bytes calldata name,
         address wrappedOwner,

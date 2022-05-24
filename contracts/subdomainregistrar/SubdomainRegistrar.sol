@@ -30,7 +30,8 @@ contract SubdomainRegistrar {
         public
         onlyOwner(node)
     {
-        registrationFee[node] = fee;
+        registrationFees[node] = fee;
+        // set address to receive fees
     }
 
     function available(bytes32 node) public view returns (bool) {
@@ -71,7 +72,12 @@ contract SubdomainRegistrar {
         expiries[node] = block.timestamp + duration;
 
         // Transfer fees - could allow the fees to go elsewhere
-        wrapper.ownerOf(node).call{value: registrationFee}("");
+        address owner = wrapper.ownerOf(uint256(node));
+        (bool sent, ) = owner.call{value: registrationFee}("");
+
+        if (!sent) {
+            revert();
+        }
     }
 
     function _setRecords(

@@ -22,7 +22,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      * ERC721 methods
      *************************************************************************/
 
-    function ownerOf(uint256 id) public view returns (address) {
+    function ownerOf(uint256 id) public view virtual returns (address) {
         (address owner, ) = getData(id);
         return owner;
     }
