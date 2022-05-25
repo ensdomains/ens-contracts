@@ -8,15 +8,19 @@ import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
-error NotEnoughEther();
+error InsufficientFunds();
 error NameNotRegistered();
+
+struct Name {
+    uint256 registrationFee;
+    address beneficiary;
+}
 
 contract SubdomainRegistrar is ERC1155Holder {
     INameWrapper public immutable wrapper;
     using Address for address;
 
-    mapping(bytes32 => uint256) public registrationFees;
-    mapping(bytes32 => address) public beneficiaries;
+    mapping(bytes32 => Name) public names;
     mapping(bytes32 => uint256) public expiries;
 
     event NameRenewed(bytes32 node, uint256 duration);
@@ -34,21 +38,21 @@ contract SubdomainRegistrar is ERC1155Holder {
 
     function setupDomain(bytes32 node, uint256 fee, address beneficiary) public onlyOwner(node) {
         setRegistrationFee(node, fee);
-        beneficiaries[node] = beneficiary;
+        names[node].beneficiary = beneficiary;
     }
 
     function setRegistrationFee(bytes32 node, uint256 fee)
         public
         onlyOwner(node)
     {
-        registrationFees[node] = fee;
+        names[node].registrationFee = fee;
     }
 
     function available(bytes32 node) public view returns (bool) {
         return expiries[node] < block.timestamp;
     }
 
-    function registerSubname(
+    function register(
         bytes32 parentNode,
         string calldata label,
         address newOwner,
@@ -60,13 +64,13 @@ contract SubdomainRegistrar is ERC1155Holder {
     ) public payable {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = keccak256(abi.encodePacked(parentNode, labelhash));
-        uint256 registrationFee = duration * registrationFees[parentNode];
+        uint256 registrationFee = duration * names[parentNode].registrationFee;
 
         if (!available(node)) {
             revert Unavailable();
         }
         if (msg.value < registrationFee) {
-            revert NotEnoughEther();
+            revert InsufficientFunds();
         }
 
         if(records.length > 0){
@@ -85,7 +89,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         
         expiries[node] = block.timestamp + duration;
 
-        (bool sent, ) = beneficiaries[parentNode].call{value: registrationFee}("");
+        (bool sent, ) = names[parentNode].beneficiary.call{value: registrationFee}("");
 
         if (!sent) {
             revert();

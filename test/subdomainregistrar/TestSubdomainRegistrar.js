@@ -97,14 +97,14 @@ describe('Subdomain registrar', () => {
     await ethers.provider.send('evm_revert', [result])
   })
 
-  describe('registerSubname', () => {
+  describe('register', () => {
     it('should allow subdomains to be created', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar2.registerSubname(
+      await SubdomainRegistrar2.register(
         node,
         'subname',
         account2,
@@ -124,7 +124,7 @@ describe('Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(namehash('test.eth'))).to.equal(account)
 
       await expect(
-        SubdomainRegistrar.registerSubname(
+        SubdomainRegistrar.register(
           namehash('test.eth'),
           'subname',
           account2,
@@ -147,9 +147,9 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setRegistrationFee(node, 1)
-      const fee = await SubdomainRegistrar.registrationFees(node)
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar2.registerSubname(
+      await SubdomainRegistrar2.register(
         node,
         'subname',
         account2,
@@ -173,7 +173,7 @@ describe('Subdomain registrar', () => {
       await SubdomainRegistrar.setupDomain(node, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await expect(
-        SubdomainRegistrar2.registerSubname(
+        SubdomainRegistrar2.register(
           node,
           'subname',
           account2,
@@ -183,7 +183,7 @@ describe('Subdomain registrar', () => {
           86400,
           []
         )
-      ).to.be.revertedWith(`NotEnoughEther()`)
+      ).to.be.revertedWith(`InsufficientFunds()`)
     })
   })
 
@@ -195,9 +195,9 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setRegistrationFee(node, 1)
-      const fee = await SubdomainRegistrar.registrationFees(node)
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar2.registerSubname(
+      await SubdomainRegistrar2.register(
         node,
         'subname',
         account2,
