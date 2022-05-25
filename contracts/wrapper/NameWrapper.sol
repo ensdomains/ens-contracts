@@ -76,6 +76,17 @@ contract NameWrapper is
             super.supportsInterface(interfaceId);
     }
 
+    /* ERC1155 */
+
+    function ownerOf(uint256 id)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (address owner)
+    {
+        return super.ownerOf(id);
+    }
+
     /* Metadata service */
 
     /**
@@ -323,7 +334,7 @@ contract NameWrapper is
         onlyTokenOwner(node)
         operationAllowed(node, CANNOT_BURN_FUSES)
     {
-        if(_fuses & PARENT_CANNOT_CONTROL != 0) {
+        if (_fuses & PARENT_CANNOT_CONTROL != 0) {
             // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
             revert Unauthorised(node, msg.sender);
         }
@@ -344,11 +355,18 @@ contract NameWrapper is
      * @param labelhash keccak256 hash of the subdomain label
      * @param _fuses Fuses you want to burn.
      */
-    function burnChildFuses(bytes32 parentNode, bytes32 labelhash, uint96 _fuses) 
+    function burnChildFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint96 _fuses
+    )
         public
         override
         onlyTokenOwner(parentNode)
-        operationAllowed(_makeNode(parentNode, labelhash), PARENT_CANNOT_CONTROL)
+        operationAllowed(
+            _makeNode(parentNode, labelhash),
+            PARENT_CANNOT_CONTROL
+        )
     {
         bytes32 subnode = _makeNode(parentNode, labelhash);
         (address owner, uint96 fuses) = getData(uint256(subnode));
@@ -537,14 +555,14 @@ contract NameWrapper is
         bytes32 subnode = _makeNode(node, labelhash);
         address owner = ens.owner(subnode);
 
-        if(owner == address(0)) { 
+        if (owner == address(0)) {
             (, uint96 fuses) = getData(uint256(node));
-            if(fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
+            if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
         } else {
             (, uint96 subnodeFuses) = getData(uint256(subnode));
-            if(subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
+            if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
         }
@@ -758,7 +776,10 @@ contract NameWrapper is
             return (node, vulnerability, vulnerableNode);
         }
 
-        if (!allFusesBurned(node, PARENT_CANNOT_CONTROL) || !allFusesBurned(parentNode, CANNOT_UNWRAP)) {
+        if (
+            !allFusesBurned(node, PARENT_CANNOT_CONTROL) ||
+            !allFusesBurned(parentNode, CANNOT_UNWRAP)
+        ) {
             return (node, NameSafety.SubdomainReplacementAllowed, parentNode);
         }
 
