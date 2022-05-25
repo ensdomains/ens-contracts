@@ -76,6 +76,17 @@ contract NameWrapper is
             super.supportsInterface(interfaceId);
     }
 
+    /* ERC1155 */
+
+    function ownerOf(uint256 id)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (address owner)
+    {
+        return super.ownerOf(id);
+    }
+
     /* Metadata service */
 
     /**
@@ -324,7 +335,11 @@ contract NameWrapper is
         operationAllowed(node, CANNOT_BURN_FUSES)
     {
         if (_fuses & PARENT_CANNOT_CONTROL != 0) {
+<<<<<<< HEAD
             // Only the parent can burn the PARENT_CANNOT_REPLACE fuse.
+=======
+            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
+>>>>>>> master
             revert Unauthorised(node, msg.sender);
         }
 
