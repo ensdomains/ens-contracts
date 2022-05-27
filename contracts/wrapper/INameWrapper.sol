@@ -6,14 +6,14 @@ import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "./IMetadataService.sol";
 
-uint96 constant CANNOT_UNWRAP = 1;
-uint96 constant CANNOT_BURN_FUSES = 2;
-uint96 constant CANNOT_TRANSFER = 4;
-uint96 constant CANNOT_SET_RESOLVER = 8;
-uint96 constant CANNOT_SET_TTL = 16;
-uint96 constant CANNOT_CREATE_SUBDOMAIN = 32;
-uint96 constant PARENT_CANNOT_CONTROL = 64;
-uint96 constant CAN_DO_EVERYTHING = 0;
+uint32 constant CANNOT_UNWRAP = 1;
+uint32 constant CANNOT_BURN_FUSES = 2;
+uint32 constant CANNOT_TRANSFER = 4;
+uint32 constant CANNOT_SET_RESOLVER = 8;
+uint32 constant CANNOT_SET_TTL = 16;
+uint32 constant CANNOT_CREATE_SUBDOMAIN = 32;
+uint32 constant PARENT_CANNOT_CONTROL = 64;
+uint32 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
     enum NameSafety {
@@ -27,12 +27,13 @@ interface INameWrapper is IERC1155 {
         bytes32 indexed node,
         bytes name,
         address owner,
-        uint96 fuses
+        uint32 fuses,
+        uint64 expiry
     );
 
     event NameUnwrapped(bytes32 indexed node, address owner);
 
-    event FusesBurned(bytes32 indexed node, uint96 fuses);
+    event FusesSet(bytes32 indexed node, uint32 fuses, uint64 expiry);
 
     function ens() external view returns (ENS);
 
@@ -45,14 +46,15 @@ interface INameWrapper is IERC1155 {
     function wrap(
         bytes calldata name,
         address wrappedOwner,
-        uint96 _fuses,
+        uint32 fuses,
         address resolver
     ) external;
 
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint96 _fuses,
+        uint32 fuses,
+        uint64 expiry,
         address resolver
     ) external;
 
@@ -61,7 +63,7 @@ interface INameWrapper is IERC1155 {
         address wrappedOwner,
         uint256 duration,
         address resolver,
-        uint96 _fuses
+        uint32 fuses
     ) external returns (uint256 expires);
 
     function renew(uint256 labelHash, uint256 duration)
@@ -80,12 +82,12 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function burnFuses(bytes32 node, uint96 _fuses) external;
+    function burnFuses(bytes32 node, uint32 fuses) external;
 
     function burnChildFuses(
         bytes32 parentNode,
         bytes32 labelhash,
-        uint96 _fuses
+        uint32 fuses
     ) external;
 
     function setSubnodeRecord(
@@ -94,7 +96,8 @@ interface INameWrapper is IERC1155 {
         address owner,
         address resolver,
         uint64 ttl,
-        uint96 _fuses
+        uint32 fuses,
+        uint64 expiry
     ) external;
 
     function setRecord(
@@ -108,7 +111,8 @@ interface INameWrapper is IERC1155 {
         bytes32 node,
         string calldata label,
         address newOwner,
-        uint96 _fuses
+        uint32 fuses,
+        uint64 expiry
     ) external returns (bytes32);
 
     function isTokenOwnerOrApproved(bytes32 node, address addr)
@@ -124,12 +128,12 @@ interface INameWrapper is IERC1155 {
     function getFuses(bytes32 node)
         external
         returns (
-            uint96,
+            uint32,
             NameSafety,
             bytes32
         );
 
-    function allFusesBurned(bytes32 node, uint96 fuseMask)
+    function allFusesBurned(bytes32 node, uint32 fuseMask)
         external
         view
         returns (bool);

@@ -91,7 +91,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         address resolver,
         bytes[] calldata data,
         bool reverseRecord,
-        uint96 fuses
+        uint32 fuses
     ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
         if (data.length > 0) {
@@ -128,7 +128,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         address resolver,
         bytes[] calldata data,
         bool reverseRecord,
-        uint96 fuses
+        uint32 fuses
     ) public payable override {
         bytes32 label = keccak256(bytes(name));
         IPriceOracle.Price memory price = rentPrice(name, duration);
