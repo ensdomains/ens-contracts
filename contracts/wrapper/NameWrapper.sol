@@ -673,9 +673,7 @@ contract NameWrapper is
         uint96 _fuses
     ) internal {
         (address owner, ) = getData(uint256(node));
-        if(owner != newOwner){
-            _transfer(owner, newOwner, uint256(node), 1, "");
-        }
+        _transfer(owner, newOwner, uint256(node), 1, "");
         _burnFuses(node, _fuses);
     }
 
