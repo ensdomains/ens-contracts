@@ -1271,8 +1271,8 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
-    it('can set fuses and burn transfer', async () => {
-      const [signer2] = await ethers.getSigners()
+    it.only('can set fuses and burn transfer', async () => {
+      const [, signer2] = await ethers.getSigners()
       const account2 = await signer2.getAddress()
       const label = 'fuses3'
       const tokenId = labelhash('fuses3')
@@ -1294,7 +1294,7 @@ describe('Name Wrapper', () => {
         await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_TRANSFER)
       ).to.equal(true)
 
-      //try to set the resolver and ttl
+      //Transfer should revert
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
