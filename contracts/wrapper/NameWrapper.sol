@@ -474,7 +474,11 @@ contract NameWrapper is
             CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
         )
     {
-        ens.setRecord(node, owner, resolver, ttl);
+        ens.setRecord(node, address(this), resolver, ttl);
+        (address oldOwner, ) = getData(uint256(node));
+        if (owner != oldOwner){
+            _transfer(oldOwner, owner, uint256(node), 1, "");
+        }
     }
 
     /**
@@ -671,7 +675,9 @@ contract NameWrapper is
         uint96 _fuses
     ) internal {
         (address owner, ) = getData(uint256(node));
-        _transfer(owner, newOwner, uint256(node), 1, "");
+        if(owner != newOwner){
+            _transfer(owner, newOwner, uint256(node), 1, "");
+        }
         _burnFuses(node, _fuses);
     }
 

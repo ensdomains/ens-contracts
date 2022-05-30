@@ -1890,10 +1890,10 @@ describe('Name Wrapper', () => {
       await NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
     })
 
-    it('Performs the appropriate function on the ENS registry.', async () => {
+    it('Performs the appropriate function on the ENS registry and Wrapper', async () => {
       await NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
 
-      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(account2)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account2)
       expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account)
       expect(await EnsRegistry.ttl(wrappedTokenId)).to.equal(50)
     })
