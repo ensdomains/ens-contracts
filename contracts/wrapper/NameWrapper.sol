@@ -339,6 +339,10 @@ contract NameWrapper is
             revert Unauthorised(node, msg.sender);
         }
 
+        _burnFuses(node, _fuses);
+    }
+
+    function _burnFuses(bytes32 node, uint96 _fuses) internal {
         (address owner, uint96 fuses) = getData(uint256(node));
 
         uint96 newFuses = fuses | _fuses;
@@ -369,58 +373,7 @@ contract NameWrapper is
         )
     {
         bytes32 subnode = _makeNode(parentNode, labelhash);
-        (address owner, uint96 fuses) = getData(uint256(subnode));
-
-        uint96 newFuses = fuses | _fuses;
-
-        _setData(uint256(subnode), owner, newFuses);
-
-        emit FusesBurned(subnode, newFuses);
-    }
-
-    /**
-     * @notice Sets records for the subdomain in the ENS Registry
-     * @param parentNode namehash of the parent name
-     * @param labelhash labelhash of the subnode
-     * @param owner newOwner in the registry
-     * @param resolver the resolver contract in the registry
-     * @param ttl ttl in the registry
-     */
-
-    function setSubnodeRecord(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        address owner,
-        address resolver,
-        uint64 ttl
-    )
-        public
-        override
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, labelhash)
-    {
-        ens.setSubnodeRecord(parentNode, labelhash, owner, resolver, ttl);
-    }
-
-    /**
-     * @notice Sets the subnode owner in the registry
-     * @param parentNode namehash of the parent name
-     * @param labelhash labelhash of the subnode
-     * @param owner newOwner in the registry
-     */
-
-    function setSubnodeOwner(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        address owner
-    )
-        public
-        override
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, labelhash)
-        returns (bytes32)
-    {
-        return ens.setSubnodeOwner(parentNode, labelhash, owner);
+        _burnFuses(subnode, _fuses);
     }
 
     /**
@@ -431,19 +384,26 @@ contract NameWrapper is
      * @param _fuses initial fuses for the wrapped subdomain
      */
 
-    function setSubnodeOwnerAndWrap(
+    function setSubnodeOwner(
         bytes32 parentNode,
         string calldata label,
         address newOwner,
         uint96 _fuses
-    ) public override returns (bytes32 node) {
+    )
+        public
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        returns (bytes32 node)
+    {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        bytes memory name = _addLabel(label, names[parentNode]);
 
-        setSubnodeOwner(parentNode, labelhash, address(this));
-
-        _wrap(node, name, newOwner, _fuses);
+        if (ens.owner(node) != address(this)) {
+            ens.setSubnodeOwner(parentNode, labelhash, address(this));
+            _addLabelAndWrap(parentNode, node, label, newOwner, _fuses);
+        } else {
+            _transferAndBurnFuses(node, newOwner, _fuses);
+        }
     }
 
     /**
@@ -456,21 +416,40 @@ contract NameWrapper is
      * @param _fuses initial fuses for the wrapped subdomain
      */
 
-    function setSubnodeRecordAndWrap(
+    function setSubnodeRecord(
         bytes32 parentNode,
         string calldata label,
         address newOwner,
         address resolver,
         uint64 ttl,
         uint96 _fuses
-    ) public override {
+    )
+        public
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+    {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        bytes memory name = _addLabel(label, names[parentNode]);
 
-        setSubnodeRecord(parentNode, labelhash, address(this), resolver, ttl);
-
-        _wrap(node, name, newOwner, _fuses);
+        if (ens.owner(node) != address(this)) {
+            ens.setSubnodeRecord(
+                parentNode,
+                labelhash,
+                address(this),
+                resolver,
+                ttl
+            );
+            _addLabelAndWrap(parentNode, node, label, newOwner, _fuses);
+        } else {
+            ens.setSubnodeRecord(
+                parentNode,
+                labelhash,
+                address(this),
+                resolver,
+                ttl
+            );
+            _transferAndBurnFuses(node, newOwner, _fuses);
+        }
     }
 
     /**
@@ -495,7 +474,9 @@ contract NameWrapper is
             CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
         )
     {
-        ens.setRecord(node, owner, resolver, ttl);
+        ens.setRecord(node, address(this), resolver, ttl);
+        (address oldOwner, ) = getData(uint256(node));
+        _transfer(oldOwner, owner, uint256(node), 1, "");
     }
 
     /**
@@ -675,23 +656,47 @@ contract NameWrapper is
         emit NameWrapped(node, name, wrappedOwner, fuses);
     }
 
+    function _addLabelAndWrap(
+        bytes32 parentNode,
+        bytes32 node,
+        string memory label,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        bytes memory name = _addLabel(label, names[parentNode]);
+        _wrap(node, name, newOwner, _fuses);
+    }
+
+    function _transferAndBurnFuses(
+        bytes32 node,
+        address newOwner,
+        uint96 _fuses
+    ) internal {
+        (address owner, ) = getData(uint256(node));
+        _transfer(owner, newOwner, uint256(node), 1, "");
+        _burnFuses(node, _fuses);
+    }
+
     function _wrapETH2LD(
         string memory label,
         address wrappedOwner,
         uint96 _fuses,
         address resolver
     ) private returns (bytes32 labelhash) {
+        // mint a new ERC1155 token with fuses
+        // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
         labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
-        bytes memory name = _addLabel(label, "\x03eth\x00");
-
+        _addLabelAndWrap(
+            ETH_NODE,
+            node,
+            label,
+            wrappedOwner,
+            _fuses | PARENT_CANNOT_CONTROL
+        );
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
-
-        // mint a new ERC1155 token with fuses
-        // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
-        _wrap(node, name, wrappedOwner, _fuses | PARENT_CANNOT_CONTROL);
     }
 
     function _unwrap(bytes32 node, address newOwner) private {
