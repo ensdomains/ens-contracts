@@ -474,7 +474,9 @@ contract NameWrapper is
             CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
         )
     {
-        ens.setRecord(node, owner, resolver, ttl);
+        ens.setRecord(node, address(this), resolver, ttl);
+        (address oldOwner, ) = getData(uint256(node));
+        _transfer(oldOwner, owner, uint256(node), 1, "");
     }
 
     /**
