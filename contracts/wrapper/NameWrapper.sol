@@ -146,13 +146,13 @@ contract NameWrapper is
 
     /**
      * @notice Gets fuse permissions for a specific name
-     * @dev Fuses are represented by a uint96 where each permission is represented by 1 bit
+     * @dev Fuses are represented by a uint32 where each permission is represented by 1 bit
      *      The interface has predefined fuses for all registry permissions, but additional
      *      fuses can be added for other use cases
+     *      Also returns expiry, which is when the fuses are set to expire.
      * @param node namehash of the name to check
      * @return fuses A number that represents the permissions a name has
-     * @return vulnerability The type of vulnerability
-     * @return vulnerableNode Which node is vulnerable
+     * @return expiry Unix time of when the name expires and fuses are to expire
      */
     function getFuses(bytes32 node)
         public
@@ -160,16 +160,14 @@ contract NameWrapper is
         override
         returns (
             uint32 fuses,
-            NameSafety vulnerability,
-            bytes32 vulnerableNode
+            uint64 expiry
         )
     {
         bytes memory name = names[node];
         if (name.length == 0) {
             revert NameNotFound();
         }
-        (, vulnerability, vulnerableNode) = _checkHierarchy(name, 0);
-        (, fuses,) = getData(uint256(node));
+        (, fuses, expiry) = getData(uint256(node));
     }
 
     /**
@@ -327,9 +325,6 @@ contract NameWrapper is
         }
         _unwrap(_makeNode(parentNode, labelhash), newController);
     }
-
-    //TODO: If expiry is in the past, treat fuses like they're all unset
-    // adding a check for this and set fuses to 0;
 
     function setFuses(bytes32 parentNode, bytes32 labelhash, uint32 fuses) onlyTokenOwner(_makeNode(parentNode, labelhash)) public {
         bytes32 node = _makeNode(parentNode, labelhash);
@@ -756,31 +751,5 @@ contract NameWrapper is
         }
 
         super._setData(uint256(node), owner, fuses, expiry);
-    }
-
-
-    function _checkOwnership(
-        bytes32 labelhash,
-        bytes32 node,
-        bytes32 parentNode
-    ) internal view returns (NameSafety vulnerability, bytes32 vulnerableNode) {
-        if (parentNode == ETH_NODE) {
-            // Special case .eth: Check registrant or name isexpired
-
-            try registrar.ownerOf(uint256(labelhash)) returns (
-                address registrarOwner
-            ) {
-                if (registrarOwner != address(this)) {
-                    return (NameSafety.RegistrantNotWrapped, node);
-                }
-            } catch {
-                return (NameSafety.Expired, node);
-            }
-        }
-
-        if (ens.owner(node) != address(this)) {
-            return (NameSafety.ControllerNotWrapped, node);
-        }
-        return (NameSafety.Safe, 0);
     }
 }

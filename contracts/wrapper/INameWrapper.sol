@@ -16,13 +16,6 @@ uint32 constant PARENT_CANNOT_CONTROL = 64;
 uint32 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
-    enum NameSafety {
-        Safe,
-        RegistrantNotWrapped,
-        ControllerNotWrapped,
-        SubdomainReplacementAllowed,
-        Expired
-    }
     event NameWrapped(
         bytes32 indexed node,
         bytes name,
@@ -128,9 +121,8 @@ interface INameWrapper is IERC1155 {
     function getFuses(bytes32 node)
         external
         returns (
-            uint32,
-            NameSafety,
-            bytes32
+            uint32 fuses,
+            uint64 expiry
         );
 
     function allFusesBurned(bytes32 node, uint32 fuseMask)
