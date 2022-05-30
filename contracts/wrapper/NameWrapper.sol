@@ -476,9 +476,7 @@ contract NameWrapper is
     {
         ens.setRecord(node, address(this), resolver, ttl);
         (address oldOwner, ) = getData(uint256(node));
-        if (owner != oldOwner){
-            _transfer(oldOwner, owner, uint256(node), 1, "");
-        }
+        _transfer(oldOwner, owner, uint256(node), 1, "");
     }
 
     /**
