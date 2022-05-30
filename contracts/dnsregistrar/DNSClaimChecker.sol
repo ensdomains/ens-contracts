@@ -27,8 +27,8 @@ library DNSClaimChecker {
         bytes20 hash;
         uint32 expiration;
         // Check the provided TXT record has been validated by the oracle
-        (, expiration, hash) = oracle.rrdata(TYPE_TXT, buf.buf);
-        if (hash == bytes20(0) && proof.length == 0) return (address(0x0), false);
+        // (, expiration, hash) = oracle.rrdata(TYPE_TXT, buf.buf);
+        // if (hash == bytes20(0) && proof.length == 0) return (address(0x0), false);
 
         require(hash == bytes20(keccak256(proof)));
 

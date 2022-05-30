@@ -72,9 +72,6 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
         1: 'SHA1Digest',
         2: 'SHA256Digest',
     };
-    const nsec_digests = {
-        1: 'SHA1NSEC3Digest',
-    };
 
     if(network.tags.test) {
         anchors.push(dummyAnchor);
@@ -105,15 +102,8 @@ module.exports = async ({getNamedAccounts, deployments, network}) => {
       }
     }
 
-    for(const [id, digest] of Object.entries(nsec_digests)) {
-      const address = (await deployments.get(digest)).address;
-      if(address != await dnssec.nsec3Digests(id)) {
-        transactions.push(await dnssec.setNSEC3Digest(id, address));
-      }
-    }
-
     console.log(`Waiting on ${transactions.length} transactions setting DNSSEC parameters`);
     await Promise.all(transactions.map((tx) => tx.wait()));
 };
 module.exports.tags = ['dnssec-oracle'];
-module.exports.dependencies = ['dnssec-algorithms', 'dnssec-digests', 'dnssec-nsec3-digests'];
+module.exports.dependencies = ['dnssec-algorithms', 'dnssec-digests'];

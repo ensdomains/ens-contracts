@@ -82,12 +82,12 @@ contract DNSRegistrar is IDNSRegistrar {
      * @param proof The proof record for the first element in input.
      */
     function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof) public override {
-        proof = oracle.submitRRSets(input, proof);
+        // proof = oracle.submitRRSets(input, proof);
         claim(name, proof);
     }
 
     function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, bytes memory proof, address resolver, address addr) public override {
-        proof = oracle.submitRRSets(input, proof);
+        // proof = oracle.submitRRSets(input, proof);
         (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, proof);
         require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
         if(addr != address(0)) {
