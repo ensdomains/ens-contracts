@@ -221,7 +221,7 @@ contract('DNSSEC', function(accounts) {
     keys.rrs.forEach((r) => {
       r.data.algorithm = 255
     })
-    await verifyFailedSubmission(instance, [hexEncodeSignedSet(keys)])
+    await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'NoMatchingProof');
   })
 
   it('should reject signatures with non-matching keytags', async function() {
@@ -243,7 +243,7 @@ contract('DNSSEC', function(accounts) {
       },
     ]
 
-    await verifyFailedSubmission(instance, [hexEncodeSignedSet(keys)])
+    await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'NoMatchingProof');
   })
 
   it('should accept odd-length public keys', async () => {
@@ -281,7 +281,7 @@ contract('DNSSEC', function(accounts) {
       },
     ]
 
-    await verifyFailedSubmission(instance, [hexEncodeSignedSet(keys)])
+    await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'NoMatchingProof');
   })
 
   it('should accept a root DNSKEY', async function() {
@@ -332,9 +332,8 @@ contract('DNSSEC', function(accounts) {
 
   it('should reject signatures with non-IN classes', async function() {
     var instance = await dnssec.deployed()
-    await verifyFailedSubmission(
-      instance,
-      [
+    await expectRevert(
+      instance.verifyRRSet([
         hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet({
           name: 'net',
@@ -366,15 +365,15 @@ contract('DNSSEC', function(accounts) {
             },
           ],
         })
-      ]
+      ]),
+      'InvalidClass'
     )
   })
 
   it('should reject signatures with the wrong type covered', async function() {
     var instance = await dnssec.deployed()
-    await verifyFailedSubmission(
-      instance,
-      [
+    await expectRevert(
+      instance.verifyRRSet([
         hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet({
           name: 'net',
@@ -406,15 +405,14 @@ contract('DNSSEC', function(accounts) {
             },
           ],
         })
-      ]
+      ]), 'SignatureTypeMismatch'
     )
   })
 
   it('should reject signatures with too many labels', async function() {
     var instance = await dnssec.deployed()
-    await verifyFailedSubmission(
-      instance,
-      [
+    await expectRevert(
+      instance.verifyRRSet([
         hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet({
           name: 'net',
@@ -446,7 +444,7 @@ contract('DNSSEC', function(accounts) {
             },
           ],
         })
-      ]
+      ]), 'InvalidLabelCount'
     )
   })
 
@@ -488,9 +486,8 @@ contract('DNSSEC', function(accounts) {
         })
       ]
     )
-    await verifyFailedSubmission(
-      instance,
-      [
+    await expectRevert(
+      instance.verifyRRSet([
         hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet({
           name: 'test',
@@ -522,7 +519,7 @@ contract('DNSSEC', function(accounts) {
             },
           ],
         })
-      ]
+      ]), 'InvalidSignerName'
     )
   })
 
@@ -530,14 +527,14 @@ contract('DNSSEC', function(accounts) {
     var instance = await dnssec.deployed()
     var keys = rootKeys()
     keys.sig.data.expiration = Date.now() / 1000 - 2
-    await verifyFailedSubmission(instance, [hexEncodeSignedSet(keys)])
+    await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'SignatureExpired');
   })
 
   it('should reject entries with inceptions in the future', async function() {
     var instance = await dnssec.deployed()
     var keys = rootKeys()
     keys.sig.data.inception = Date.now() / 1000 + 15 * 60
-    await verifyFailedSubmission(instance, [hexEncodeSignedSet(keys)])
+    await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'SignatureNotValidYet');
   })
 
   it('should reject invalid RSA signatures', async function() {
@@ -549,11 +546,12 @@ contract('DNSSEC', function(accounts) {
       test_rrset_timestamp
     );
     var sig = test_rrsets[0][2]
-    await verifyFailedSubmission(
-      instance,
-      [
-        [test_rrsets[0][1], sig.slice(0, sig.length - 2) + 'FF']
-      ]
-    )
+    await expectRevert(
+      instance.verifyRRSet(
+        [[test_rrsets[0][1], sig.slice(0, sig.length - 2) + 'FF']],
+        test_rrset_timestamp
+      ),
+      'NoMatchingProof'
+    );
   })
 })

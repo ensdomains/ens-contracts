@@ -25,6 +25,17 @@ contract DNSSECImpl is DNSSEC, Owned {
 
     uint constant DNSKEY_FLAG_ZONEKEY = 0x100;
 
+    error InvalidLabelCount(bytes name, uint labelsExpected);
+    error SignatureNotValidYet(uint32 inception, uint32 now);
+    error SignatureExpired(uint32 expiration, uint32 now);
+    error InvalidClass(uint16 class);
+    error InvalidRRSet();
+    error SignatureTypeMismatch(uint16 rrsetType, uint16 sigType);
+    error InvalidSignerName(bytes rrsetName, bytes signerName);
+    error InvalidProofType(uint16 proofType);
+    error ProofNameMismatch(bytes signerName, bytes proofName);
+    error NoMatchingProof(bytes signerName);
+
     mapping (uint8 => Algorithm) public algorithms;
     mapping (uint8 => Digest) public digests;
 
@@ -88,7 +99,9 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         // Do some basic checks on the RRs and extract the name
         bytes memory name = validateRRs(rrset, rrset.typeCovered);
-        require(name.labelCount(0) == rrset.labels);
+        if(name.labelCount(0) != rrset.labels) {
+            revert InvalidLabelCount(name, rrset.labels);
+        }
         rrset.name = name;
 
         // All comparisons involving the Signature Expiration and
@@ -97,11 +110,15 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         // o  The validator's notion of the current time MUST be less than or
         //    equal to the time listed in the RRSIG RR's Expiration field.
-        require(RRUtils.serialNumberGte(rrset.expiration, uint32(now)));
+        if(!RRUtils.serialNumberGte(rrset.expiration, uint32(now))) {
+            revert SignatureExpired(rrset.expiration, uint32(now));
+        }
 
         // o  The validator's notion of the current time MUST be greater than or
         //    equal to the time listed in the RRSIG RR's Inception field.
-        require(RRUtils.serialNumberGte(uint32(now), rrset.inception));
+        if(!RRUtils.serialNumberGte(uint32(now), rrset.inception)) {
+            revert SignatureNotValidYet(rrset.inception, uint32(now));
+        }
 
         // Validate the signature
         verifySignature(name, rrset, input, proof);
@@ -118,19 +135,26 @@ contract DNSSECImpl is DNSSEC, Owned {
         // Iterate over all the RRs
         for (RRUtils.RRIterator memory iter = rrset.rrs(); !iter.done(); iter.next()) {
             // We only support class IN (Internet)
-            require(iter.class == DNSCLASS_IN);
+            if(iter.class != DNSCLASS_IN) {
+                revert InvalidClass(iter.class);
+            }
 
             if(name.length == 0) {
                 name = iter.name();
             } else {
                 // Name must be the same on all RRs. We do things this way to avoid copying the name
                 // repeatedly.
-                require(name.length == iter.data.nameLength(iter.offset));
-                require(name.equals(0, iter.data, iter.offset, name.length));
+                if(name.length != iter.data.nameLength(iter.offset) 
+                    || !name.equals(0, iter.data, iter.offset, name.length))
+                {
+                    revert InvalidRRSet();
+                }
             }
 
             // o  The RRSIG RR's Type Covered field MUST equal the RRset's type.
-            require(iter.dnstype == typecovered);
+            if(iter.dnstype != typecovered) {
+                revert SignatureTypeMismatch(iter.dnstype, typecovered);
+            }
         }
     }
 
@@ -146,17 +170,20 @@ contract DNSSECImpl is DNSSEC, Owned {
     function verifySignature(bytes memory name, RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, bytes memory proof) internal view {
         // o  The RRSIG RR's Signer's Name field MUST be the name of the zone
         //    that contains the RRset.
-        require(rrset.signerName.length <= name.length);
-        require(rrset.signerName.equals(0, name, name.length - rrset.signerName.length));
+        if(rrset.signerName.length > name.length
+            || !rrset.signerName.equals(0, name, name.length - rrset.signerName.length))
+        {
+            revert InvalidSignerName(name, rrset.signerName);
+        }
 
         RRUtils.RRIterator memory proofRR = proof.iterateRRs(0);
         // Check the proof
         if (proofRR.dnstype == DNSTYPE_DS) {
-            require(verifyWithDS(rrset, data, proofRR));
+            verifyWithDS(rrset, data, proofRR);
         } else if (proofRR.dnstype == DNSTYPE_DNSKEY) {
-            require(verifyWithKnownKey(rrset, data, proofRR));
+            verifyWithKnownKey(rrset, data, proofRR);
         } else {
-            revert("No valid proof found");
+            revert InvalidProofType(proofRR.dnstype);
         }
     }
 
@@ -165,20 +192,22 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param rrset The signed set to verify.
      * @param data The original data the signed set was read from.
      * @param proof The serialized DS or DNSKEY record to use as proof.
-     * @return True if the RRSET could be verified, false otherwise.
      */
-    function verifyWithKnownKey(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view returns(bool) {
+    function verifyWithKnownKey(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view {
         // Check the DNSKEY's owner name matches the signer name on the RRSIG
-        require(proof.name().equals(rrset.signerName));
         for(; !proof.done(); proof.next()) {
-            require(proof.name().equals(rrset.signerName));
+            bytes memory proofName = proof.name();
+            if(!proofName.equals(rrset.signerName)) {
+                revert ProofNameMismatch(rrset.signerName, proofName);
+            }
+
             bytes memory keyrdata = proof.rdata();
             RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(0, keyrdata.length);
             if(verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
-                return true;
+                return;
             }
         }
-        return false;
+        revert NoMatchingProof(rrset.signerName);
     }
 
     /**
@@ -227,19 +256,23 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param rrset The signed set to verify.
      * @param data The original data the signed set was read from.
      * @param proof The serialized DS or DNSKEY record to use as proof.
-     * @return True if the RRSET could be verified, false otherwise.
      */
-    function verifyWithDS(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view returns(bool) {
+    function verifyWithDS(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view {
         for(RRUtils.RRIterator memory iter = rrset.rrs(); !iter.done(); iter.next()) {
-            require(iter.dnstype == DNSTYPE_DNSKEY);
+            if(iter.dnstype != DNSTYPE_DNSKEY) {
+                revert InvalidProofType(iter.dnstype);
+            }
+
             bytes memory keyrdata = iter.rdata();
             RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(0, keyrdata.length);
             if (verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
                 // It's self-signed - look for a DS record to verify it.
-                return verifyKeyWithDS(iter.name(), proof, dnskey, keyrdata);
+                if(verifyKeyWithDS(iter.name(), proof, dnskey, keyrdata)) {
+                    return;
+                }
             }
         }
-        return false;
+        revert NoMatchingProof(rrset.signerName);
     }
 
     /**
