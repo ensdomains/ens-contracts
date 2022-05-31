@@ -554,4 +554,83 @@ contract('DNSSEC', function(accounts) {
       'NoMatchingProof'
     );
   })
+
+  it('should reject DS proofs with the wrong name', async function() {
+    var instance = await dnssec.deployed()
+    await expectRevert(
+      instance.verifyRRSet([
+        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet({
+          name: 'test',
+          sig: {
+            name: 'test',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'DS',
+              algorithm: 253,
+              labels: 1,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1278,
+              signersName: '.',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'test',
+              type: 'DS',
+              class: 'IN',
+              ttl: 3600,
+              data: {
+                keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
+                algorithm: 253,
+                digestType: 253,
+                digest: new Buffer('', 'hex')
+              }
+            },
+          ],
+        }),
+        hexEncodeSignedSet({
+          name: 'foo',
+          sig: {
+            name: 'foo',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'DNSKEY',
+              algorithm: 253,
+              labels: 1,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1278,
+              signersName: 'foo',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'foo',
+              type: 'DNSKEY',
+              class: 'IN',
+              ttl: 3600,
+              data: {
+                flags: 0x0101,
+                algorithm: 253,
+                key: Buffer.from('0000', 'HEX'),
+              },
+            }
+          ]
+        })
+      ]),
+      'ProofNameMismatch'
+    )
+  })
 })

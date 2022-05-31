@@ -71,10 +71,23 @@ contract DNSSECImpl is DNSSEC, Owned {
         emit DigestUpdated(id, address(digest));
     }
 
-    function verifyRRSet(RRSetWithSignature[] memory input) public virtual view override returns(bytes memory) {
+    /**
+     * @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
+     *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
+     * @param input A list of signed RRSets.
+     * @return The RRData from the last RRSet in the chain.
+     */
+    function verifyRRSet(RRSetWithSignature[] memory input) external virtual view override returns(bytes memory) {
         return verifyRRSet(input, block.timestamp);
     }
 
+    /**
+     * @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
+     *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
+     * @param input A list of signed RRSets.
+     * @param now The Unix timestamp to validate the records at.
+     * @return The RRData from the last RRSet in the chain.
+     */
     function verifyRRSet(RRSetWithSignature[] memory input, uint256 now) public virtual view override returns(bytes memory) {
         bytes memory proof = anchors;
         for(uint i = 0; i < input.length; i++) {
@@ -267,7 +280,7 @@ contract DNSSECImpl is DNSSEC, Owned {
             RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(0, keyrdata.length);
             if (verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
                 // It's self-signed - look for a DS record to verify it.
-                if(verifyKeyWithDS(iter.name(), proof, dnskey, keyrdata)) {
+                if(verifyKeyWithDS(rrset.signerName, proof, dnskey, keyrdata)) {
                     return;
                 }
             }
@@ -288,6 +301,11 @@ contract DNSSECImpl is DNSSEC, Owned {
     {
         uint16 keytag = keyrdata.computeKeytag();
         for (; !dsrrs.done(); dsrrs.next()) {
+            bytes memory proofName = dsrrs.name();
+            if(!proofName.equals(keyname)) {
+                revert ProofNameMismatch(keyname, proofName);
+            }
+
             RRUtils.DS memory ds = dsrrs.data.readDS(dsrrs.rdataOffset, dsrrs.nextOffset - dsrrs.rdataOffset);
             if(ds.keytag != keytag) {
                 continue;
