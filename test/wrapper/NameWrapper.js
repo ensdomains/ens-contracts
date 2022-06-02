@@ -607,11 +607,10 @@ describe('Name Wrapper', () => {
         CANNOT_UNWRAP,
         EMPTY_ADDRESS
       )
-      await expect(
-        NameWrapper.unwrap(ROOT_NODE, labelHash, account)
-      ).to.be.revertedWith(
-        `OperationProhibited("0xeefe02abe4d931c3e0227bb882666f5b8a4e2babdb7c3e48b1d78f4fe1432cd7")`
-      )
+
+      await NameWrapper.unwrap(ROOT_NODE, labelHash, account)
+
+      expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account)
     })
 
     it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
