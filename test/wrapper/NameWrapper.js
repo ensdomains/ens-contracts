@@ -10,6 +10,7 @@ const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
 const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 const { deploy } = require('../test-utils/contracts')
+const { keccak256 } = require('ethers/lib/utils')
 
 const abiCoder = new ethers.utils.AbiCoder()
 
@@ -472,7 +473,7 @@ describe('Name Wrapper', () => {
         'unwrapped',
         account,
         0,
-        MAX_EXPIRY
+        0
       )
 
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
@@ -570,7 +571,7 @@ describe('Name Wrapper', () => {
       //allow the restricted name wrappper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD(label, account, 0, 0, EMPTY_ADDRESS)
       const ownerOfWrappedETH = await NameWrapper.ownerOf(
         namehash('unwrapped.eth')
       )
@@ -595,7 +596,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`IncorrectTargetOwner("${NameWrapper.address}")`)
     })
 
-    it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned', async () => {
+    it('Will allow to unwrap a name with the CANNOT_UNWRAP fuse burned if expired', async () => {
       const labelHash = labelhash('abc')
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
@@ -611,6 +612,37 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(
         `OperationProhibited("0xeefe02abe4d931c3e0227bb882666f5b8a4e2babdb7c3e48b1d78f4fe1432cd7")`
       )
+    })
+
+    it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
+      const labelHash = labelhash('abc')
+
+      await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'abc',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        namehash('abc.eth'),
+        'sub',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+      await expect(
+        NameWrapper.unwrap(
+          namehash('abc.eth'),
+          utils.keccak256(utils.toUtf8Bytes('sub')),
+          account
+        )
+      ).to.be.revertedWith(`OperationProhibited("${namehash('sub.abc.eth')}")`)
     })
   })
 
