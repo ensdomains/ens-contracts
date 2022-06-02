@@ -158,10 +158,7 @@ contract NameWrapper is
         public
         view
         override
-        returns (
-            uint32 fuses,
-            uint64 expiry
-        )
+        returns (uint32 fuses, uint64 expiry)
     {
         bytes memory name = names[node];
         if (name.length == 0) {
@@ -326,16 +323,22 @@ contract NameWrapper is
         _unwrap(_makeNode(parentNode, labelhash), newController);
     }
 
-    function setFuses(bytes32 parentNode, bytes32 labelhash, uint32 fuses) onlyTokenOwner(_makeNode(parentNode, labelhash)) public {
+    function setFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint32 fuses
+    ) public onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         bytes32 node = _makeNode(parentNode, labelhash);
-        (address owner, uint32 oldFuses, uint64 expiry) = _getData(node);
+        (address owner, uint32 oldFuses, uint64 expiry) = getData(
+            uint256(node)
+        );
 
-        if(fuses & PARENT_CANNOT_CONTROL != 0){
+        if (fuses & PARENT_CANNOT_CONTROL != 0) {
             revert Unauthorised(parentNode, msg.sender);
         }
 
-        (,, uint64 maxExpiry) = getData(uint256(parentNode));
-        if(expiry > maxExpiry){
+        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+        if (expiry > maxExpiry) {
             // check if parent has burned CANNOT_UNWRAP when you're burning any fuses
             // check if parent is still wrapped when extending expiry
             expiry = maxExpiry;
@@ -344,27 +347,37 @@ contract NameWrapper is
         _setFuses(node, owner, fuses, expiry);
     }
 
-    function setChildFuses(bytes32 parentNode, bytes32 labelhash, uint32 fuses, uint64 expiry) public {
+    function setChildFuses(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint32 fuses,
+        uint64 expiry
+    ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
-        (address owner, uint32 oldFuses, uint64 oldExpiry) = _getData(node);
+        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
         uint64 maxExpiry;
-        if(parentNode == ETH_NODE ){
-            if(!isTokenOwnerOrApproved(node, msg.sender)){
+        if (parentNode == ETH_NODE) {
+            if (!isTokenOwnerOrApproved(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
             maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
         } else {
-            if(!isTokenOwnerOrApproved(parentNode, msg.sender)){
+            if (!isTokenOwnerOrApproved(parentNode, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
 
-            if(oldFuses & PARENT_CANNOT_CONTROL != 0 && fuses | oldFuses != oldFuses) {
+            if (
+                oldFuses & PARENT_CANNOT_CONTROL != 0 &&
+                fuses | oldFuses != oldFuses
+            ) {
                 revert Unauthorised(node, msg.sender);
             }
 
-            (,,maxExpiry) = getData(uint256(parentNode));
+            (, , maxExpiry) = getData(uint256(parentNode));
         }
-        if(expiry > maxExpiry){
+        if (expiry > maxExpiry) {
             expiry = maxExpiry;
         }
         fuses |= oldFuses;
@@ -391,7 +404,6 @@ contract NameWrapper is
         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
-
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkExpiration(parentNode, node, expiry);
@@ -475,7 +487,7 @@ contract NameWrapper is
         )
     {
         ens.setRecord(node, address(this), resolver, ttl);
-        (address oldOwner, ) = getData(uint256(node));
+        (address oldOwner, , ) = getData(uint256(node));
         _transfer(oldOwner, owner, uint256(node), 1, "");
     }
 
@@ -514,7 +526,7 @@ contract NameWrapper is
      * @param node The namehash of the name to check fuses on.
      * @param fuseMask A bitmask of fuses that must not be burned.
      */
-    
+
     modifier operationAllowed(bytes32 node, uint32 fuseMask) {
         (, uint32 fuses, uint64 expiry) = getData(uint256(node));
         if (fuses & fuseMask != 0 && expiry > block.timestamp) {
@@ -538,12 +550,12 @@ contract NameWrapper is
         address owner = ens.owner(subnode);
 
         if (owner == address(0)) {
-            (, uint96 fuses,) = getData(uint256(node));
+            (, uint96 fuses, ) = getData(uint256(node));
             if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
         } else {
-            (, uint96 subnodeFuses,) = getData(uint256(subnode));
+            (, uint96 subnodeFuses, ) = getData(uint256(subnode));
             if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
@@ -565,7 +577,7 @@ contract NameWrapper is
         override
         returns (bool)
     {
-        (, uint32 fuses,) = getData(uint256(node));
+        (, uint32 fuses, ) = getData(uint256(node));
         return fuses & fuseMask == fuseMask;
     }
 
@@ -655,6 +667,10 @@ contract NameWrapper is
     ) internal {
         names[node] = name;
 
+        if (fuses & ~PARENT_CANNOT_CONTROL != 0 && fuses & CANNOT_UNWRAP == 0) {
+            revert OperationProhibited(bytes32(node));
+        }
+
         _mint(node, wrappedOwner, fuses, expiry);
 
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
@@ -678,23 +694,24 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
-        (address owner, ,) = getData(uint256(node));
+        (address owner, , ) = getData(uint256(node));
         _transfer(owner, newOwner, uint256(node), 1, "");
-        _burnFuses(node, fuses, expiry);
-        // deal with expiry
+        _setFuses(node, owner, fuses, expiry);
     }
 
-    function _checkExpiration(bytes32 parentNode, bytes32 node, uint64 expiry) internal{
-        (,,uint64 oldExpiry) = getData(uint256(node));
-        (,,uint64 maxExpiry) = getData(uint256(parentNode));
+    function _checkExpiration(
+        bytes32 parentNode,
+        bytes32 node,
+        uint64 expiry
+    ) internal view {
+        (, , uint64 oldExpiry) = getData(uint256(node));
+        (, , uint64 maxExpiry) = getData(uint256(parentNode));
 
         // check it's not going backwards or is more than the parent expiry
-        if(expiry < oldExpiry || expiry > maxExpiry) {
-            revert InvalidExpiry();
+        if (expiry < oldExpiry || expiry > maxExpiry) {
+            revert InvalidExpiry(node, expiry);
         }
     }
-
-    
 
     function _wrapETH2LD(
         string memory label,
@@ -736,7 +753,12 @@ contract NameWrapper is
         emit NameUnwrapped(node, newOwner);
     }
 
-    function _setFuses(bytes32 node, address owner, uint32 fuses, uint64 expiry) internal {
+    function _setFuses(
+        bytes32 node,
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    ) internal {
         _setData(node, owner, fuses, expiry);
         emit FusesSet(node, fuses, expiry);
     }

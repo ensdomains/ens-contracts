@@ -23,7 +23,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      *************************************************************************/
 
     function ownerOf(uint256 id) public view virtual returns (address) {
-        (address owner, ,) = getData(id);
+        (address owner, , ) = getData(id);
         return owner;
     }
 
@@ -61,7 +61,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             account != address(0),
             "ERC1155: balance query for the zero address"
         );
-        (address owner, ,) = getData(id);
+        (address owner, , ) = getData(id);
         if (owner == account) {
             return 1;
         }
@@ -132,12 +132,16 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function getData(uint256 tokenId)
         public
         view
-        returns (address owner, uint32 fuses, uint64 expiry)
+        returns (
+            address owner,
+            uint32 fuses,
+            uint64 expiry
+        )
     {
         uint256 t = _tokens[tokenId];
         owner = address(uint160(t));
         expiry = uint64(t >> 192);
-        if(block.timestamp > expiry){
+        if (block.timestamp > expiry) {
             fuses = 0;
         } else {
             fuses = uint32(t >> 160);
@@ -153,7 +157,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint32 fuses,
         uint64 expiry
     ) internal virtual {
-        _tokens[tokenId] = uint256(uint160(owner)) | (uint256(fuses) << 160) | (uint256(expiry) << 192);
+        _tokens[tokenId] =
+            uint256(uint160(owner)) |
+            (uint256(fuses) << 160) |
+            (uint256(expiry) << 192);
     }
 
     /**
@@ -233,7 +240,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function _mint(
         bytes32 node,
         address newOwner,
-        uint32 _fuses,
+        uint32 fuses,
         uint64 expiry
     ) internal virtual {
         uint256 tokenId = uint256(node);
@@ -244,7 +251,8 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             newOwner != address(this),
             "ERC1155: newOwner cannot be the NameWrapper contract"
         );
-        _setData(tokenId, newOwner, _fuses, expiry);
+
+        _setData(tokenId, newOwner, fuses, expiry);
         emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
         _doSafeTransferAcceptanceCheck(
             msg.sender,
@@ -271,10 +279,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         bytes memory data
     ) internal {
         (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
-        if(oldOwner == to){
+        if (oldOwner == to) {
             return;
         }
-        
+
         if (!_canTransfer(fuses)) {
             revert OperationProhibited(bytes32(id));
         }
