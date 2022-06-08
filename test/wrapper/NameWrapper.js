@@ -1362,15 +1362,20 @@ describe('Name Wrapper', () => {
 
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
 
       // Each fuse is represented by the next bit, 64 is the next undefined fuse
 
-      await NameWrapper.burnFuses(wrappedTokenId, 128)
+      await NameWrapper.setFuses(namehash('eth'), tokenId, 128)
 
-      const [fuses, vulnerability] = await NameWrapper.getFuses(wrappedTokenId)
+      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128)
-      expect(vulnerability).to.equal(ParentVulnerability.Safe)
     })
 
     it('Logically ORs passed in fuses with already-burned fuses.', async () => {
@@ -1378,13 +1383,24 @@ describe('Name Wrapper', () => {
 
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP | CANNOT_TRANSFER,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
 
-      await NameWrapper.burnFuses(wrappedTokenId, 128)
+      await NameWrapper.setFuses(
+        namehash('eth'),
+        tokenId,
+        128 | CANNOT_TRANSFER
+      )
 
-      const [fuses, vulnerability] = await NameWrapper.getFuses(wrappedTokenId)
-      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128)
-      expect(vulnerability).to.equal(ParentVulnerability.Safe)
+      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128 | CANNOT_TRANSFER
+      )
     })
 
     it('can set fuses and then burn ability to burn fuses', async () => {
