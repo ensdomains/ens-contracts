@@ -54,7 +54,7 @@ const INTERFACES = {
     'names(bytes32)',
     'wrap(bytes,address,uint32,address)',
     'wrapETH2LD(string,address,uint32,uint64,address)',
-    'registerAndWrapETH2LD(string,address,uint256,address,uint32)',
+    'registerAndWrapETH2LD(string,address,uint256,address,uint32,uint64)',
     'renew(uint256,uint256)',
     'unwrap(bytes32,bytes32,address)',
     'unwrapETH2LD(bytes32,address,address)',

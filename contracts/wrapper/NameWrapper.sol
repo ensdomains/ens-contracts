@@ -10,6 +10,7 @@ import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
+import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -179,9 +180,9 @@ contract NameWrapper is
         string calldata label,
         address wrappedOwner,
         uint32 fuses,
-        uint64 expiry,
+        uint64 _expiry,
         address resolver
-    ) public override {
+    ) public override returns (uint64 expiry) {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
@@ -201,7 +202,7 @@ contract NameWrapper is
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(tokenId, address(this));
 
-        _wrapETH2LD(label, wrappedOwner, fuses, expiry, resolver);
+        expiry = _wrapETH2LD(label, wrappedOwner, fuses, _expiry, resolver);
     }
 
     /**
@@ -211,19 +212,20 @@ contract NameWrapper is
      * @param wrappedOwner The owner of the wrapped name.
      * @param duration The duration, in seconds, to register the name for.
      * @param resolver The resolver address to set on the ENS registry (optional).
-     * @return expiry The expiry date of the new name, in seconds since the Unix epoch.
+     * @return registrarExpiry The expiry date of the new name, in seconds since the Unix epoch.
      */
     function registerAndWrapETH2LD(
         string calldata label,
         address wrappedOwner,
         uint256 duration,
         address resolver,
-        uint32 fuses
-    ) external override onlyController returns (uint256 expiry) {
+        uint32 fuses,
+        uint64 expiry
+    ) external override onlyController returns (uint256 registrarExpiry) {
         uint256 tokenId = uint256(keccak256(bytes(label)));
 
-        expiry = registrar.register(tokenId, address(this), duration);
-        _wrapETH2LD(label, wrappedOwner, fuses, uint64(expiry), resolver);
+        registrarExpiry = registrar.register(tokenId, address(this), duration);
+        _wrapETH2LD(label, wrappedOwner, fuses, expiry, resolver);
     }
 
     /**
@@ -327,15 +329,15 @@ contract NameWrapper is
         bytes32 parentNode,
         bytes32 labelhash,
         uint32 fuses
-    ) public onlyTokenOwner(_makeNode(parentNode, labelhash)) {
+    )
+        public
+        onlyTokenOwner(_makeNode(parentNode, labelhash))
+        operationAllowed(_makeNode(parentNode, labelhash), CANNOT_BURN_FUSES)
+    {
         bytes32 node = _makeNode(parentNode, labelhash);
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
         );
-
-        if (fuses & PARENT_CANNOT_CONTROL != 0) {
-            revert Unauthorised(parentNode, msg.sender);
-        }
 
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
         if (expiry > maxExpiry) {
@@ -377,9 +379,15 @@ contract NameWrapper is
 
             (, , maxExpiry) = getData(uint256(parentNode));
         }
+        //do not let expiry be more than parent expiry
         if (expiry > maxExpiry) {
             expiry = maxExpiry;
         }
+        //do not let expiry be less than old expiry
+        if (expiry < oldExpiry) {
+            expiry = oldExpiry;
+        }
+
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
     }
@@ -406,7 +414,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        _checkExpiration(parentNode, node, expiry);
+        _checkExpiry(parentNode, node, expiry);
 
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
@@ -442,7 +450,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        _checkExpiration(parentNode, node, expiry);
+        _checkExpiry(parentNode, node, expiry);
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeRecord(
                 parentNode,
@@ -699,18 +707,24 @@ contract NameWrapper is
         _setFuses(node, owner, fuses, expiry);
     }
 
-    function _checkExpiration(
+    function _checkExpiry(
         bytes32 parentNode,
         bytes32 node,
         uint64 expiry
-    ) internal view {
+    ) internal view returns (uint64) {
         (, , uint64 oldExpiry) = getData(uint256(node));
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
 
         // check it's not going backwards or is more than the parent expiry
-        if (expiry < oldExpiry || expiry > maxExpiry) {
-            revert InvalidExpiry(node, expiry);
+        if (expiry > maxExpiry) {
+            expiry = maxExpiry;
         }
+        // do not let expiry be less than old expiry
+        if (expiry < oldExpiry) {
+            expiry = oldExpiry;
+        }
+
+        return expiry;
     }
 
     function _wrapETH2LD(
@@ -719,11 +733,17 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry,
         address resolver
-    ) private returns (bytes32 labelhash) {
+    ) private returns (uint64) {
         // mint a new ERC1155 token with fuses
         // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
-        labelhash = keccak256(bytes(label));
+        bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
+
+        uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        if (expiry > maxExpiry) {
+            expiry = maxExpiry;
+        }
+
         _addLabelAndWrap(
             ETH_NODE,
             node,
@@ -735,6 +755,8 @@ contract NameWrapper is
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
+
+        return expiry;
     }
 
     function _unwrap(bytes32 node, address newOwner) private {
@@ -769,8 +791,11 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
-        // Other than PARENT_CANNOT_CONTROL, no other fuse can be set without CANNOT_UNWRAP
-        if (fuses & ~PARENT_CANNOT_CONTROL != 0 && fuses & CANNOT_UNWRAP == 0) {
+        if (
+            fuses & ~PARENT_CANNOT_CONTROL != 0 &&
+            fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=
+            (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
+        ) {
             revert OperationProhibited(bytes32(node));
         }
 
