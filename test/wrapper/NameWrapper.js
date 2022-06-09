@@ -324,46 +324,6 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Fuses cannot be burned if PARENT_CANNOT_CONTROL has not been burned on the domain', async () => {
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      //attempt to burn fuse
-      await expect(
-        NameWrapper.wrap(
-          encodeName('xyz'),
-          account,
-          CANNOT_UNWRAP,
-          EMPTY_ADDRESS
-        )
-      ).to.be.revertedWith(`OperationProhibited("${namehash('xyz')}"`)
-    })
-
-    it('Fuses are not enforced if name is expiry has not been set', async () => {
-      // register sub.xyz before we wrap xyz
-      await EnsRegistry.setSubnodeOwner(
-        namehash('xyz'),
-        labelhash('sub'),
-        account
-      )
-
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        EMPTY_ADDRESS
-      )
-
-      //attempt to burn fuse
-      await NameWrapper.wrap(
-        encodeName('sub.xyz'),
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS
-      )
-      const [fuses] = await NameWrapper.getFuses(namehash('sub.xyz'))
-      expect(fuses).to.equal(0)
-    })
-
     it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {
       // register sub.xyz before we wrap xyz
       const node = namehash('xyz')
@@ -476,12 +436,7 @@ describe('Name Wrapper', () => {
   describe('unwrap()', () => {
     it('Allows owner to unwrap name', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS
-      )
+      await NameWrapper.wrap(encodeName('xyz'), account, 0, EMPTY_ADDRESS)
       await NameWrapper.setSubnodeOwner(
         namehash('xyz'),
         'unwrapped',
@@ -610,21 +565,48 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`IncorrectTargetOwner("${NameWrapper.address}")`)
     })
 
-    it('Will allow to unwrap a name with the CANNOT_UNWRAP fuse burned if expired', async () => {
-      const labelHash = labelhash('abc')
+    it.only('Will allow to unwrap a name with the CANNOT_UNWRAP fuse burned if expired', async () => {
+      const label = 'awesome'
+      const labelHash = labelhash(label)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await EnsRegistry.setSubnodeOwner(
+        namehash('awesome.eth'),
+        labelhash('sub'),
+        account
+      )
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
-      await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(
-        encodeName('abc'),
+      await NameWrapper.wrapETH2LD(
+        'awesome',
         account,
-        CANNOT_UNWRAP,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
+        MAX_EXPIRY,
         EMPTY_ADDRESS
       )
 
-      await NameWrapper.unwrap(ROOT_NODE, labelHash, account)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
-      expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account)
+      NameWrapper.setSubnodeOwner(
+        namehash('awesome.eth'),
+        'sub',
+        account,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
+        0
+      )
+
+      expect(await EnsRegistry.owner(namehash('sub.awesome.eth'))).to.equal(
+        NameWrapper.address
+      )
+
+      await NameWrapper.unwrap(
+        namehash('awesome.eth'),
+        labelhash('sub'),
+        account
+      )
+
+      expect(await EnsRegistry.owner(namehash('sub.awesome.eth'))).to.equal(
+        account
+      )
     })
 
     it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
