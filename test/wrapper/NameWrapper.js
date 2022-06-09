@@ -565,7 +565,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`IncorrectTargetOwner("${NameWrapper.address}")`)
     })
 
-    it.only('Will allow to unwrap a name with the CANNOT_UNWRAP fuse burned if expired', async () => {
+    it('Will allow to unwrap a name with the CANNOT_UNWRAP fuse burned if expired', async () => {
       const label = 'awesome'
       const labelHash = labelhash(label)
       await BaseRegistrar.register(labelHash, account, 84600)
@@ -609,7 +609,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
+    it.only('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
       const labelHash = labelhash('abc')
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
@@ -620,7 +620,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.wrapETH2LD(
         'abc',
         account,
-        CANNOT_UNWRAP,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
         MAX_EXPIRY,
         EMPTY_ADDRESS
       )
@@ -628,7 +628,7 @@ describe('Name Wrapper', () => {
         namehash('abc.eth'),
         'sub',
         account,
-        CANNOT_UNWRAP,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
         MAX_EXPIRY
       )
       await expect(
