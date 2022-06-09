@@ -2192,7 +2192,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe.only('setRecord', () => {
+  describe('setRecord', () => {
     const label = 'setrecord'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -2260,7 +2260,7 @@ describe('Name Wrapper', () => {
     const wrappedTokenId = namehash(label + '.eth')
 
     before(async () => {
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
     })
 
     it('Can be called by the owner', async () => {
@@ -2287,7 +2287,11 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned', async () => {
-      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_SET_RESOLVER)
+      await NameWrapper.setFuses(
+        namehash('eth'),
+        labelHash,
+        CANNOT_SET_RESOLVER
+      )
 
       await expect(
         NameWrapper.setResolver(wrappedTokenId, account2)
@@ -2295,13 +2299,13 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('setTTL', () => {
+  describe.only('setTTL', () => {
     const label = 'setttl'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
 
     before(async () => {
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
     })
 
     it('Can be called by the owner', async () => {
@@ -2328,7 +2332,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned', async () => {
-      await NameWrapper.burnFuses(wrappedTokenId, CANNOT_SET_TTL)
+      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_SET_TTL)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 100)).to.be.revertedWith(
         `OperationProhibited("${wrappedTokenId}")`
