@@ -266,6 +266,9 @@ contract NameWrapper is
             revert IncompatibleParent();
         }
 
+        // PARENT_CANNOT_CONTROL can only be burnt by the parent using setChildFuses() or setSubnodeOwner/Record()
+        _checkFusesForParentCannotControl(node, fuses);
+
         address owner = ens.owner(node);
 
         if (
@@ -339,6 +342,8 @@ contract NameWrapper is
             uint256(node)
         );
 
+        _checkFusesForParentCannotControl(node, fuses);
+
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
         if (expiry > maxExpiry) {
             // check if parent has burned CANNOT_UNWRAP when you're burning any fuses
@@ -364,12 +369,14 @@ contract NameWrapper is
             if (!isTokenOwnerOrApproved(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
+            // max expiry is set to the expiry on the registrar
             maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
         } else {
             if (!isTokenOwnerOrApproved(parentNode, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
 
+            // do not allow burning of fuses if PARENT_CANNOT_CONTROL hasn't been burnt
             if (
                 oldFuses & PARENT_CANNOT_CONTROL != 0 &&
                 fuses | oldFuses != oldFuses
@@ -377,6 +384,7 @@ contract NameWrapper is
                 revert Unauthorised(node, msg.sender);
             }
 
+            // max expiry is set to the expiry of the parent
             (, , maxExpiry) = getData(uint256(parentNode));
         }
         //do not let expiry be more than parent expiry
@@ -674,13 +682,8 @@ contract NameWrapper is
         uint64 expiry
     ) internal {
         names[node] = name;
-
-        if (fuses & ~PARENT_CANNOT_CONTROL != 0 && fuses & CANNOT_UNWRAP == 0) {
-            revert OperationProhibited(bytes32(node));
-        }
-
+        _canFusesBeBurned(node, fuses);
         _mint(node, wrappedOwner, fuses, expiry);
-
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
 
@@ -791,14 +794,27 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
+        _canFusesBeBurned(node, fuses);
+        super._setData(uint256(node), owner, fuses, expiry);
+    }
+
+    function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
         if (
             fuses & ~PARENT_CANNOT_CONTROL != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=
             (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
         ) {
-            revert OperationProhibited(bytes32(node));
+            revert OperationProhibited(node);
         }
+    }
 
-        super._setData(uint256(node), owner, fuses, expiry);
+    function _checkFusesForParentCannotControl(bytes32 node, uint32 fuses)
+        internal
+        view
+    {
+        if (fuses & PARENT_CANNOT_CONTROL != 0) {
+            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
+            revert Unauthorised(node, msg.sender);
+        }
     }
 }
