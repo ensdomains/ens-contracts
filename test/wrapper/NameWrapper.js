@@ -1886,7 +1886,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe.only('setSubnodeRecord()', async () => {
+  describe('setSubnodeRecord()', async () => {
     const label = 'subdomain2'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -2087,6 +2087,7 @@ describe('Name Wrapper', () => {
         account2,
         resolver,
         0,
+        0,
         0
       )
       await expect(tx)
@@ -2095,6 +2096,7 @@ describe('Name Wrapper', () => {
           namehash(`sub.${label}.eth`),
           encodeName(`sub.${label}.eth`),
           account2,
+          0,
           0
         )
     })
@@ -2105,6 +2107,7 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         resolver,
+        0,
         0,
         0
       )
@@ -2126,6 +2129,7 @@ describe('Name Wrapper', () => {
         account2,
         resolver,
         100,
+        0,
         0
       )
 
@@ -2145,6 +2149,7 @@ describe('Name Wrapper', () => {
           account,
           resolver,
           0,
+          0,
           0
         )
       ).to.be.revertedWith(`LabelTooShort()`)
@@ -2157,6 +2162,7 @@ describe('Name Wrapper', () => {
         account2,
         resolver,
         0,
+        0,
         0
       )
       // Check the gas is reduced to confirm it is not being wrapped
@@ -2168,6 +2174,7 @@ describe('Name Wrapper', () => {
             account2,
             resolver,
             0,
+            0,
             0
           )
         ).toNumber()
@@ -2177,6 +2184,7 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         resolver,
+        0,
         0,
         0
       )
