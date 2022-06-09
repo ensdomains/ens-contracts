@@ -609,7 +609,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it.only('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
+    it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
       const labelHash = labelhash('abc')
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
@@ -1689,6 +1689,7 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           'sub',
           EMPTY_ADDRESS,
+          0,
           CAN_DO_EVERYTHING
         )
       ).to.be.revertedWith('ERC1155: mint to the zero address')
@@ -1753,27 +1754,30 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           label2,
           account,
-          CANNOT_TRANSFER
+          PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
+          0
         )
       ).to.be.revertedWith(
         `OperationProhibited("${namehash(`${label2}.${label}.eth`)}")`
       )
     })
 
-    it('Allows fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL is burned', async () => {
+    it('Allows fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL is burned if is not expired', async () => {
       const label = 'subdomain2'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
       await registerSetupAndWrapName(
         label,
         account,
-        CAN_DO_EVERYTHING | CANNOT_UNWRAP
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP,
+        84600
       )
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY
       )
 
       expect(
@@ -1783,6 +1787,33 @@ describe('Name Wrapper', () => {
         )
       ).to.equal(true)
     })
+
+    it('Does not allow fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL are burned, but the name is expired', async () => {
+      const label = 'subdomain2'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(
+        label,
+        account,
+        CAN_DO_EVERYTHING | CANNOT_UNWRAP,
+        84600
+      )
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'sub',
+        account,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        0 // set expiry to 0
+      )
+
+      expect(
+        await NameWrapper.allFusesBurned(
+          namehash(`sub.${label}.eth`),
+          PARENT_CANNOT_CONTROL
+        )
+      ).to.equal(false)
+    })
+
     it('Emits Wrap event', async () => {
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       const tx = await NameWrapper.setSubnodeOwner(
@@ -1798,6 +1829,7 @@ describe('Name Wrapper', () => {
           namehash(`sub.${label}.eth`),
           encodeName(`sub.${label}.eth`),
           account2,
+          0,
           0
         )
     })
@@ -1829,13 +1861,14 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           '',
           account,
-          CAN_DO_EVERYTHING
+          CAN_DO_EVERYTHING,
+          0
         )
       ).to.be.revertedWith(`LabelTooShort()`)
     })
 
     it('should be able to call twice and change the owner', async () => {
-      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0)
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0, 0)
       // Check the gas is reduced to confirm it is not being wrapped
       console.log(
         (
@@ -1843,16 +1876,17 @@ describe('Name Wrapper', () => {
             wrappedTokenId,
             'sub',
             account,
+            0,
             0
           )
         ).toNumber()
       )
-      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0)
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
     })
   })
 
-  describe('setSubnodeRecord()', async () => {
+  describe.only('setSubnodeRecord()', async () => {
     const label = 'subdomain2'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -1870,6 +1904,7 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         resolver,
+        0,
         0,
         0
       )
@@ -1892,6 +1927,7 @@ describe('Name Wrapper', () => {
         account,
         resolver,
         0,
+        0,
         0
       )
 
@@ -1911,6 +1947,7 @@ describe('Name Wrapper', () => {
         account2,
         resolver,
         0,
+        0,
         0
       )
 
@@ -1927,6 +1964,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           resolver,
           0,
+          0,
           0
         )
       ).to.be.revertedWith('ERC1155: mint to the zero address')
@@ -1939,6 +1977,7 @@ describe('Name Wrapper', () => {
           'sub',
           NameWrapper.address,
           resolver,
+          0,
           0,
           0
         )
@@ -1957,37 +1996,17 @@ describe('Name Wrapper', () => {
           account,
           resolver,
           0,
+          0,
           0
         )
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
-    it('Fuses are not enabled if the name does not have PARENT_CANNOT_CONTROL burned.', async () => {
+    it('Does not allow fuses to be burned if PARENT_CANNOT_CONTROL is not burned.', async () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
-      await NameWrapper.setSubnodeRecord(
-        wrappedTokenId,
-        'sub',
-        account,
-        resolver,
-        0,
-        CANNOT_UNWRAP
-      )
-      const [fuses, vulnerable, vulnerableNode] = await NameWrapper.getFuses(
-        namehash(`sub.${label}.eth`)
-      )
-      expect(fuses).to.equal(CANNOT_UNWRAP)
-      expect(vulnerable).to.equal(ParentVulnerability.Fuses)
-      expect(vulnerableNode).to.equal(wrappedTokenId)
-    })
-
-    it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {
-      const label = 'subdomain3'
-      const tokenId = labelhash(label)
-      const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHIN, 84600)
       await expect(
         NameWrapper.setSubnodeRecord(
           wrappedTokenId,
@@ -1995,11 +2014,50 @@ describe('Name Wrapper', () => {
           account,
           resolver,
           0,
-          CANNOT_TRANSFER
+          CANNOT_UNWRAP,
+          MAX_EXPIRY
         )
       ).to.be.revertedWith(
         `OperationProhibited("${namehash(`sub.${label}.eth`)}")`
       )
+    })
+
+    it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned', async () => {
+      const label = 'subdomain3'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING, 86400)
+      await expect(
+        NameWrapper.setSubnodeRecord(
+          wrappedTokenId,
+          'sub',
+          account,
+          resolver,
+          0,
+          PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
+          MAX_EXPIRY
+        )
+      ).to.be.revertedWith(
+        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`
+      )
+    })
+
+    it('Fuses will remain 0 if expired', async () => {
+      const label = 'subdomain3'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING, 86400)
+      NameWrapper.setSubnodeRecord(
+        wrappedTokenId,
+        'sub',
+        account,
+        resolver,
+        0,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+        0
+      )
+      const [fuses] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      expect(fuses).to.equal(0)
     })
 
     it('Emits Wrap event', async () => {
