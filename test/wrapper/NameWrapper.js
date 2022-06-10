@@ -2299,7 +2299,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe.only('setTTL', () => {
+  describe('setTTL', () => {
     const label = 'setttl'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -2345,6 +2345,8 @@ describe('Name Wrapper', () => {
     const name = label + '.eth'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+    const types = ['string', 'address', 'uint32', 'uint64', 'address']
+    const MAX_EXPIRY = '0xffffffffffffffff'
     it('Wraps a name transferred to it and sets the owner to the provided address', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
@@ -2353,8 +2355,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account2, '0x0', EMPTY_ADDRESS]
+          ['string', 'address', 'uint32', 'uint64', 'address'],
+          [label, account2, '0x0', '0x0', EMPTY_ADDRESS]
         )
       )
 
@@ -2370,10 +2372,13 @@ describe('Name Wrapper', () => {
           account,
           account,
           tokenId,
-          abiCoder.encode(
-            ['string', 'address', 'uint96', 'address'],
-            [label, account, '0x000000000000000000000001', EMPTY_ADDRESS]
-          )
+          abiCoder.encode(types, [
+            label,
+            account,
+            '0x00000001',
+            '0x0',
+            EMPTY_ADDRESS,
+          ])
         )
       ).to.be.revertedWith('IncorrectTokenType()')
     })
@@ -2385,10 +2390,13 @@ describe('Name Wrapper', () => {
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000001', EMPTY_ADDRESS]
-        )
+        abiCoder.encode(types, [
+          label,
+          account,
+          '0x00000001',
+          MAX_EXPIRY,
+          EMPTY_ADDRESS,
+        ])
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(1 | PARENT_CANNOT_CONTROL)
@@ -2404,10 +2412,7 @@ describe('Name Wrapper', () => {
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000001', account2]
-        )
+        abiCoder.encode(types, [label, account, '0x00000001', '0x0', account2])
       )
 
       expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2)
@@ -2433,15 +2438,13 @@ describe('Name Wrapper', () => {
           account,
           NameWrapper.address,
           tokenId,
-          abiCoder.encode(
-            ['string', 'address', 'uint96', 'address'],
-            [
-              'incorrectlabel',
-              account,
-              '0x000000000000000000000000',
-              EMPTY_ADDRESS,
-            ]
-          )
+          abiCoder.encode(types, [
+            'incorrectlabel',
+            account,
+            '0x00000000',
+            '0x0',
+            EMPTY_ADDRESS,
+          ])
         )
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
@@ -2455,10 +2458,13 @@ describe('Name Wrapper', () => {
           account,
           NameWrapper.address,
           tokenId,
-          abiCoder.encode(
-            ['string', 'address', 'uint96', 'address'],
-            [label, account, '0x000000000000000000000002', EMPTY_ADDRESS]
-          )
+          abiCoder.encode(types, [
+            label,
+            account,
+            '0x00000002',
+            '0x0',
+            EMPTY_ADDRESS,
+          ])
         )
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
@@ -2472,8 +2478,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000005', EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          types,
+          [label, account, 5, MAX_EXPIRY, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2488,9 +2494,40 @@ describe('Name Wrapper', () => {
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL
+          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
         )
       ).to.equal(true)
+    })
+
+    it('Allows burning other fuses if CAN_UNWRAP has been burnt, but resets fuses if expired', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+      await EnsRegistry.setOwner(wrappedTokenId, account2)
+
+      await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
+        account,
+        NameWrapper.address,
+        tokenId,
+        abiCoder.encode(types, [
+          label,
+          account,
+          5, // CANNOT_UNWRAP | CANNOT_TRANSFER
+          0, // expiry is 0
+          EMPTY_ADDRESS,
+        ])
+      )
+
+      expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
+        NameWrapper.address
+      )
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(0)
+
+      expect(
+        await NameWrapper.allFusesBurned(
+          wrappedTokenId,
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_TRANSFER
+        )
+      ).to.equal(false)
     })
 
     it('Sets the controller in the ENS registry to the wrapper contract', async () => {
@@ -2500,10 +2537,13 @@ describe('Name Wrapper', () => {
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000000', EMPTY_ADDRESS]
-        )
+        abiCoder.encode(types, [
+          label,
+          account,
+          '0x00000000',
+          '0x0',
+          EMPTY_ADDRESS,
+        ])
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
@@ -2519,13 +2559,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [
-            'send2contract',
-            account,
-            '0x000000000000000000000000',
-            EMPTY_ADDRESS,
-          ] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          types,
+          ['send2contract', account, '0x00000000', '0x0', EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2544,8 +2579,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000005', EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          types,
+          [label, account, 5, 0, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2555,7 +2590,8 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           encodeName(name),
           account,
-          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
+          0
         )
     })
 
@@ -2568,8 +2604,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
         tokenId,
         abiCoder.encode(
-          ['string', 'address', 'uint96', 'address'],
-          [label, account, '0x000000000000000000000005', EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
+          types,
+          [label, account, 5, 0, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       )
 
@@ -2592,10 +2628,7 @@ describe('Name Wrapper', () => {
           account,
           NameWrapper.address,
           labelhash(''),
-          abiCoder.encode(
-            ['string', 'address', 'uint96'],
-            ['', account2, '0x0']
-          )
+          abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS])
         )
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
