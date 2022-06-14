@@ -2745,6 +2745,7 @@ describe('Name Wrapper', () => {
     const subSubLabel = 'subsub'
     const subSubLabelhash = labelhash(subSubLabel)
     const subSubNameHash = namehash(`${subSubLabel}.${subLabel}.${label}.eth`)
+
     it('returns the correct fuses and expiry', async () => {
       const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
@@ -2792,78 +2793,6 @@ describe('Name Wrapper', () => {
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(expectedExpiry)
-    })
-
-    it('identifies vulnerability is registrant is not the wrapper and vulnerable node', async () => {
-      const GRACE_PERIOD = 90
-      const DAY = 24 * 60 * 60
-
-      const initialFuses = CANNOT_UNWRAP
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await BaseRegistrar.register(labelHash, account, DAY)
-      await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwner(
-        nameHash,
-        subLabel,
-        account,
-        initialFuses
-      )
-
-      await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
-      await mine()
-
-      await BaseRegistrar.register(labelHash, account, 84600)
-
-      let [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(
-        subNameHash
-      )
-
-      expect(fuses).to.equal(initialFuses)
-      expect(vulnerability).to.equal(ParentVulnerability.Registrant)
-      expect(vulnerableNode).to.equal(nameHash)
-    })
-
-    it('identifies vulnerability is registrant is not the wrapper and vulnerable node', async () => {
-      const GRACE_PERIOD = 90
-      const DAY = 24 * 60 * 60
-
-      const initialFuses = CANNOT_UNWRAP
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await BaseRegistrar.register(labelHash, account, DAY)
-      await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.setSubnodeOwner(
-        nameHash,
-        subLabel,
-        account,
-        initialFuses
-      )
-
-      await NameWrapper.setSubnodeOwner(
-        subNameHash,
-        subSubLabel,
-        account,
-        initialFuses
-      )
-
-      await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
-      await mine()
-
-      // re-register the name
-      await BaseRegistrar.register(labelHash, account, 84600)
-      // setup the subnode outside the wrapper
-      await EnsRegistry.setSubnodeOwner(nameHash, subLabelHash, account)
-      // rewrap the name above, without wrapping the subnode
-      await NameWrapper.wrapETH2LD(label, account, initialFuses, EMPTY_ADDRESS)
-
-      let [fuses, vulnerability, vulnerableNode] = await NameWrapper.getFuses(
-        subNameHash
-      )
-
-      expect(fuses).to.equal(initialFuses)
-      expect(vulnerability).to.equal(ParentVulnerability.Controller)
-      expect(vulnerableNode).to.equal(subNameHash)
     })
   })
 
