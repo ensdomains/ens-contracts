@@ -422,7 +422,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        _checkExpiry(parentNode, node, expiry);
+        expiry = _normaliseExpiry(parentNode, node, expiry);
 
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
@@ -458,7 +458,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        _checkExpiry(parentNode, node, expiry);
+        expiry = _normaliseExpiry(parentNode, node, expiry);
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeRecord(
                 parentNode,
@@ -710,7 +710,7 @@ contract NameWrapper is
         _setFuses(node, owner, fuses, expiry);
     }
 
-    function _checkExpiry(
+    function _normaliseExpiry(
         bytes32 parentNode,
         bytes32 node,
         uint64 expiry
