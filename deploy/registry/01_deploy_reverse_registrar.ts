@@ -1,3 +1,4 @@
+import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
@@ -6,14 +7,16 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  await deploy('SHA1NSEC3Digest', {
+  const registry = await ethers.getContract('ENSRegistry')
+
+  await deploy('ReverseRegistrar', {
     from: deployer,
-    args: [],
+    args: [registry.address],
     log: true,
   })
 }
 
-func.tags = ['dnssec-nsec3-digests']
-func.dependencies = ['registry']
+func.id = 'reverse-registrar'
+func.tags = ['registry', 'ReverseRegistrar']
 
 export default func

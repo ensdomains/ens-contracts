@@ -6,6 +6,7 @@ const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+  console.log('starting')
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
@@ -55,6 +56,6 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
 }
 
 func.id = 'ens'
-func.tags = ['registry']
+func.tags = ['registry', 'ENSRegistry']
 
 export default func

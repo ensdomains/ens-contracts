@@ -1,19 +1,23 @@
+import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
+  const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  await deploy('SHA1NSEC3Digest', {
+  const registry = await ethers.getContract('ENSRegistry')
+
+  await deploy('UniversalResolver', {
     from: deployer,
-    args: [],
+    args: [registry.address],
     log: true,
   })
 }
 
-func.tags = ['dnssec-nsec3-digests']
+func.id = 'universal-resolver'
+func.tags = ['utils', 'UniversalResolver']
 func.dependencies = ['registry']
 
 export default func
