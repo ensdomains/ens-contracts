@@ -52,6 +52,12 @@ module.exports = {
       chainId: 3,
       accounts: real_accounts,
     },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["test", "legacy", "use_root"],
+      chainId: 5,
+      accounts: real_accounts,
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`,
       tags: ['legacy', 'use_root'],

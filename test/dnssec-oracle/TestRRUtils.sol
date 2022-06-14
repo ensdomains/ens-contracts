@@ -32,15 +32,15 @@ contract TestRRUtils {
     // a. IN A 3600 127.0.0.1
     // b.a. IN A 3600 192.168.1.1
     bytes memory rrs = hex'0161000001000100000e1000047400000101620161000001000100000e100004c0a80101';
-    string[2] memory names = [hex'016100', hex'0162016100'];
-    string[2] memory rdatas = [hex'74000001', hex'c0a80101'];
+    bytes[2] memory names = [bytes(hex'016100'), bytes(hex'0162016100')];
+    bytes[2] memory rdatas = [bytes(hex'74000001'), bytes(hex'c0a80101')];
     uint i = 0;
     for(RRUtils.RRIterator memory iter = rrs.iterateRRs(0); !iter.done(); iter.next()) {
       require(uint(iter.dnstype) == 1, "Type matches");
       require(uint(iter.class) == 1, "Class matches");
       require(uint(iter.ttl) == 3600, "TTL matches");
-      require(keccak256(iter.name()) == keccak256(bytes(names[i])), "Name matches");
-      require(keccak256(iter.rdata()) == keccak256(bytes(rdatas[i])), "Rdata matches");
+      require(keccak256(iter.name()) == keccak256(names[i]), "Name matches");
+      require(keccak256(iter.rdata()) == keccak256(rdatas[i]), "Rdata matches");
       i++;
     }
     require(i == 2, "Expected 2 records");
