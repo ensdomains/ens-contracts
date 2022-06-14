@@ -25,6 +25,6 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
 
 func.id = 'price-oracle'
 func.tags = ['ethregistrar', 'StablePriceOracle', 'DummyOracle']
-func.dependencies = ['ens']
+func.dependencies = ['registry']
 
 export default func
