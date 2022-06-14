@@ -60,9 +60,11 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (uint256 registrarExpiry);
 
-    function renew(uint256 labelHash, uint256 duration)
-        external
-        returns (uint256 expires);
+    function renew(
+        uint256 labelHash,
+        uint256 duration,
+        uint64 expiry
+    ) external returns (uint256 expires);
 
     function unwrap(
         bytes32 node,

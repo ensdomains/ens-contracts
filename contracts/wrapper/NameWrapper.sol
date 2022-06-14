@@ -223,7 +223,6 @@ contract NameWrapper is
         uint64 expiry
     ) external override onlyController returns (uint256 registrarExpiry) {
         uint256 tokenId = uint256(keccak256(bytes(label)));
-
         registrarExpiry = registrar.register(tokenId, address(this), duration);
         _wrapETH2LD(label, wrappedOwner, fuses, expiry, resolver);
     }
@@ -235,13 +234,21 @@ contract NameWrapper is
      * @param duration The number of seconds to renew the name for.
      * @return expires The expiry date of the name, in seconds since the Unix epoch.
      */
-    function renew(uint256 tokenId, uint256 duration)
-        external
-        override
-        onlyController
-        returns (uint256 expires)
-    {
-        return registrar.renew(tokenId, duration);
+    function renew(
+        uint256 tokenId,
+        uint256 duration,
+        uint64 expiry
+    ) external override onlyController returns (uint256 expires) {
+        bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
+        address owner;
+        uint32 fuses;
+        uint64 oldExpiry;
+
+        expires = registrar.renew(tokenId, duration);
+        (owner, fuses, oldExpiry) = getData(uint256(node));
+        expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
+
+        _setData(node, owner, fuses, expiry);
     }
 
     /**
@@ -422,7 +429,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        expiry = _normaliseExpiry(parentNode, node, expiry);
+        (, , expiry) = _getDataAndNormaliseExpiry(parentNode, node, expiry);
 
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
@@ -458,7 +465,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        expiry = _normaliseExpiry(parentNode, node, expiry);
+        (, , expiry) = _getDataAndNormaliseExpiry(parentNode, node, expiry);
         if (ens.owner(node) != address(this)) {
             ens.setSubnodeRecord(
                 parentNode,
@@ -710,15 +717,56 @@ contract NameWrapper is
         _setFuses(node, owner, fuses, expiry);
     }
 
-    function _normaliseExpiry(
+    // wrapper function for stack limit
+    function _getDataAndNormaliseExpiry(
         bytes32 parentNode,
         bytes32 node,
         uint64 expiry
-    ) internal view returns (uint64) {
-        (, , uint64 oldExpiry) = getData(uint256(node));
+    )
+        internal
+        view
+        returns (
+            address owner,
+            uint32 fuses,
+            uint64
+        )
+    {
+        uint64 oldExpiry;
+        (owner, fuses, oldExpiry) = getData(uint256(node));
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
 
-        // check it's not going backwards or is more than the parent expiry
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+        return (owner, fuses, expiry);
+    }
+
+    function _getETH2LDDataAndNormaliseExpiry(
+        bytes32 node,
+        bytes32 labelhash,
+        uint64 expiry
+    )
+        internal
+        view
+        returns (
+            address owner,
+            uint32 fuses,
+            uint64
+        )
+    {
+        uint64 oldExpiry;
+        (owner, fuses, oldExpiry) = getData(uint256(node));
+        uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
+
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+        return (owner, fuses, expiry);
+    }
+
+    function _normaliseExpiry(
+        uint64 expiry,
+        uint64 oldExpiry,
+        uint64 maxExpiry
+    ) internal pure returns (uint64) {
+        // do not let expiry be more than maximum allowed
+        // .eth names will check registrar, non .eth check parent
         if (expiry > maxExpiry) {
             expiry = maxExpiry;
         }
@@ -742,10 +790,11 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
 
-        uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
-        if (expiry > maxExpiry) {
-            expiry = maxExpiry;
-        }
+        (, , expiry) = _getETH2LDDataAndNormaliseExpiry(
+            node,
+            labelhash,
+            expiry
+        );
 
         _addLabelAndWrap(
             ETH_NODE,
