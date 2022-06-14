@@ -1,39 +1,35 @@
-require('@nomiclabs/hardhat-truffle5')
-require('@nomiclabs/hardhat-waffle')
-require('hardhat-abi-exporter')
-require('@nomiclabs/hardhat-solhint')
-require('hardhat-gas-reporter')
-require('hardhat-deploy')
-require('hardhat-deploy-ethers')
+import '@nomiclabs/hardhat-ethers'
+import '@nomiclabs/hardhat-solhint'
+import '@nomiclabs/hardhat-truffle5'
+import '@nomiclabs/hardhat-waffle'
+import dotenv from 'dotenv'
+import 'hardhat-abi-exporter'
+import 'hardhat-deploy'
+import 'hardhat-gas-reporter'
+import { task } from 'hardhat/config'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
 // that have already been set.
 // https://github.com/motdotla/dotenv
-require('dotenv').config({ silent: true })
+dotenv.config({ debug: false })
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async () => {
-  const accounts = await ethers.getSigners()
+task('accounts', 'Prints the list of accounts', async (args, hre) => {
+  const accounts = await hre.ethers.getSigners()
 
   for (const account of accounts) {
     console.log(account.address)
   }
 })
 
-// You need to export an object to set up your config
-// Go to https://hardhat.org/config/ to learn more
-
-real_accounts = undefined
+let real_accounts = undefined
 if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
   real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY]
 }
 
-/**
- * @type import('hardhat/config').HardhatUserConfig
- */
-module.exports = {
+export default {
   networks: {
     hardhat: {
       // Required for real DNS record tests
@@ -54,7 +50,7 @@ module.exports = {
     },
     goerli: {
       url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
-      tags: ["test", "legacy", "use_root"],
+      tags: ['test', 'legacy', 'use_root'],
       chainId: 5,
       accounts: real_accounts,
     },
@@ -66,17 +62,10 @@ module.exports = {
     },
   },
   mocha: {},
-  mocha: {},
-  abiExporter: {
-    path: './build/contracts',
-    clear: true,
-    flat: true,
-    spacing: 2,
-  },
   solidity: {
     compilers: [
       {
-        version: "0.8.13",
+        version: '0.8.13',
         settings: {
           optimizer: {
             enabled: true,
@@ -91,7 +80,14 @@ module.exports = {
     runOnCompile: true,
     clear: true,
     flat: true,
-    except: ['Controllable$', 'INameWrapper$', 'SHA1$', 'Ownable$', 'NameResolver$', 'TestBytesUtils$'],
+    except: [
+      'Controllable$',
+      'INameWrapper$',
+      'SHA1$',
+      'Ownable$',
+      'NameResolver$',
+      'TestBytesUtils$',
+    ],
     spacing: 2,
     pretty: true,
   },
