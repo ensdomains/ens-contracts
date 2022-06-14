@@ -39,6 +39,6 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
 
 func.id = 'registrar'
 func.tags = ['ethregistrar', 'BaseRegistrarImplementation']
-func.dependencies = ['registry']
+func.dependencies = ['registry', 'root']
 
 export default func
