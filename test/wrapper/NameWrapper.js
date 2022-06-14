@@ -1656,6 +1656,32 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('setChildFuses', () => {
+    it('Allows .eth owners to set their fuses/expiry', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CAN_DO_EVERYTHING,
+        0
+      )
+
+      let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+
+      await NameWrapper.setChildFuses(
+        namehash('eth'),
+        labelHash,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY
+      )
+      ;[fuses] = await NameWrapper.getFuses(wrappedTokenId)
+
+      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+    })
+  })
+
   describe('setSubnodeOwner()', async () => {
     const label = 'ownerandwrap'
     const tokenId = labelhash(label)
@@ -2944,24 +2970,6 @@ describe('Name Wrapper', () => {
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
-    })
-
-    it('resets PARENT_CANNOT_CONTROL if setFuses is set on .eth', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
-        label,
-        account,
-        86400,
-        EMPTY_ADDRESS,
-        CAN_DO_EVERYTHING,
-        0
-      )
-
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
-      expect(fuses).to.equal(0)
-
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_UNWRAP)
-
-      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
     })
 
     it('Will not wrap a name with an empty label', async () => {

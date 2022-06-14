@@ -394,14 +394,8 @@ contract NameWrapper is
             // max expiry is set to the expiry of the parent
             (, , maxExpiry) = getData(uint256(parentNode));
         }
-        //do not let expiry be more than parent expiry
-        if (expiry > maxExpiry) {
-            expiry = maxExpiry;
-        }
-        //do not let expiry be less than old expiry
-        if (expiry < oldExpiry) {
-            expiry = oldExpiry;
-        }
+
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
