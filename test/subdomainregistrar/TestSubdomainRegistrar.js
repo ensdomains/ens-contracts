@@ -15,6 +15,7 @@ const ROOT_NODE =
 const EMPTY_BYTES32 =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const MAX_EXPIRY = 2n ** 64n - 1n
 
 describe('Subdomain registrar', () => {
   let EnsRegistry
@@ -101,7 +102,13 @@ describe('Subdomain registrar', () => {
     it('should allow subdomains to be created', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        0,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar2.register(
@@ -110,17 +117,16 @@ describe('Subdomain registrar', () => {
         account2,
         EMPTY_ADDRESS,
         0,
-        0,
         86400,
         []
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
     })
-    it('should allow not approved subdomains to be created', async () => {
+    it('should not allow unapproved subdomains to be created', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(namehash('test.eth'))).to.equal(account)
 
       await expect(
@@ -129,7 +135,6 @@ describe('Subdomain registrar', () => {
           'subname',
           account2,
           EMPTY_ADDRESS,
-          0,
           0,
           86400,
           []
@@ -144,7 +149,7 @@ describe('Subdomain registrar', () => {
       const node = namehash('test.eth')
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setRegistrationFee(node, 1)
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
@@ -155,7 +160,6 @@ describe('Subdomain registrar', () => {
         account2,
         EMPTY_ADDRESS,
         0,
-        0,
         86400,
         [],
         { value: 86400 * fee }
@@ -164,11 +168,11 @@ describe('Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
     })
 
-    it('should revert if not enough ether is given', async () => {
+    it('should revert if insufficient ether is provided', async () => {
       const node = namehash('test.eth')
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
@@ -178,7 +182,6 @@ describe('Subdomain registrar', () => {
           'subname',
           account2,
           EMPTY_ADDRESS,
-          0,
           0,
           86400,
           []
@@ -192,7 +195,7 @@ describe('Subdomain registrar', () => {
       const node = namehash('test.eth')
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setRegistrationFee(node, 1)
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
@@ -202,7 +205,6 @@ describe('Subdomain registrar', () => {
         'subname',
         account2,
         PublicResolver.address,
-        0,
         0,
         86400,
         [
@@ -214,7 +216,9 @@ describe('Subdomain registrar', () => {
         { value: 86400 * fee }
       )
 
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
+        account2
+      )
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
     })
   })

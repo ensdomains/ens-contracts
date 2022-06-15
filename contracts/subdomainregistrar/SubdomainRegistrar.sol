@@ -53,8 +53,11 @@ contract SubdomainRegistrar is ERC1155Holder {
     }
 
     function available(bytes32 node) public returns (bool) {
-        (, uint64 expiry) = wrapper.getFuses(node);
-        return expiry < block.timestamp;
+        try wrapper.getFuses(node) returns (uint32, uint64 expiry) {
+            return expiry < block.timestamp;
+        } catch {
+            return true;
+        }
     }
 
     function register(
@@ -66,9 +69,12 @@ contract SubdomainRegistrar is ERC1155Holder {
         uint64 duration,
         bytes[] calldata records
     ) public payable {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = keccak256(abi.encodePacked(parentNode, labelhash));
+        bytes32 node = keccak256(
+            abi.encodePacked(parentNode, keccak256(bytes(label)))
+        );
         uint256 registrationFee = duration * names[parentNode].registrationFee;
+        // check max registration possible
+        // refund the rest
 
         if (!available(node)) {
             revert Unavailable();
@@ -98,7 +104,13 @@ contract SubdomainRegistrar is ERC1155Holder {
             uint64(block.timestamp + duration)
         );
 
-        names[parentNode].beneficiary.call{value: registrationFee}("");
+        (bool sent, ) = names[parentNode].beneficiary.call{
+            value: registrationFee
+        }("");
+
+        if (!sent) {
+            revert InsufficientFunds();
+        }
     }
 
     function renew(
@@ -123,7 +135,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         );
 
         if (!sent) {
-            revert();
+            revert InsufficientFunds();
         }
 
         emit NameRenewed(node, newExpiry);
