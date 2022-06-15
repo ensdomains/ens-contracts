@@ -1657,28 +1657,249 @@ describe('Name Wrapper', () => {
   })
 
   describe('setChildFuses', () => {
-    it('Allows .eth owners to set their fuses/expiry', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
-        label,
+    const label = 'fuses'
+    const tokenId = labelhash(label)
+    const wrappedTokenId = namehash(`${label}.eth`)
+    const subWrappedTokenId = namehash(`sub.${label}.eth`)
+
+    it('Allows parent owners to set fuses/expiry', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
         account,
-        86400,
-        EMPTY_ADDRESS,
-        CAN_DO_EVERYTHING,
-        0
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(
+        namehash('sub.fuses.eth')
       )
 
-      let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
 
       await NameWrapper.setChildFuses(
-        namehash('eth'),
-        labelHash,
+        wrappedTokenId,
+        labelhash('sub'),
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
         MAX_EXPIRY
       )
-      ;[fuses] = await NameWrapper.getFuses(wrappedTokenId)
+
+      const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
+      ;[fuses, expiry] = await NameWrapper.getFuses(namehash('sub.fuses.eth'))
 
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('Allows accounts authorised by the parent node owner to set fuses/expiry', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(
+        namehash('sub.fuses.eth')
+      )
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      // approve account2 for anything account owns
+      await NameWrapper.setApprovalForAll(account2, true)
+
+      await NameWrapper2.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY
+      )
+
+      const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
+      ;[fuses, expiry] = await NameWrapper.getFuses(namehash('sub.fuses.eth'))
+
+      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('Does not allow non-parent owners to set child fuses', async () => {
+      const subWrappedTokenId = namehash('sub.fuses.eth')
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      await expect(
+        NameWrapper2.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+          MAX_EXPIRY
+        )
+      ).to.be.revertedWith(
+        `Unauthorised("${subWrappedTokenId}", "${account2}")`
+      )
+    })
+
+    it('Allows .eth owners to set their fuses/expiry', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
+
+      await NameWrapper.setChildFuses(
+        namehash('eth'),
+        tokenId,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY
+      )
+      ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+
+      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('Allows setting expiry to anything between oldExpiry and maxExpiry', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, 0)
+
+      let [, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(expiry).to.equal(0)
+
+      const registrarExpiry = await BaseRegistrar.nameExpires(tokenId)
+
+      await NameWrapper.setChildFuses(
+        namehash('eth'),
+        tokenId,
+        0,
+        registrarExpiry - 42300
+      )
+      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(expiry).to.equal(registrarExpiry - 42300)
+    })
+
+    it('Normalises expiry to the parent expiry', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      let [, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+
+      expect(expiry).to.equal(0)
+
+      await NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY
+      )
+
+      // expiry of parent
+      const [, expectedExpiry] = await NameWrapper.getFuses(wrappedTokenId)
+
+      ;[, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('Normalises expiry to the .eth registrar expiry', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      await NameWrapper.setChildFuses(namehash('eth'), tokenId, 0, MAX_EXPIRY)
+      // expiry in the .eth registrar
+      const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
+      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('Normalises expiry to the old expiry', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, 1000)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(1000)
+
+      // set the expiry lower than originally
+      await NameWrapper.setChildFuses(namehash('eth'), tokenId, 0, 500)
+      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(expiry).to.equal(1000)
+    })
+
+    it('Does not allow burning fuses if PARENT_CANNOT_CONTROL is not burnt', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_UNWRAP,
+          MAX_EXPIRY
+        )
+      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+    })
+
+    it('Does not allow burning fuses if CANNOT_UNWRAP is not burnt', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, MAX_EXPIRY)
+
+      let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(64)
+
+      await expect(
+        NameWrapper.setChildFuses(
+          namehash('eth'),
+          tokenId,
+          CANNOT_SET_RESOLVER,
+          0
+        )
+      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
+    })
+
+    it('Fuses are set to 0 if expired', async () => {
+      await registerSetupAndWrapName('fuses', account, 0, 0)
+
+      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      // Does not revert
+      await NameWrapper.setChildFuses(
+        namehash('eth'),
+        tokenId,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+        0
+      )
+      ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
     })
   })
 
