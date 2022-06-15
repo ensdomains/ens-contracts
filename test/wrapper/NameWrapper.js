@@ -2169,21 +2169,14 @@ describe('Name Wrapper', () => {
     })
 
     it('should be able to call twice and change the owner', async () => {
-      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0, 0)
-      // Check the gas is reduced to confirm it is not being wrapped
-      console.log(
-        (
-          await NameWrapper.estimateGas.setSubnodeOwner(
-            wrappedTokenId,
-            'sub',
-            account,
-            0,
-            0
-          )
-        ).toNumber()
-      )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
+        account
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0, 0)
+      expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
+        account2
+      )
     })
   })
 
@@ -2475,25 +2468,14 @@ describe('Name Wrapper', () => {
       await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
-        account2,
+        account,
         resolver,
         0,
         0,
         0
       )
-      // Check the gas is reduced to confirm it is not being wrapped
-      console.log(
-        (
-          await NameWrapper.estimateGas.setSubnodeRecord(
-            wrappedTokenId,
-            'sub',
-            account2,
-            resolver,
-            0,
-            0,
-            0
-          )
-        ).toNumber()
+      expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
+        account
       )
       await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
@@ -2504,7 +2486,9 @@ describe('Name Wrapper', () => {
         0,
         0
       )
-      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
+        account2
+      )
     })
   })
 
