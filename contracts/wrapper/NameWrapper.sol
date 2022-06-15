@@ -251,6 +251,21 @@ contract NameWrapper is
     }
 
     /**
+     * @dev Returns the owner of the ERC1155 token
+     *
+     * @param tokenId The hash of the label to register (eg, `keccak256('foo')`, for 'foo.eth').
+     * @return expires The expiry date of the name, in seconds since the Unix epoch.
+     */
+    function ownerOf(uint256 tokenId)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (address)
+    {
+        return super.ownerOf(tokenId);
+    }
+
+    /**
      * @notice Wraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner in the registry or an authorised caller in the registry
      * @param name The name to wrap, in DNS format
