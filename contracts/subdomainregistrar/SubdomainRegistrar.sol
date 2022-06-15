@@ -3,6 +3,7 @@ pragma solidity ^0.8.13;
 
 import "../wrapper/INameWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "hardhat/console.sol";
 
@@ -12,7 +13,8 @@ error InsufficientFunds();
 error NameNotRegistered();
 
 struct Name {
-    uint256 registrationFee;
+    uint256 registrationFee; // per second
+    address token; // ERC20 token
     address beneficiary;
 }
 
@@ -38,11 +40,13 @@ contract SubdomainRegistrar is ERC1155Holder {
 
     function setupDomain(
         bytes32 node,
+        address token,
         uint256 fee,
         address beneficiary
     ) public onlyOwner(node) {
         setRegistrationFee(node, fee);
         names[node].beneficiary = beneficiary;
+        names[node].token = token;
     }
 
     function setRegistrationFee(bytes32 node, uint256 fee)
@@ -72,7 +76,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         bytes32 node = keccak256(
             abi.encodePacked(parentNode, keccak256(bytes(label)))
         );
-        uint256 registrationFee = duration * names[parentNode].registrationFee;
+        uint256 fee = duration * names[parentNode].registrationFee;
         // check max registration possible
         // refund the rest
 
@@ -104,13 +108,11 @@ contract SubdomainRegistrar is ERC1155Holder {
             uint64(block.timestamp + duration)
         );
 
-        (bool sent, ) = names[parentNode].beneficiary.call{
-            value: registrationFee
-        }("");
-
-        if (!sent) {
-            revert InsufficientFunds();
-        }
+        IERC20(names[parentNode].token).transferFrom(
+            msg.sender,
+            address(names[parentNode].beneficiary),
+            fee
+        );
     }
 
     function renew(
@@ -124,19 +126,17 @@ contract SubdomainRegistrar is ERC1155Holder {
             revert NameNotRegistered();
         }
 
-        uint256 renewalFee = duration * names[parentNode].registrationFee;
+        uint256 fee = duration * names[parentNode].registrationFee;
 
         newExpiry = expiry += duration;
 
         wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
 
-        (bool sent, ) = names[parentNode].beneficiary.call{value: renewalFee}(
-            ""
+        IERC20(names[parentNode].token).transferFrom(
+            msg.sender,
+            address(names[parentNode].beneficiary),
+            fee
         );
-
-        if (!sent) {
-            revert InsufficientFunds();
-        }
 
         emit NameRenewed(node, newExpiry);
     }
