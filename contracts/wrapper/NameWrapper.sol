@@ -711,7 +711,7 @@ contract NameWrapper is
     ) internal {
         (address owner, , ) = getData(uint256(node));
         _transfer(owner, newOwner, uint256(node), 1, "");
-        _setFuses(node, owner, fuses, expiry);
+        _setFuses(node, newOwner, fuses, expiry);
     }
 
     // wrapper function for stack limit
