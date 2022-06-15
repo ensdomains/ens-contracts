@@ -6,7 +6,7 @@ import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
-import { task } from 'hardhat/config'
+import { HardhatUserConfig, task } from 'hardhat/config'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -29,7 +29,7 @@ if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
   real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY]
 }
 
-export default {
+const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       // Required for real DNS record tests
@@ -38,7 +38,7 @@ export default {
       tags: ['test', 'legacy', 'use_root'],
     },
     localhost: {
-      url: 'http://127.0.0.1:9545',
+      url: 'http://127.0.0.1:8545',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
@@ -73,6 +73,15 @@ export default {
           },
         },
       },
+      {
+        version: '0.5.17',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 10000,
+          },
+        },
+      },
     ],
   },
   abiExporter: {
@@ -87,6 +96,7 @@ export default {
       'Ownable$',
       'NameResolver$',
       'TestBytesUtils$',
+      'legacy/*',
     ],
     spacing: 2,
     pretty: true,
@@ -100,3 +110,5 @@ export default {
     },
   },
 }
+
+export default config

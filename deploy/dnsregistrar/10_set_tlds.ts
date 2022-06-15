@@ -1235,7 +1235,7 @@ async function setTLDsOnRoot(
     return []
   }
 
-  const transactions = []
+  const transactions: any[] = []
   for (const tld of tlds) {
     const labelhash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tld))
     if (
@@ -1245,6 +1245,7 @@ async function setTLDsOnRoot(
       transactions.push(
         await root.setSubnodeOwner(labelhash, registrar.address, {
           from: owner,
+          gasLimit: 10000000,
         }),
       )
     }
@@ -1262,7 +1263,7 @@ async function setTLDsOnRegistry(
     return []
   }
 
-  const transactions = []
+  const transactions: any[] = []
   for (const tld of tlds) {
     const labelhash = ethers.utils.keccak256(ethers.utils.toUtf8Bytes(tld))
     if (
@@ -1282,16 +1283,17 @@ async function setTLDsOnRegistry(
   return transactions
 }
 
-const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, network } = hre
   const { owner } = await getNamedAccounts()
 
   const registrar = await ethers.getContract('DNSRegistrar')
+  const signer = await ethers.getSigner(owner)
 
-  let transactions
+  let transactions: any[] = []
   if (network.tags.use_root) {
-    const root = await ethers.getContract('Root')
-    const registry = await ethers.getContract('ENSRegistry')
+    const root = await ethers.getContract('Root', signer)
+    const registry = await ethers.getContract('ENSRegistry', signer)
     transactions = await setTLDsOnRoot(
       owner,
       root,
@@ -1300,7 +1302,7 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
       tld_map[network.name as keyof typeof tld_map],
     )
   } else {
-    const registry = await ethers.getContract('ENSRegistry')
+    const registry = await ethers.getContract('ENSRegistry', signer)
     transactions = await setTLDsOnRegistry(
       owner,
       registry,

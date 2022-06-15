@@ -1,4 +1,4 @@
-import { ethers } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
@@ -11,6 +11,14 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
   const nameWrapper = await ethers.getContract('NameWrapper')
   const controller = await ethers.getContract('ETHRegistrarController')
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
+
+  if (network.tags.legacy) {
+    await deploy('PublicResolver_mainnet_9412610', {
+      from: deployer,
+      args: [registry.address],
+      log: true,
+    })
+  }
 
   const publicResolver = await deploy('PublicResolver', {
     from: deployer,
