@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 import "../wrapper/INameWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import { ERC1155Holder } from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "hardhat/console.sol";
 
 error Unavailable();
@@ -36,7 +36,11 @@ contract SubdomainRegistrar is ERC1155Holder {
         _;
     }
 
-    function setupDomain(bytes32 node, uint256 fee, address beneficiary) public onlyOwner(node) {
+    function setupDomain(
+        bytes32 node,
+        uint256 fee,
+        address beneficiary
+    ) public onlyOwner(node) {
         setRegistrationFee(node, fee);
         names[node].beneficiary = beneficiary;
     }
@@ -48,8 +52,9 @@ contract SubdomainRegistrar is ERC1155Holder {
         names[node].registrationFee = fee;
     }
 
-    function available(bytes32 node) public view returns (bool) {
-        return expiries[node] < block.timestamp;
+    function available(bytes32 node) public returns (bool) {
+        (, uint64 expiry) = wrapper.getFuses(node);
+        return expiry < block.timestamp;
     }
 
     function register(
@@ -57,9 +62,8 @@ contract SubdomainRegistrar is ERC1155Holder {
         string calldata label,
         address newOwner,
         address resolver,
-        uint64 ttl,
-        uint96 _fuses,
-        uint256 duration,
+        uint32 fuses,
+        uint64 duration,
         bytes[] calldata records
     ) public payable {
         bytes32 labelhash = keccak256(bytes(label));
@@ -73,8 +77,14 @@ contract SubdomainRegistrar is ERC1155Holder {
             revert InsufficientFunds();
         }
 
-        if(records.length > 0){
-            wrapper.setSubnodeOwner(parentNode, label, address(this), 0);
+        if (records.length > 0) {
+            wrapper.setSubnodeOwner(
+                parentNode,
+                label,
+                address(this),
+                0,
+                uint64(block.timestamp + duration)
+            );
             _setRecords(node, resolver, records);
         }
 
@@ -83,28 +93,40 @@ contract SubdomainRegistrar is ERC1155Holder {
             label,
             newOwner,
             resolver,
-            ttl,
-            _fuses | PARENT_CANNOT_CONTROL // burn the ability for the parent to control
+            0,
+            fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
+            uint64(block.timestamp + duration)
         );
-        
-        expiries[node] = block.timestamp + duration;
 
-        (bool sent, ) = names[parentNode].beneficiary.call{value: registrationFee}("");
+        names[parentNode].beneficiary.call{value: registrationFee}("");
+    }
+
+    function renew(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint64 duration
+    ) external payable returns (uint64 newExpiry) {
+        bytes32 node = _makeNode(parentNode, labelhash);
+        (, uint64 expiry) = wrapper.getFuses(node);
+        if (expiry < block.timestamp) {
+            revert NameNotRegistered();
+        }
+
+        uint256 renewalFee = duration * names[parentNode].registrationFee;
+
+        newExpiry = expiry += duration;
+
+        wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
+
+        (bool sent, ) = names[parentNode].beneficiary.call{value: renewalFee}(
+            ""
+        );
 
         if (!sent) {
             revert();
         }
-    }
 
-    function renew(bytes32 id, uint duration) external returns(uint) {
-        if(expiries[id] < block.timestamp) {
-            revert NameNotRegistered();
-        }
-        require(expiries[id] + duration > duration); // Prevent future overflow
-
-        expiries[id] += duration;
-        emit NameRenewed(id, expiries[id]);
-        return expiries[id];
+        emit NameRenewed(node, newExpiry);
     }
 
     function _setRecords(
@@ -124,5 +146,13 @@ contract SubdomainRegistrar is ERC1155Holder {
                 "SubdomainRegistrar: Failed to set Record"
             );
         }
+    }
+
+    function _makeNode(bytes32 node, bytes32 labelhash)
+        private
+        pure
+        returns (bytes32)
+    {
+        return keccak256(abi.encodePacked(node, labelhash));
     }
 }

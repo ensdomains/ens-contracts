@@ -126,8 +126,6 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function ownerOf(uint256 id) external returns (address owner);
-
     function getFuses(bytes32 node)
         external
         returns (uint32 fuses, uint64 expiry);

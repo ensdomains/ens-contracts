@@ -81,17 +81,6 @@ contract NameWrapper is
             super.supportsInterface(interfaceId);
     }
 
-    /* ERC1155 */
-
-    function ownerOf(uint256 id)
-        public
-        view
-        override(ERC1155Fuse, INameWrapper)
-        returns (address owner)
-    {
-        return super.ownerOf(id);
-    }
-
     /* Metadata service */
 
     /**
