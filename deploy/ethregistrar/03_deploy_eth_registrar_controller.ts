@@ -2,7 +2,7 @@ import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
@@ -17,7 +17,7 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
     args: [
       registrar.address,
       priceOracle.address,
-      600,
+      60,
       86400,
       reverseRegistrar.address,
       nameWrapper.address,
@@ -50,8 +50,7 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
   await tx3.wait()
 }
 
-func.id = 'controller'
 func.tags = ['ethregistrar', 'ETHRegistrarController']
-func.dependencies = ['registry', 'wrapper']
+func.dependencies = ['registry', 'wrapper', 'BaseRegistrarImplementation']
 
 export default func

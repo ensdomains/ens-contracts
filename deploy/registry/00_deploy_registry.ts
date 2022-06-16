@@ -5,10 +5,10 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   console.log('starting')
   const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
+  const { deploy, run } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   if (network.tags.legacy) {
@@ -18,6 +18,27 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
       log: true,
       contract: await deployments.getArtifact('ENSRegistry'),
     })
+
+    const legacyRegistry = await ethers.getContract('LegacyENSRegistry')
+
+    const rootTx = await legacyRegistry
+      .connect(await ethers.getSigner(deployer))
+      .setOwner(ZERO_HASH, owner)
+    console.log(`Setting owner of root node to owner (tx: ${rootTx.hash})`)
+    await rootTx.wait()
+
+    console.log('Running legacy registry scripts...')
+    await run('legacy-registry-names', {
+      deletePreviousDeployments: false,
+      resetMemory: false,
+    })
+
+    const revertRootTx = await legacyRegistry
+      .connect(await ethers.getSigner(owner))
+      .setOwner(ZERO_HASH, '0x0000000000000000000000000000000000000000')
+    console.log(`Unsetting owner of root node (tx: ${rootTx.hash})`)
+    await revertRootTx.wait()
+
     await deploy('ENSRegistry', {
       from: deployer,
       args: [contract.address],

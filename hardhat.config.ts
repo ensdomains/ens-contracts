@@ -109,6 +109,13 @@ const config: HardhatUserConfig = {
       default: 1,
     },
   },
+  external: {
+    contracts: [
+      {
+        artifacts: './deployment-artifacts',
+      },
+    ],
+  },
 }
 
 export default config

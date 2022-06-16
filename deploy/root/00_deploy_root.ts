@@ -5,7 +5,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
@@ -34,14 +34,18 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
 
   switch (rootOwner) {
     case deployer:
-      const tx2 = await root.attach(deployer).transferOwnership(owner)
+      const tx2 = await root
+        .connect(await ethers.getSigner(deployer))
+        .transferOwnership(owner)
       console.log(
         `Transferring root ownership to final owner (tx: ${tx2.hash})...`,
       )
       await tx2.wait()
     case owner:
       if (!(await root.controllers(owner))) {
-        const tx2 = await root.attach(owner).setController(owner, true)
+        const tx2 = await root
+          .connect(await ethers.getSigner(owner))
+          .setController(owner, true)
         console.log(
           `Setting final owner as controller on root contract (tx: ${tx2.hash})...`,
         )

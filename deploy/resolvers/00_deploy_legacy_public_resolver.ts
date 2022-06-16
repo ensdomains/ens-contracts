@@ -1,4 +1,4 @@
-import { ethers } from 'hardhat'
+import { ethers, network } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
@@ -9,15 +9,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const registry = await ethers.getContract('ENSRegistry')
 
-  await deploy('UniversalResolver', {
+  if (!network.tags.legacy) {
+    return
+  }
+
+  await deploy('LegacyPublicResolver', {
     from: deployer,
     args: [registry.address],
     log: true,
+    contract: await deployments.getArtifact('PublicResolver_mainnet_9412610'),
   })
 }
 
-func.id = 'universal-resolver'
-func.tags = ['utils', 'UniversalResolver']
-func.dependencies = ['registry']
+func.id = 'legacy-resolver'
+func.tags = ['resolvers', 'LegacyPublicResolver']
+func.dependencies = ['registry', 'wrapper']
 
 export default func

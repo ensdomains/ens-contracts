@@ -3,18 +3,19 @@
   "version": "0.0.9",
   "description": "ENS contracts",
   "scripts": {
-    "test": "npx hardhat test",
+    "test": "hardhat test",
     "test:local": "hardhat --network localhost test",
-    "lint": "npx hardhat check",
-    "build": "npx hardhat compile",
+    "lint": "hardhat check",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public"
   },
   "files": [
-    "build/contracts/*json",
+    "build",
     "contracts/**/*.sol",
-    "artifacts/contracts/**/*.json",
-    "deployments/mainnet/*.json"
+    "artifacts",
+    "deployments/mainnet/*.json",
+    "deployment-artifacts"
   ],
   "main": "index.js",
   "devDependencies": {
@@ -26,6 +27,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.11",
+    "@types/mocha": "^9.1.1",
     "chai": "^4.3.4",
     "dotenv": "^10.0.0",
     "elliptic-solidity": "^1.0.0",

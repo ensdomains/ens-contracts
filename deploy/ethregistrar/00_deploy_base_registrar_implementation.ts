@@ -2,9 +2,9 @@ import namehash from 'eth-ens-namehash'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { sha3 } from 'web3-utils'
+import { keccak256 } from 'js-sha3'
 
-const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
+const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
@@ -29,8 +29,8 @@ const func: DeployFunction = async function(hre: HardhatRuntimeEnvironment) {
   await tx1.wait()
 
   const tx2 = await root
-    .attach(owner)
-    .setSubnodeOwner(sha3('eth'), registrar.address)
+    .connect(await ethers.getSigner(owner))
+    .setSubnodeOwner('0x' + keccak256('eth'), registrar.address)
   console.log(
     `Setting owner of eth node to registrar on root (tx: ${tx2.hash})...`,
   )
