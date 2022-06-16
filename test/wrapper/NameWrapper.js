@@ -1137,11 +1137,7 @@ describe('Name Wrapper', () => {
       )
 
       await expect(
-        NameWrapper.setFuses(
-          namehash('abc.eth'),
-          labelhash('sub'),
-          PARENT_CANNOT_CONTROL
-        )
+        NameWrapper.setFuses(namehash('sub.abc.eth'), PARENT_CANNOT_CONTROL)
       ).to.be.revertedWith(
         `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`
       )
@@ -1168,8 +1164,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper.setFuses(
-          namehash('abc.eth'),
-          labelhash('sub'),
+          namehash('sub.abc.eth'),
           CANNOT_UNWRAP | CANNOT_TRANSFER
         )
       ).to.be.revertedWith(
@@ -1197,11 +1192,7 @@ describe('Name Wrapper', () => {
       )
 
       await expect(
-        NameWrapper.setFuses(
-          namehash('abc.eth'),
-          labelhash('sub'),
-          CANNOT_TRANSFER
-        )
+        NameWrapper.setFuses(namehash('sub.abc.eth'), CANNOT_TRANSFER)
       ).to.be.revertedWith(
         `OperationProhibited("0x5f1471f6276eafe687a7aceabaea0bce02fafaf1dfbeb787b3725234022ee294")`
       )
@@ -1221,7 +1212,7 @@ describe('Name Wrapper', () => {
       )
 
       await expect(
-        NameWrapper.setFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -1241,7 +1232,7 @@ describe('Name Wrapper', () => {
       let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
 
-      await NameWrapper.setFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       ;[fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(
         CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
@@ -1264,11 +1255,7 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      const tx = await NameWrapper.setFuses(
-        namehash('eth'),
-        tokenId,
-        CANNOT_TRANSFER
-      )
+      const tx = await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(tx)
         .to.emit(NameWrapper, 'FusesSet')
@@ -1300,7 +1287,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.setApprovalForAll(account2, true)
 
-      await NameWrapper2.setFuses(namehash('eth'), tokenId, CANNOT_UNWRAP)
+      await NameWrapper2.setFuses(wrappedTokenId, CANNOT_UNWRAP)
 
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
@@ -1319,11 +1306,7 @@ describe('Name Wrapper', () => {
       )
 
       await expect(
-        NameWrapper2.setFuses(
-          namehash('eth'),
-          tokenId,
-          CAN_DO_EVERYTHING | CANNOT_UNWRAP
-        )
+        NameWrapper2.setFuses(wrappedTokenId, CAN_DO_EVERYTHING | CANNOT_UNWRAP)
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
@@ -1342,7 +1325,7 @@ describe('Name Wrapper', () => {
 
       // Each fuse is represented by the next bit, 64 is the next undefined fuse
 
-      await NameWrapper.setFuses(namehash('eth'), tokenId, 128)
+      await NameWrapper.setFuses(wrappedTokenId, 128)
 
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128)
@@ -1361,11 +1344,7 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      await NameWrapper.setFuses(
-        namehash('eth'),
-        tokenId,
-        128 | CANNOT_TRANSFER
-      )
+      await NameWrapper.setFuses(wrappedTokenId, 128 | CANNOT_TRANSFER)
 
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(
@@ -1391,7 +1370,7 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      await NameWrapper.setFuses(namehash('eth'), tokenId, CANNOT_BURN_FUSES)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_BURN_FUSES)
 
       const ownerInWrapper = await NameWrapper.ownerOf(wrappedTokenId)
 
@@ -1405,7 +1384,7 @@ describe('Name Wrapper', () => {
 
       //try to set the resolver and ttl
       await expect(
-        NameWrapper.setFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
@@ -1428,7 +1407,7 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      await NameWrapper.setFuses(namehash('eth'), tokenId, CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
 
@@ -1463,8 +1442,7 @@ describe('Name Wrapper', () => {
       )
 
       await NameWrapper.setFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CANNOT_SET_RESOLVER | CANNOT_SET_TTL
       )
 
@@ -1532,8 +1510,7 @@ describe('Name Wrapper', () => {
       ).to.equal(account)
 
       await NameWrapper.setFuses(
-        namehash('eth'),
-        tokenId,
+        wrappedTokenId,
         CAN_DO_EVERYTHING | CANNOT_CREATE_SUBDOMAIN
       )
 
@@ -2433,18 +2410,14 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_TRANSFER is burned.', async () => {
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned.', async () => {
-      await NameWrapper.setFuses(
-        namehash('eth'),
-        labelHash,
-        CANNOT_SET_RESOLVER
-      )
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_RESOLVER)
 
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
@@ -2452,7 +2425,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned.', async () => {
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_SET_TTL)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
@@ -2493,11 +2466,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned', async () => {
-      await NameWrapper.setFuses(
-        namehash('eth'),
-        labelHash,
-        CANNOT_SET_RESOLVER
-      )
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_RESOLVER)
 
       await expect(
         NameWrapper.setResolver(wrappedTokenId, account2)
@@ -2538,7 +2507,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned', async () => {
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_SET_TTL)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 100)).to.be.revertedWith(
         `OperationProhibited("${wrappedTokenId}")`
@@ -2850,7 +2819,7 @@ describe('Name Wrapper', () => {
     })
 
     it('safeTransfer cannot be called if CANNOT_TRANSFER is burned and is not expired', async () => {
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(
         NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
@@ -2858,7 +2827,7 @@ describe('Name Wrapper', () => {
     })
 
     it('safeBatchTransfer cannot be called if CANNOT_TRANSFER is burned and is not expired', async () => {
-      await NameWrapper.setFuses(namehash('eth'), labelHash, CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(
         NameWrapper.safeBatchTransferFrom(

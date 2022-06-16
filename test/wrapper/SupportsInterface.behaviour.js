@@ -58,7 +58,7 @@ const INTERFACES = {
     'renew(uint256,uint256,uint64)',
     'unwrap(bytes32,bytes32,address)',
     'unwrapETH2LD(bytes32,address,address)',
-    'setFuses(bytes32,bytes32,uint32)',
+    'setFuses(bytes32,uint32)',
     'setChildFuses(bytes32,bytes32,uint32,uint64)',
     'setSubnodeRecord(bytes32,string,address,address,uint64,uint32,uint64)',
     'setRecord(bytes32,address,address,uint64)',

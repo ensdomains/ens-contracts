@@ -329,27 +329,17 @@ contract NameWrapper is
         _unwrap(_makeNode(parentNode, labelhash), newController);
     }
 
-    function setFuses(
-        bytes32 parentNode,
-        bytes32 labelhash,
-        uint32 fuses
-    )
+    function setFuses(bytes32 node, uint32 fuses)
         public
-        onlyTokenOwner(_makeNode(parentNode, labelhash))
-        operationAllowed(_makeNode(parentNode, labelhash), CANNOT_BURN_FUSES)
+        onlyTokenOwner(node)
+        operationAllowed(node, CANNOT_BURN_FUSES)
     {
-        bytes32 node = _makeNode(parentNode, labelhash);
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
         );
 
         _checkFusesForParentCannotControl(node, fuses);
 
-        (, , uint64 maxExpiry) = getData(uint256(parentNode));
-        if (expiry > maxExpiry) {
-            // check if parent is still wrapped when extending expiry
-            expiry = maxExpiry;
-        }
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
     }
