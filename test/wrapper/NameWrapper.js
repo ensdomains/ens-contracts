@@ -170,80 +170,53 @@ describe('Name Wrapper', () => {
 
   describe('wrap()', () => {
     it('Wraps a name if you are the owner', async () => {
-      const fuses = CAN_DO_EVERYTHING
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, fuses, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
     })
 
     it('Allows specifying resolver', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, 0, account2)
+      await NameWrapper.wrap(encodeName('xyz'), account, account2)
       expect(await EnsRegistry.resolver(namehash('xyz'))).to.equal(account2)
     })
 
     it('emits event for Wrap', async () => {
-      const fuses = CAN_DO_EVERYTHING
-
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
-      const tx = NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        fuses,
-        EMPTY_ADDRESS
-      )
+      const tx = NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(namehash('xyz'), encodeName('xyz'), account, fuses, 0)
+        .withArgs(namehash('xyz'), encodeName('xyz'), account, 0, 0)
     })
 
     it('emits event for TransferSingle', async () => {
-      const fuses = CAN_DO_EVERYTHING
-
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
-      const tx = NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        fuses,
-        EMPTY_ADDRESS
-      )
+      const tx = NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
         .withArgs(account, EMPTY_ADDRESS, account, namehash('xyz'), 1)
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry.', async () => {
-      await expect(
-        NameWrapper.wrap(
-          encodeName('xyz'),
-          account,
-          0,
-          MAX_EXPIRY,
-          EMPTY_ADDRESS
-        )
-      ).to.be.reverted
+      await expect(NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS))
+        .to.be.reverted
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, 0, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, EMPTY_ADDRESS)
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(
-          encodeName('xyz'),
-          NameWrapper.address,
-          0,
-          EMPTY_ADDRESS
-        )
+        NameWrapper.wrap(encodeName('xyz'), NameWrapper.address, EMPTY_ADDRESS)
       ).to.be.revertedWith(
         'ERC1155: newOwner cannot be the NameWrapper contract'
       )
@@ -261,7 +234,7 @@ describe('Name Wrapper', () => {
       //confirm abc is owner by account2 not account 1
       expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
       // wrap using account
-      await NameWrapper.wrap(encodeName('abc'), account2, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('abc'), account2, EMPTY_ADDRESS)
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrappedXYZ).to.equal(account2)
     })
@@ -277,7 +250,7 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
       // wrap using account
       await expect(
-        NameWrapper.wrap(encodeName('abc'), account2, 0, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('abc'), account2, EMPTY_ADDRESS)
       ).to.be.revertedWith(`Unauthorised("${namehash('abc')}", "${account}")`)
     })
 
@@ -287,59 +260,8 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('wrapped.eth'), account2, 0, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('wrapped.eth'), account2, EMPTY_ADDRESS)
       ).to.be.revertedWith('IncompatibleParent()')
-    })
-
-    it('wrap() cannot burn PARENT_CANNOT_CONTROL', async () => {
-      const label = 'awesome'
-      const labelHash = labelhash(label)
-      await BaseRegistrar.register(labelHash, account, 84600)
-      await EnsRegistry.setSubnodeOwner(
-        namehash('awesome.eth'),
-        labelhash('sub'),
-        account
-      )
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-
-      await NameWrapper.wrapETH2LD(
-        'awesome',
-        account,
-        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        MAX_EXPIRY,
-        EMPTY_ADDRESS
-      )
-
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-
-      await expect(
-        NameWrapper.wrap(
-          encodeName('sub.awesome.eth'),
-          account,
-          PARENT_CANNOT_CONTROL,
-          EMPTY_ADDRESS
-        )
-      ).to.be.revertedWith(
-        `Unauthorised("${namehash('sub.awesome.eth')}", "${account}")`
-      )
-    })
-
-    it('Only allows fuses to be burned if CANNOT_UNWRAP is burned.', async () => {
-      // register sub.xyz before we wrap xyz
-      const node = namehash('xyz')
-      await EnsRegistry.setSubnodeOwner(node, labelhash('sub'), account)
-
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-
-      //attempt to burn fuse
-      await expect(
-        NameWrapper.wrap(
-          encodeName('xyz'),
-          account,
-          CANNOT_TRANSFER,
-          EMPTY_ADDRESS
-        )
-      ).to.be.revertedWith(`OperationProhibited("${node}")`)
     })
 
     it('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
@@ -351,12 +273,7 @@ describe('Name Wrapper', () => {
         labelhash('sub'),
         account
       )
-      await NameWrapper.wrap(
-        encodeName('sub.xyz'),
-        account,
-        CAN_DO_EVERYTHING,
-        EMPTY_ADDRESS
-      )
+      await NameWrapper.wrap(encodeName('sub.xyz'), account, EMPTY_ADDRESS)
 
       await EnsRegistry.setSubnodeOwner(
         namehash('xyz'),
@@ -371,7 +288,6 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper2.wrap(
         encodeName('sub.xyz'),
         account2,
-        CAN_DO_EVERYTHING,
         EMPTY_ADDRESS
       )
 
@@ -403,24 +319,14 @@ describe('Name Wrapper', () => {
     it('Will not wrap a name with junk at the end', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(
-          encodeName('xyz') + '123456',
-          account,
-          CAN_DO_EVERYTHING,
-          ZERO_ADDRESS
-        )
+        NameWrapper.wrap(encodeName('xyz') + '123456', account, ZERO_ADDRESS)
       ).to.be.revertedWith('namehash: Junk at end of name')
     })
 
     it('Does not allow wrapping a name you do not own', async () => {
       // Register the name to account1
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(
-        encodeName('xyz'),
-        account,
-        CAN_DO_EVERYTHING,
-        EMPTY_ADDRESS
-      )
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
 
       // Deploy the destroy-your-name contract
       const NameGriefer = await deploy('NameGriefer', NameWrapper.address)
@@ -436,7 +342,7 @@ describe('Name Wrapper', () => {
   describe('unwrap()', () => {
     it('Allows owner to unwrap name', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       await NameWrapper.setSubnodeOwner(
         namehash('xyz'),
         'unwrapped',
@@ -459,7 +365,7 @@ describe('Name Wrapper', () => {
 
     it('emits Unwrap event', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       const tx = await NameWrapper.unwrap(ROOT_NODE, labelhash('xyz'), account)
 
       await expect(tx)
@@ -469,7 +375,7 @@ describe('Name Wrapper', () => {
 
     it('emits TransferSingle event', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('xyz'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
       const tx = await NameWrapper.unwrap(ROOT_NODE, labelhash('xyz'), account)
 
       await expect(tx)
@@ -486,7 +392,7 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
       // wrap using account
-      await NameWrapper.wrap(encodeName('abc'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('abc'), account, EMPTY_ADDRESS)
       await NameWrapper.setApprovalForAll(account2, true)
       const ownerOfWrapperAbc = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrapperAbc).to.equal(account)
@@ -509,7 +415,7 @@ describe('Name Wrapper', () => {
       //confirm abc is owner by account2 not account 1
       expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
       // wrap using account
-      await NameWrapper.wrap(encodeName('abc'), account2, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('abc'), account2, EMPTY_ADDRESS)
       const ownerOfWrapperAbc = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrapperAbc).to.equal(account2)
 
@@ -523,7 +429,7 @@ describe('Name Wrapper', () => {
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('abc'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('abc'), account, EMPTY_ADDRESS)
       const ownerOfWrapperAbc = await NameWrapper.ownerOf(namehash('abc'))
       expect(ownerOfWrapperAbc).to.equal(account)
       //unwrap using account
@@ -555,7 +461,7 @@ describe('Name Wrapper', () => {
 
       await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelHash, account)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrap(encodeName('abc'), account, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrap(encodeName('abc'), account, EMPTY_ADDRESS)
       await expect(
         NameWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS)
       ).to.be.revertedWith(`IncorrectTargetOwner("${EMPTY_ADDRESS}")`)

@@ -40,7 +40,7 @@ contract NameWrapper is
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
-    uint64 private constant MAX_EXPIRY = 0xffffffffffffffff;
+    uint64 private constant MAX_EXPIRY = type(uint64).max;
 
     constructor(
         ENS _ens,
@@ -254,14 +254,12 @@ contract NameWrapper is
      * @notice Wraps a non .eth domain, of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
      * @dev Can be called by the owner in the registry or an authorised caller in the registry
      * @param name The name to wrap, in DNS format
-     * @param fuses initial fuses to set represented as a number. Check getFuses() for more info
      * @param wrappedOwner Owner of the name in this contract
      */
 
     function wrap(
         bytes calldata name,
         address wrappedOwner,
-        uint32 fuses,
         address resolver
     ) public override {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
@@ -271,9 +269,6 @@ contract NameWrapper is
         if (parentNode == ETH_NODE) {
             revert IncompatibleParent();
         }
-
-        // PARENT_CANNOT_CONTROL can only be burnt by the parent using setChildFuses() or setSubnodeOwner/Record()
-        _checkFusesForParentCannotControl(node, fuses);
 
         address owner = ens.owner(node);
 
@@ -291,7 +286,7 @@ contract NameWrapper is
 
         ens.setOwner(node, address(this));
 
-        _wrap(node, name, wrappedOwner, fuses, 0);
+        _wrap(node, name, wrappedOwner, 0, 0);
     }
 
     /**
@@ -352,7 +347,6 @@ contract NameWrapper is
 
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
         if (expiry > maxExpiry) {
-            // check if parent has burned CANNOT_UNWRAP when you're burning any fuses
             // check if parent is still wrapped when extending expiry
             expiry = maxExpiry;
         }
@@ -544,8 +538,8 @@ contract NameWrapper is
      */
 
     modifier operationAllowed(bytes32 node, uint32 fuseMask) {
-        (, uint32 fuses, uint64 expiry) = getData(uint256(node));
-        if (fuses & fuseMask != 0 && expiry > block.timestamp) {
+        (, uint32 fuses, ) = getData(uint256(node));
+        if (fuses & fuseMask != 0) {
             revert OperationProhibited(node);
         }
         _;

@@ -52,7 +52,7 @@ const INTERFACES = {
     'registrar()',
     'metadataService()',
     'names(bytes32)',
-    'wrap(bytes,address,uint32,address)',
+    'wrap(bytes,address,address)',
     'wrapETH2LD(string,address,uint32,uint64,address)',
     'registerAndWrapETH2LD(string,address,uint256,address,uint32,uint64)',
     'renew(uint256,uint256,uint64)',

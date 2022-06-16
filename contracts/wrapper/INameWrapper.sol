@@ -39,7 +39,6 @@ interface INameWrapper is IERC1155 {
     function wrap(
         bytes calldata name,
         address wrappedOwner,
-        uint32 fuses,
         address resolver
     ) external;
 
