@@ -15,7 +15,7 @@
     "contracts/**/*.sol",
     "artifacts",
     "deployments/mainnet/*.json",
-    "deployment-artifacts"
+    "archived-deployments"
   ],
   "main": "index.js",
   "devDependencies": {
@@ -28,6 +28,7 @@
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.11",
     "@types/mocha": "^9.1.1",
+    "@types/node": "^18.0.0",
     "chai": "^4.3.4",
     "dotenv": "^10.0.0",
     "elliptic-solidity": "^1.0.0",

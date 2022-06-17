@@ -3,10 +3,14 @@ import '@nomiclabs/hardhat-solhint'
 import '@nomiclabs/hardhat-truffle5'
 import '@nomiclabs/hardhat-waffle'
 import dotenv from 'dotenv'
+import { existsSync } from 'fs'
+import fs from 'fs/promises'
 import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
 import { HardhatUserConfig, task } from 'hardhat/config'
+
+const archivedDeploymentPath = './archived-deployments'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -14,15 +18,41 @@ import { HardhatUserConfig, task } from 'hardhat/config'
 // https://github.com/motdotla/dotenv
 dotenv.config({ debug: false })
 
-// This is a sample Hardhat task. To learn how to create your own go to
-// https://hardhat.org/guides/create-task.html
-task('accounts', 'Prints the list of accounts', async (args, hre) => {
+task('accounts', 'Prints the list of accounts', async (_, hre) => {
   const accounts = await hre.ethers.getSigners()
 
   for (const account of accounts) {
     console.log(account.address)
   }
 })
+
+task('save', 'Saves a specified contract as a deployed contract')
+  .addPositionalParam('contract', 'The contract to save')
+  .addPositionalParam('block', 'The block number the contract was deployed at')
+  .setAction(
+    async ({ contract, block }: { contract: string; block: string }, hre) => {
+      const network = hre.network.name
+      const artifact = await hre.deployments.getArtifact(contract)
+
+      const archiveName = `${contract}_${network}_${block}`
+      const archivePath = `${archivedDeploymentPath}/${archiveName}.sol`
+
+      if (existsSync(archivePath)) {
+        throw new Error('Archive already exists')
+      }
+
+      let newArtifact = artifact
+      newArtifact.contractName = archiveName
+      newArtifact.sourceName = archivePath.substring(2)
+
+      await fs.mkdir(archivePath)
+      await fs.writeFile(
+        `${archivePath}/${archiveName}.json`,
+        JSON.stringify(artifact, null, 2),
+      )
+      console.log("Archived contract to '" + archivePath + "'")
+    },
+  )
 
 let real_accounts = undefined
 if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
@@ -112,7 +142,7 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
-        artifacts: './deployment-artifacts',
+        artifacts: archivedDeploymentPath,
       },
     ],
   },
