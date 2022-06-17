@@ -160,11 +160,13 @@ contract NameWrapper is
         override
         returns (uint32 fuses, uint64 expiry)
     {
-        bytes memory name = names[node];
-        if (name.length == 0) {
-            revert NameNotFound();
-        }
         (, fuses, expiry) = getData(uint256(node));
+        if (fuses == 0 && expiry == 0) {
+            bytes memory name = names[node];
+            if (name.length == 0) {
+                revert NameNotFound();
+            }
+        }
     }
 
     /**
@@ -334,11 +336,14 @@ contract NameWrapper is
         onlyTokenOwner(node)
         operationAllowed(node, CANNOT_BURN_FUSES)
     {
+        if (fuses & PARENT_CANNOT_CONTROL != 0) {
+            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
+            revert Unauthorised(node, msg.sender);
+        }
+
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
         );
-
-        _checkFusesForParentCannotControl(node, fuses);
 
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
@@ -831,16 +836,6 @@ contract NameWrapper is
             (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
         ) {
             revert OperationProhibited(node);
-        }
-    }
-
-    function _checkFusesForParentCannotControl(bytes32 node, uint32 fuses)
-        internal
-        view
-    {
-        if (fuses & PARENT_CANNOT_CONTROL != 0) {
-            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
-            revert Unauthorised(node, msg.sender);
         }
     }
 }
