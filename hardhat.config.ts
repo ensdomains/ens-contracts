@@ -10,7 +10,7 @@ import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
 import { HardhatUserConfig, task } from 'hardhat/config'
 
-const archivedDeploymentPath = './archived-deployments'
+const archivedDeploymentPath = './deployments/archive'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -103,15 +103,6 @@ const config: HardhatUserConfig = {
           },
         },
       },
-      {
-        version: '0.5.17',
-        settings: {
-          optimizer: {
-            enabled: true,
-            runs: 10000,
-          },
-        },
-      },
     ],
   },
   abiExporter: {
@@ -142,7 +133,7 @@ const config: HardhatUserConfig = {
   external: {
     contracts: [
       {
-        artifacts: archivedDeploymentPath,
+        artifacts: [archivedDeploymentPath],
       },
     ],
   },
