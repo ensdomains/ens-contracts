@@ -63,6 +63,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = 'root'
 func.tags = ['root', 'Root']
-func.dependencies = ['registry']
+func.dependencies = ['ENSRegistry']
 
 export default func
