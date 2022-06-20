@@ -46,15 +46,15 @@ Wrapped names can be unwrapped by calling either `unwrapETH2LD(labelHash, newReg
 
 ## Working with wrapped names
 
-The wrapper exposes all the registry functionality via its own methods - `setSubnodeOwner`, `setSubnodeRecord`, `setRecord`, `setResolver` and `setTTL` are all implemented with the same functionality as the registry, and pass through to it after doing authorisation checks. Transfers are handled via ERC1155's transfer methods rather than mirroring the registry's `setOwner` method.
+The wrapper exposes almost all the registry functionality via its own methods - `setRecord`, `setResolver` and `setTTL` are all implemented with the same functionality as the registry, and pass through to it after doing authorisation checks. Transfers are handled via ERC1155's transfer methods rather than mirroring the registry's `setOwner` method.
 
-In addition, `setSubnodeOwnerAndWrap` and `setSubnodeRecordAndWrap` methods are provided, which create or replace subdomains while automatically wrapping the resulting subdomain.
+In addition, `setSubnodeOwner` and `setSubnodeRecord` methods are enhanced, which create or replace subdomains while automatically wrapping the resulting subdomain if it is not already wrapped. 
 
 All functions for working with wrapped names utilise ERC1155's authorisation mechanism, meaning an account that is authorised to act on behalf of another account can manage all its names.
 
 ## Fuses
 
-`NameWrapper` also implements a permissions mechanism called 'fuses'. Each name has a set of fuses representing permissions over that name. Fuses can be 'burned' either at the time the name is wrapped or at any subsequent time when the owner or authorised operator calls `burnFuses`. Once a fuse is burned, it cannot be 'unburned' - the permission that fuse represents is permanently revoked.
+`NameWrapper` also implements a permissions mechanism called 'fuses'. Each name has a set of fuses representing permissions over that name. Fuses can be 'burned' either at the time the name is wrapped or at any subsequent time when the owner or authorised operator calls `burnFuses` or `burnChildFuses`. Once a fuse is burned, it cannot be 'unburned' - the permission that fuse represents is permanently revoked.
 
 Before any fuses can be burned on a name, the parent name's "replace subdomain" fuse should be burned first. Without this restriction, any permissions revoked via fuses can be evaded by the parent name replacing the subdomain and then re-wrapping it with a more permissive fuse field. This is not enforced by the contract, but can be checked using `getFuses(node)`.
 
@@ -88,11 +88,11 @@ If this fuse is burned, the TTL cannot be changed. Calls to `setTTL` and `setRec
 
 ### CANNOT_CREATE_SUBDOMAIN = 32
 
-If this fuse is burned, new subdomains cannot be created. Calls to `setSubnodeOwner`, `setSubnodeRecord`, `setSubnodeOwnerAndWrap` and `setSubnodeRecordAndWrap` will fail if they reference a name that does not already exist.
+If this fuse is burned, new subdomains cannot be created. Calls to `setSubnodeOwner` and `setSubnodeRecord` will fail if they reference a name that does not already exist.
 
-### CANNOT_REPLACE_SUBDOMAIN = 64
+### PARENT_CANNOT_CONTROL = 64
 
-If this fuse is burned, existing subdomains cannot be replaced by the parent name. Calls to `setSubnodeOwner`, `setSubnodeRecord`, `setSubnodeOwnerAndWrap` and `setSubnodeRecordAndWrap` will fail if they reference a name that already exists.
+If this fuse is burned, existing subdomains cannot be replaced by the parent name and the parent can no longer burn other fuses on this child. Calls to `setSubnodeOwner` and `setSubnodeRecord`, will fail if they reference a name that already exists. This fuse can only be burnt by the parent of a node.
 
 ### Checking Fuses using `allFusesBurned(node, uint96)`
 

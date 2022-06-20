@@ -90,14 +90,6 @@ interface INameWrapper is IERC1155 {
 
     function setSubnodeRecord(
         bytes32 node,
-        bytes32 label,
-        address owner,
-        address resolver,
-        uint64 ttl
-    ) external;
-
-    function setSubnodeRecordAndWrap(
-        bytes32 node,
         string calldata label,
         address owner,
         address resolver,
@@ -113,12 +105,6 @@ interface INameWrapper is IERC1155 {
     ) external;
 
     function setSubnodeOwner(
-        bytes32 node,
-        bytes32 label,
-        address owner
-    ) external returns (bytes32);
-
-    function setSubnodeOwnerAndWrap(
         bytes32 node,
         string calldata label,
         address newOwner,

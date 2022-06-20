@@ -166,20 +166,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             "ERC1155: caller is not owner nor approved"
         );
 
-        (address oldOwner, uint96 fuses) = getData(id);
-        if (!_canTransfer(fuses)) {
-            revert OperationProhibited(bytes32(id));
-        }
-
-        require(
-            amount == 1 && oldOwner == from,
-            "ERC1155: insufficient balance for transfer"
-        );
-        _setData(id, to, fuses);
-
-        emit TransferSingle(msg.sender, from, to, id, amount);
-
-        _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
+        _transfer(from, to, id, amount, data);
     }
 
     /**
@@ -267,6 +254,34 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         // Clear fuses and set owner to 0
         _setData(tokenId, address(0x0), 0);
         emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) internal {
+        (address oldOwner, uint96 fuses) = getData(id);
+        if(oldOwner == to){
+            return;
+        }
+        
+        if (!_canTransfer(fuses)) {
+            revert OperationProhibited(bytes32(id));
+        }
+
+        require(
+            amount == 1 && oldOwner == from,
+            "ERC1155: insufficient balance for transfer"
+        );
+
+        _setData(id, to, fuses);
+
+        emit TransferSingle(msg.sender, from, to, id, amount);
+
+        _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, amount, data);
     }
 
     function _doSafeTransferAcceptanceCheck(
