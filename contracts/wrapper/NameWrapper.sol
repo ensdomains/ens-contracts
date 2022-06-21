@@ -241,12 +241,9 @@ contract NameWrapper is
         uint64 expiry
     ) external override onlyController returns (uint256 expires) {
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
-        address owner;
-        uint32 fuses;
-        uint64 oldExpiry;
 
         expires = registrar.renew(tokenId, duration);
-        (owner, fuses, oldExpiry) = getData(uint256(node));
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData(uint256(node));
         expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
 
         _setData(node, owner, fuses, expiry);
