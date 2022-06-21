@@ -264,7 +264,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith('IncompatibleParent()')
     })
 
-    it('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
+    it('Cannot wrap a domain with an an unwrapped parent', async () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
@@ -273,47 +273,9 @@ describe('Name Wrapper', () => {
         labelhash('sub'),
         account
       )
-      await NameWrapper.wrap(encodeName('sub.xyz'), account, EMPTY_ADDRESS)
-
-      await EnsRegistry.setSubnodeOwner(
-        namehash('xyz'),
-        labelhash('sub'),
-        account2
-      )
-
-      expect(await EnsRegistry.owner(namehash('sub.xyz'))).to.equal(account2)
-      expect(await NameWrapper.ownerOf(namehash('sub.xyz'))).to.equal(account)
-
-      await EnsRegistry2.setApprovalForAll(NameWrapper.address, true)
-      const tx = await NameWrapper2.wrap(
-        encodeName('sub.xyz'),
-        account2,
-        EMPTY_ADDRESS
-      )
-
-      const nameHash = namehash('sub.xyz')
-
-      await expect(tx)
-        .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(nameHash, EMPTY_ADDRESS)
-      await expect(tx)
-        .to.emit(NameWrapper, 'TransferSingle')
-        .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
-      await expect(tx)
-        .to.emit(NameWrapper, 'NameWrapped')
-        .withArgs(
-          nameHash,
-          encodeName('sub.xyz'),
-          account2,
-          CAN_DO_EVERYTHING,
-          0
-        )
-      await expect(tx)
-        .to.emit(NameWrapper, 'TransferSingle')
-        .withArgs(account2, EMPTY_ADDRESS, account2, nameHash, 1)
-
-      expect(await NameWrapper2.ownerOf(nameHash)).to.equal(account2)
-      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
+      await expect(
+        NameWrapper.wrap(encodeName('sub.xyz'), account, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`ParentMustBeWrapped("${namehash('sub.xyz')}")`)
     })
 
     it('Will not wrap a name with junk at the end', async () => {

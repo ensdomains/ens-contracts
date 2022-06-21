@@ -10,6 +10,7 @@ import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
+import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -21,6 +22,7 @@ error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error InvalidExpiry(bytes32 node, uint64 expiry);
+error ParentMustBeWrapped(bytes32 node);
 
 contract NameWrapper is
     Ownable,
@@ -243,7 +245,9 @@ contract NameWrapper is
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
         expires = registrar.renew(tokenId, duration);
-        (address owner, uint32 fuses, uint64 oldExpiry) = getData(uint256(node));
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
         expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
 
         _setData(node, owner, fuses, expiry);
@@ -267,6 +271,11 @@ contract NameWrapper is
 
         if (parentNode == ETH_NODE) {
             revert IncompatibleParent();
+        }
+
+        // if parent is not the ROOT_NODE and is not wrapped
+        if (parentNode != ROOT_NODE && ens.owner(parentNode) != address(this)) {
+            revert ParentMustBeWrapped(node);
         }
 
         address owner = ens.owner(node);
