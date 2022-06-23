@@ -19,7 +19,7 @@ contract MulticallTestFixture is OffchainMulticallable {
     }
 
     function doSomethingOffchain(uint256 count) public view returns(uint256) {
-        if(count > 0) {
+        if(count < 5) {
             bytes memory callData = abi.encodeWithSelector(IDoSomethingOffchain.doSomethingOffchain.selector, count);
             revert OffchainLookup(
                 address(this),
