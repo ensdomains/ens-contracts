@@ -35,7 +35,6 @@ abstract contract OffchainMulticallable {
         for(uint256 i = 0; i < length; i++) {
             bool result = LowLevelCallUtils.functionDelegateCall(address(this), data[i]);
             uint256 size = LowLevelCallUtils.returnDataSize();
-
             if(result) {
                 results[i] = LowLevelCallUtils.readReturnData(0, size);
                 extraDatas[i].data = data[i];
@@ -54,6 +53,7 @@ abstract contract OffchainMulticallable {
                         extraDatas[i] = OffchainLookupExtraData(innerCallbackFunction, extraData);
                         offchainCount += 1;
                     }
+                    continue;
                 }
             }
 
@@ -64,7 +64,6 @@ abstract contract OffchainMulticallable {
         if(offchainCount == 0) {
             return results;
         }
-
         revert OffchainLookup(
             address(this),
             batchGatewayURLs(),

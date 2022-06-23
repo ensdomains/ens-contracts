@@ -39,7 +39,8 @@ module.exports = {
       // Required for real DNS record tests
       initialDate: '2019-03-15T14:06:45.000+13:00',
       saveDeployments: false,
-      tags: ['test', 'legacy', 'use_root'],
+      throwOnCallFailures: false,
+      tags: ['test', 'legacy', 'use_root']
     },
     localhost: {
       url: 'http://127.0.0.1:9545',

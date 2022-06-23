@@ -2,27 +2,32 @@ pragma solidity ^0.8.11;
 
 import "../../../contracts/utils/OffchainMulticallable.sol";
 
-contract MulticallTestFixture is OffchainMulticallable {
-    string[] internal gatewayURLs;
+interface IDoSomethingOffchain {
+    function doSomethingOffchain(uint256 count) external view returns(uint256);
+}
 
-    constructor(string[] memory _batchGatewayURLs) {
-        gatewayURLs = _batchGatewayURLs;
+contract MulticallTestFixture is OffchainMulticallable {
+    string[] internal batchgateways;
+    string[] internal gateways;
+    constructor(string[] memory _batchGateways, string[] memory _gateways) {
+        batchgateways = _batchGateways;
+        gateways = _gateways;
     }
 
     function batchGatewayURLs() internal override view returns(string[] memory) {
-        return gatewayURLs;
+        return batchgateways;
     }
 
     function doSomethingOffchain(uint256 count) public view returns(uint256) {
         if(count > 0) {
-            string[] memory urls = new string[](1);
-            urls[0] = "https://example.com/";
+            bytes memory callData = abi.encodeWithSelector(IDoSomethingOffchain.doSomethingOffchain.selector, count);
             revert OffchainLookup(
                 address(this),
-                urls,
-                "",
+                gateways,
+                callData,
                 MulticallTestFixture.doSomethingOffchainCallback.selector,
-                abi.encode(count));
+                callData
+            );
         }
         return count;
     }
