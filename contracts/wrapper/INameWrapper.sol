@@ -77,7 +77,9 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function setFuses(bytes32 node, uint32 fuses) external;
+    function setFuses(bytes32 node, uint32 fuses)
+        external
+        returns (uint32 newFuses);
 
     function setChildFuses(
         bytes32 parentNode,
