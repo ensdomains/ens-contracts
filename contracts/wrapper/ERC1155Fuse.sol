@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-/* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. */
+/* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
 
 error OperationProhibited(bytes32 node);
 
@@ -23,7 +23,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      *************************************************************************/
 
     function ownerOf(uint256 id) public view virtual returns (address) {
-        (address owner, ) = getData(id);
+        (address owner, , ) = getData(id);
         return owner;
     }
 
@@ -61,7 +61,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             account != address(0),
             "ERC1155: balance query for the zero address"
         );
-        (address owner, ) = getData(id);
+        (address owner, , ) = getData(id);
         if (owner == account) {
             return 1;
         }
@@ -132,11 +132,20 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function getData(uint256 tokenId)
         public
         view
-        returns (address owner, uint96 fuses)
+        returns (
+            address owner,
+            uint32 fuses,
+            uint64 expiry
+        )
     {
         uint256 t = _tokens[tokenId];
         owner = address(uint160(t));
-        fuses = uint96(t >> 160);
+        expiry = uint64(t >> 192);
+        if (block.timestamp > expiry) {
+            fuses = 0;
+        } else {
+            fuses = uint32(t >> 160);
+        }
     }
 
     /**
@@ -145,9 +154,13 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function _setData(
         uint256 tokenId,
         address owner,
-        uint96 fuses
+        uint32 fuses,
+        uint64 expiry
     ) internal virtual {
-        _tokens[tokenId] = uint256(uint160(owner)) | (uint256(fuses) << 160);
+        _tokens[tokenId] =
+            uint256(uint160(owner)) |
+            (uint256(fuses) << 160) |
+            (uint256(expiry) << 192);
     }
 
     /**
@@ -193,7 +206,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             uint256 id = ids[i];
             uint256 amount = amounts[i];
 
-            (address oldOwner, uint96 fuses) = getData(id);
+            (address oldOwner, uint32 fuses, uint64 expiration) = getData(id);
 
             if (!_canTransfer(fuses)) {
                 revert OperationProhibited(bytes32(id));
@@ -203,7 +216,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
                 amount == 1 && oldOwner == from,
                 "ERC1155: insufficient balance for transfer"
             );
-            _setData(id, to, fuses);
+            _setData(id, to, fuses, expiration);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, amounts);
@@ -222,12 +235,13 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      * Internal/private methods
      *************************************************************************/
 
-    function _canTransfer(uint96 fuses) internal virtual returns (bool);
+    function _canTransfer(uint32 fuses) internal virtual returns (bool);
 
     function _mint(
         bytes32 node,
         address newOwner,
-        uint96 _fuses
+        uint32 fuses,
+        uint64 expiry
     ) internal virtual {
         uint256 tokenId = uint256(node);
         address owner = ownerOf(tokenId);
@@ -237,7 +251,8 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             newOwner != address(this),
             "ERC1155: newOwner cannot be the NameWrapper contract"
         );
-        _setData(tokenId, newOwner, _fuses);
+
+        _setData(tokenId, newOwner, fuses, expiry);
         emit TransferSingle(msg.sender, address(0x0), newOwner, tokenId, 1);
         _doSafeTransferAcceptanceCheck(
             msg.sender,
@@ -252,7 +267,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function _burn(uint256 tokenId) internal virtual {
         address owner = ownerOf(tokenId);
         // Clear fuses and set owner to 0
-        _setData(tokenId, address(0x0), 0);
+        _setData(tokenId, address(0x0), 0, 0);
         emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
     }
 
@@ -263,11 +278,11 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint256 amount,
         bytes memory data
     ) internal {
-        (address oldOwner, uint96 fuses) = getData(id);
-        if(oldOwner == to){
+        (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
+        if (oldOwner == to) {
             return;
         }
-        
+
         if (!_canTransfer(fuses)) {
             revert OperationProhibited(bytes32(id));
         }
@@ -276,8 +291,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             amount == 1 && oldOwner == from,
             "ERC1155: insufficient balance for transfer"
         );
-
-        _setData(id, to, fuses);
+        _setData(id, to, fuses, expiry);
 
         emit TransferSingle(msg.sender, from, to, id, amount);
 
