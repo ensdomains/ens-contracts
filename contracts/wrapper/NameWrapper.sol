@@ -219,6 +219,7 @@ contract NameWrapper is
      * @param expiry when the fuses will expire
      * @return registrarExpiry The expiry date of the new name on the .eth registrar, in seconds since the Unix epoch.
      */
+
     function registerAndWrapETH2LD(
         string calldata label,
         address wrappedOwner,
