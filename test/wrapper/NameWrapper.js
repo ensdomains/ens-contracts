@@ -748,6 +748,9 @@ describe('Name Wrapper', () => {
 
       // Register from another address
       await BaseRegistrar2.register(labelHash, account2, DAY)
+      const expectedExpiry = (
+        await BaseRegistrar.nameExpires(labelHash)
+      ).toNumber()
       await BaseRegistrar2.setApprovalForAll(NameWrapper.address, true)
       const tx = await NameWrapper2.wrapETH2LD(
         label,
@@ -758,7 +761,7 @@ describe('Name Wrapper', () => {
       )
       ;[fuses, expiry] = await NameWrapper.getFuses(namehash('wrapped2.eth'))
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
-      expect(parseInt(expiry)).to.be.lessThan(ts)
+      expect(expiry).to.equal(expectedExpiry)
 
       //sub domain fuses get reset
       ;[fuses] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))
