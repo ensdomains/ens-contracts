@@ -1,6 +1,6 @@
 pragma solidity >=0.8.4;
 
-import "./SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./StablePriceOracle.sol";
 
 contract LinearPremiumPriceOracle is StablePriceOracle {

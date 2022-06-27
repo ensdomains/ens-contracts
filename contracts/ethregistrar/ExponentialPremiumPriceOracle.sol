@@ -1,6 +1,5 @@
 pragma solidity >=0.8.4;
 
-import "./SafeMath.sol";
 import "./StablePriceOracle.sol";
 
 contract ExponentialPremiumPriceOracle is StablePriceOracle {

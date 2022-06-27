@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "./ERC1155Fuse.sol";
-import "./Controllable.sol";
+import "../root/Controllable.sol";
 import "./INameWrapper.sol";
 import "./IMetadataService.sol";
 import "../registry/ENS.sol";
