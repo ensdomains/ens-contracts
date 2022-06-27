@@ -1,6 +1,7 @@
 pragma solidity ^0.8.11;
 
 import "../../../contracts/utils/OffchainMulticallable.sol";
+import "hardhat/console.sol";
 
 interface IDoSomethingOffchain {
     function doSomethingOffchain(uint256 count) external view returns(uint256);
@@ -19,7 +20,7 @@ contract MulticallTestFixture is OffchainMulticallable {
     }
 
     function doSomethingOffchain(uint256 count) public view returns(uint256) {
-        if(count < 5) {
+        if(count > 5) {
             bytes memory callData = abi.encodeWithSelector(IDoSomethingOffchain.doSomethingOffchain.selector, count);
             revert OffchainLookup(
                 address(this),
@@ -34,6 +35,7 @@ contract MulticallTestFixture is OffchainMulticallable {
 
     function doSomethingOffchainCallback(bytes calldata /* response */, bytes calldata extradata) external view returns(uint256) {
         uint256 count = abi.decode(extradata, (uint256));
-        return doSomethingOffchain(count - 1);
+        // return doSomethingOffchain(count - 1);
+        return count;
     }
 }
