@@ -1,7 +1,6 @@
 pragma solidity ^0.8.11;
 
 import "../../../contracts/utils/OffchainMulticallable.sol";
-import "hardhat/console.sol";
 
 interface IDoSomethingOffchain {
     function doSomethingOffchain(uint256 count) external view returns(uint256);

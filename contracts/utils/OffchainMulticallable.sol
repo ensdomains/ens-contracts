@@ -3,7 +3,6 @@
 pragma solidity ^0.8.13;
 
 import "./LowLevelCallUtils.sol";
-import "hardhat/console.sol";
 error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData);
 
 struct OffchainLookupCallData {
@@ -27,7 +26,6 @@ abstract contract OffchainMulticallable {
     function batchGatewayURLs() internal virtual view returns(string[] memory);
 
     function multicall(bytes[] memory data) public virtual returns (bytes[] memory results) {
-        console.log("****multicall1");
         uint256 length = data.length;
         uint256 offchainCount = 0;
         OffchainLookupCallData[] memory callDatas = new OffchainLookupCallData[](length);
@@ -38,17 +36,11 @@ abstract contract OffchainMulticallable {
             uint256 size = LowLevelCallUtils.returnDataSize();
             if(result) {
                 results[i] = LowLevelCallUtils.readReturnData(0, size);
-                console.log("****multicall5");
-                console.logBytes(data[i]);
-                console.log(size);
-                console.logBytes(results[i]);
                 extraDatas[i].data = data[i];
                 continue;
             }
-            // console.log("****multicall4");
             // Failure
             if(size >= 4) {
-                // console.log("****multicall5");
                 bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
                 if(bytes4(errorId) == OffchainLookup.selector) {
                     // Offchain lookup. Decode the revert message and create our own that nests it.
@@ -69,10 +61,7 @@ abstract contract OffchainMulticallable {
         assembly {
             mstore(callDatas, offchainCount)
         }
-        console.log("offchain count");
-        console.log(offchainCount);
         if(offchainCount == 0) {
-            console.logBytes(results[0]);
             return results;
         }
         revert OffchainLookup(
@@ -85,37 +74,22 @@ abstract contract OffchainMulticallable {
     }
 
     function multicallCallback(bytes calldata response, bytes calldata extraData) external virtual returns(bytes[] memory) {
-        console.log("****multicallCallback1");
         bytes[] memory responses = abi.decode(response, (bytes[]));
         OffchainLookupExtraData[] memory extraDatas = abi.decode(extraData, (OffchainLookupExtraData[]));
-        console.log(responses.length);
-        console.log(extraDatas.length);
         require(responses.length <= extraDatas.length);
         bytes[] memory data = new bytes[](extraDatas.length);
         uint256 j = 0;
         for(uint256 i = 0; i < extraDatas.length; i++) {
-            console.log("****multicallCallback2");
-            console.log(i);
-            console.logBytes32(extraDatas[i].callbackFunction);
             if(extraDatas[i].callbackFunction == bytes32(0)) {
-                console.log("****multicallCallback3");
                 // This call did not require an offchain lookup; use the previous input data.
                 data[i] = extraDatas[i].data;
             } else {
-                console.log("****multicallCallback4");
-                console.log(i);
-                console.log(j);
-                console.logBytes(responses[j]);
-                console.log("****multicallCallback4.1");
-                console.logBytes(extraDatas[i].data);
                 // Encode the callback as another multicall
                 data[i] = abi.encodeWithSelector(
                     extraDatas[i].callbackFunction,
                     responses[j],
                     extraDatas[i].data
                 );
-                console.log("****multicallCallback4.2");
-                console.logBytes(data[i]);
                 j = j + 1;
             }
         }
