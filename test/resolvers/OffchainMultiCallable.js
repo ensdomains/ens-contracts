@@ -26,6 +26,7 @@ describe.only("Multicall", function () {
     const MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
     const fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
     await fixtureResolver.deployed();
+    const threashold = 5
     const arg1 = 6
     const arg2 = 2 // anything below 5 is offchain
     const arg3 = 7
@@ -50,28 +51,31 @@ describe.only("Multicall", function () {
       assert.equal(fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg3result[1])[0].toNumber(), arg3)
     }
 
-    try{
-      console.log('***1')
-      const encoded = result[0].map(r => {
-        return ethers.utils.defaultAbiCoder.encode(['uint256'], [
-          [fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", r.callData)[0].toNumber()]
-        ])
-      })
-      const input =  iface.encodeFunctionResult("query", [encoded])
-      console.log('***3', {input})
-      const response = await fixtureResolver.callStatic.multicallCallback(
-      // const response = await fixtureResolver.multicallCallback(
-        input , extraData
-      )
-      console.log('***4')
-      console.log({response})
-      for (let index = 0; index < args.length; index++) {
-        const arg = args[index];
-        assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[index])[0].toNumber(), arg);
-      }
-    }catch(e){
-      console.log({e})
-      assert
+    const recursiveTest = async function (result, extraData){
+      try{
+        const encoded = result[0].map(r => {
+          return ethers.utils.defaultAbiCoder.encode(['uint256'], [
+            [fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", r.callData)[0].toNumber()]
+          ])
+        })
+        const input =  iface.encodeFunctionResult("query", [encoded])
+        const response = await fixtureResolver.callStatic.multicallCallback(
+          input , extraData
+        )
+        assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[0])[0].toNumber(), threashold);
+        assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[1])[0].toNumber(), arg2);
+        assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[2])[0].toNumber(), threashold);        
+      }catch(e){
+        if(e.errorName === 'OffchainLookup'){
+          callData2 = e.errorArgs.callData
+          extraData2 = e.errorArgs.extraData
+          result2 = iface.decodeFunctionData("query", callData);
+          await recursiveTest(result2, extraData2)
+        }else{
+          assert.fail('should not come here')
+        }
+      }  
     }
+    await recursiveTest(result, extraData)
   });
 });
