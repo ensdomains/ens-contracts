@@ -27,7 +27,7 @@ abstract contract OffchainMulticallable {
     function batchGatewayURLs() internal virtual view returns(string[] memory);
 
     function multicall(bytes[] memory data) public virtual returns (bytes[] memory results) {
-        // console.log("****multicall1");
+        console.log("****multicall1");
         uint256 length = data.length;
         uint256 offchainCount = 0;
         OffchainLookupCallData[] memory callDatas = new OffchainLookupCallData[](length);
@@ -55,7 +55,7 @@ abstract contract OffchainMulticallable {
                     bytes memory revertData = LowLevelCallUtils.readReturnData(4, size - 4);
                     (address sender, string[] memory urls, bytes memory callData, bytes4 innerCallbackFunction, bytes memory extraData) = abi.decode(revertData, (address,string[],bytes,bytes4,bytes));
                     if(sender == address(this)) {
-                        callDatas[i] = OffchainLookupCallData(urls, callData);
+                        callDatas[offchainCount] = OffchainLookupCallData(urls, callData);
                         extraDatas[i] = OffchainLookupExtraData(innerCallbackFunction, extraData);
                         offchainCount += 1;
                     }
@@ -65,6 +65,9 @@ abstract contract OffchainMulticallable {
 
             // Unexpected response, revert the whole batch
             LowLevelCallUtils.propagateRevert();
+        }
+        assembly {
+            mstore(callDatas, offchainCount)
         }
         console.log("offchain count");
         console.log(offchainCount);
@@ -87,24 +90,33 @@ abstract contract OffchainMulticallable {
         OffchainLookupExtraData[] memory extraDatas = abi.decode(extraData, (OffchainLookupExtraData[]));
         console.log(responses.length);
         console.log(extraDatas.length);
-        require(responses.length == extraDatas.length);
-        bytes[] memory data = new bytes[](responses.length);
-        for(uint256 i = 0; i < responses.length; i++) {
+        require(responses.length <= extraDatas.length);
+        bytes[] memory data = new bytes[](extraDatas.length);
+        uint256 j = 0;
+        for(uint256 i = 0; i < extraDatas.length; i++) {
             console.log("****multicallCallback2");
             console.log(i);
-            if(extraDatas[i].callbackFunction == bytes4(0)) {
+            console.logBytes32(extraDatas[i].callbackFunction);
+            if(extraDatas[i].callbackFunction == bytes32(0)) {
                 console.log("****multicallCallback3");
                 // This call did not require an offchain lookup; use the previous input data.
                 data[i] = extraDatas[i].data;
             } else {
                 console.log("****multicallCallback4");
-                // Encode the callback as another multicall
-                data[i] = abi.encodeWithSelector(extraDatas[i].callbackFunction, responses[i], extraDatas[i].data);
                 console.log(i);
-                console.logBytes(responses[i]);
-                console.logBytes(responses[i]);
+                console.log(j);
+                console.logBytes(responses[j]);
+                console.log("****multicallCallback4.1");
                 console.logBytes(extraDatas[i].data);
-                console.logBytes(abi.encodePacked(data[i]));
+                // Encode the callback as another multicall
+                data[i] = abi.encodeWithSelector(
+                    extraDatas[i].callbackFunction,
+                    responses[j],
+                    extraDatas[i].data
+                );
+                console.log("****multicallCallback4.2");
+                console.logBytes(data[i]);
+                j = j + 1;
             }
         }
         return multicall(data);
