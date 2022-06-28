@@ -28,16 +28,13 @@ describe.only("Multicall", function () {
     await fixtureResolver.deployed();
     const arg1 = 6
     const arg2 = 2 // anything below 5 is offchain
-    const arg3 = 7 
+    const arg3 = 7
+    const args = [arg1, arg2, arg3]
     let result, callData, extraData
     let arg1result, arg3result
-    const args = [
-      fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg1]),
-      fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg2]), // offchain
-      fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg3])
-    ]
+    const encodedArgs = args.map(arg => fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg]))
     try{
-      await fixtureResolver.callStatic.multicall(args)
+      await fixtureResolver.callStatic.multicall(encodedArgs)
     }catch(e){
       const urls = e.errorArgs.urls
       assert.equal(urls[0], batchgatewayurl);
@@ -54,23 +51,27 @@ describe.only("Multicall", function () {
     }
 
     try{
-      const encoded = ethers.utils.defaultAbiCoder.encode(['uint256'], [
-        [fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg1result.callData)[0].toNumber()]
-      ])
-      const encoded3 = ethers.utils.defaultAbiCoder.encode(['uint256'], [
-        [fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg3result.callData)[0].toNumber()]
-      ])
-      const input =  iface.encodeFunctionResult("query", [[
-        encoded, encoded3
-      ]])
+      console.log('***1')
+      const encoded = result[0].map(r => {
+        return ethers.utils.defaultAbiCoder.encode(['uint256'], [
+          [fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", r.callData)[0].toNumber()]
+        ])
+      })
+      const input =  iface.encodeFunctionResult("query", [encoded])
+      console.log('***3', {input})
       const response = await fixtureResolver.callStatic.multicallCallback(
+      // const response = await fixtureResolver.multicallCallback(
         input , extraData
       )
-      assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[0])[0].toNumber(), arg1)
-      assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[1])[0].toNumber(), arg2)
-      assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[2])[0].toNumber(), arg3)
+      console.log('***4')
+      console.log({response})
+      for (let index = 0; index < args.length; index++) {
+        const arg = args[index];
+        assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[index])[0].toNumber(), arg);
+      }
     }catch(e){
       console.log({e})
+      assert
     }
   });
 });
