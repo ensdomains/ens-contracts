@@ -33,8 +33,8 @@ contract MulticallTestFixture is OffchainMulticallable {
         return count;
     }
 
-    function doSomethingOffchainCallback(bytes calldata /* response */, bytes calldata extradata) external view returns(uint256) {
-        uint256 count = abi.decode(extradata, (uint256));
+    function doSomethingOffchainCallback(bytes calldata  response, bytes calldata /* extradata */) external view returns(uint256) {
+        uint256 count = abi.decode(response, (uint256));
         // return doSomethingOffchain(count - 1);
         return count;
     }

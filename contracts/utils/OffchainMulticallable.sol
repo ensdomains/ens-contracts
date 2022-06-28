@@ -85,6 +85,8 @@ abstract contract OffchainMulticallable {
         console.log("****multicallCallback1");
         bytes[] memory responses = abi.decode(response, (bytes[]));
         OffchainLookupExtraData[] memory extraDatas = abi.decode(extraData, (OffchainLookupExtraData[]));
+        console.log(responses.length);
+        console.log(extraDatas.length);
         require(responses.length == extraDatas.length);
         bytes[] memory data = new bytes[](responses.length);
         for(uint256 i = 0; i < responses.length; i++) {
@@ -100,7 +102,9 @@ abstract contract OffchainMulticallable {
                 data[i] = abi.encodeWithSelector(extraDatas[i].callbackFunction, responses[i], extraDatas[i].data);
                 console.log(i);
                 console.logBytes(responses[i]);
-                console.logBytes(data[i]);
+                console.logBytes(responses[i]);
+                console.logBytes(extraDatas[i].data);
+                console.logBytes(abi.encodePacked(data[i]));
             }
         }
         return multicall(data);
