@@ -27,7 +27,7 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         return hashes[node];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IContentHashResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 }

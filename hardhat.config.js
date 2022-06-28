@@ -52,6 +52,12 @@ module.exports = {
       chainId: 3,
       accounts: real_accounts,
     },
+    goerli: {
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
+      tags: ["test", "legacy", "use_root"],
+      chainId: 5,
+      accounts: real_accounts,
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_ID}`,
       tags: ['legacy', 'use_root'],
@@ -70,7 +76,7 @@ module.exports = {
   solidity: {
     compilers: [
       {
-        version: '0.8.12',
+        version: "0.8.13",
         settings: {
           optimizer: {
             enabled: true,

@@ -130,7 +130,7 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
         return zonehashes[node];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IDNSRecordResolver).interfaceId ||
                interfaceID == type(IDNSZoneResolver).interfaceId ||
                super.supportsInterface(interfaceID);
