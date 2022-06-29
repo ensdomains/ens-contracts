@@ -1,10 +1,15 @@
-pragma solidity ^0.8.4;
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.13;
 
 interface INameWrapperUpgrade {
-    function wrap(
-        bytes calldata name,
-        address wrappedOwner,
-        address resolver
+    function setSubnodeRecord(
+        bytes32 node,
+        string calldata label,
+        address owner,
+        address resolver,
+        uint64 ttl,
+        uint32 fuses,
+        uint64 expiry
     ) external;
 
     function wrapETH2LD(
