@@ -1124,6 +1124,12 @@ describe('Name Wrapper', () => {
     })
   })
   describe('setUpgradeContract()', () => {
+    it('Reverts if called by someone that is not the owner', async () => {
+      // Attempt to attack the contract by setting the upgrade contract to themselves
+      await expect(
+        NameWrapper2.setUpgradeContract(account2)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+    })
     it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
       expect(
         await BaseRegistrar.isApprovedForAll(
@@ -1222,7 +1228,7 @@ describe('Name Wrapper', () => {
     const labelHash = labelhash(label)
     const nameHash = namehash(label + '.eth')
 
-    it('upgrades a .eth name if sender is owner', async () => {
+    it('Upgrades a .eth name if sender is owner', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
@@ -1265,7 +1271,7 @@ describe('Name Wrapper', () => {
         .withArgs(label, account, 0, 0, account2)
     })
 
-    it('upgrades a .eth name if sender is authorised by the owner', async () => {
+    it('Upgrades a .eth name if sender is authorised by the owner', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.setApprovalForAll(account2, true)
@@ -1394,6 +1400,29 @@ describe('Name Wrapper', () => {
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
+    })
+
+    it('will revert if called twice by the original owner', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      await expect(
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
     })
 
     it('Will allow you to set the resolver on upgrade.', async () => {
@@ -1681,6 +1710,61 @@ describe('Name Wrapper', () => {
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
+    })
+
+    it('reverts if called twice by the original owner', async () => {
+      const name = 'to-upgrade.wrapped2.eth'
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        nameHash,
+        'to-upgrade',
+        account,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+        MAX_EXPIRY
+      )
+      const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
+      expect(ownerOfWrapped).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      await NameWrapper.upgrade(
+        namehash('wrapped2.eth'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(namehash(name))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      await expect(
+        NameWrapper.upgrade(
+          namehash('wrapped2.eth'),
+          'to-upgrade',
+          account2,
+          EMPTY_ADDRESS
+        )
+      ).to.be.revertedWith(
+        `Unauthorised("${namehash('to-upgrade.wrapped2.eth')}", "${account}")`
+      )
     })
 
     it('Will pass resolver to the upgradedContract without any changes.', async () => {
