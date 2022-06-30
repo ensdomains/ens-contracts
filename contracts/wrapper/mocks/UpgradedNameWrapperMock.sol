@@ -46,13 +46,11 @@ contract NameWrapperUpgraded {
     ) public {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
-        if (
-            registrant != msg.sender &&
-            !registrar.isApprovedForAll(registrant, msg.sender)
-        ) {
-            revert;
-        }
-
+        require(
+            registrant == msg.sender ||
+                registrar.isApprovedForAll(registrant, msg.sender),
+            "Unauthorised"
+        );
         emit WrapETH2LD(label, wrappedOwner, fuses, expiry, resolver);
     }
 
@@ -65,8 +63,13 @@ contract NameWrapperUpgraded {
         uint32 fuses,
         uint64 expiry
     ) public {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = keccak256(abi.encodePacked(parentNode, labelhash));
+        address owner = ens.owner(node);
         require(
-            msg.sender == oldNameWrapper,
+            msg.sender == oldNameWrapper ||
+                owner == msg.sender ||
+                ens.isApprovedForAll(owner, msg.sender),
             "Not owner/approved or previous nameWrapper controller"
         );
         emit SetSubnodeRecord(
