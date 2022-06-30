@@ -20,7 +20,7 @@ describe("Multicall", function () {
     assert.equal(fixtureResolver.interface.decodeFunctionResult('doSomethingOffchain', result[1])[0].toNumber(), arg2);
   })
 
-  it.only("returns onchain and offchain data recursively", async function () {
+  it("returns onchain and offchain data recursively", async function () {
     const MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
     const fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
     await fixtureResolver.deployed();
