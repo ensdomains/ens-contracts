@@ -58,12 +58,12 @@ abstract contract OffchainMulticallable {
             // Unexpected response, revert the whole batch
             LowLevelCallUtils.propagateRevert();
         }
+        if(offchainCount == 0) {
+            return results;
+        }
         // Trim callDatas if offchain data exists
         assembly {
             mstore(callDatas, offchainCount)
-        }
-        if(offchainCount == 0) {
-            return results;
         }
         revert OffchainLookup(
             address(this),
