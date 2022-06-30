@@ -4,7 +4,7 @@ import "../INameWrapper.sol";
 import "../../registry/ENS.sol";
 import "../../ethregistrar/IBaseRegistrar.sol";
 
-contract NameWrapperUpgraded {
+contract UpgradedNameWrapperMock {
     address public immutable oldNameWrapper;
     ENS public immutable ens;
     IBaseRegistrar public immutable registrar;
@@ -46,6 +46,8 @@ contract NameWrapperUpgraded {
     ) public {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
+        registrar.transferFrom(registrant, address(this), tokenId);
+        registrar.reclaim(tokenId, address(this));
         require(
             registrant == msg.sender ||
                 registrar.isApprovedForAll(registrant, msg.sender),
@@ -72,6 +74,7 @@ contract NameWrapperUpgraded {
                 ens.isApprovedForAll(owner, msg.sender),
             "Not owner/approved or previous nameWrapper controller"
         );
+        ens.setOwner(node, address(this));
         emit SetSubnodeRecord(
             parentNode,
             label,
