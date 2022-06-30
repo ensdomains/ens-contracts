@@ -67,10 +67,10 @@ describe.only("Multicall", function () {
         assert.equal(fixtureResolver.interface.decodeFunctionResult("doSomethingOffchainCallback", response[2])[0].toNumber(), threashold);        
       }catch(e){
         if(e.errorName === 'OffchainLookup'){
-          callData2 = e.errorArgs.callData
-          extraData2 = e.errorArgs.extraData
-          result2 = iface.decodeFunctionData("query", callData);
-          await recursiveTest(result2, extraData2)
+          await recursiveTest(
+            iface.decodeFunctionData("query", callData2),
+            e.errorArgs.extraData
+          )
         }else{
           assert.fail('should not come here')
         }
