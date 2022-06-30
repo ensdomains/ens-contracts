@@ -23,6 +23,7 @@ const ROOT_NODE =
 const EMPTY_BYTES32 =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const DUMMY_ADDRESS = '0x0000000000000000000000000000000000000001'
 
 function increaseTime(delay) {
   return ethers.provider.send('evm_increaseTime', [delay])
@@ -61,6 +62,7 @@ describe('Name Wrapper', () => {
   let BaseRegistrar2
   let NameWrapper
   let NameWrapper2
+  let NameWrapperUpgraded
   let MetaDataservice
   let signers
   let accounts
@@ -112,6 +114,13 @@ describe('Name Wrapper', () => {
       MetaDataservice.address
     )
     NameWrapper2 = NameWrapper.connect(signers[1])
+
+    NameWrapperUpgraded = await deploy(
+      'UpgradedNameWrapperMock',
+      NameWrapper.address,
+      EnsRegistry.address,
+      BaseRegistrar.address
+    )
 
     // setup .eth
     await EnsRegistry.setSubnodeOwner(
@@ -1114,7 +1123,727 @@ describe('Name Wrapper', () => {
       expect(owner).to.equal(account)
     })
   })
+  describe('setUpgradeContract()', () => {
+    it('Reverts if called by someone that is not the owner', async () => {
+      // Attempt to attack the contract by setting the upgrade contract to themselves
+      await expect(
+        NameWrapper2.setUpgradeContract(account2)
+      ).to.be.revertedWith('Ownable: caller is not the owner')
+    })
+    it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
+      expect(
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(false)
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(false)
 
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+    })
+    it('Will setApprovalForAll for the old upgradeContract addresses in the registrar and registry to false', async () => {
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(DUMMY_ADDRESS)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+      ).to.equal(true)
+      expect(
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+      ).to.equal(true)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+      ).to.equal(false)
+      expect(
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+      ).to.equal(false)
+    })
+    it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(ZERO_ADDRESS)
+
+      expect(
+        await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)
+      ).to.equal(false)
+      expect(
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)
+      ).to.equal(false)
+    })
+  })
+
+  describe('upgradeETH2LD()', () => {
+    const label = 'wrapped2'
+    const labelHash = labelhash(label)
+    const nameHash = namehash(label + '.eth')
+
+    it('Upgrades a .eth name if sender is owner', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        0,
+        EMPTY_ADDRESS
+      )
+
+      //make sure reclaim claimed ownership for the wrapper in registry
+
+      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(account)
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapper.address
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+      const tx = await NameWrapper.upgradeETH2LD(label, account, account2)
+
+      //make sure owner of the registry is updated to the new upgraded contract
+
+      expect(await EnsRegistry.owner(nameHash)).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      // check the upgraded namewrapper is called with all parameters required
+
+      await expect(tx)
+        .to.emit(NameWrapperUpgraded, 'WrapETH2LD')
+        .withArgs(label, account, 0, 0, account2)
+    })
+
+    it('Upgrades a .eth name if sender is authorised by the owner', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.setApprovalForAll(account2, true)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        0,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(account)
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapper.address
+      )
+
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      const tx = await NameWrapper2.upgradeETH2LD(label, account2, account)
+
+      expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
+        NameWrapperUpgraded.address
+      )
+      expect(await EnsRegistry.owner(nameHash)).to.equal(
+        NameWrapperUpgraded.address
+      )
+      await expect(tx)
+        .to.emit(NameWrapperUpgraded, 'WrapETH2LD')
+        .withArgs(label, account2, 0, 0, account)
+    })
+
+    it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        0,
+        EMPTY_ADDRESS
+      )
+
+      await expect(
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`CannotUpgrade()`)
+    })
+
+    it('Cannot upgrade a name if the upgradeContract has been set and then set back to the 0 address.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        0,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(await NameWrapper.upgradeContract()).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      await NameWrapper.setUpgradeContract(EMPTY_ADDRESS)
+      await expect(
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`CannotUpgrade()`)
+    })
+
+    it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+
+      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      const tx = await NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+
+      const expectedExpiry = await BaseRegistrar.nameExpires(labelHash)
+
+      // assert the fuses and expiry have been passed through to the new NameWrapper
+      await expect(tx)
+        .to.emit(NameWrapperUpgraded, 'WrapETH2LD')
+        .withArgs(
+          label,
+          account,
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+          expectedExpiry,
+          EMPTY_ADDRESS
+        )
+    })
+
+    it('Will burn the token, fuses and expiry of the name in the NameWrapper contract when upgraded.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      const [fuses, expiry] = await NameWrapper.getFuses(nameHash)
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+    })
+
+    it('will revert if called twice by the original owner', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
+
+      await expect(
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
+    })
+
+    it('Will allow you to set the resolver on upgrade.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(label, account, 0, 0, DUMMY_ADDRESS)
+
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await NameWrapper.upgradeETH2LD(label, account, DUMMY_ADDRESS)
+
+      const resolver = await EnsRegistry.resolver(nameHash)
+
+      expect(resolver).to.equal(DUMMY_ADDRESS)
+    })
+    it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        0,
+        EMPTY_ADDRESS
+      )
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await expect(
+        NameWrapper2.upgradeETH2LD(label, EMPTY_ADDRESS, EMPTY_ADDRESS)
+      ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
+    })
+  })
+
+  describe('upgrade()', () => {
+    const label = 'wrapped2'
+    const labelHash = labelhash(label)
+    const nameHash = namehash(label + '.eth')
+
+    it('Allows owner to upgrade name', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        0,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(nameHash, 'to-upgrade', account, 0, 0)
+      const ownerOfWrapped = await NameWrapper.ownerOf(
+        namehash('to-upgrade.wrapped2.eth')
+      )
+      expect(ownerOfWrapped).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      const tx = await NameWrapper.upgrade(
+        namehash('wrapped2.eth'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      //make sure owner of the registry is updated to the new upgraded contract
+
+      expect(
+        await EnsRegistry.owner(namehash('to-upgrade.wrapped2.eth'))
+      ).to.equal(NameWrapperUpgraded.address)
+
+      //make sure owner in the upgraded NameWrapper contract is the user
+
+      await expect(tx)
+        .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
+        .withArgs(
+          namehash('wrapped2.eth'),
+          'to-upgrade',
+          account,
+          EMPTY_ADDRESS,
+          0,
+          0,
+          0
+        )
+    })
+
+    it('upgrades a name if sender is authroized by the owner', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.setApprovalForAll(account2, true)
+
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        0,
+        0
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      const tx = await NameWrapper2.upgrade(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      await expect(tx)
+        .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
+        .withArgs(
+          namehash('xyz'),
+          'to-upgrade',
+          account,
+          EMPTY_ADDRESS,
+          0,
+          0,
+          0
+        )
+    })
+
+    it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        0,
+        0
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      await expect(
+        NameWrapper.upgrade(
+          namehash('xyz'),
+          'to-upgrade',
+          account,
+          EMPTY_ADDRESS
+        )
+      ).to.be.revertedWith(`CannotUpgrade()`)
+    })
+
+    it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
+      const name = 'to-upgrade.wrapped2.eth'
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        nameHash,
+        'to-upgrade',
+        account,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+        MAX_EXPIRY
+      )
+      const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
+      expect(ownerOfWrapped).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      const tx = await NameWrapper.upgrade(
+        namehash('wrapped2.eth'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(namehash(name))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      const expectedExpiry = await BaseRegistrar.nameExpires(labelHash)
+      const expectedFuses =
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
+
+      expect(tx)
+        .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
+        .withArgs(
+          namehash('wrapped2.eth'),
+          'to-upgrade',
+          account,
+          EMPTY_ADDRESS,
+          0,
+          expectedFuses,
+          expectedExpiry
+        )
+    })
+
+    it('Will burn the token, fuses and expiry of the name in the NameWrapper contract when upgraded.', async () => {
+      const name = 'to-upgrade.wrapped2.eth'
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        nameHash,
+        'to-upgrade',
+        account,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+        MAX_EXPIRY
+      )
+      const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
+      expect(ownerOfWrapped).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      const tx = await NameWrapper.upgrade(
+        namehash('wrapped2.eth'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(namehash(name))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      expect(
+        await NameWrapper.ownerOf(namehash('to-upgrade.wrapped2.eth'))
+      ).to.equal(EMPTY_ADDRESS)
+
+      const [fuses, expiry] = await NameWrapper.getFuses(
+        namehash('to-upgrade.wrapped2.eth')
+      )
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+    })
+
+    it('reverts if called twice by the original owner', async () => {
+      const name = 'to-upgrade.wrapped2.eth'
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await BaseRegistrar.register(labelHash, account, 84600)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      await NameWrapper.setSubnodeOwner(
+        nameHash,
+        'to-upgrade',
+        account,
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+        MAX_EXPIRY
+      )
+      const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
+      expect(ownerOfWrapped).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      await NameWrapper.upgrade(
+        namehash('wrapped2.eth'),
+        'to-upgrade',
+        account,
+        EMPTY_ADDRESS
+      )
+
+      expect(await EnsRegistry.owner(namehash(name))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      await expect(
+        NameWrapper.upgrade(
+          namehash('wrapped2.eth'),
+          'to-upgrade',
+          account2,
+          EMPTY_ADDRESS
+        )
+      ).to.be.revertedWith(
+        `Unauthorised("${namehash('to-upgrade.wrapped2.eth')}", "${account}")`
+      )
+    })
+
+    it('Will pass resolver to the upgradedContract without any changes.', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeRecord(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        account2,
+        0,
+        0,
+        0
+      )
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      expect(
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address
+        )
+      ).to.equal(true)
+
+      const tx = await NameWrapper.upgrade(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        account2
+      )
+
+      expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(
+        NameWrapperUpgraded.address
+      )
+
+      expect(tx)
+        .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
+        .withArgs(namehash('xyz'), 'to-upgrade', account, account2, 0, 0, 0)
+    })
+    it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwner(
+        namehash('xyz'),
+        'to-upgrade',
+        account,
+        0,
+        0
+      )
+
+      const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+        namehash('to-upgrade.xyz')
+      )
+      expect(ownerOfWrappedXYZ).to.equal(account)
+
+      //set the upgradeContract of the NameWrapper contract
+      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+      await expect(
+        NameWrapper2.upgrade(
+          namehash('xyz'),
+          'to-upgrade',
+          account,
+          EMPTY_ADDRESS
+        )
+      ).to.be.revertedWith(
+        `Unauthorised("${namehash('to-upgrade.xyz')}", "${account2}")`
+      )
+    })
+  })
   describe('setFuses()', () => {
     const label = 'fuses'
     const tokenId = labelhash('fuses')

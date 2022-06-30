@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 import "./ERC1155Fuse.sol";
 import "./Controllable.sol";
 import "./INameWrapper.sol";
+import "./INameWrapperUpgrade.sol";
 import "./IMetadataService.sol";
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -20,6 +21,7 @@ error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
 error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
+error CannotUpgrade();
 error InvalidExpiry(bytes32 node, uint64 expiry);
 
 contract NameWrapper is
@@ -40,6 +42,8 @@ contract NameWrapper is
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
+    //A contract address to a new upgraded contract if any
+    INameWrapperUpgrade public upgradeContract;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
     constructor(
@@ -112,6 +116,30 @@ contract NameWrapper is
 
     function uri(uint256 tokenId) public view override returns (string memory) {
         return metadataService.uri(tokenId);
+    }
+
+    /**
+     * @notice Set the address of the upgradeContract of the contract. only admin can do this
+     * @dev The default value of upgradeContract is the 0 address. Use the 0 address at any time
+     * to make the contract not upgradable.
+     * @param _upgradeAddress address of an upgraded contract
+     */
+
+    function setUpgradeContract(INameWrapperUpgrade _upgradeAddress)
+        public
+        onlyOwner
+    {
+        if (address(upgradeContract) != address(0)) {
+            registrar.setApprovalForAll(address(upgradeContract), false);
+            ens.setApprovalForAll(address(upgradeContract), false);
+        }
+
+        upgradeContract = _upgradeAddress;
+
+        if (address(upgradeContract) != address(0)) {
+            registrar.setApprovalForAll(address(upgradeContract), true);
+            ens.setApprovalForAll(address(upgradeContract), true);
+        }
     }
 
     /**
@@ -363,7 +391,62 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Sets fuses of a name that you own the parent of. Can also be called by the owner of a .eth name
+     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeContract
+     *     and burning the token of this contract
+     * @dev Can be called by the owner of the name in this contract
+     * @param label Label as a string of the .eth name to upgrade
+     * @param wrappedOwner The owner of the wrapped name
+     */
+
+    function upgradeETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        address resolver
+    ) public {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);
+        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
+
+        upgradeContract.wrapETH2LD(
+            label,
+            wrappedOwner,
+            fuses,
+            expiry,
+            resolver
+        );
+    }
+
+    /**
+     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @dev Can be called by the owner or an authorised caller
+     * Requires upgraded Namewrapper to permit old Namewrapper to call `setSubnodeRecord` for all names
+     * @param parentNode namehash of the parent name
+     * @param label Label as a string of the name to upgrade
+     * @param wrappedOwner Owner of the name in this contract
+     * @param resolver resolver contract for this name
+     */
+
+    function upgrade(
+        bytes32 parentNode,
+        string calldata label,
+        address wrappedOwner,
+        address resolver
+    ) public {
+        bytes32 labelhash = keccak256(bytes(label));
+        bytes32 node = _makeNode(parentNode, labelhash);
+        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
+        upgradeContract.setSubnodeRecord(
+            parentNode,
+            label,
+            wrappedOwner,
+            resolver,
+            0,
+            fuses,
+            expiry
+        );
+    }
+
+    /* @notice Sets fuses of a name that you own the parent of. Can also be called by the owner of a .eth name
      * @param parentNode parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
      * @param labelhash labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
      * @param fuses fuses to burn
@@ -569,12 +652,12 @@ contract NameWrapper is
         address owner = ens.owner(subnode);
 
         if (owner == address(0)) {
-            (, uint96 fuses, ) = getData(uint256(node));
+            (, uint32 fuses, ) = getData(uint256(node));
             if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
         } else {
-            (, uint96 subnodeFuses, ) = getData(uint256(subnode));
+            (, uint32 subnodeFuses, ) = getData(uint256(subnode));
             if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
@@ -700,6 +783,24 @@ contract NameWrapper is
     ) internal {
         bytes memory name = _addLabel(label, names[parentNode]);
         _wrap(node, name, newOwner, fuses, expiry);
+    }
+
+    function _prepareUpgrade(bytes32 node)
+        private
+        returns (uint32 fuses, uint64 expiry)
+    {
+        if (address(upgradeContract) == address(0)) {
+            revert CannotUpgrade();
+        }
+
+        if (!isTokenOwnerOrApproved(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (fuses, expiry) = getFuses(node);
+
+        // burn token and fuse data
+        _burn(uint256(node));
     }
 
     function _transferAndBurnFuses(
