@@ -5,18 +5,16 @@ const iface = new ethers.utils.Interface(batchGatewayAbi);
 const batchgatewayurl = "http://batchgateway.com/";
 const gatewayurl = "http://gateway.com/";
 
-describe.only("Multicall", function () {
+describe("Multicall", function () {
   it("returns onchain data", async function () {
     const MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
     const fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
     await fixtureResolver.deployed();
     const arg1 = 2 // anything below 5 is offchain
     const arg2 = 2 // anything below 5 is offchain
-    const args = [
-      fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg1]),
-      fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg2])
-    ]
-    const result = await fixtureResolver.callStatic.multicall(args)
+    const args = [arg1, arg2]
+    const encodedArgs = args.map(arg => fixtureResolver.interface.encodeFunctionData('doSomethingOffchain', [arg]))
+    const result = await fixtureResolver.callStatic.multicall(encodedArgs)
     assert.equal(result.length, args.length);
     assert.equal(fixtureResolver.interface.decodeFunctionResult('doSomethingOffchain', result[0])[0].toNumber(), arg1);
     assert.equal(fixtureResolver.interface.decodeFunctionResult('doSomethingOffchain', result[1])[0].toNumber(), arg2);
