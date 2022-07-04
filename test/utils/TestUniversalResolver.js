@@ -64,11 +64,9 @@ contract('UniversalResolver', function (accounts) {
             // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
             // This is the extraData value the universal resolver should encode
             const extraData = ethers.utils.defaultAbiCoder.encode(['address', 'bytes4', 'bytes'], [dummyOffchainResolver.address, '0xb4a85801', data]);
-            console.log({data})
             try{
                 await universalResolver.callStatic.resolve(dns.hexEncodeName('offchain.test.eth'), data)
             }catch(e){
-                console.log({e})
                 expect(e.errorName).to.equal("OffchainLookup");
                 expect(e.errorArgs.sender).to.equal(universalResolver.address);
                 expect(e.errorArgs.urls[0]).to.equal("https://example.com/");
