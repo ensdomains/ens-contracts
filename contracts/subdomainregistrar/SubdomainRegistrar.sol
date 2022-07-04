@@ -83,7 +83,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         if (!available(node)) {
             revert Unavailable();
         }
-        if (msg.value < registrationFee) {
+        if (msg.value < fee) {
             revert InsufficientFunds();
         }
 
