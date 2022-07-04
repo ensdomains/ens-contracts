@@ -20,6 +20,7 @@ contract('UniversalResolver', function (accounts) {
         ens = await ENS.new();
         nameWrapper = await NameWrapper.new();
         publicResolver = await PublicResolver.new(ens.address, nameWrapper.address, ZERO_ADDRESS, ZERO_ADDRESS);
+        // Use ethers.js over web3.js so that custom error is decoded.
         universalResolver = await UniversalResolver.deploy(ens.address);
         dummyOffchainResolver = await DummyOffchainResolver.new();
 
