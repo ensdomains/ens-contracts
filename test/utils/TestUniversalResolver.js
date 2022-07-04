@@ -1,12 +1,11 @@
 const ENS = artifacts.require('./registry/ENSRegistry.sol');
 const PublicResolver = artifacts.require('PublicResolver.sol');
 const NameWrapper = artifacts.require('DummyNameWrapper.sol');
-const UniversalResolver = artifacts.require('UniversalResolver.sol');
 const DummyOffchainResolver = artifacts.require('DummyOffchainResolver.sol');
 
 const namehash = require('eth-ens-namehash');
 const sha3 = require('web3-utils').sha3;
-const ethers = require('ethers');
+const { ethers } = require("hardhat");
 const { dns } = require("../test-utils");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -16,11 +15,13 @@ contract('UniversalResolver', function (accounts) {
     let ens, publicResolver, universalResolver, dummyOffchainResolver, nameWrapper;
 
     beforeEach(async () => {
+        const UniversalResolver = await ethers.getContractFactory("UniversalResolver");    
         node = namehash.hash('eth');
         ens = await ENS.new();
         nameWrapper = await NameWrapper.new();
         publicResolver = await PublicResolver.new(ens.address, nameWrapper.address, ZERO_ADDRESS, ZERO_ADDRESS);
-        universalResolver = await UniversalResolver.new(ens.address);
+        // Use ethers.js over web3.js so that custom error is decoded.
+        universalResolver = await UniversalResolver.deploy(ens.address);
         dummyOffchainResolver = await DummyOffchainResolver.new();
 
         await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {from: accounts[0]});
@@ -63,14 +64,17 @@ contract('UniversalResolver', function (accounts) {
             // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
             // This is the extraData value the universal resolver should encode
             const extraData = ethers.utils.defaultAbiCoder.encode(['address', 'bytes4', 'bytes'], [dummyOffchainResolver.address, '0xb4a85801', data]);
-            await expect(universalResolver.resolve(dns.hexEncodeName('offchain.test.eth'), data)).to.be.revertedWith(
-                'OffchainLookup(' +
-                    `"${universalResolver.address}", ` +
-                    '["https://example.com/"], ' +
-                    `"${data}", ` +
-                    '"0xb4a85801", ' +
-                    `"${extraData}"` +
-                ')');
+            try{
+                await universalResolver.callStatic.resolve(dns.hexEncodeName('offchain.test.eth'), data)
+            }catch(e){
+                expect(e.errorName).to.equal("OffchainLookup");
+                expect(e.errorArgs.sender).to.equal(universalResolver.address);
+                expect(e.errorArgs.urls[0]).to.equal("https://example.com/");
+                expect(e.errorArgs.urls[0]).to.equal("https://example.com/");
+                expect(e.errorArgs.callData).to.equal(data);
+                expect(e.errorArgs.callbackFunction).to.equal("0xb4a85801");
+                expect(e.errorArgs.extraData).to.equal(extraData);
+            }
         });
     });
 
