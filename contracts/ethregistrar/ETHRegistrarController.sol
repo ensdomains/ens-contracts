@@ -91,7 +91,8 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         address resolver,
         bytes[] calldata data,
         bool reverseRecord,
-        uint96 fuses
+        uint32 fuses,
+        uint64 wrapperExpiry
     ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
         if (data.length > 0) {
@@ -110,7 +111,8 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                     data,
                     secret,
                     reverseRecord,
-                    fuses
+                    fuses,
+                    wrapperExpiry
                 )
             );
     }
@@ -128,9 +130,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         address resolver,
         bytes[] calldata data,
         bool reverseRecord,
-        uint96 fuses
+        uint32 fuses,
+        uint64 wrapperExpiry
     ) public payable override {
-        bytes32 label = keccak256(bytes(name));
         IPriceOracle.Price memory price = rentPrice(name, duration);
         require(
             msg.value >= (price.base + price.premium),
@@ -148,7 +150,8 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
                 resolver,
                 data,
                 reverseRecord,
-                fuses
+                fuses,
+                wrapperExpiry
             )
         );
 
@@ -157,10 +160,11 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             owner,
             duration,
             resolver,
-            fuses
+            fuses,
+            wrapperExpiry
         );
 
-        _setRecords(resolver, label, data);
+        _setRecords(resolver, keccak256(bytes(name)), data);
 
         if (reverseRecord) {
             _setReverseRecord(name, resolver, msg.sender);
@@ -168,7 +172,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
 
         emit NameRegistered(
             name,
-            label,
+            keccak256(bytes(name)),
             owner,
             price.base,
             price.premium,
@@ -237,7 +241,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         );
         require(available(name), "ETHRegistrarController: Name is unavailable");
 
-        delete(commitments[commitment]);
+        delete (commitments[commitment]);
 
         require(duration >= MIN_REGISTRATION_DURATION);
     }
@@ -264,7 +268,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     }
 
     function _setReverseRecord(
-        string calldata name,
+        string memory name,
         address resolver,
         address owner
     ) internal {

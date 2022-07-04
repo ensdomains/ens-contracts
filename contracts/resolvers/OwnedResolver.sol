@@ -18,7 +18,7 @@ contract OwnedResolver is Ownable, ABIResolver, AddrResolver, ContentHashResolve
         return msg.sender == owner();
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public view returns(bool) {
         return super.supportsInterface(interfaceID);
     }
 }
