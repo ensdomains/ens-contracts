@@ -47,6 +47,7 @@ contract('ETHRegistrarController', function() {
       NULL_ADDRESS,
       [],
       false,
+      0,
       0
     )
     var tx = await controller.commit(commitment)
@@ -64,6 +65,7 @@ contract('ETHRegistrarController', function() {
       NULL_ADDRESS,
       [],
       false,
+      0,
       0,
       txOptions
     )
@@ -174,10 +176,7 @@ contract('ETHRegistrarController', function() {
 
   it('should report label validity', async () => {
     for (const label in checkLabels) {
-      expect(await controller.valid(label)).to.equal(
-        checkLabels[label],
-        label
-      )
+      expect(await controller.valid(label)).to.equal(checkLabels[label], label)
     }
   })
 
@@ -237,6 +236,7 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       false,
+      0,
       0
     )
     var tx = await controller.commit(commitment)
@@ -264,6 +264,7 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       false,
+      0,
       0,
       { value: BUFFERED_REGISTRATION_COST }
     )
@@ -318,6 +319,7 @@ contract('ETHRegistrarController', function() {
           ]),
         ],
         false,
+        0,
         0
       )
     ).to.be.revertedWith(
@@ -344,6 +346,7 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       false,
+      0,
       0
     )
 
@@ -373,6 +376,7 @@ contract('ETHRegistrarController', function() {
         ],
         false,
         0,
+        0,
         { value: BUFFERED_REGISTRATION_COST }
       )
     ).to.be.revertedWith('Address: call to non-contract')
@@ -397,6 +401,7 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       false,
+      0,
       0
     )
 
@@ -426,6 +431,7 @@ contract('ETHRegistrarController', function() {
         ],
         false,
         0,
+        0,
         { value: BUFFERED_REGISTRATION_COST }
       )
     ).to.be.revertedWith('ETHRegistrarController: Failed to set Record')
@@ -445,6 +451,7 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       false,
+      0,
       0
     )
     const tx = await controller.commit(commitment)
@@ -468,6 +475,7 @@ contract('ETHRegistrarController', function() {
           ]),
         ],
         false,
+        0,
         0,
         { value: BUFFERED_REGISTRATION_COST }
       )
@@ -494,6 +502,7 @@ contract('ETHRegistrarController', function() {
         ),
       ],
       false,
+      0,
       0
     )
     const tx = await controller.commit(commitment)
@@ -522,6 +531,7 @@ contract('ETHRegistrarController', function() {
         ],
         false,
         0,
+        0,
         { value: BUFFERED_REGISTRATION_COST }
       )
     ).to.be.revertedWith(
@@ -538,6 +548,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       false,
+      0,
       0
     )
     let tx = await controller.commit(commitment)
@@ -555,6 +566,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       false,
+      0,
       0,
       { value: BUFFERED_REGISTRATION_COST }
     )
@@ -590,6 +602,7 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0
       )
     )
@@ -604,6 +617,7 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -623,6 +637,7 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0
       )
     )
@@ -637,6 +652,7 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -655,13 +671,12 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0
       )
     )
 
-    await evm.advanceTime(
-      (await controller.maxCommitmentAge()).toNumber() + 1
-    )
+    await evm.advanceTime((await controller.maxCommitmentAge()).toNumber() + 1)
     expect(
       controller.register(
         'newname2',
@@ -671,6 +686,7 @@ contract('ETHRegistrarController', function() {
         NULL_ADDRESS,
         [],
         false,
+        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -701,9 +717,7 @@ contract('ETHRegistrarController', function() {
 
   it('should allow anyone to withdraw funds and transfer to the registrar owner', async () => {
     await controller.withdraw({ from: ownerAccount })
-    expect(parseInt(await web3.eth.getBalance(controller.address))).to.equal(
-      0
-    )
+    expect(parseInt(await web3.eth.getBalance(controller.address))).to.equal(0)
   })
 
   it('should set the reverse record of the account', async () => {
@@ -715,6 +729,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       true,
+      0,
       0
     )
     await controller.commit(commitment)
@@ -728,6 +743,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       true,
+      0,
       0,
       { value: BUFFERED_REGISTRATION_COST }
     )
@@ -746,6 +762,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       false,
+      0,
       0
     )
     await controller.commit(commitment)
@@ -759,6 +776,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       false,
+      0,
       0,
       { value: BUFFERED_REGISTRATION_COST }
     )
@@ -777,6 +795,7 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       true,
+      0,
       0
     )
     await controller.commit(commitment)
@@ -791,6 +810,7 @@ contract('ETHRegistrarController', function() {
       [],
       true,
       0,
+      0,
       { value: BUFFERED_REGISTRATION_COST }
     )
 
@@ -804,7 +824,8 @@ contract('ETHRegistrarController', function() {
     )
   })
 
-  it('should auto wrap the name and allow fuses to be set', async () => {
+  it('should auto wrap the name and allow fuses and expiry to be set', async () => {
+    const MAX_INT_64 = 2n ** 64n - 1n
     const label = 'fuses'
     const name = label + '.eth'
     const commitment = await controller.makeCommitment(
@@ -815,12 +836,13 @@ contract('ETHRegistrarController', function() {
       resolver.address,
       [],
       true,
-      1
+      1,
+      MAX_INT_64
     )
     await controller.commit(commitment)
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-    await controller.register(
+    const tx = await controller.register(
       label,
       registrantAccount,
       REGISTRATION_TIME,
@@ -829,11 +851,15 @@ contract('ETHRegistrarController', function() {
       [],
       true,
       1,
+      MAX_INT_64, // max number for uint64, but wrapper expiry is block.timestamp + REGISTRATION_TIME
       { value: BUFFERED_REGISTRATION_COST }
     )
 
-    const [, fuses] = await nameWrapper.getData(namehash.hash(name))
-    expect(fuses).to.equal(1)
+    const block = await provider.getBlock(tx.block)
+
+    const [, fuses, expiry] = await nameWrapper.getData(namehash.hash(name))
+    expect(fuses).to.equal(65)
+    expect(expiry).to.equal(REGISTRATION_TIME + block.timestamp)
   })
 
   it('approval should reduce gas for registration', async () => {
@@ -853,7 +879,8 @@ contract('ETHRegistrarController', function() {
         ]),
       ],
       true,
-      1
+      1,
+      0
     )
 
     await controller.commit(commitment)
@@ -874,6 +901,7 @@ contract('ETHRegistrarController', function() {
       ],
       true,
       1,
+      0,
       { value: BUFFERED_REGISTRATION_COST }
     )
 
@@ -893,6 +921,7 @@ contract('ETHRegistrarController', function() {
       ],
       true,
       1,
+      0,
       { value: BUFFERED_REGISTRATION_COST }
     )
 
@@ -910,6 +939,7 @@ contract('ETHRegistrarController', function() {
       ],
       true,
       1,
+      0,
       { value: BUFFERED_REGISTRATION_COST }
     )
 

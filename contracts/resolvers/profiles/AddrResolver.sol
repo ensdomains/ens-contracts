@@ -45,7 +45,7 @@ abstract contract AddrResolver is IAddrResolver, IAddressResolver, ResolverBase 
         return _addresses[node][coinType];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
         return interfaceID == type(IAddrResolver).interfaceId || interfaceID == type(IAddressResolver).interfaceId || super.supportsInterface(interfaceID);
     }
 

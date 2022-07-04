@@ -2,9 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "./IMulticallable.sol";
-import "./SupportsInterface.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-abstract contract Multicallable is IMulticallable, SupportsInterface {
+abstract contract Multicallable is IMulticallable, ERC165 {
     function multicall(bytes[] calldata data) external override returns(bytes[] memory results) {
         results = new bytes[](data.length);
         for(uint i = 0; i < data.length; i++) {
@@ -15,7 +15,7 @@ abstract contract Multicallable is IMulticallable, SupportsInterface {
         return results;
     }
 
-    function supportsInterface(bytes4 interfaceID) public override virtual pure returns(bool) {
+    function supportsInterface(bytes4 interfaceID) public override virtual view returns(bool) {
         return interfaceID == type(IMulticallable).interfaceId || super.supportsInterface(interfaceID);
     }
 }
