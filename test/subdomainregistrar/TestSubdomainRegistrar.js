@@ -23,6 +23,9 @@ describe('Subdomain registrar', () => {
   let NameWrapper
   let MetaDataservice
   let PublicResolver
+  let Erc20
+  let Erc20WithAccount2
+  let Erc20WithAccount3
   let signers
   let account
   let account2
@@ -36,6 +39,7 @@ describe('Subdomain registrar', () => {
     signers = await ethers.getSigners()
     account = await signers[0].getAddress()
     account2 = await signers[1].getAddress()
+    account3 = await signers[2].getAddress()
 
     EnsRegistry = await deploy('ENSRegistry')
 
@@ -67,6 +71,10 @@ describe('Subdomain registrar', () => {
       EMPTY_ADDRESS
     )
 
+    Erc20 = await deploy('MockERC20', 'ENS Token', 'ENS', [account2])
+    Erc20WithAccount2 = Erc20.connect(signers[1])
+    Erc20WithAccount3 = Erc20.connect(signers[2])
+
     // setup .eth
     await EnsRegistry.setSubnodeOwner(
       ROOT_NODE,
@@ -89,6 +97,7 @@ describe('Subdomain registrar', () => {
     SubdomainRegistrar = await deploy('SubdomainRegistrar', NameWrapper.address)
 
     SubdomainRegistrar2 = SubdomainRegistrar.connect(signers[1])
+    SubdomainRegistrar3 = SubdomainRegistrar.connect(signers[2])
   })
 
   beforeEach(async () => {
@@ -110,7 +119,12 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256
+      )
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -123,15 +137,20 @@ describe('Subdomain registrar', () => {
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
     })
-    it('should not allow unapproved subdomains to be created', async () => {
+    it('should not allow subdomains to be created on unapproved parents', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
-      expect(await NameWrapper.ownerOf(namehash('test.eth'))).to.equal(account)
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await Erc20.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256
+      )
 
       await expect(
         SubdomainRegistrar.register(
-          namehash('test.eth'),
+          node,
           'subname',
           account2,
           EMPTY_ADDRESS,
@@ -145,15 +164,15 @@ describe('Subdomain registrar', () => {
         }")`
       )
     })
-    it('should allow subdomains to be registered with a fee', async () => {
-      const node = namehash('test.eth')
+
+    it('should allow subdomains to be registered without a fee', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setRegistrationFee(node, 1)
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar.setupDomain(node, EMPTY_ADDRESS, 0, account)
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -161,23 +180,26 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
         0,
         86400,
-        [],
-        { value: 86400 * fee }
+        []
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
     })
 
-    it('should revert if insufficient ether is provided', async () => {
+    it('should revert if user has insufficient balance of the token', async () => {
       const node = namehash('test.eth')
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, 1, account)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount3.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256
+      )
       await expect(
-        SubdomainRegistrar2.register(
+        SubdomainRegistrar3.register(
           node,
           'subname',
           account2,
@@ -197,7 +219,6 @@ describe('Subdomain registrar', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setRegistrationFee(node, 1)
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar2.register(

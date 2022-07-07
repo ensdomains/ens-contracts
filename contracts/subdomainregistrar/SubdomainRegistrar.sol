@@ -5,12 +5,13 @@ import "../wrapper/INameWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
 error InsufficientFunds();
 error NameNotRegistered();
+error InvalidTokenAddress(address);
+error NameNotSetup(bytes32 node);
 
 struct Name {
     uint256 registrationFee; // per second
@@ -44,16 +45,9 @@ contract SubdomainRegistrar is ERC1155Holder {
         uint256 fee,
         address beneficiary
     ) public onlyOwner(node) {
-        setRegistrationFee(node, fee);
-        names[node].beneficiary = beneficiary;
-        names[node].token = token;
-    }
-
-    function setRegistrationFee(bytes32 node, uint256 fee)
-        public
-        onlyOwner(node)
-    {
         names[node].registrationFee = fee;
+        names[node].token = token;
+        names[node].beneficiary = beneficiary;
     }
 
     function available(bytes32 node) public returns (bool) {
@@ -76,15 +70,23 @@ contract SubdomainRegistrar is ERC1155Holder {
         bytes32 node = keccak256(
             abi.encodePacked(parentNode, keccak256(bytes(label)))
         );
+
         uint256 fee = duration * names[parentNode].registrationFee;
-        // check max registration possible
-        // refund the rest
 
         if (!available(node)) {
             revert Unavailable();
         }
-        if (msg.value < fee) {
-            revert InsufficientFunds();
+
+        if (fee > 0) {
+            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
+                revert InsufficientFunds();
+            }
+
+            IERC20(names[parentNode].token).transferFrom(
+                msg.sender,
+                address(names[parentNode].beneficiary),
+                fee
+            );
         }
 
         if (records.length > 0) {
@@ -106,12 +108,6 @@ contract SubdomainRegistrar is ERC1155Holder {
             0,
             fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
             uint64(block.timestamp + duration)
-        );
-
-        IERC20(names[parentNode].token).transferFrom(
-            msg.sender,
-            address(names[parentNode].beneficiary),
-            fee
         );
     }
 
