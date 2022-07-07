@@ -212,6 +212,85 @@ describe('Subdomain registrar', () => {
     })
   })
 
+  describe('renew', () => {
+    it('should allow subdomains to be renewed', async () => {
+      await BaseRegistrar.register(labelhash('test'), account, 200000)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        0,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256
+      )
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        86400,
+        []
+      )
+
+      const [, expiry] = await NameWrapper.getFuses(
+        namehash('subname.test.eth')
+      )
+
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+
+      await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
+      const [, expiry2] = await NameWrapper.getFuses(
+        namehash('subname.test.eth')
+      )
+      expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
+    })
+
+    it('should allow subdomains to be renewed even with 0 registration fee', async () => {
+      await BaseRegistrar.register(labelhash('test'), account, 200000)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        0,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 0, account)
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        86400,
+        []
+      )
+
+      const [, expiry] = await NameWrapper.getFuses(
+        namehash('subname.test.eth')
+      )
+
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+
+      await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
+      const [, expiry2] = await NameWrapper.getFuses(
+        namehash('subname.test.eth')
+      )
+
+      expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
+    })
+  })
+
   describe('register Subnames with records', () => {
     it('should allow a subname to be registered with records', async () => {
       const node = namehash('test.eth')

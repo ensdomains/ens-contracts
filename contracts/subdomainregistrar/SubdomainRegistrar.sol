@@ -26,7 +26,8 @@ contract SubdomainRegistrar is ERC1155Holder {
     mapping(bytes32 => Name) public names;
     mapping(bytes32 => uint256) public expiries;
 
-    event NameRenewed(bytes32 node, uint256 duration);
+    event NameRegistered(bytes32 node, uint256 expiry);
+    event NameRenewed(bytes32 node, uint256 expiry);
 
     constructor(INameWrapper _wrapper) {
         wrapper = _wrapper;
@@ -109,6 +110,8 @@ contract SubdomainRegistrar is ERC1155Holder {
             fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
             uint64(block.timestamp + duration)
         );
+
+        emit NameRegistered(node, uint64(block.timestamp + duration));
     }
 
     function renew(
@@ -124,15 +127,17 @@ contract SubdomainRegistrar is ERC1155Holder {
 
         uint256 fee = duration * names[parentNode].registrationFee;
 
+        if (fee > 0) {
+            IERC20(names[parentNode].token).transferFrom(
+                msg.sender,
+                address(names[parentNode].beneficiary),
+                fee
+            );
+        }
+
         newExpiry = expiry += duration;
 
         wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
-
-        IERC20(names[parentNode].token).transferFrom(
-            msg.sender,
-            address(names[parentNode].beneficiary),
-            fee
-        );
 
         emit NameRenewed(node, newExpiry);
     }
