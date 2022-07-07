@@ -44,16 +44,16 @@ contract StablePriceOracle is IPriceOracle {
         uint256 len = name.strlen();
         uint256 basePrice;
 
-        if (len == 1) {
-            basePrice = price1Letter * duration;
-        } else if (len == 2) {
-            basePrice = price2Letter * duration;
-        } else if (len == 3) {
-            basePrice = price3Letter * duration;
+        if (len >= 5) {
+            basePrice = price5Letter * duration;
         } else if (len == 4) {
             basePrice = price4Letter * duration;
+        } else if (len == 3) {
+            basePrice = price3Letter * duration;
+        } else if (len == 2) {
+            basePrice = price2Letter * duration;
         } else {
-            basePrice = price5Letter * duration;
+            basePrice = price1Letter * duration;
         }
 
         return
