@@ -481,6 +481,9 @@ contract NameWrapper is
 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
+        if (fuses & PARENT_CANNOT_CONTROL != 0 && fuses | oldFuses != fuses) {
+            revert OperationProhibited(node);
+        }
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
     }
