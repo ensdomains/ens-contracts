@@ -2510,23 +2510,21 @@ describe('Name Wrapper', () => {
 
       const originalFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
 
-      NameWrapper.setChildFuses(
+      await NameWrapper.setChildFuses(
         wrappedTokenId,
         labelhash('sub'),
         originalFuses,
         MAX_EXPIRY
       )
 
-      NameWrapper.setChildFuses(
-        wrappedTokenId,
-        labelhash('sub'),
-        CANNOT_SET_RESOLVER | CANNOT_BURN_FUSES,
-        MAX_EXPIRY
-      )
-
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
-
-      expect(fuses).to.equal(originalFuses)
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_SET_RESOLVER | CANNOT_BURN_FUSES,
+          MAX_EXPIRY
+        )
+      ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
     it('Does not allow burning fuses if PARENT_CANNOT_CONTROL is already burned even if PARENT_CANNOT_CONTROL is added as a fuse', async () => {
@@ -2541,26 +2539,24 @@ describe('Name Wrapper', () => {
 
       const originalFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
 
-      NameWrapper.setChildFuses(
+      await NameWrapper.setChildFuses(
         wrappedTokenId,
         labelhash('sub'),
         originalFuses,
         MAX_EXPIRY
       )
 
-      NameWrapper.setChildFuses(
-        wrappedTokenId,
-        labelhash('sub'),
-        PARENT_CANNOT_CONTROL |
-          CANNOT_UNWRAP |
-          CANNOT_SET_RESOLVER |
-          CANNOT_BURN_FUSES,
-        MAX_EXPIRY
-      )
-
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
-
-      expect(fuses).to.equal(originalFuses)
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          PARENT_CANNOT_CONTROL |
+            CANNOT_UNWRAP |
+            CANNOT_SET_RESOLVER |
+            CANNOT_BURN_FUSES,
+          MAX_EXPIRY
+        )
+      ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
     it('Fuses are set to 0 if expired', async () => {
