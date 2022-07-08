@@ -481,7 +481,12 @@ contract NameWrapper is
 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
-        fuses |= oldFuses;
+        // Parent cannot burn fuses if PARENT_CANNOT_CONTROL has been burnt
+        if (fuses & PARENT_CANNOT_CONTROL != 0) {
+            fuses |= oldFuses;
+        } else {
+            fuses = oldFuses;
+        }
         _setFuses(node, owner, fuses, expiry);
     }
 

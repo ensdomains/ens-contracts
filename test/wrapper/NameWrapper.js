@@ -2498,6 +2498,40 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
+    it.only('Does not allow burning fuses if PARENT_CANNOT_CONTROL is already burned', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      const originalFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
+
+      NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        originalFuses,
+        MAX_EXPIRY
+      )
+
+      NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        PARENT_CANNOT_CONTROL |
+          CANNOT_UNWRAP |
+          CANNOT_SET_RESOLVER |
+          CANNOT_BURN_FUSES,
+        MAX_EXPIRY
+      )
+
+      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+
+      expect(fuses).to.equal(originalFuses)
+    })
+
     it('Fuses are set to 0 if expired', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
