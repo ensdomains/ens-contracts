@@ -18,6 +18,7 @@ import "./IDNSRegistrar.sol";
  * @dev An ENS registrar that allows the owner of a DNS name to claim the
  *      corresponding name in ENS.
  */
+// TODO: Record inception time of any claimed name, so old proofs can't be used to revert changes to a name.
 contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using BytesUtils for bytes;
     using Buffer for Buffer.buffer;
@@ -36,7 +37,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         uint64 ttl;
     }
 
-    event Claim(bytes32 indexed node, bytes dnsname, address owner, address resolver, uint64 ttl);
+    event Claim(bytes32 indexed node, address indexed owner, bytes dnsname);
     event NewOracle(address oracle);
     event NewPublicSuffixList(address suffixes);
 
@@ -72,9 +73,28 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
      * @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
      * @param input A chain of signed DNS RRSETs ending with a text record.
      */
-    function proveAndClaim(DNSSEC.RRSetWithSignature[] memory input) public override {
+    function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input) public override {
         bytes memory record = oracle.verifyRRSet(input);
-        _claim(record);
+        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(name, record);
+        ens.setSubnodeOwner(rootNode, labelHash, addr);
+    }
+
+    function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, address resolver, address addr) public override {
+        bytes memory record = oracle.verifyRRSet(input);
+        (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, record);
+        require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
+        if(addr != address(0)) {
+            require(resolver != address(0), "Cannot set addr if resolver is not set");
+            // Set ourselves as the owner so we can set a record on the resolver
+            ens.setSubnodeRecord(rootNode, labelHash, address(this), resolver, 0);
+            bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
+            // Set the resolver record
+            AddrResolver(resolver).setAddr(node, addr);
+            // Transfer the record to the owner
+            ens.setOwner(node, owner);
+        } else {
+            ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
+        }
     }
 
     function supportsInterface(bytes4 interfaceID) external pure override returns (bool) {
@@ -82,28 +102,21 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
                interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    function _claim(bytes memory data) internal {
-        OwnerRecord memory record = decodeOwnerRecord(data);
-
+    function _claim(bytes memory name, bytes memory data) internal returns(bytes32 rootNode, bytes32 labelHash, address addr) {
         // Get the first label
-        uint labelLen = record.name.readUint8(0);
-        bytes32 labelHash = record.name.keccak(1, labelLen);
-
+        uint labelLen = name.readUint8(0);
+        labelHash = name.keccak(1, labelLen);
+        
         // Parent name must be in the public suffix list.
-        bytes memory parentName = record.name.substring(labelLen + 1, record.name.length - labelLen - 1);
+        bytes memory parentName = name.substring(labelLen + 1, name.length - labelLen - 1);
         require(suffixes.isPublicSuffix(parentName), "Parent name must be a public suffix");
 
         // Make sure the parent name is enabled
-        bytes32 rootNode = enableNode(parentName, 0);
+        rootNode = enableNode(parentName, 0);
 
-        ens.setSubnodeRecord(rootNode, labelHash, record.owner, record.resolver, record.ttl);
+        (addr,) = DNSClaimChecker.getOwnerAddress(name, data);
 
-        emit Claim(
-            keccak256(abi.encodePacked(rootNode, labelHash)),
-            record.name,
-            record.owner,
-            record.resolver,
-            record.ttl);
+        emit Claim(keccak256(abi.encodePacked(rootNode, labelHash)), addr, name);        
     }
 
     function enableNode(bytes memory domain, uint offset) internal returns(bytes32 node) {
@@ -126,22 +139,5 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             }
         }
         return node;
-    }
-
-    function decodeOwnerRecord(bytes memory record) internal pure returns(OwnerRecord memory ret) {
-        for (RRUtils.RRIterator memory iter = record.iterateRRs(0); !iter.done(); iter.next()) {
-            if(tryParseOwnerRecord(ret, iter.data, iter.rdataOffset)) {
-                return ret;
-            }
-        }
-        revert NoOwnerRecordFound();
-    }
-
-    function tryParseOwnerRecord(OwnerRecord memory ret, bytes memory data, uint256 idx) internal pure returns(bool) {
-        while(idx < data.length) {
-            uint256 len = data.readUint8(idx); idx += 1;
-            
-            idx += len;
-        }
     }
 }

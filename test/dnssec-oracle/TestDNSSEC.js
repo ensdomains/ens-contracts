@@ -3,6 +3,7 @@ const anchors = require('../test-utils/anchors.js')
 const packet = require('dns-packet')
 const types = require('dns-packet/types')
 const { expectRevert } = require('@openzeppelin/test-helpers')
+const { rootKeys, hexEncodeSignedSet, hexEncodeName } = require('../utils/dnsutils.js')
 
 var dnssec = artifacts.require('./DNSSECImpl')
 const SignedSet = require('@ensdomains/dnsprovejs').SignedSet
@@ -70,15 +71,6 @@ const test_rrsets = [
     '0x70af492dbea004a63ba098b613ef786b41228bc9389e2ac82a08229ca203dc50fb0749559fa234e3df672b32d509642d15cdc79ed7bd25a52bcf81af3f79814c',
   ],
 ]
-
-function hexEncodeSignedSet(keys) {
-  const ss = new SignedSet(keys.rrs, keys.sig)
-  return [ss.toWire(), ss.signature.data.signature]
-}
-
-function hexEncodeName(name) {
-  return '0x' + packet.name.encode(name).toString('hex')
-}
 
 async function verifySubmission(instance, rrsets) {
   var response = await instance.verifyRRSet(rrsets);
@@ -164,60 +156,10 @@ contract('DNSSEC', function(accounts) {
   const validityPeriod = 2419200
   const expiration = Date.now() / 1000 - 15 * 60 + validityPeriod
   const inception = Date.now() / 1000 - 15 * 60
-  function rootKeys() {
-    var name = '.'
-    var sig = {
-      name: '.',
-      type: 'RRSIG',
-      ttl: 0,
-      class: 'IN',
-      flush: false,
-      data: {
-        typeCovered: 'DNSKEY',
-        algorithm: 253,
-        labels: 0,
-        originalTTL: 3600,
-        expiration,
-        inception,
-        keyTag: 1278,
-        signersName: '.',
-        signature: new Buffer([]),
-      },
-    }
-
-    var rrs = [
-      {
-        name: '.',
-        type: 'DNSKEY',
-        class: 'IN',
-        ttl: 3600,
-        data: { flags: 0, algorithm: 253, key: Buffer.from('0000', 'HEX') },
-      },
-      {
-        name: '.',
-        type: 'DNSKEY',
-        class: 'IN',
-        ttl: 3600,
-        data: { flags: 0, algorithm: 253, key: Buffer.from('1112', 'HEX') },
-      },
-      {
-        name: '.',
-        type: 'DNSKEY',
-        class: 'IN',
-        ttl: 3600,
-        data: {
-          flags: 0x0101,
-          algorithm: 253,
-          key: Buffer.from('0000', 'HEX'),
-        },
-      },
-    ]
-    return { name, sig, rrs }
-  }
 
   it('should reject signatures with non-matching algorithms', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
     keys.rrs.forEach((r) => {
       r.data.algorithm = 255
     })
@@ -226,7 +168,7 @@ contract('DNSSEC', function(accounts) {
 
   it('should reject signatures with non-matching keytags', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
 
     keys.rrs = [
       {
@@ -248,7 +190,7 @@ contract('DNSSEC', function(accounts) {
 
   it('should accept odd-length public keys', async () => {
     const instance = await dnssec.deployed()
-    const keys = rootKeys()
+    const keys = rootKeys(expiration, inception)
     keys.rrs = [
       {
         name: '.',
@@ -265,7 +207,7 @@ contract('DNSSEC', function(accounts) {
 
   it('should reject signatures by keys without the ZK bit set', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
     keys.rrs = [
       {
         name: '.',
@@ -286,7 +228,7 @@ contract('DNSSEC', function(accounts) {
 
   it('should accept a root DNSKEY', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
     await verifySubmission(instance, [hexEncodeSignedSet(keys)])
   })
 
@@ -295,7 +237,7 @@ contract('DNSSEC', function(accounts) {
     await verifySubmission(
       instance,
       [
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'test',
           sig: {
@@ -334,7 +276,7 @@ contract('DNSSEC', function(accounts) {
     var instance = await dnssec.deployed()
     await expectRevert(
       instance.verifyRRSet([
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'net',
           sig: {
@@ -374,7 +316,7 @@ contract('DNSSEC', function(accounts) {
     var instance = await dnssec.deployed()
     await expectRevert(
       instance.verifyRRSet([
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'net',
           sig: {
@@ -413,7 +355,7 @@ contract('DNSSEC', function(accounts) {
     var instance = await dnssec.deployed()
     await expectRevert(
       instance.verifyRRSet([
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'net',
           sig: {
@@ -453,7 +395,7 @@ contract('DNSSEC', function(accounts) {
     await verifySubmission(
       instance,
       [
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'test',
           sig: {
@@ -488,7 +430,7 @@ contract('DNSSEC', function(accounts) {
     )
     await expectRevert(
       instance.verifyRRSet([
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'test',
           sig: {
@@ -525,14 +467,14 @@ contract('DNSSEC', function(accounts) {
 
   it('should reject entries with expirations in the past', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
     keys.sig.data.expiration = Date.now() / 1000 - 2
     await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'SignatureExpired');
   })
 
   it('should reject entries with inceptions in the future', async function() {
     var instance = await dnssec.deployed()
-    var keys = rootKeys()
+    var keys = rootKeys(expiration, inception)
     keys.sig.data.inception = Date.now() / 1000 + 15 * 60
     await expectRevert(instance.verifyRRSet([hexEncodeSignedSet(keys)]), 'SignatureNotValidYet');
   })
@@ -559,7 +501,7 @@ contract('DNSSEC', function(accounts) {
     var instance = await dnssec.deployed()
     await expectRevert(
       instance.verifyRRSet([
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
         hexEncodeSignedSet({
           name: 'test',
           sig: {
