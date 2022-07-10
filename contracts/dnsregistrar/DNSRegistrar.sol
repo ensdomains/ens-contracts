@@ -71,6 +71,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
 
     /**
      * @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
+     * @param name The name to claim, in DNS wire format.
      * @param input A chain of signed DNS RRSETs ending with a text record.
      */
     function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input) public override {
