@@ -12,6 +12,7 @@ error InsufficientFunds();
 error NameNotRegistered();
 error InvalidTokenAddress(address);
 error NameNotSetup(bytes32 node);
+error AddressOrLabelMissing();
 
 struct Name {
     uint256 registrationFee; // per second
@@ -141,6 +142,33 @@ contract SubdomainRegistrar is ERC1155Holder {
 
         emit NameRenewed(node, newExpiry);
     }
+
+    function batchRegister(
+        bytes32 parentNode,
+        string[] calldata labels,
+        address[] calldata addresses,
+        address resolver,
+        uint32 fuses,
+        uint64 duration,
+        bytes[][] calldata records
+    ) public {
+        if (labels.length != addresses.length) {
+            revert AddressOrLabelMissing();
+        }
+        for (uint256 i = 0; i < labels.length; i++) {
+            register(
+                parentNode,
+                labels[i],
+                addresses[i],
+                resolver,
+                fuses,
+                duration,
+                records[i]
+            );
+        }
+    }
+
+    /* Internal Functions */
 
     function _setRecords(
         bytes32 node,

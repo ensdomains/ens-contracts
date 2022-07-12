@@ -46,7 +46,7 @@ describe('Subdomain registrar', () => {
     BaseRegistrar = await deploy(
       'BaseRegistrarImplementation',
       EnsRegistry.address,
-      namehash('eth')
+      namehash('eth'),
     )
 
     await BaseRegistrar.addController(account)
@@ -54,21 +54,21 @@ describe('Subdomain registrar', () => {
 
     MetaDataservice = await deploy(
       'StaticMetadataService',
-      'https://ens.domains'
+      'https://ens.domains',
     )
 
     NameWrapper = await deploy(
       'NameWrapper',
       EnsRegistry.address,
       BaseRegistrar.address,
-      MetaDataservice.address
+      MetaDataservice.address,
     )
     PublicResolver = await deploy(
       'PublicResolver',
       EnsRegistry.address,
       NameWrapper.address,
       EMPTY_ADDRESS,
-      EMPTY_ADDRESS
+      EMPTY_ADDRESS,
     )
 
     Erc20 = await deploy('MockERC20', 'ENS Token', 'ENS', [account2])
@@ -79,19 +79,19 @@ describe('Subdomain registrar', () => {
     await EnsRegistry.setSubnodeOwner(
       ROOT_NODE,
       utils.keccak256(utils.toUtf8Bytes('eth')),
-      BaseRegistrar.address
+      BaseRegistrar.address,
     )
 
     // setup .xyz
     await EnsRegistry.setSubnodeOwner(
       ROOT_NODE,
       utils.keccak256(utils.toUtf8Bytes('xyz')),
-      account
+      account,
     )
 
     //make sure base registrar is owner of eth TLD
     expect(await EnsRegistry.owner(namehash('eth'))).to.equal(
-      BaseRegistrar.address
+      BaseRegistrar.address,
     )
 
     SubdomainRegistrar = await deploy('SubdomainRegistrar', NameWrapper.address)
@@ -116,14 +116,14 @@ describe('Subdomain registrar', () => {
         account,
         0,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
-        ethers.constants.MaxUint256
+        ethers.constants.MaxUint256,
       )
       await SubdomainRegistrar2.register(
         node,
@@ -132,7 +132,7 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
         0,
         86400,
-        []
+        [],
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
@@ -145,7 +145,7 @@ describe('Subdomain registrar', () => {
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await Erc20.approve(
         SubdomainRegistrar.address,
-        ethers.constants.MaxUint256
+        ethers.constants.MaxUint256,
       )
 
       await expect(
@@ -156,12 +156,12 @@ describe('Subdomain registrar', () => {
           EMPTY_ADDRESS,
           0,
           86400,
-          []
-        )
+          [],
+        ),
       ).to.be.revertedWith(
         `Unauthorised("${namehash('test.eth')}", "${
           SubdomainRegistrar.address
-        }")`
+        }")`,
       )
     })
 
@@ -180,7 +180,7 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
         0,
         86400,
-        []
+        [],
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
@@ -196,7 +196,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount3.approve(
         SubdomainRegistrar.address,
-        ethers.constants.MaxUint256
+        ethers.constants.MaxUint256,
       )
       await expect(
         SubdomainRegistrar3.register(
@@ -206,8 +206,8 @@ describe('Subdomain registrar', () => {
           EMPTY_ADDRESS,
           0,
           86400,
-          []
-        )
+          [],
+        ),
       ).to.be.revertedWith(`InsufficientFunds()`)
     })
   })
@@ -221,14 +221,14 @@ describe('Subdomain registrar', () => {
         account,
         0,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
-        ethers.constants.MaxUint256
+        ethers.constants.MaxUint256,
       )
       await SubdomainRegistrar2.register(
         node,
@@ -237,18 +237,18 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
         0,
         86400,
-        []
+        [],
       )
 
       const [, expiry] = await NameWrapper.getFuses(
-        namehash('subname.test.eth')
+        namehash('subname.test.eth'),
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
 
       await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
       const [, expiry2] = await NameWrapper.getFuses(
-        namehash('subname.test.eth')
+        namehash('subname.test.eth'),
       )
       expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
     })
@@ -261,7 +261,7 @@ describe('Subdomain registrar', () => {
         account,
         0,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 0, account)
@@ -273,18 +273,18 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
         0,
         86400,
-        []
+        [],
       )
 
       const [, expiry] = await NameWrapper.getFuses(
-        namehash('subname.test.eth')
+        namehash('subname.test.eth'),
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
 
       await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
       const [, expiry2] = await NameWrapper.getFuses(
-        namehash('subname.test.eth')
+        namehash('subname.test.eth'),
       )
 
       expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
@@ -310,16 +310,61 @@ describe('Subdomain registrar', () => {
         [
           PublicResolver.interface.encodeFunctionData(
             'setAddr(bytes32,address)',
-            [subNode, account2]
+            [subNode, account2],
           ),
         ],
-        { value: 86400 * fee }
       )
 
       expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
-        account2
+        account2,
       )
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
+    })
+  })
+
+  describe('register Subnames with records', () => {
+    it('should allow a subname to be batch registered with records', async () => {
+      const node = namehash('test.eth')
+      await BaseRegistrar.register(labelhash('test'), account, 86400)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar2.batchRegister(
+        node,
+        ['subname', 'subname2'],
+        [account2, account3],
+        PublicResolver.address,
+        0,
+        86400,
+        [
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [subNode, account2],
+            ),
+          ],
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [namehash('subname2.test.eth'), account3],
+            ),
+          ],
+        ],
+        { value: 86400 * fee },
+      )
+
+      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
+        account2,
+      )
+      expect(await NameWrapper.ownerOf(namehash('subname2.test.eth'))).to.equal(
+        account3,
+      )
+      expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
+      expect(
+        await PublicResolver['addr(bytes32)'](namehash('subname2.test.eth')),
+      ).to.equal(account3)
     })
   })
 })
