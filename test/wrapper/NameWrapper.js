@@ -2498,6 +2498,67 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
+    it('Does not allow burning fuses if PARENT_CANNOT_CONTROL is already burned', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      const originalFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
+
+      await NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        originalFuses,
+        MAX_EXPIRY
+      )
+
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_SET_RESOLVER | CANNOT_BURN_FUSES,
+          MAX_EXPIRY
+        )
+      ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+    })
+
+    it('Does not allow burning fuses if PARENT_CANNOT_CONTROL is already burned even if PARENT_CANNOT_CONTROL is added as a fuse', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY
+      )
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      const originalFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
+
+      await NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        originalFuses,
+        MAX_EXPIRY
+      )
+
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          PARENT_CANNOT_CONTROL |
+            CANNOT_UNWRAP |
+            CANNOT_SET_RESOLVER |
+            CANNOT_BURN_FUSES,
+          MAX_EXPIRY
+        )
+      ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+    })
+
     it('Fuses are set to 0 if expired', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
