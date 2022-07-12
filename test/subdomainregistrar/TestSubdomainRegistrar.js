@@ -121,6 +121,12 @@ describe('Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const duration = 86400
+      const fee =
+        (await SubdomainRegistrar.names(namehash('test.eth'))).registrationFee *
+        duration
+
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
@@ -131,9 +137,11 @@ describe('Subdomain registrar', () => {
         account2,
         EMPTY_ADDRESS,
         0,
-        86400,
+        duration,
         [],
       )
+      const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
+      expect(balanceBefore.sub(balanceAfter)).to.equal(fee)
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
     })
@@ -330,6 +338,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      console.log(fee)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar2.batchRegister(
         node,
@@ -352,8 +361,62 @@ describe('Subdomain registrar', () => {
             ),
           ],
         ],
-        { value: 86400 * fee },
       )
+
+      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
+        account2,
+      )
+      expect(await NameWrapper.ownerOf(namehash('subname2.test.eth'))).to.equal(
+        account3,
+      )
+      expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
+      expect(
+        await PublicResolver['addr(bytes32)'](namehash('subname2.test.eth')),
+      ).to.equal(account3)
+    })
+
+    it('should allow a subname to be batch registered with records with a fee', async () => {
+      const node = namehash('test.eth')
+      await BaseRegistrar.register(labelhash('test'), account, 86400)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD('test', account, 0, 0, EMPTY_ADDRESS)
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      const duration = 86400
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const totalFee = fee * duration * 2
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.batchRegister(
+        node,
+        ['subname', 'subname2'],
+        [account2, account3],
+        PublicResolver.address,
+        0,
+        duration,
+        [
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [subNode, account2],
+            ),
+          ],
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [namehash('subname2.test.eth'), account3],
+            ),
+          ],
+        ],
+      )
+
+      const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
+
+      expect(balanceBefore).to.equal(balanceAfter.add(totalFee))
 
       expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
         account2,

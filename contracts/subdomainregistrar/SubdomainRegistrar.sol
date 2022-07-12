@@ -12,7 +12,7 @@ error InsufficientFunds();
 error NameNotRegistered();
 error InvalidTokenAddress(address);
 error NameNotSetup(bytes32 node);
-error AddressOrLabelMissing();
+error DataMissing();
 
 struct Name {
     uint256 registrationFee; // per second
@@ -69,15 +69,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         uint64 duration,
         bytes[] calldata records
     ) public payable {
-        bytes32 node = keccak256(
-            abi.encodePacked(parentNode, keccak256(bytes(label)))
-        );
-
         uint256 fee = duration * names[parentNode].registrationFee;
-
-        if (!available(node)) {
-            revert Unavailable();
-        }
 
         if (fee > 0) {
             if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
@@ -91,28 +83,15 @@ contract SubdomainRegistrar is ERC1155Holder {
             );
         }
 
-        if (records.length > 0) {
-            wrapper.setSubnodeOwner(
-                parentNode,
-                label,
-                address(this),
-                0,
-                uint64(block.timestamp + duration)
-            );
-            _setRecords(node, resolver, records);
-        }
-
-        wrapper.setSubnodeRecord(
+        _register(
             parentNode,
             label,
             newOwner,
             resolver,
-            0,
-            fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
-            uint64(block.timestamp + duration)
+            fuses,
+            duration,
+            records
         );
-
-        emit NameRegistered(node, uint64(block.timestamp + duration));
     }
 
     function renew(
@@ -152,11 +131,30 @@ contract SubdomainRegistrar is ERC1155Holder {
         uint64 duration,
         bytes[][] calldata records
     ) public {
-        if (labels.length != addresses.length) {
-            revert AddressOrLabelMissing();
+        if (
+            labels.length != addresses.length || labels.length != records.length
+        ) {
+            revert DataMissing();
         }
+
+        uint256 fee = duration *
+            names[parentNode].registrationFee *
+            labels.length;
+
+        if (fee > 0) {
+            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
+                revert InsufficientFunds();
+            }
+
+            IERC20(names[parentNode].token).transferFrom(
+                msg.sender,
+                address(names[parentNode].beneficiary),
+                fee
+            );
+        }
+
         for (uint256 i = 0; i < labels.length; i++) {
-            register(
+            _register(
                 parentNode,
                 labels[i],
                 addresses[i],
@@ -169,6 +167,47 @@ contract SubdomainRegistrar is ERC1155Holder {
     }
 
     /* Internal Functions */
+
+    function _register(
+        bytes32 parentNode,
+        string calldata label,
+        address newOwner,
+        address resolver,
+        uint32 fuses,
+        uint64 duration,
+        bytes[] calldata records
+    ) internal {
+        bytes32 node = keccak256(
+            abi.encodePacked(parentNode, keccak256(bytes(label)))
+        );
+
+        if (!available(node)) {
+            revert Unavailable();
+        }
+
+        if (records.length > 0) {
+            wrapper.setSubnodeOwner(
+                parentNode,
+                label,
+                address(this),
+                0,
+                uint64(block.timestamp + duration)
+            );
+            _setRecords(node, resolver, records);
+        }
+
+        wrapper.setSubnodeRecord(
+            parentNode,
+            label,
+            newOwner,
+            resolver,
+            0,
+            fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
+            uint64(block.timestamp + duration)
+        );
+
+        emit NameRegistered(node, uint64(block.timestamp + duration));
+    }
 
     function _setRecords(
         bytes32 node,
