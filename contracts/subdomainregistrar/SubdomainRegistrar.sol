@@ -5,6 +5,7 @@ import "../wrapper/INameWrapper.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
+import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -13,6 +14,10 @@ error NameNotRegistered();
 error InvalidTokenAddress(address);
 error NameNotSetup(bytes32 node);
 error DataMissing();
+error ParentExpired(bytes32 node);
+error ParentNotWrapped(bytes32 node);
+error ParentWillHaveExpired(bytes32 node);
+error DurationTooLong(bytes32 node);
 
 struct Name {
     uint256 registrationFee; // per second
@@ -38,6 +43,11 @@ contract SubdomainRegistrar is ERC1155Holder {
         if (!wrapper.isTokenOwnerOrApproved(node, msg.sender)) {
             revert Unauthorised(node);
         }
+        _;
+    }
+
+    modifier canBeRegistered(bytes32 parentNode, uint64 duration) {
+        _checkParent(parentNode, duration);
         _;
     }
 
@@ -71,6 +81,8 @@ contract SubdomainRegistrar is ERC1155Holder {
     ) public payable {
         uint256 fee = duration * names[parentNode].registrationFee;
 
+        _checkParent(parentNode, duration);
+
         if (fee > 0) {
             if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
                 revert InsufficientFunds();
@@ -99,11 +111,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         bytes32 labelhash,
         uint64 duration
     ) external payable returns (uint64 newExpiry) {
-        bytes32 node = _makeNode(parentNode, labelhash);
-        (, uint64 expiry) = wrapper.getFuses(node);
-        if (expiry < block.timestamp) {
-            revert NameNotRegistered();
-        }
+        _checkParent(parentNode, duration);
 
         uint256 fee = duration * names[parentNode].registrationFee;
 
@@ -115,11 +123,7 @@ contract SubdomainRegistrar is ERC1155Holder {
             );
         }
 
-        newExpiry = expiry += duration;
-
-        wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
-
-        emit NameRenewed(node, newExpiry);
+        _renew(parentNode, labelhash, duration);
     }
 
     function batchRegister(
@@ -136,6 +140,8 @@ contract SubdomainRegistrar is ERC1155Holder {
         ) {
             revert DataMissing();
         }
+
+        _checkParent(parentNode, duration);
 
         uint256 fee = duration *
             names[parentNode].registrationFee *
@@ -166,7 +172,53 @@ contract SubdomainRegistrar is ERC1155Holder {
         }
     }
 
+    function batchRenew(
+        bytes32 parentNode,
+        bytes32[] calldata labelhashes,
+        uint64 duration
+    ) external payable {
+        if (labelhashes.length == 0) {
+            revert DataMissing();
+        }
+
+        _checkParent(parentNode, duration);
+
+        uint256 fee = duration *
+            names[parentNode].registrationFee *
+            labelhashes.length;
+
+        if (fee > 0) {
+            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
+                revert InsufficientFunds();
+            }
+
+            IERC20(names[parentNode].token).transferFrom(
+                msg.sender,
+                address(names[parentNode].beneficiary),
+                fee
+            );
+        }
+
+        for (uint256 i = 0; i < labelhashes.length; i++) {
+            _renew(parentNode, labelhashes[i], duration);
+        }
+    }
+
     /* Internal Functions */
+
+    function _checkParent(bytes32 node, uint256 duration) internal {
+        try wrapper.getFuses(node) returns (uint32, uint64 expiry) {
+            if (expiry < block.timestamp) {
+                revert ParentExpired(node);
+            }
+
+            if (duration + block.timestamp > expiry) {
+                revert ParentWillHaveExpired(node);
+            }
+        } catch {
+            revert ParentNotWrapped(node);
+        }
+    }
 
     function _register(
         bytes32 parentNode,
@@ -207,6 +259,24 @@ contract SubdomainRegistrar is ERC1155Holder {
         );
 
         emit NameRegistered(node, uint64(block.timestamp + duration));
+    }
+
+    function _renew(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint64 duration
+    ) internal {
+        bytes32 node = _makeNode(parentNode, labelhash);
+        (, uint64 expiry) = wrapper.getFuses(node);
+        if (expiry < block.timestamp) {
+            revert NameNotRegistered();
+        }
+
+        uint64 newExpiry = expiry += duration;
+
+        wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
+
+        emit NameRenewed(node, newExpiry);
     }
 
     function _setRecords(
