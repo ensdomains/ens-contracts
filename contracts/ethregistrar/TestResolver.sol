@@ -4,10 +4,9 @@ pragma solidity >=0.8.4;
  * @dev A test resolver implementation
  */
 contract TestResolver {
-    mapping (bytes32 => address) addresses;
+    mapping(bytes32 => address) addresses;
 
-    constructor() public {
-    }
+    constructor() public {}
 
     function supportsInterface(bytes4 interfaceID) public pure returns (bool) {
         return interfaceID == 0x01ffc9a7 || interfaceID == 0x3b3b57de;

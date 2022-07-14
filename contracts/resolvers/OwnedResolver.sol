@@ -13,12 +13,37 @@ import "./profiles/TextResolver.sol";
  * A simple resolver anyone can use; only allows the owner of a node to set its
  * address.
  */
-contract OwnedResolver is Ownable, ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver {
-    function isAuthorised(bytes32) internal override view returns(bool) {
+contract OwnedResolver is
+    Ownable,
+    ABIResolver,
+    AddrResolver,
+    ContentHashResolver,
+    DNSResolver,
+    InterfaceResolver,
+    NameResolver,
+    PubkeyResolver,
+    TextResolver
+{
+    function isAuthorised(bytes32) internal view override returns (bool) {
         return msg.sender == owner();
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override(ABIResolver, AddrResolver, ContentHashResolver, DNSResolver, InterfaceResolver, NameResolver, PubkeyResolver, TextResolver) public view returns(bool) {
+    function supportsInterface(bytes4 interfaceID)
+        public
+        view
+        virtual
+        override(
+            ABIResolver,
+            AddrResolver,
+            ContentHashResolver,
+            DNSResolver,
+            InterfaceResolver,
+            NameResolver,
+            PubkeyResolver,
+            TextResolver
+        )
+        returns (bool)
+    {
         return super.supportsInterface(interfaceID);
     }
 }

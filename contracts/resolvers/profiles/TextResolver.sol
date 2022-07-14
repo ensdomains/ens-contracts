@@ -5,7 +5,7 @@ import "../ResolverBase.sol";
 import "./ITextResolver.sol";
 
 abstract contract TextResolver is ITextResolver, ResolverBase {
-    mapping(bytes32=>mapping(string=>string)) texts;
+    mapping(bytes32 => mapping(string => string)) texts;
 
     /**
      * Sets the text data associated with an ENS node and key.
@@ -14,7 +14,11 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
      * @param key The key to set.
      * @param value The text data value to set.
      */
-    function setText(bytes32 node, string calldata key, string calldata value) virtual external authorised(node) {
+    function setText(
+        bytes32 node,
+        string calldata key,
+        string calldata value
+    ) external virtual authorised(node) {
         texts[node][key] = value;
         emit TextChanged(node, key, key);
     }
@@ -25,11 +29,25 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string calldata key) virtual override external view returns (string memory) {
+    function text(bytes32 node, string calldata key)
+        external
+        view
+        virtual
+        override
+        returns (string memory)
+    {
         return texts[node][key];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
-        return interfaceID == type(ITextResolver).interfaceId || super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceID == type(ITextResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
