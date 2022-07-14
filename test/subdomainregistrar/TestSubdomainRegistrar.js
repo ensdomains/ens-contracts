@@ -42,6 +42,7 @@ describe('Subdomain registrar', () => {
   //constants
   const node = namehash('test.eth')
   const subNode = namehash('subname.test.eth')
+  const subNode2 = namehash('subname2.test.eth')
 
   before(async () => {
     signers = await ethers.getSigners()
@@ -429,22 +430,16 @@ describe('Subdomain registrar', () => {
           [
             PublicResolver.interface.encodeFunctionData(
               'setAddr(bytes32,address)',
-              [namehash('subname2.test.eth'), account3],
+              [subNode2, account3],
             ),
           ],
         ],
       )
 
-      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
-        account2,
-      )
-      expect(await NameWrapper.ownerOf(namehash('subname2.test.eth'))).to.equal(
-        account3,
-      )
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      expect(await NameWrapper.ownerOf(subNode2)).to.equal(account3)
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
-      expect(
-        await PublicResolver['addr(bytes32)'](namehash('subname2.test.eth')),
-      ).to.equal(account3)
+      expect(await PublicResolver['addr(bytes32)'](subNode2)).to.equal(account3)
     })
 
     it('should allow subnames to be batch registered with records with a fee', async () => {
@@ -486,7 +481,7 @@ describe('Subdomain registrar', () => {
           [
             PublicResolver.interface.encodeFunctionData(
               'setAddr(bytes32,address)',
-              [namehash('subname2.test.eth'), account3],
+              [subNode2, account3],
             ),
           ],
         ],
@@ -496,16 +491,10 @@ describe('Subdomain registrar', () => {
 
       expect(balanceBefore).to.equal(balanceAfter.add(totalFee))
 
-      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
-        account2,
-      )
-      expect(await NameWrapper.ownerOf(namehash('subname2.test.eth'))).to.equal(
-        account3,
-      )
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      expect(await NameWrapper.ownerOf(subNode2)).to.equal(account3)
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
-      expect(
-        await PublicResolver['addr(bytes32)'](namehash('subname2.test.eth')),
-      ).to.equal(account3)
+      expect(await PublicResolver['addr(bytes32)'](subNode2)).to.equal(account3)
     })
   })
   describe('batchRenew()', () => {
@@ -548,7 +537,7 @@ describe('Subdomain registrar', () => {
           [
             PublicResolver.interface.encodeFunctionData(
               'setAddr(bytes32,address)',
-              [namehash('subname2.test.eth'), account3],
+              [subNode2, account3],
             ),
           ],
         ],
@@ -558,23 +547,15 @@ describe('Subdomain registrar', () => {
         account2,
       )
 
-      const [, expiry] = await NameWrapper.getFuses(
-        namehash('subname.test.eth'),
-      )
-      const [, expiry2] = await NameWrapper.getFuses(
-        namehash('subname2.test.eth'),
-      )
+      const [, expiry] = await NameWrapper.getFuses(subNode)
+      const [, expiry2] = await NameWrapper.getFuses(subNode2)
 
       const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
 
       expect(balanceBefore).to.equal(balanceAfter.add(totalFee))
 
-      expect(await NameWrapper.ownerOf(namehash('subname.test.eth'))).to.equal(
-        account2,
-      )
-      expect(await NameWrapper.ownerOf(namehash('subname2.test.eth'))).to.equal(
-        account3,
-      )
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      expect(await NameWrapper.ownerOf(subNode2)).to.equal(account3)
 
       await SubdomainRegistrar2.batchRenew(
         node,
@@ -582,12 +563,8 @@ describe('Subdomain registrar', () => {
         duration,
       )
 
-      const [, expiryAfter] = await NameWrapper.getFuses(
-        namehash('subname.test.eth'),
-      )
-      const [, expiryAfter2] = await NameWrapper.getFuses(
-        namehash('subname2.test.eth'),
-      )
+      const [, expiryAfter] = await NameWrapper.getFuses(subNode)
+      const [, expiryAfter2] = await NameWrapper.getFuses(subNode2)
 
       expect(expiryAfter).to.equal(expiry.add(duration))
       expect(expiryAfter2).to.equal(expiry2.add(duration))

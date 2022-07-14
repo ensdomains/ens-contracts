@@ -1,11 +1,10 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.15;
 
-import "../wrapper/INameWrapper.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
+import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -123,7 +122,7 @@ contract SubdomainRegistrar is ERC1155Holder {
             );
         }
 
-        _renew(parentNode, labelhash, duration);
+        return _renew(parentNode, labelhash, duration);
     }
 
     function batchRegister(
@@ -199,6 +198,7 @@ contract SubdomainRegistrar is ERC1155Holder {
             );
         }
 
+        // TODO: Should we add a check to return the new expiry?
         for (uint256 i = 0; i < labelhashes.length; i++) {
             _renew(parentNode, labelhashes[i], duration);
         }
@@ -265,14 +265,14 @@ contract SubdomainRegistrar is ERC1155Holder {
         bytes32 parentNode,
         bytes32 labelhash,
         uint64 duration
-    ) internal {
+    ) internal returns (uint64 newExpiry) {
         bytes32 node = _makeNode(parentNode, labelhash);
         (, uint64 expiry) = wrapper.getFuses(node);
         if (expiry < block.timestamp) {
             revert NameNotRegistered();
         }
 
-        uint64 newExpiry = expiry += duration;
+        newExpiry = expiry += duration;
 
         wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
 
