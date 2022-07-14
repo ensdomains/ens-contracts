@@ -12,7 +12,6 @@ contract TestRRUtils {
   uint16 constant DNSTYPE_MX = 15;
   uint16 constant DNSTYPE_TEXT = 16;
   uint16 constant DNSTYPE_RRSIG = 46;
-  uint16 constant DNSTYPE_NSEC = 47;
   uint16 constant DNSTYPE_TYPE1234 = 1234;
 
   function testNameLength() public pure {
@@ -44,31 +43,6 @@ contract TestRRUtils {
       i++;
     }
     require(i == 2, "Expected 2 records");
-  }
-
-  function testCheckTypeBitmapTextType() public pure {
-    bytes memory tb = hex'0003000080';
-    require(tb.checkTypeBitmap(0, DNSTYPE_TEXT) == true, "A record should exist in type bitmap");
-  }
-
-  function testCheckTypeBitmap() public pure {
-    // From https://tools.ietf.org/html/rfc4034#section-4.3
-    //    alfa.example.com. 86400 IN NSEC host.example.com. (
-    //                               A MX RRSIG NSEC TYPE1234
-    bytes memory tb = hex'FF0006400100000003041b000000000000000000000000000000000000000000000000000020';
-
-    // Exists in bitmap
-    require(tb.checkTypeBitmap(1, DNSTYPE_A) == true, "A record should exist in type bitmap");
-    // Does not exist, but in a window that is included
-    require(tb.checkTypeBitmap(1, DNSTYPE_CNAME) == false, "CNAME record should not exist in type bitmap");
-    // Does not exist, past the end of a window that is included
-    require(tb.checkTypeBitmap(1, 64) == false, "Type 64 should not exist in type bitmap");
-    // Does not exist, in a window that does not exist
-    require(tb.checkTypeBitmap(1, 769) == false, "Type 769 should not exist in type bitmap");
-    // Exists in a subsequent window
-    require(tb.checkTypeBitmap(1, DNSTYPE_TYPE1234) == true, "Type 1234 should exist in type bitmap");
-    // Does not exist, past the end of the bitmap windows
-    require(tb.checkTypeBitmap(1, 1281) == false, "Type 1281 should not exist in type bitmap");
   }
 
   // Canonical ordering https://tools.ietf.org/html/rfc4034#section-6.1

@@ -2,7 +2,6 @@ const RSASHA1Algorithm = artifacts.require('./algorithms/RSASHA1Algorithm');
 const RSASHA256Algorithm = artifacts.require('./algorithms/RSASHA256Algorithm');
 const SHA1Digest = artifacts.require('./digests/SHA1Digest');
 const SHA256Digest = artifacts.require('./digests/SHA256Digest');
-const SHA1NSEC3Digest = artifacts.require('./nsec3digests/SHA1NSEC3Digest');
 const DNSSEC = artifacts.require('./DNSSECImpl');
 const DummyAlgorithm = artifacts.require('./algorithms/DummyAlgorithm');
 const DummyDigest = artifacts.require('./digests/DummyDigest');
@@ -31,7 +30,6 @@ module.exports = async function(hre) {
     const rsasha1 = await deploy(RSASHA1Algorithm);
     const sha256 = await deploy(SHA256Digest);
     const sha1 = await deploy(SHA1Digest);
-    const nsec3sha1 = await deploy(SHA1NSEC3Digest);
 
     const curve = await deploy(EllipticCurve);
     const p256 = await deploy(P256SHA256Algorithm, curve.address);
@@ -54,8 +52,6 @@ module.exports = async function(hre) {
 
     tasks.push(dnssec.setDigest(1, sha1.address));
     tasks.push(dnssec.setDigest(2, sha256.address));
-
-    tasks.push(dnssec.setNSEC3Digest(1, nsec3sha1.address));
 
     await Promise.all(tasks);
 };
