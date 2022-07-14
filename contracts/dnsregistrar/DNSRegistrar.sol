@@ -24,11 +24,14 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using Buffer for Buffer.buffer;
     using RRUtils for *;
 
-    DNSSEC public oracle;
-    ENS public ens;
+    ENS public immutable ens;
+    DNSSEC public immutable oracle;
     PublicSuffixList public suffixes;
+    // A mapping of the most recent signatures seen for each claimed domain.
+    mapping(bytes32 => uint32) public inceptions;
 
     error NoOwnerRecordFound();
+    error StaleProof();
 
     struct OwnerRecord {
         bytes name;
@@ -37,7 +40,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         uint64 ttl;
     }
 
-    event Claim(bytes32 indexed node, address indexed owner, bytes dnsname);
+    event Claim(bytes32 indexed node, address indexed owner, bytes dnsname, uint32 inception);
     event NewOracle(address oracle);
     event NewPublicSuffixList(address suffixes);
 
@@ -59,11 +62,6 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         _;
     }
 
-    function setOracle(DNSSEC _dnssec) public onlyOwner {
-        oracle = _dnssec;
-        emit NewOracle(address(oracle));
-    }
-
     function setPublicSuffixList(PublicSuffixList _suffixes) public onlyOwner {
         suffixes = _suffixes;
         emit NewPublicSuffixList(address(suffixes));
@@ -75,14 +73,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
      * @param input A chain of signed DNS RRSETs ending with a text record.
      */
     function proveAndClaim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input) public override {
-        bytes memory record = oracle.verifyRRSet(input);
-        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(name, record);
+        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(name, input);
         ens.setSubnodeOwner(rootNode, labelHash, addr);
     }
 
     function proveAndClaimWithResolver(bytes memory name, DNSSEC.RRSetWithSignature[] memory input, address resolver, address addr) public override {
-        bytes memory record = oracle.verifyRRSet(input);
-        (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, record);
+        (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(name, input);
         require(msg.sender == owner, "Only owner can call proveAndClaimWithResolver");
         if(addr != address(0)) {
             require(resolver != address(0), "Cannot set addr if resolver is not set");
@@ -103,7 +99,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
                interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    function _claim(bytes memory name, bytes memory data) internal returns(bytes32 rootNode, bytes32 labelHash, address addr) {
+    function _claim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input) internal returns(bytes32 parentNode, bytes32 labelHash, address addr) {
+        (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
+
         // Get the first label
         uint labelLen = name.readUint8(0);
         labelHash = name.keccak(1, labelLen);
@@ -113,11 +111,17 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         require(suffixes.isPublicSuffix(parentName), "Parent name must be a public suffix");
 
         // Make sure the parent name is enabled
-        rootNode = enableNode(parentName, 0);
+        parentNode = enableNode(parentName, 0);
+
+        bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
+        if(!RRUtils.serialNumberGte(inception, inceptions[node])) {
+            revert StaleProof();
+        }
+        inceptions[node] = inception;
 
         (addr,) = DNSClaimChecker.getOwnerAddress(name, data);
 
-        emit Claim(keccak256(abi.encodePacked(rootNode, labelHash)), addr, name);        
+        emit Claim(node, addr, name, inception);        
     }
 
     function enableNode(bytes memory domain, uint offset) internal returns(bytes32 node) {

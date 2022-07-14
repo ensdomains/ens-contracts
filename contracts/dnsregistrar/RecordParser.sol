@@ -6,21 +6,24 @@ import "../dnssec-oracle/BytesUtils.sol";
 library RecordParser {
     using BytesUtils for bytes;
 
-    function readToken(bytes memory data, uint256 idx, uint256 len) internal pure returns(bytes memory key, bytes memory value, uint256 newidx) {
-        while(idx < len && data[idx] == " ") {
-            idx++;
-        }
-
-        uint256 separator = data.find(idx, len, "=");
+    /**
+     * @dev Parses a key-value record into a key and value.
+     * @param input The input string
+     * @param offset The offset to start reading at
+     */
+    function readKeyValue(bytes memory input, uint256 offset, uint256 len) internal pure returns(bytes memory key, bytes memory value, uint256 nextOffset) {
+        uint256 separator = input.find(offset, len, "=");
         if(separator == type(uint256).max) {
             return ("", "", type(uint256).max);
         }
 
-        uint256 end = data.find(separator, len - (separator - idx), " ");
-        if(end == type(uint256).max) {
-            end = idx + len;
+        uint256 terminator = input.find(separator, len + offset - separator, " ");
+        if(terminator == type(uint256).max) {
+            terminator = input.length;
         }
 
-        return (data.substring(idx, separator - idx), data.substring(separator + 1, len - (separator - idx) - 1), end);
+        key = input.substring(offset, separator - offset);
+        value = input.substring(separator + 1, terminator - separator - 1);
+        nextOffset = terminator + 1;
     }
 }

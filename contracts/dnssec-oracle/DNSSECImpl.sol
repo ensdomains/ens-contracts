@@ -75,9 +75,10 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
      *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
      * @param input A list of signed RRSets.
-     * @return The RRData from the last RRSet in the chain.
+     * @return rrs The RRData from the last RRSet in the chain.
+     * @return inception The inception time of the signed record set.
      */
-    function verifyRRSet(RRSetWithSignature[] memory input) external virtual view override returns(bytes memory) {
+    function verifyRRSet(RRSetWithSignature[] memory input) external virtual view override returns(bytes memory rrs, uint32 inception) {
         return verifyRRSet(input, block.timestamp);
     }
 
@@ -86,15 +87,17 @@ contract DNSSECImpl is DNSSEC, Owned {
      *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
      * @param input A list of signed RRSets.
      * @param now The Unix timestamp to validate the records at.
-     * @return The RRData from the last RRSet in the chain.
+     * @return rrs The RRData from the last RRSet in the chain.
+     * @return inception The inception time of the signed record set.
      */
-    function verifyRRSet(RRSetWithSignature[] memory input, uint256 now) public virtual view override returns(bytes memory) {
+    function verifyRRSet(RRSetWithSignature[] memory input, uint256 now) public virtual view override returns(bytes memory rrs, uint32 inception) {
         bytes memory proof = anchors;
         for(uint i = 0; i < input.length; i++) {
             RRUtils.SignedSet memory rrset = validateSignedSet(input[i], proof, now);
             proof = rrset.data;
+            inception = rrset.inception;
         }
-        return proof;
+        return (proof, inception);
     }
 
     /**

@@ -128,6 +128,28 @@ contract('DNSRegistrar', function(accounts) {
     assert.equal(await ens.owner(namehash.hash('foo.test')), accounts[1])
   })
 
+  it('rejects proofs with earlier inceptions', async function() {
+    const proof = [
+      hexEncodeSignedSet(rootKeys(expiration, inception)),
+      hexEncodeSignedSet(testRrset('foo.test', accounts[0]))
+    ]
+
+    await registrar.proveAndClaim(
+      utils.hexEncodeName('foo.test'),
+      proof
+    )
+
+    const newRrset = testRrset('foo.test', accounts[1])
+    console.log(newRrset)
+    newRrset.sig.data.inception -= 3600
+    proof[1] = hexEncodeSignedSet(newRrset)
+
+    await exceptions.expectFailure(registrar.proveAndClaim(
+      utils.hexEncodeName('foo.test'),
+      proof
+    ))
+  })
+
   it('does not allow updates with stale records', async function() {
     const rrSet = testRrset('foo.test', accounts[0]);
     rrSet.sig.data.inception = Date.now() / 1000 - 120
