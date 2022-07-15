@@ -7,7 +7,7 @@ import "./AddrResolver.sol";
 import "./IInterfaceResolver.sol";
 
 abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
-    mapping(bytes32=>mapping(bytes4=>address)) interfaces;
+    mapping(bytes32 => mapping(bytes4 => address)) interfaces;
 
     /**
      * Sets an interface associated with a name.
@@ -16,7 +16,11 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
      * @param interfaceID The EIP 165 interface ID.
      * @param implementer The address of a contract that implements this interface for this node.
      */
-    function setInterface(bytes32 node, bytes4 interfaceID, address implementer) virtual external authorised(node) {
+    function setInterface(
+        bytes32 node,
+        bytes4 interfaceID,
+        address implementer
+    ) external virtual authorised(node) {
         interfaces[node][interfaceID] = implementer;
         emit InterfaceChanged(node, interfaceID, implementer);
     }
@@ -31,25 +35,38 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
      * @param interfaceID The EIP 165 interface ID to check for.
      * @return The address that implements this interface, or 0 if the interface is unsupported.
      */
-    function interfaceImplementer(bytes32 node, bytes4 interfaceID) virtual override external view returns (address) {
+    function interfaceImplementer(bytes32 node, bytes4 interfaceID)
+        external
+        view
+        virtual
+        override
+        returns (address)
+    {
         address implementer = interfaces[node][interfaceID];
-        if(implementer != address(0)) {
+        if (implementer != address(0)) {
             return implementer;
         }
 
         address a = addr(node);
-        if(a == address(0)) {
+        if (a == address(0)) {
             return address(0);
         }
 
-        (bool success, bytes memory returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", type(IERC165).interfaceId));
-        if(!success || returnData.length < 32 || returnData[31] == 0) {
+        (bool success, bytes memory returnData) = a.staticcall(
+            abi.encodeWithSignature(
+                "supportsInterface(bytes4)",
+                type(IERC165).interfaceId
+            )
+        );
+        if (!success || returnData.length < 32 || returnData[31] == 0) {
             // EIP 165 not supported by target
             return address(0);
         }
 
-        (success, returnData) = a.staticcall(abi.encodeWithSignature("supportsInterface(bytes4)", interfaceID));
-        if(!success || returnData.length < 32 || returnData[31] == 0) {
+        (success, returnData) = a.staticcall(
+            abi.encodeWithSignature("supportsInterface(bytes4)", interfaceID)
+        );
+        if (!success || returnData.length < 32 || returnData[31] == 0) {
             // Specified interface not supported by target
             return address(0);
         }
@@ -57,7 +74,15 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         return a;
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
-        return interfaceID == type(IInterfaceResolver).interfaceId || super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceID == type(IInterfaceResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
