@@ -6,15 +6,14 @@ import "./ENS.sol";
  * The ENS registry contract.
  */
 contract ENSRegistry is ENS {
-
     struct Record {
         address owner;
         address resolver;
         uint64 ttl;
     }
 
-    mapping (bytes32 => Record) records;
-    mapping (address => mapping(address => bool)) operators;
+    mapping(bytes32 => Record) records;
+    mapping(address => mapping(address => bool)) operators;
 
     // Permits modifications only by the owner of the specified node.
     modifier authorised(bytes32 node) {
@@ -37,7 +36,12 @@ contract ENSRegistry is ENS {
      * @param resolver The address of the resolver.
      * @param ttl The TTL in seconds.
      */
-    function setRecord(bytes32 node, address owner, address resolver, uint64 ttl) external virtual override {
+    function setRecord(
+        bytes32 node,
+        address owner,
+        address resolver,
+        uint64 ttl
+    ) external virtual override {
         setOwner(node, owner);
         _setResolverAndTTL(node, resolver, ttl);
     }
@@ -50,7 +54,13 @@ contract ENSRegistry is ENS {
      * @param resolver The address of the resolver.
      * @param ttl The TTL in seconds.
      */
-    function setSubnodeRecord(bytes32 node, bytes32 label, address owner, address resolver, uint64 ttl) external virtual override {
+    function setSubnodeRecord(
+        bytes32 node,
+        bytes32 label,
+        address owner,
+        address resolver,
+        uint64 ttl
+    ) external virtual override {
         bytes32 subnode = setSubnodeOwner(node, label, owner);
         _setResolverAndTTL(subnode, resolver, ttl);
     }
@@ -60,7 +70,12 @@ contract ENSRegistry is ENS {
      * @param node The node to transfer ownership of.
      * @param owner The address of the new owner.
      */
-    function setOwner(bytes32 node, address owner) public virtual override authorised(node) {
+    function setOwner(bytes32 node, address owner)
+        public
+        virtual
+        override
+        authorised(node)
+    {
         _setOwner(node, owner);
         emit Transfer(node, owner);
     }
@@ -71,7 +86,11 @@ contract ENSRegistry is ENS {
      * @param label The hash of the label specifying the subnode.
      * @param owner The address of the new owner.
      */
-    function setSubnodeOwner(bytes32 node, bytes32 label, address owner) public virtual override authorised(node) returns(bytes32) {
+    function setSubnodeOwner(
+        bytes32 node,
+        bytes32 label,
+        address owner
+    ) public virtual override authorised(node) returns (bytes32) {
         bytes32 subnode = keccak256(abi.encodePacked(node, label));
         _setOwner(subnode, owner);
         emit NewOwner(node, label, owner);
@@ -83,7 +102,12 @@ contract ENSRegistry is ENS {
      * @param node The node to update.
      * @param resolver The address of the resolver.
      */
-    function setResolver(bytes32 node, address resolver) public virtual override authorised(node) {
+    function setResolver(bytes32 node, address resolver)
+        public
+        virtual
+        override
+        authorised(node)
+    {
         emit NewResolver(node, resolver);
         records[node].resolver = resolver;
     }
@@ -93,7 +117,12 @@ contract ENSRegistry is ENS {
      * @param node The node to update.
      * @param ttl The TTL in seconds.
      */
-    function setTTL(bytes32 node, uint64 ttl) public virtual override authorised(node) {
+    function setTTL(bytes32 node, uint64 ttl)
+        public
+        virtual
+        override
+        authorised(node)
+    {
         emit NewTTL(node, ttl);
         records[node].ttl = ttl;
     }
@@ -104,7 +133,11 @@ contract ENSRegistry is ENS {
      * @param operator Address to add to the set of authorized operators.
      * @param approved True if the operator is approved, false to revoke approval.
      */
-    function setApprovalForAll(address operator, bool approved) external virtual override {
+    function setApprovalForAll(address operator, bool approved)
+        external
+        virtual
+        override
+    {
         operators[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
     }
@@ -114,7 +147,13 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return address of the owner.
      */
-    function owner(bytes32 node) public virtual override view returns (address) {
+    function owner(bytes32 node)
+        public
+        view
+        virtual
+        override
+        returns (address)
+    {
         address addr = records[node].owner;
         if (addr == address(this)) {
             return address(0x0);
@@ -128,7 +167,13 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return address of the resolver.
      */
-    function resolver(bytes32 node) public virtual override view returns (address) {
+    function resolver(bytes32 node)
+        public
+        view
+        virtual
+        override
+        returns (address)
+    {
         return records[node].resolver;
     }
 
@@ -137,7 +182,7 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return ttl of the node.
      */
-    function ttl(bytes32 node) public virtual override view returns (uint64) {
+    function ttl(bytes32 node) public view virtual override returns (uint64) {
         return records[node].ttl;
     }
 
@@ -146,7 +191,13 @@ contract ENSRegistry is ENS {
      * @param node The specified node.
      * @return Bool if record exists
      */
-    function recordExists(bytes32 node) public virtual override view returns (bool) {
+    function recordExists(bytes32 node)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return records[node].owner != address(0x0);
     }
 
@@ -156,7 +207,13 @@ contract ENSRegistry is ENS {
      * @param operator The address that acts on behalf of the owner.
      * @return True if `operator` is an approved operator for `owner`, false otherwise.
      */
-    function isApprovedForAll(address owner, address operator) external virtual override view returns (bool) {
+    function isApprovedForAll(address owner, address operator)
+        external
+        view
+        virtual
+        override
+        returns (bool)
+    {
         return operators[owner][operator];
     }
 
@@ -164,13 +221,17 @@ contract ENSRegistry is ENS {
         records[node].owner = owner;
     }
 
-    function _setResolverAndTTL(bytes32 node, address resolver, uint64 ttl) internal {
-        if(resolver != records[node].resolver) {
+    function _setResolverAndTTL(
+        bytes32 node,
+        address resolver,
+        uint64 ttl
+    ) internal {
+        if (resolver != records[node].resolver) {
             records[node].resolver = resolver;
             emit NewResolver(node, resolver);
         }
 
-        if(ttl != records[node].ttl) {
+        if (ttl != records[node].ttl) {
             records[node].ttl = ttl;
             emit NewTTL(node, ttl);
         }
