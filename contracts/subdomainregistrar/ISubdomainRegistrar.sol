@@ -1,10 +1,3 @@
-//write solidity interface for the contract
-// Language: solidity
-// Path: contracts/subdomainregistrar/ISubdomainRegistrar.sol
-// Compare this snippet from contracts/subdomainregistrar/SubdomainRegistrar.sol:
-// pragma solidity ^0.8.13;
-//
-
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
@@ -46,5 +39,5 @@ interface ISubdomainRegistrar {
         bytes32 parentNode,
         bytes32[] calldata labelhashes,
         uint64 duration
-    ) external payable 
+    ) external payable;
 }
