@@ -18,7 +18,7 @@ const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
-contract('ETHRegistrarController', function() {
+contract('ETHRegistrarController', function () {
   let ens
   let resolver
   let resolver2 // resolver signed by accounts[1]
@@ -37,7 +37,7 @@ contract('ETHRegistrarController', function() {
 
   async function registerName(
     name,
-    txOptions = { value: BUFFERED_REGISTRATION_COST }
+    txOptions = { value: BUFFERED_REGISTRATION_COST },
   ) {
     var commitment = await controller.makeCommitment(
       name,
@@ -48,11 +48,11 @@ contract('ETHRegistrarController', function() {
       [],
       false,
       0,
-      0
+      0,
     )
     var tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await provider.getBlock(tx.blockNumber)).timestamp
+      (await provider.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -67,7 +67,7 @@ contract('ETHRegistrarController', function() {
       false,
       0,
       0,
-      txOptions
+      txOptions,
     )
 
     return tx
@@ -84,14 +84,15 @@ contract('ETHRegistrarController', function() {
     baseRegistrar = await deploy(
       'BaseRegistrarImplementation',
       ens.address,
-      namehash.hash('eth')
+      namehash.hash('eth'),
     )
 
     nameWrapper = await deploy(
       'NameWrapper',
       ens.address,
       baseRegistrar.address,
-      ownerAccount
+      ownerAccount,
+      'NameWrapper',
     )
 
     reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
@@ -99,13 +100,11 @@ contract('ETHRegistrarController', function() {
     await ens.setSubnodeOwner(EMPTY_BYTES, sha3('eth'), baseRegistrar.address)
 
     const dummyOracle = await deploy('DummyOracle', '100000000')
-    priceOracle = await deploy('StablePriceOracle', dummyOracle.address, [
-      0,
-      0,
-      4,
-      2,
-      1,
-    ])
+    priceOracle = await deploy(
+      'StablePriceOracle',
+      dummyOracle.address,
+      [0, 0, 4, 2, 1],
+    )
     controller = await deploy(
       'ETHRegistrarController',
       baseRegistrar.address,
@@ -113,7 +112,7 @@ contract('ETHRegistrarController', function() {
       600,
       86400,
       reverseRegistrar.address,
-      nameWrapper.address
+      nameWrapper.address,
     )
 
     controller2 = controller.connect(signers[1])
@@ -127,7 +126,7 @@ contract('ETHRegistrarController', function() {
       ens.address,
       nameWrapper.address,
       controller.address,
-      reverseRegistrar.address
+      reverseRegistrar.address,
     )
 
     resolver2 = await resolver.connect(signers[1])
@@ -139,7 +138,7 @@ contract('ETHRegistrarController', function() {
       namehash.hash('reverse'),
       sha3('addr'),
       reverseRegistrar.address,
-      { from: accounts[0] }
+      { from: accounts[0] },
     )
   })
 
@@ -197,17 +196,17 @@ contract('ETHRegistrarController', function() {
         registrantAccount,
         REGISTRATION_TIME,
         0,
-        block.timestamp + REGISTRATION_TIME
+        block.timestamp + REGISTRATION_TIME,
       )
 
     expect(
-      (await web3.eth.getBalance(controller.address)) - balanceBefore
+      (await web3.eth.getBalance(controller.address)) - balanceBefore,
     ).to.equal(REGISTRATION_TIME)
   })
 
   it('should revert when not enough ether is transferred', async () => {
     await expect(registerName('newname', { value: 0 })).to.be.revertedWith(
-      'ETHRegistrarController: Not enough ether provided'
+      'ETHRegistrarController: Not enough ether provided',
     )
   })
 
@@ -237,11 +236,11 @@ contract('ETHRegistrarController', function() {
       ],
       false,
       0,
-      0
+      0,
     )
     var tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -266,7 +265,7 @@ contract('ETHRegistrarController', function() {
       false,
       0,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     const block = await provider.getBlock(tx.blockNumber)
@@ -279,21 +278,21 @@ contract('ETHRegistrarController', function() {
         registrantAccount,
         REGISTRATION_TIME,
         0,
-        block.timestamp + REGISTRATION_TIME
+        block.timestamp + REGISTRATION_TIME,
       )
 
     expect(
-      (await web3.eth.getBalance(controller.address)) - balanceBefore
+      (await web3.eth.getBalance(controller.address)) - balanceBefore,
     ).to.equal(REGISTRATION_TIME)
 
     var nodehash = namehash.hash('newconfigname.eth')
     expect(await ens.resolver(nodehash)).to.equal(resolver.address)
     expect(await ens.owner(nodehash)).to.equal(nameWrapper.address)
     expect(await baseRegistrar.ownerOf(sha3('newconfigname'))).to.equal(
-      nameWrapper.address
+      nameWrapper.address,
     )
     expect(await resolver['addr(bytes32)'](nodehash)).to.equal(
-      registrantAccount
+      registrantAccount,
     )
     expect(await resolver['text'](nodehash, 'url')).to.equal('ethereum.com')
     expect(await nameWrapper.ownerOf(nodehash)).to.equal(registrantAccount)
@@ -320,10 +319,10 @@ contract('ETHRegistrarController', function() {
         ],
         false,
         0,
-        0
-      )
+        0,
+      ),
     ).to.be.revertedWith(
-      'ETHRegistrarController: resolver is required when data is supplied'
+      'ETHRegistrarController: resolver is required when data is supplied',
     )
   })
 
@@ -347,12 +346,12 @@ contract('ETHRegistrarController', function() {
       ],
       false,
       0,
-      0
+      0,
     )
 
     const tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -377,8 +376,8 @@ contract('ETHRegistrarController', function() {
         false,
         0,
         0,
-        { value: BUFFERED_REGISTRATION_COST }
-      )
+        { value: BUFFERED_REGISTRATION_COST },
+      ),
     ).to.be.revertedWith('Address: call to non-contract')
   })
 
@@ -402,12 +401,12 @@ contract('ETHRegistrarController', function() {
       ],
       false,
       0,
-      0
+      0,
     )
 
     const tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -432,8 +431,8 @@ contract('ETHRegistrarController', function() {
         false,
         0,
         0,
-        { value: BUFFERED_REGISTRATION_COST }
-      )
+        { value: BUFFERED_REGISTRATION_COST },
+      ),
     ).to.be.revertedWith('ETHRegistrarController: Failed to set Record')
   })
 
@@ -452,11 +451,11 @@ contract('ETHRegistrarController', function() {
       ],
       false,
       0,
-      0
+      0,
     )
     const tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -477,10 +476,10 @@ contract('ETHRegistrarController', function() {
         false,
         0,
         0,
-        { value: BUFFERED_REGISTRATION_COST }
-      )
+        { value: BUFFERED_REGISTRATION_COST },
+      ),
     ).to.be.revertedWith(
-      'ETHRegistrarController: Namehash on record do not match the name being registered'
+      'ETHRegistrarController: Namehash on record do not match the name being registered',
     )
   })
 
@@ -498,16 +497,16 @@ contract('ETHRegistrarController', function() {
         ]),
         resolver.interface.encodeFunctionData(
           'setText(bytes32,string,string)',
-          [namehash.hash('other.eth'), 'url', 'ethereum.com']
+          [namehash.hash('other.eth'), 'url', 'ethereum.com'],
         ),
       ],
       false,
       0,
-      0
+      0,
     )
     const tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -526,16 +525,16 @@ contract('ETHRegistrarController', function() {
           ]),
           resolver.interface.encodeFunctionData(
             'setText(bytes32,string,string)',
-            [namehash.hash('other.eth'), 'url', 'ethereum.com']
+            [namehash.hash('other.eth'), 'url', 'ethereum.com'],
           ),
         ],
         false,
         0,
         0,
-        { value: BUFFERED_REGISTRATION_COST }
-      )
+        { value: BUFFERED_REGISTRATION_COST },
+      ),
     ).to.be.revertedWith(
-      'ETHRegistrarController: Namehash on record do not match the name being registered'
+      'ETHRegistrarController: Namehash on record do not match the name being registered',
     )
   })
 
@@ -549,11 +548,11 @@ contract('ETHRegistrarController', function() {
       [],
       false,
       0,
-      0
+      0,
     )
     let tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
-      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp,
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -568,7 +567,7 @@ contract('ETHRegistrarController', function() {
       false,
       0,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     const block = await provider.getBlock(tx2.blockNumber)
@@ -581,14 +580,14 @@ contract('ETHRegistrarController', function() {
         registrantAccount,
         REGISTRATION_TIME,
         0,
-        block.timestamp + REGISTRATION_TIME
+        block.timestamp + REGISTRATION_TIME,
       )
 
     const nodehash = namehash.hash('newconfigname2.eth')
     expect(await ens.resolver(nodehash)).to.equal(resolver.address)
     expect(await resolver['addr(bytes32)'](nodehash)).to.equal(NULL_ADDRESS)
     expect(
-      (await web3.eth.getBalance(controller.address)) - balanceBefore
+      (await web3.eth.getBalance(controller.address)) - balanceBefore,
     ).to.equal(REGISTRATION_TIME)
   })
 
@@ -603,8 +602,8 @@ contract('ETHRegistrarController', function() {
         [],
         false,
         0,
-        0
-      )
+        0,
+      ),
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -621,8 +620,8 @@ contract('ETHRegistrarController', function() {
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
-        }
-      )
+        },
+      ),
     ).to.be.reverted
   })
 
@@ -638,8 +637,8 @@ contract('ETHRegistrarController', function() {
         [],
         false,
         0,
-        0
-      )
+        0,
+      ),
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
@@ -656,8 +655,8 @@ contract('ETHRegistrarController', function() {
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
-        }
-      )
+        },
+      ),
     ).to.be.revertedWith('ETHRegistrarController: Name is unavailable')
   })
 
@@ -672,8 +671,8 @@ contract('ETHRegistrarController', function() {
         [],
         false,
         0,
-        0
-      )
+        0,
+      ),
     )
 
     await evm.advanceTime((await controller.maxCommitmentAge()).toNumber() + 1)
@@ -690,8 +689,8 @@ contract('ETHRegistrarController', function() {
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
-        }
-      )
+        },
+      ),
     ).to.be.revertedWith('ETHRegistrarController: Commitment has expired')
   })
 
@@ -705,13 +704,13 @@ contract('ETHRegistrarController', function() {
     var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
     expect(newExpires.toNumber() - expires.toNumber()).to.equal(86400)
     expect(
-      (await web3.eth.getBalance(controller.address)) - balanceBefore
+      (await web3.eth.getBalance(controller.address)) - balanceBefore,
     ).to.equal(86400)
   })
 
   it('should require sufficient value for a renewal', async () => {
     expect(controller.renew('name', 86400)).to.be.revertedWith(
-      'ETHController: Not enough Ether provided for renewal'
+      'ETHController: Not enough Ether provided for renewal',
     )
   })
 
@@ -730,7 +729,7 @@ contract('ETHRegistrarController', function() {
       [],
       true,
       0,
-      0
+      0,
     )
     await controller.commit(commitment)
 
@@ -745,11 +744,11 @@ contract('ETHRegistrarController', function() {
       true,
       0,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     expect(await resolver.name(getReverseNode(ownerAccount))).to.equal(
-      'reverse.eth'
+      'reverse.eth',
     )
   })
 
@@ -763,7 +762,7 @@ contract('ETHRegistrarController', function() {
       [],
       false,
       0,
-      0
+      0,
     )
     await controller.commit(commitment)
 
@@ -778,7 +777,7 @@ contract('ETHRegistrarController', function() {
       false,
       0,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     expect(await resolver.name(getReverseNode(ownerAccount))).to.equal('')
@@ -796,7 +795,7 @@ contract('ETHRegistrarController', function() {
       [],
       true,
       0,
-      0
+      0,
     )
     await controller.commit(commitment)
 
@@ -811,16 +810,16 @@ contract('ETHRegistrarController', function() {
       true,
       0,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     expect(await nameWrapper.ownerOf(namehash.hash(name))).to.equal(
-      registrantAccount
+      registrantAccount,
     )
 
     expect(await ens.owner(namehash.hash(name))).to.equal(nameWrapper.address)
     expect(await baseRegistrar.ownerOf(sha3(label))).to.equal(
-      nameWrapper.address
+      nameWrapper.address,
     )
   })
 
@@ -837,7 +836,7 @@ contract('ETHRegistrarController', function() {
       [],
       true,
       1,
-      MAX_INT_64
+      MAX_INT_64,
     )
     await controller.commit(commitment)
 
@@ -852,7 +851,7 @@ contract('ETHRegistrarController', function() {
       true,
       1,
       MAX_INT_64, // max number for uint64, but wrapper expiry is block.timestamp + REGISTRATION_TIME
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     const block = await provider.getBlock(tx.block)
@@ -880,7 +879,7 @@ contract('ETHRegistrarController', function() {
       ],
       true,
       1,
-      0
+      0,
     )
 
     await controller.commit(commitment)
@@ -902,7 +901,7 @@ contract('ETHRegistrarController', function() {
       true,
       1,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     await resolver2.setApprovalForAll(controller.address, true)
@@ -922,7 +921,7 @@ contract('ETHRegistrarController', function() {
       true,
       1,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     const tx = await controller2.register(
@@ -940,7 +939,7 @@ contract('ETHRegistrarController', function() {
       true,
       1,
       0,
-      { value: BUFFERED_REGISTRATION_COST }
+      { value: BUFFERED_REGISTRATION_COST },
     )
 
     console.log((await tx.wait()).gasUsed.toString())
@@ -950,7 +949,7 @@ contract('ETHRegistrarController', function() {
     expect(await nameWrapper.ownerOf(node)).to.equal(registrantAccount)
     expect(await ens.owner(namehash.hash(name))).to.equal(nameWrapper.address)
     expect(await baseRegistrar.ownerOf(sha3(label))).to.equal(
-      nameWrapper.address
+      nameWrapper.address,
     )
     expect(await resolver2['addr(bytes32)'](node)).to.equal(registrantAccount)
   })

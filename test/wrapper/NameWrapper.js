@@ -10,7 +10,6 @@ const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
 const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 const { deploy } = require('../test-utils/contracts')
-const { keccak256 } = require('ethers/lib/utils')
 
 const abiCoder = new ethers.utils.AbiCoder()
 
@@ -94,7 +93,7 @@ describe('Name Wrapper', () => {
     BaseRegistrar = await deploy(
       'BaseRegistrarImplementation',
       EnsRegistry.address,
-      namehash('eth')
+      namehash('eth'),
     )
 
     BaseRegistrar2 = BaseRegistrar.connect(signers[1])
@@ -104,14 +103,15 @@ describe('Name Wrapper', () => {
 
     MetaDataservice = await deploy(
       'StaticMetadataService',
-      'https://ens.domains'
+      'https://ens.domains',
     )
 
     NameWrapper = await deploy(
       'NameWrapper',
       EnsRegistry.address,
       BaseRegistrar.address,
-      MetaDataservice.address
+      MetaDataservice.address,
+      'NameWrapper',
     )
     NameWrapper2 = NameWrapper.connect(signers[1])
 
@@ -119,14 +119,14 @@ describe('Name Wrapper', () => {
       'UpgradedNameWrapperMock',
       NameWrapper.address,
       EnsRegistry.address,
-      BaseRegistrar.address
+      BaseRegistrar.address,
     )
 
     // setup .eth
     await EnsRegistry.setSubnodeOwner(
       ROOT_NODE,
       labelhash('eth'),
-      BaseRegistrar.address
+      BaseRegistrar.address,
     )
 
     // setup .xyz
@@ -134,7 +134,7 @@ describe('Name Wrapper', () => {
 
     //make sure base registrar is owner of eth TLD
     expect(await EnsRegistry.owner(namehash('eth'))).to.equal(
-      BaseRegistrar.address
+      BaseRegistrar.address,
     )
   })
 
@@ -161,7 +161,7 @@ describe('Name Wrapper', () => {
         firstAddress,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await BaseRegistrar.register(labelhash('test2'), account, 86400)
@@ -170,9 +170,9 @@ describe('Name Wrapper', () => {
         secondAddress,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
-    }
+    },
   )
 
   shouldSupportInterfaces(() => NameWrapper, ['INameWrapper'])
@@ -218,16 +218,16 @@ describe('Name Wrapper', () => {
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('xyz'), EMPTY_ADDRESS, EMPTY_ADDRESS),
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('xyz'), NameWrapper.address, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('xyz'), NameWrapper.address, EMPTY_ADDRESS),
       ).to.be.revertedWith(
-        'ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract',
       )
     })
 
@@ -259,7 +259,7 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.owner(namehash('abc'))).to.equal(account2)
       // wrap using account
       await expect(
-        NameWrapper.wrap(encodeName('abc'), account2, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('abc'), account2, EMPTY_ADDRESS),
       ).to.be.revertedWith(`Unauthorised("${namehash('abc')}", "${account}")`)
     })
 
@@ -269,7 +269,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('wrapped.eth'), account2, EMPTY_ADDRESS)
+        NameWrapper.wrap(encodeName('wrapped.eth'), account2, EMPTY_ADDRESS),
       ).to.be.revertedWith('IncompatibleParent()')
     })
 
@@ -280,14 +280,14 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setSubnodeOwner(
         namehash('xyz'),
         labelhash('sub'),
-        account
+        account,
       )
       await NameWrapper.wrap(encodeName('sub.xyz'), account, EMPTY_ADDRESS)
 
       await EnsRegistry.setSubnodeOwner(
         namehash('xyz'),
         labelhash('sub'),
-        account2
+        account2,
       )
 
       expect(await EnsRegistry.owner(namehash('sub.xyz'))).to.equal(account2)
@@ -297,7 +297,7 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper2.wrap(
         encodeName('sub.xyz'),
         account2,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       const nameHash = namehash('sub.xyz')
@@ -315,7 +315,7 @@ describe('Name Wrapper', () => {
           encodeName('sub.xyz'),
           account2,
           CAN_DO_EVERYTHING,
-          0
+          0,
         )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -328,7 +328,7 @@ describe('Name Wrapper', () => {
     it('Will not wrap a name with junk at the end', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrap(encodeName('xyz') + '123456', account, ZERO_ADDRESS)
+        NameWrapper.wrap(encodeName('xyz') + '123456', account, ZERO_ADDRESS),
       ).to.be.revertedWith('namehash: Junk at end of name')
     })
 
@@ -357,18 +357,18 @@ describe('Name Wrapper', () => {
         'unwrapped',
         account,
         0,
-        0
+        0,
       )
 
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
-        namehash('unwrapped.xyz')
+        namehash('unwrapped.xyz'),
       )
       expect(ownerOfWrappedXYZ).to.equal(account)
       await NameWrapper.unwrap(namehash('xyz'), labelhash('unwrapped'), account)
 
       //Transfers ownership in the ENS registry to the target address.
       expect(await EnsRegistry.owner(namehash('unwrapped.xyz'))).to.equal(
-        account
+        account,
       )
     })
 
@@ -457,11 +457,11 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, 0, 0, EMPTY_ADDRESS)
       const ownerOfWrappedETH = await NameWrapper.ownerOf(
-        namehash('unwrapped.eth')
+        namehash('unwrapped.eth'),
       )
       expect(ownerOfWrappedETH).to.equal(account)
       await expect(
-        NameWrapper.unwrap(namehash('eth'), labelhash('unwrapped'), account)
+        NameWrapper.unwrap(namehash('eth'), labelhash('unwrapped'), account),
       ).to.be.revertedWith('IncompatibleParent()')
     })
 
@@ -472,11 +472,11 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrap(encodeName('abc'), account, EMPTY_ADDRESS)
       await expect(
-        NameWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS)
+        NameWrapper.unwrap(ROOT_NODE, labelHash, EMPTY_ADDRESS),
       ).to.be.revertedWith(`IncorrectTargetOwner("${EMPTY_ADDRESS}")`)
 
       await expect(
-        NameWrapper.unwrap(ROOT_NODE, labelHash, NameWrapper.address)
+        NameWrapper.unwrap(ROOT_NODE, labelHash, NameWrapper.address),
       ).to.be.revertedWith(`IncorrectTargetOwner("${NameWrapper.address}")`)
     })
 
@@ -487,7 +487,7 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setSubnodeOwner(
         namehash('awesome.eth'),
         labelhash('sub'),
-        account
+        account,
       )
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
@@ -496,7 +496,7 @@ describe('Name Wrapper', () => {
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
@@ -506,21 +506,21 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        0
+        0,
       )
 
       expect(await EnsRegistry.owner(namehash('sub.awesome.eth'))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       await NameWrapper.unwrap(
         namehash('awesome.eth'),
         labelhash('sub'),
-        account
+        account,
       )
 
       expect(await EnsRegistry.owner(namehash('sub.awesome.eth'))).to.equal(
-        account
+        account,
       )
     })
 
@@ -537,17 +537,17 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setSubnodeOwner(
         namehash('abc.eth'),
         'sub',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await expect(
-        NameWrapper.unwrap(namehash('abc.eth'), labelhash('sub'), account)
+        NameWrapper.unwrap(namehash('abc.eth'), labelhash('sub'), account),
       ).to.be.revertedWith(`OperationProhibited("${namehash('sub.abc.eth')}")`)
     })
   })
@@ -569,7 +569,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       //make sure reclaim claimed ownership for the wrapper in registry
@@ -583,14 +583,19 @@ describe('Name Wrapper', () => {
       // make sure registrar ERC721 is owned by Wrapper
 
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the .eth registrar.', async () => {
       await BaseRegistrar.register(labelHash, account, 84600)
       await expect(
-        NameWrapper.wrapETH2LD(label, account, CAN_DO_EVERYTHING, EMPTY_ADDRESS)
+        NameWrapper.wrapETH2LD(
+          label,
+          account,
+          CAN_DO_EVERYTHING,
+          EMPTY_ADDRESS,
+        ),
       ).to.be.reverted
     })
 
@@ -602,7 +607,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        account2
+        account2,
       )
       expect(await EnsRegistry.resolver(nameHash)).to.equal(account2)
     })
@@ -617,7 +622,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
       await mine()
@@ -632,7 +637,7 @@ describe('Name Wrapper', () => {
         account2,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       // Check the 4 events
@@ -654,7 +659,7 @@ describe('Name Wrapper', () => {
           encodeName('wrapped2.eth'),
           account2,
           PARENT_CANNOT_CONTROL,
-          0
+          0,
         )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -662,7 +667,7 @@ describe('Name Wrapper', () => {
 
       expect(await NameWrapper2.ownerOf(nameHash)).to.equal(account2)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
     })
 
@@ -676,7 +681,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP | CANNOT_TRANSFER,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await increaseTime(DAY * GRACE_PERIOD + DAY + 1)
       await mine()
@@ -691,7 +696,7 @@ describe('Name Wrapper', () => {
         account2,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await expect(tx)
@@ -707,7 +712,7 @@ describe('Name Wrapper', () => {
           encodeName('wrapped2.eth'),
           account2,
           PARENT_CANNOT_CONTROL,
-          0
+          0,
         )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -715,7 +720,7 @@ describe('Name Wrapper', () => {
 
       expect(await NameWrapper2.ownerOf(nameHash)).to.equal(account2)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
     })
 
@@ -733,7 +738,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       let [fuses, expiry] = await NameWrapper.getFuses(namehash('wrapped2.eth'))
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
@@ -744,7 +749,7 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       ;[fuses] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
@@ -766,7 +771,7 @@ describe('Name Wrapper', () => {
         account2,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       ;[fuses, expiry] = await NameWrapper.getFuses(namehash('wrapped2.eth'))
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
@@ -785,7 +790,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
@@ -794,7 +799,7 @@ describe('Name Wrapper', () => {
           encodeName('wrapped2.eth'),
           account,
           PARENT_CANNOT_CONTROL,
-          0
+          0,
         )
     })
 
@@ -806,7 +811,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -821,7 +826,7 @@ describe('Name Wrapper', () => {
         account2,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(account2)
     })
@@ -835,8 +840,8 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
           0,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
@@ -850,10 +855,10 @@ describe('Name Wrapper', () => {
           NameWrapper.address,
           CAN_DO_EVERYTHING,
           0,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith(
-        'ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract',
       )
     })
 
@@ -874,7 +879,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await expect(
-        NameWrapper2.wrapETH2LD(label, account, 0, 0, EMPTY_ADDRESS)
+        NameWrapper2.wrapETH2LD(label, account, 0, 0, EMPTY_ADDRESS),
       ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
     })
 
@@ -894,7 +899,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await expect(
-        NameWrapper2.wrapETH2LD(label, account2, 0, 0, EMPTY_ADDRESS)
+        NameWrapper2.wrapETH2LD(label, account2, 0, 0, EMPTY_ADDRESS),
       ).to.be.reverted
     })
 
@@ -907,10 +912,10 @@ describe('Name Wrapper', () => {
           account,
           CANNOT_SET_RESOLVER,
           0,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith(
-        'OperationProhibited("0x4885e5302c58efc26e2ce26224bd40fc957256543bf9a751c04f331811bed222")'
+        'OperationProhibited("0x4885e5302c58efc26e2ce26224bd40fc957256543bf9a751c04f331811bed222")',
       )
     })
 
@@ -923,7 +928,7 @@ describe('Name Wrapper', () => {
         account,
         initialFuses,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       const [fuses] = await NameWrapper.getFuses(nameHash)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
@@ -938,7 +943,7 @@ describe('Name Wrapper', () => {
         account,
         initialFuses,
         0, // set expiry to 0
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       const [fuses] = await NameWrapper.getFuses(nameHash)
       expect(fuses).to.equal(0)
@@ -953,7 +958,7 @@ describe('Name Wrapper', () => {
         account,
         initialFuses,
         MAX_EXPIRY, // set expiry to 0
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await increaseTime(84600 + 1)
@@ -966,7 +971,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelhash(''), account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await expect(
-        NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, 0, ZERO_ADDRESS)
+        NameWrapper.wrapETH2LD('', account, CAN_DO_EVERYTHING, 0, ZERO_ADDRESS),
       ).to.be.revertedWith(`LabelTooShort()`)
     })
 
@@ -982,8 +987,8 @@ describe('Name Wrapper', () => {
           account,
           CAN_DO_EVERYTHING,
           0,
-          ZERO_ADDRESS
-        )
+          ZERO_ADDRESS,
+        ),
       ).to.be.revertedWith(`LabelTooLong("${longString}")`)
     })
   })
@@ -1003,15 +1008,15 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(namehash('unwrapped.eth'))).to.equal(
-        account
+        account,
       )
       await NameWrapper.unwrapETH2LD(labelHash, account, account)
       // transfers the controller on the .eth registrar to the target address.
       expect(await EnsRegistry.owner(namehash('unwrapped.eth'))).to.equal(
-        account
+        account,
       )
       //Transfers the registrant on the .eth registrar to the target address
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(account)
@@ -1025,7 +1030,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
@@ -1041,7 +1046,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       const tx = await NameWrapper.unwrapETH2LD(labelHash, account, account)
       await expect(tx)
@@ -1057,10 +1062,10 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await expect(
-        NameWrapper2.unwrapETH2LD(labelHash, account2, account2)
+        NameWrapper2.unwrapETH2LD(labelHash, account2, account2),
       ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
     })
 
@@ -1073,10 +1078,10 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await expect(
-        NameWrapper2.unwrapETH2LD(labelHash, account2, account2)
+        NameWrapper2.unwrapETH2LD(labelHash, account2, account2),
       ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
     })
 
@@ -1088,12 +1093,12 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await expect(
-        NameWrapper.unwrapETH2LD(labelHash, account, account)
+        NameWrapper.unwrapETH2LD(labelHash, account, account),
       ).to.be.revertedWith(
-        'OperationProhibited("0xbb7d787fe3173f5ee43d9616afca7cbd40c9824f2be1d61def0bbbad110261f7")'
+        'OperationProhibited("0xbb7d787fe3173f5ee43d9616afca7cbd40c9824f2be1d61def0bbbad110261f7")',
       )
     })
   })
@@ -1115,7 +1120,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       const owner = await NameWrapper.ownerOf(wrappedTokenId)
@@ -1127,21 +1132,21 @@ describe('Name Wrapper', () => {
     it('Reverts if called by someone that is not the owner', async () => {
       // Attempt to attack the contract by setting the upgrade contract to themselves
       await expect(
-        NameWrapper2.setUpgradeContract(account2)
+        NameWrapper2.setUpgradeContract(account2),
       ).to.be.revertedWith('Ownable: caller is not the owner')
     })
     it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
       expect(
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(false)
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(false)
 
       //set the upgradeContract of the NameWrapper contract
@@ -1150,14 +1155,14 @@ describe('Name Wrapper', () => {
       expect(
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
     })
     it('Will setApprovalForAll for the old upgradeContract addresses in the registrar and registry to false', async () => {
@@ -1165,10 +1170,13 @@ describe('Name Wrapper', () => {
       await NameWrapper.setUpgradeContract(DUMMY_ADDRESS)
 
       expect(
-        await BaseRegistrar.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          DUMMY_ADDRESS,
+        ),
       ).to.equal(true)
       expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS),
       ).to.equal(true)
 
       //set the upgradeContract of the NameWrapper contract
@@ -1177,21 +1185,24 @@ describe('Name Wrapper', () => {
       expect(
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       expect(
-        await BaseRegistrar.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+        await BaseRegistrar.isApprovedForAll(
+          NameWrapper.address,
+          DUMMY_ADDRESS,
+        ),
       ).to.equal(false)
       expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS)
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS),
       ).to.equal(false)
     })
     it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
@@ -1201,24 +1212,24 @@ describe('Name Wrapper', () => {
       expect(
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       //set the upgradeContract of the NameWrapper contract
       await NameWrapper.setUpgradeContract(ZERO_ADDRESS)
 
       expect(
-        await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)
+        await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS),
       ).to.equal(false)
       expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS)
+        await EnsRegistry.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS),
       ).to.equal(false)
     })
   })
@@ -1239,7 +1250,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       //make sure reclaim claimed ownership for the wrapper in registry
@@ -1247,7 +1258,7 @@ describe('Name Wrapper', () => {
       expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(account)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       //set the upgradeContract of the NameWrapper contract
@@ -1257,11 +1268,11 @@ describe('Name Wrapper', () => {
       //make sure owner of the registry is updated to the new upgraded contract
 
       expect(await EnsRegistry.owner(nameHash)).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       // check the upgraded namewrapper is called with all parameters required
@@ -1280,13 +1291,13 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(await EnsRegistry.owner(nameHash)).to.equal(NameWrapper.address)
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(account)
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
@@ -1294,10 +1305,10 @@ describe('Name Wrapper', () => {
       const tx = await NameWrapper2.upgradeETH2LD(label, account2, account)
 
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
       expect(await EnsRegistry.owner(nameHash)).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
       await expect(tx)
         .to.emit(NameWrapperUpgraded, 'WrapETH2LD')
@@ -1315,11 +1326,11 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await expect(
-        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS),
       ).to.be.revertedWith(`CannotUpgrade()`)
     })
 
@@ -1331,17 +1342,17 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
       expect(await NameWrapper.upgradeContract()).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       await NameWrapper.setUpgradeContract(EMPTY_ADDRESS)
       await expect(
-        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS),
       ).to.be.revertedWith(`CannotUpgrade()`)
     })
 
@@ -1356,7 +1367,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       //set the upgradeContract of the NameWrapper contract
@@ -1374,7 +1385,7 @@ describe('Name Wrapper', () => {
           account,
           PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
           expectedExpiry,
-          EMPTY_ADDRESS
+          EMPTY_ADDRESS,
         )
     })
 
@@ -1387,7 +1398,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
@@ -1411,7 +1422,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
@@ -1421,7 +1432,7 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
 
       await expect(
-        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS)
+        NameWrapper.upgradeETH2LD(label, account, EMPTY_ADDRESS),
       ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
     })
 
@@ -1449,14 +1460,14 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       //set the upgradeContract of the NameWrapper contract
       await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
       await expect(
-        NameWrapper2.upgradeETH2LD(label, EMPTY_ADDRESS, EMPTY_ADDRESS)
+        NameWrapper2.upgradeETH2LD(label, EMPTY_ADDRESS, EMPTY_ADDRESS),
       ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
     })
   })
@@ -1475,11 +1486,11 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setSubnodeOwner(nameHash, 'to-upgrade', account, 0, 0)
       const ownerOfWrapped = await NameWrapper.ownerOf(
-        namehash('to-upgrade.wrapped2.eth')
+        namehash('to-upgrade.wrapped2.eth'),
       )
       expect(ownerOfWrapped).to.equal(account)
 
@@ -1489,21 +1500,21 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       const tx = await NameWrapper.upgrade(
         namehash('wrapped2.eth'),
         'to-upgrade',
         account,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       //make sure owner of the registry is updated to the new upgraded contract
 
       expect(
-        await EnsRegistry.owner(namehash('to-upgrade.wrapped2.eth'))
+        await EnsRegistry.owner(namehash('to-upgrade.wrapped2.eth')),
       ).to.equal(NameWrapperUpgraded.address)
 
       //make sure owner in the upgraded NameWrapper contract is the user
@@ -1517,7 +1528,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           0,
           0,
-          0
+          0,
         )
     })
 
@@ -1531,10 +1542,10 @@ describe('Name Wrapper', () => {
         'to-upgrade',
         account,
         0,
-        0
+        0,
       )
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
-        namehash('to-upgrade.xyz')
+        namehash('to-upgrade.xyz'),
       )
       expect(ownerOfWrappedXYZ).to.equal(account)
 
@@ -1544,19 +1555,19 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       const tx = await NameWrapper2.upgrade(
         namehash('xyz'),
         'to-upgrade',
         account,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       await expect(tx)
@@ -1568,7 +1579,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           0,
           0,
-          0
+          0,
         )
     })
 
@@ -1580,10 +1591,10 @@ describe('Name Wrapper', () => {
         'to-upgrade',
         account,
         0,
-        0
+        0,
       )
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
-        namehash('to-upgrade.xyz')
+        namehash('to-upgrade.xyz'),
       )
       expect(ownerOfWrappedXYZ).to.equal(account)
 
@@ -1592,8 +1603,8 @@ describe('Name Wrapper', () => {
           namehash('xyz'),
           'to-upgrade',
           account,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith(`CannotUpgrade()`)
     })
 
@@ -1607,14 +1618,14 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setSubnodeOwner(
         nameHash,
         'to-upgrade',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
       expect(ownerOfWrapped).to.equal(account)
@@ -1625,19 +1636,19 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       const tx = await NameWrapper.upgrade(
         namehash('wrapped2.eth'),
         'to-upgrade',
         account,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(await EnsRegistry.owner(namehash(name))).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       const expectedExpiry = await BaseRegistrar.nameExpires(labelHash)
@@ -1653,7 +1664,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           0,
           expectedFuses,
-          expectedExpiry
+          expectedExpiry,
         )
     })
 
@@ -1667,14 +1678,14 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setSubnodeOwner(
         nameHash,
         'to-upgrade',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
       expect(ownerOfWrapped).to.equal(account)
@@ -1685,27 +1696,27 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       const tx = await NameWrapper.upgrade(
         namehash('wrapped2.eth'),
         'to-upgrade',
         account,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(await EnsRegistry.owner(namehash(name))).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       expect(
-        await NameWrapper.ownerOf(namehash('to-upgrade.wrapped2.eth'))
+        await NameWrapper.ownerOf(namehash('to-upgrade.wrapped2.eth')),
       ).to.equal(EMPTY_ADDRESS)
 
       const [fuses, expiry] = await NameWrapper.getFuses(
-        namehash('to-upgrade.wrapped2.eth')
+        namehash('to-upgrade.wrapped2.eth'),
       )
 
       expect(fuses).to.equal(0)
@@ -1722,14 +1733,14 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await NameWrapper.setSubnodeOwner(
         nameHash,
         'to-upgrade',
         account,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const ownerOfWrapped = await NameWrapper.ownerOf(namehash(name))
       expect(ownerOfWrapped).to.equal(account)
@@ -1740,19 +1751,19 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       await NameWrapper.upgrade(
         namehash('wrapped2.eth'),
         'to-upgrade',
         account,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(await EnsRegistry.owner(namehash(name))).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       await expect(
@@ -1760,10 +1771,10 @@ describe('Name Wrapper', () => {
           namehash('wrapped2.eth'),
           'to-upgrade',
           account2,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith(
-        `Unauthorised("${namehash('to-upgrade.wrapped2.eth')}", "${account}")`
+        `Unauthorised("${namehash('to-upgrade.wrapped2.eth')}", "${account}")`,
       )
     })
 
@@ -1779,10 +1790,10 @@ describe('Name Wrapper', () => {
         account2,
         0,
         0,
-        0
+        0,
       )
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
-        namehash('to-upgrade.xyz')
+        namehash('to-upgrade.xyz'),
       )
       expect(ownerOfWrappedXYZ).to.equal(account)
 
@@ -1792,19 +1803,19 @@ describe('Name Wrapper', () => {
       expect(
         await EnsRegistry.isApprovedForAll(
           NameWrapper.address,
-          NameWrapperUpgraded.address
-        )
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(true)
 
       const tx = await NameWrapper.upgrade(
         namehash('xyz'),
         'to-upgrade',
         account,
-        account2
+        account2,
       )
 
       expect(await EnsRegistry.owner(namehash('to-upgrade.xyz'))).to.equal(
-        NameWrapperUpgraded.address
+        NameWrapperUpgraded.address,
       )
 
       expect(tx)
@@ -1821,11 +1832,11 @@ describe('Name Wrapper', () => {
         'to-upgrade',
         account,
         0,
-        0
+        0,
       )
 
       const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
-        namehash('to-upgrade.xyz')
+        namehash('to-upgrade.xyz'),
       )
       expect(ownerOfWrappedXYZ).to.equal(account)
 
@@ -1837,10 +1848,10 @@ describe('Name Wrapper', () => {
           namehash('xyz'),
           'to-upgrade',
           account,
-          EMPTY_ADDRESS
-        )
+          EMPTY_ADDRESS,
+        ),
       ).to.be.revertedWith(
-        `Unauthorised("${namehash('to-upgrade.xyz')}", "${account2}")`
+        `Unauthorised("${namehash('to-upgrade.xyz')}", "${account2}")`,
       )
     })
   })
@@ -1857,7 +1868,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setSubnodeOwner(
@@ -1865,13 +1876,13 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await expect(
-        NameWrapper.setFuses(namehash('sub.abc.eth'), PARENT_CANNOT_CONTROL)
+        NameWrapper.setFuses(namehash('sub.abc.eth'), PARENT_CANNOT_CONTROL),
       ).to.be.revertedWith(
-        `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`
+        `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`,
       )
     })
 
@@ -1883,7 +1894,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setSubnodeOwner(
@@ -1891,16 +1902,16 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await expect(
         NameWrapper.setFuses(
           namehash('sub.abc.eth'),
-          CANNOT_UNWRAP | CANNOT_TRANSFER
-        )
+          CANNOT_UNWRAP | CANNOT_TRANSFER,
+        ),
       ).to.be.revertedWith(
-        `OperationProhibited("0x5f1471f6276eafe687a7aceabaea0bce02fafaf1dfbeb787b3725234022ee294")`
+        `OperationProhibited("0x5f1471f6276eafe687a7aceabaea0bce02fafaf1dfbeb787b3725234022ee294")`,
       )
     })
 
@@ -1912,7 +1923,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setSubnodeOwner(
@@ -1920,13 +1931,13 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await expect(
-        NameWrapper.setFuses(namehash('sub.abc.eth'), CANNOT_TRANSFER)
+        NameWrapper.setFuses(namehash('sub.abc.eth'), CANNOT_TRANSFER),
       ).to.be.revertedWith(
-        `OperationProhibited("0x5f1471f6276eafe687a7aceabaea0bce02fafaf1dfbeb787b3725234022ee294")`
+        `OperationProhibited("0x5f1471f6276eafe687a7aceabaea0bce02fafaf1dfbeb787b3725234022ee294")`,
       )
     })
 
@@ -1940,11 +1951,11 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await expect(
-        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
+        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -1958,7 +1969,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
@@ -1967,7 +1978,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       ;[fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(
-        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
       )
     })
 
@@ -1984,7 +1995,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       const tx = await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
@@ -1994,12 +2005,12 @@ describe('Name Wrapper', () => {
         .withArgs(
           wrappedTokenId,
           CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
-          expectedExpiry
+          expectedExpiry,
         )
 
       const [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(
-        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
       )
       expect(expiry).to.equal(expectedExpiry)
     })
@@ -2014,7 +2025,7 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setApprovalForAll(account2, true)
@@ -2034,11 +2045,14 @@ describe('Name Wrapper', () => {
         account,
         CAN_DO_EVERYTHING,
         0,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await expect(
-        NameWrapper2.setFuses(wrappedTokenId, CAN_DO_EVERYTHING | CANNOT_UNWRAP)
+        NameWrapper2.setFuses(
+          wrappedTokenId,
+          CAN_DO_EVERYTHING | CANNOT_UNWRAP,
+        ),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
@@ -2052,7 +2066,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       // Each fuse is represented by the next bit, 64 is the next undefined fuse
@@ -2073,14 +2087,14 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP | CANNOT_TRANSFER,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setFuses(wrappedTokenId, 128 | CANNOT_TRANSFER)
 
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128 | CANNOT_TRANSFER
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128 | CANNOT_TRANSFER,
       )
     })
 
@@ -2099,7 +2113,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_BURN_FUSES)
@@ -2111,12 +2125,12 @@ describe('Name Wrapper', () => {
       // check flag in the wrapper
 
       expect(
-        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_BURN_FUSES)
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_BURN_FUSES),
       ).to.equal(true)
 
       //try to set the resolver and ttl
       await expect(
-        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
+        NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
@@ -2136,7 +2150,7 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
@@ -2146,12 +2160,18 @@ describe('Name Wrapper', () => {
       // check flag in the wrapper
 
       expect(
-        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_TRANSFER)
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_TRANSFER),
       ).to.equal(true)
 
       //Transfer should revert
       await expect(
-        NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          wrappedTokenId,
+          1,
+          '0x',
+        ),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -2170,12 +2190,12 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       await NameWrapper.setFuses(
         wrappedTokenId,
-        CANNOT_SET_RESOLVER | CANNOT_SET_TTL
+        CANNOT_SET_RESOLVER | CANNOT_SET_TTL,
       )
 
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
@@ -2184,17 +2204,17 @@ describe('Name Wrapper', () => {
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_SET_RESOLVER | CANNOT_SET_TTL
-        )
+          CANNOT_SET_RESOLVER | CANNOT_SET_TTL,
+        ),
       ).to.equal(true)
 
       //try to set the resolver and ttl
       await expect(
-        NameWrapper.setResolver(wrappedTokenId, account)
+        NameWrapper.setResolver(wrappedTokenId, account),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 1000)).to.be.revertedWith(
-        `OperationProhibited("${wrappedTokenId}")`
+        `OperationProhibited("${wrappedTokenId}")`,
       )
     })
 
@@ -2212,14 +2232,14 @@ describe('Name Wrapper', () => {
         account,
         CANNOT_UNWRAP,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
 
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_CREATE_SUBDOMAIN
-        )
+          CANNOT_CREATE_SUBDOMAIN,
+        ),
       ).to.equal(false)
 
       // can create before burn
@@ -2230,20 +2250,20 @@ describe('Name Wrapper', () => {
         'creatable',
         account,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
 
       expect(
-        await EnsRegistry.owner(namehash('creatable.fuses2.eth'))
+        await EnsRegistry.owner(namehash('creatable.fuses2.eth')),
       ).to.equal(NameWrapper.address)
 
       expect(
-        await NameWrapper.ownerOf(namehash('creatable.fuses2.eth'))
+        await NameWrapper.ownerOf(namehash('creatable.fuses2.eth')),
       ).to.equal(account)
 
       await NameWrapper.setFuses(
         wrappedTokenId,
-        CAN_DO_EVERYTHING | CANNOT_CREATE_SUBDOMAIN
+        CAN_DO_EVERYTHING | CANNOT_CREATE_SUBDOMAIN,
       )
 
       const ownerInWrapper = await NameWrapper.ownerOf(wrappedTokenId)
@@ -2253,8 +2273,8 @@ describe('Name Wrapper', () => {
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_CREATE_SUBDOMAIN
-        )
+          CANNOT_CREATE_SUBDOMAIN,
+        ),
       ).to.equal(true)
 
       //try to create a subdomain
@@ -2265,8 +2285,8 @@ describe('Name Wrapper', () => {
           labelhash('uncreateable'),
           account,
           0,
-          86400
-        )
+          86400,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${namehash('fuses2.eth')}")`)
     })
   })
@@ -2282,12 +2302,12 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
       let [fuses, expiry] = await NameWrapper.getFuses(
-        namehash('sub.fuses.eth')
+        namehash('sub.fuses.eth'),
       )
 
       expect(fuses).to.equal(0)
@@ -2297,7 +2317,7 @@ describe('Name Wrapper', () => {
         wrappedTokenId,
         labelhash('sub'),
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
@@ -2312,12 +2332,12 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
       let [fuses, expiry] = await NameWrapper.getFuses(
-        namehash('sub.fuses.eth')
+        namehash('sub.fuses.eth'),
       )
 
       expect(fuses).to.equal(0)
@@ -2330,7 +2350,7 @@ describe('Name Wrapper', () => {
         wrappedTokenId,
         labelhash('sub'),
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
@@ -2346,7 +2366,7 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
@@ -2360,10 +2380,10 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           labelhash('sub'),
           CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(
-        `Unauthorised("${subWrappedTokenId}", "${account2}")`
+        `Unauthorised("${subWrappedTokenId}", "${account2}")`,
       )
     })
 
@@ -2380,7 +2400,7 @@ describe('Name Wrapper', () => {
         namehash('eth'),
         tokenId,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
 
@@ -2400,7 +2420,7 @@ describe('Name Wrapper', () => {
         namehash('eth'),
         tokenId,
         0,
-        registrarExpiry - 42300
+        registrarExpiry - 42300,
       )
       ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
       expect(expiry).to.equal(registrarExpiry - 42300)
@@ -2411,7 +2431,7 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2424,7 +2444,7 @@ describe('Name Wrapper', () => {
         wrappedTokenId,
         labelhash('sub'),
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       // expiry of parent
@@ -2467,7 +2487,7 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2477,8 +2497,8 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           labelhash('sub'),
           CANNOT_UNWRAP,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
@@ -2493,8 +2513,8 @@ describe('Name Wrapper', () => {
           namehash('eth'),
           tokenId,
           CANNOT_SET_RESOLVER,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}"`)
     })
 
@@ -2503,7 +2523,7 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2514,7 +2534,7 @@ describe('Name Wrapper', () => {
         wrappedTokenId,
         labelhash('sub'),
         originalFuses,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await expect(
@@ -2522,8 +2542,8 @@ describe('Name Wrapper', () => {
           wrappedTokenId,
           labelhash('sub'),
           CANNOT_SET_RESOLVER | CANNOT_BURN_FUSES,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
@@ -2532,7 +2552,7 @@ describe('Name Wrapper', () => {
         'fuses',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2543,7 +2563,7 @@ describe('Name Wrapper', () => {
         wrappedTokenId,
         labelhash('sub'),
         originalFuses,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await expect(
@@ -2554,8 +2574,8 @@ describe('Name Wrapper', () => {
             CANNOT_UNWRAP |
             CANNOT_SET_RESOLVER |
             CANNOT_BURN_FUSES,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
@@ -2571,7 +2591,7 @@ describe('Name Wrapper', () => {
         namehash('eth'),
         tokenId,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
-        0
+        0,
       )
       ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(0)
@@ -2596,15 +2616,15 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
     })
     it('Can be called by an account authorised by the owner.', async () => {
@@ -2613,11 +2633,11 @@ describe('Name Wrapper', () => {
       await NameWrapper2.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
     })
     it('Transfers the wrapped token to the target address.', async () => {
@@ -2627,15 +2647,15 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account2
+        account2,
       )
     })
     it('Will not allow wrapping with a target address of 0x0.', async () => {
@@ -2646,8 +2666,8 @@ describe('Name Wrapper', () => {
           'sub',
           EMPTY_ADDRESS,
           0,
-          CAN_DO_EVERYTHING
-        )
+          CAN_DO_EVERYTHING,
+        ),
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
     it('Will not allow wrapping with a target address of the wrapper contract address', async () => {
@@ -2657,10 +2677,10 @@ describe('Name Wrapper', () => {
           'sub',
           NameWrapper.address,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(
-        'ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract',
       )
     })
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -2672,8 +2692,8 @@ describe('Name Wrapper', () => {
           'sub',
           account,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
     it('Fuses cannot be burned if the name does not have PARENT_CANNOT_CONTROL burned', async () => {
@@ -2685,7 +2705,7 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await expect(
         NameWrapper.setSubnodeOwner(
@@ -2693,10 +2713,10 @@ describe('Name Wrapper', () => {
           label2,
           account,
           CANNOT_UNWRAP | CANNOT_TRANSFER,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(
-        `OperationProhibited("${namehash(`${label2}.${label}.eth`)}")`
+        `OperationProhibited("${namehash(`${label2}.${label}.eth`)}")`,
       )
     })
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned.', async () => {
@@ -2711,10 +2731,10 @@ describe('Name Wrapper', () => {
           label2,
           account,
           PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(
-        `OperationProhibited("${namehash(`${label2}.${label}.eth`)}")`
+        `OperationProhibited("${namehash(`${label2}.${label}.eth`)}")`,
       )
     })
 
@@ -2728,14 +2748,14 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       expect(
         await NameWrapper.allFusesBurned(
           namehash(`sub.${label}.eth`),
-          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER
-        )
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
+        ),
       ).to.equal(true)
     })
 
@@ -2747,21 +2767,21 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING | CANNOT_UNWRAP,
-        84600
+        84600,
       )
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        0 // set expiry to 0
+        0, // set expiry to 0
       )
 
       expect(
         await NameWrapper.allFusesBurned(
           namehash(`sub.${label}.eth`),
-          PARENT_CANNOT_CONTROL
-        )
+          PARENT_CANNOT_CONTROL,
+        ),
       ).to.equal(false)
     })
 
@@ -2773,7 +2793,7 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING | CANNOT_UNWRAP,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
       await NameWrapper.setSubnodeOwner(
@@ -2781,11 +2801,11 @@ describe('Name Wrapper', () => {
         'sub',
         account,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       const [, expiry] = await NameWrapper.getFuses(
-        namehash(`sub.${label}.eth`)
+        namehash(`sub.${label}.eth`),
       )
 
       expect(expiry).to.equal(expectedExpiry)
@@ -2798,7 +2818,7 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         0,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
@@ -2807,7 +2827,7 @@ describe('Name Wrapper', () => {
           encodeName(`sub.${label}.eth`),
           account2,
           0,
-          0
+          0,
         )
     })
 
@@ -2818,7 +2838,7 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         0,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -2827,7 +2847,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           account2,
           namehash(`sub.${label}.eth`),
-          1
+          1,
         )
     })
 
@@ -2839,19 +2859,19 @@ describe('Name Wrapper', () => {
           '',
           account,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`LabelTooShort()`)
     })
 
     it('should be able to call twice and change the owner', async () => {
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account2, 0, 0)
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account2
+        account2,
       )
     })
   })
@@ -2876,15 +2896,15 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
     })
 
@@ -2898,15 +2918,15 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
 
       expect(await EnsRegistry.owner(namehash(`sub.${label}.eth`))).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
     })
 
@@ -2918,11 +2938,11 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
 
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account2
+        account2,
       )
     })
 
@@ -2935,8 +2955,8 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           0,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
@@ -2949,10 +2969,10 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           0,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(
-        'ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract',
       )
     })
 
@@ -2967,8 +2987,8 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           0,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
@@ -2985,10 +3005,10 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           CANNOT_UNWRAP,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(
-        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`
+        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`,
       )
     })
 
@@ -3000,7 +3020,7 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       await expect(
         NameWrapper.setSubnodeRecord(
@@ -3010,10 +3030,10 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(
-        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`
+        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`,
       )
     })
 
@@ -3025,7 +3045,7 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       NameWrapper.setSubnodeRecord(
         wrappedTokenId,
@@ -3034,7 +3054,7 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
-        0
+        0,
       )
       const [fuses] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(0)
@@ -3048,7 +3068,7 @@ describe('Name Wrapper', () => {
         label,
         account,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       NameWrapper.setSubnodeRecord(
         wrappedTokenId,
@@ -3057,11 +3077,11 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const [fuses] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(
-        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
       )
     })
 
@@ -3073,7 +3093,7 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
@@ -3082,7 +3102,7 @@ describe('Name Wrapper', () => {
           encodeName(`sub.${label}.eth`),
           account2,
           0,
-          0
+          0,
         )
     })
 
@@ -3094,7 +3114,7 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -3103,7 +3123,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           account2,
           namehash(`sub.${label}.eth`),
-          1
+          1,
         )
     })
 
@@ -3115,7 +3135,7 @@ describe('Name Wrapper', () => {
         resolver,
         100,
         0,
-        0
+        0,
       )
 
       const node = namehash(`sub.${label}.eth`)
@@ -3135,8 +3155,8 @@ describe('Name Wrapper', () => {
           resolver,
           0,
           0,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`LabelTooShort()`)
     })
 
@@ -3148,10 +3168,10 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account
+        account,
       )
       await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
@@ -3160,10 +3180,10 @@ describe('Name Wrapper', () => {
         resolver,
         0,
         0,
-        0
+        0,
       )
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
-        account2
+        account2,
       )
     })
   })
@@ -3198,14 +3218,14 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called by anyone else.', async () => {
       await expect(
-        NameWrapper2.setRecord(wrappedTokenId, account2, account, 50)
+        NameWrapper2.setRecord(wrappedTokenId, account2, account, 50),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
     it('Cannot be called if CANNOT_TRANSFER is burned.', async () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
       await expect(
-        NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
+        NameWrapper.setRecord(wrappedTokenId, account2, account, 50),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -3213,7 +3233,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_RESOLVER)
 
       await expect(
-        NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
+        NameWrapper.setRecord(wrappedTokenId, account2, account, 50),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -3221,7 +3241,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(
-        NameWrapper.setRecord(wrappedTokenId, account2, account, 50)
+        NameWrapper.setRecord(wrappedTokenId, account2, account, 50),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
   })
@@ -3254,7 +3274,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called by anyone else.', async () => {
       await expect(
-        NameWrapper2.setResolver(wrappedTokenId, account2)
+        NameWrapper2.setResolver(wrappedTokenId, account2),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
@@ -3262,7 +3282,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_RESOLVER)
 
       await expect(
-        NameWrapper.setResolver(wrappedTokenId, account2)
+        NameWrapper.setResolver(wrappedTokenId, account2),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
   })
@@ -3295,7 +3315,7 @@ describe('Name Wrapper', () => {
 
     it('Cannot be called by anyone else.', async () => {
       await expect(
-        NameWrapper2.setTTL(wrappedTokenId, 3600)
+        NameWrapper2.setTTL(wrappedTokenId, 3600),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
@@ -3303,7 +3323,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_SET_TTL)
 
       await expect(NameWrapper.setTTL(wrappedTokenId, 100)).to.be.revertedWith(
-        `OperationProhibited("${wrappedTokenId}")`
+        `OperationProhibited("${wrappedTokenId}")`,
       )
     })
   })
@@ -3324,8 +3344,8 @@ describe('Name Wrapper', () => {
         tokenId,
         abiCoder.encode(
           ['string', 'address', 'uint32', 'uint64', 'address'],
-          [label, account2, '0x0', '0x0', EMPTY_ADDRESS]
-        )
+          [label, account2, '0x0', '0x0', EMPTY_ADDRESS],
+        ),
       )
 
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account2)
@@ -3346,8 +3366,8 @@ describe('Name Wrapper', () => {
             '0x00000001',
             '0x0',
             EMPTY_ADDRESS,
-          ])
-        )
+          ]),
+        ),
       ).to.be.revertedWith('IncorrectTokenType()')
     })
 
@@ -3364,12 +3384,12 @@ describe('Name Wrapper', () => {
           '0x00000001',
           MAX_EXPIRY,
           EMPTY_ADDRESS,
-        ])
+        ]),
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(1 | PARENT_CANNOT_CONTROL)
       expect(
-        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP)
+        await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP),
       ).to.equal(true)
     })
 
@@ -3380,7 +3400,7 @@ describe('Name Wrapper', () => {
         account,
         NameWrapper.address,
         tokenId,
-        abiCoder.encode(types, [label, account, '0x00000001', '0x0', account2])
+        abiCoder.encode(types, [label, account, '0x00000001', '0x0', account2]),
       )
 
       expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2)
@@ -3394,8 +3414,8 @@ describe('Name Wrapper', () => {
           account,
           NameWrapper.address,
           tokenId,
-          '0x'
-        )
+          '0x',
+        ),
       ).to.be.revertedWith('ERC721: transfer to non ERC721Receiver implementer')
     })
     it('Rejects transfers where the data field label does not match the tokenId', async () => {
@@ -3412,8 +3432,8 @@ describe('Name Wrapper', () => {
             '0x00000000',
             '0x0',
             EMPTY_ADDRESS,
-          ])
-        )
+          ]),
+        ),
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
 
@@ -3432,8 +3452,8 @@ describe('Name Wrapper', () => {
             '0x00000002',
             '0x0',
             EMPTY_ADDRESS,
-          ])
-        )
+          ]),
+        ),
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
 
@@ -3447,23 +3467,23 @@ describe('Name Wrapper', () => {
         tokenId,
         abiCoder.encode(
           types,
-          [label, account, 5, MAX_EXPIRY, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
-        )
+          [label, account, 5, MAX_EXPIRY, EMPTY_ADDRESS], // CANNOT_UNWRAP | CANNOT_TRANSFER
+        ),
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(
-        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
       )
 
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
-        )
+          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
+        ),
       ).to.equal(true)
     })
 
@@ -3481,11 +3501,11 @@ describe('Name Wrapper', () => {
           5, // CANNOT_UNWRAP | CANNOT_TRANSFER
           0, // expiry is 0
           EMPTY_ADDRESS,
-        ])
+        ]),
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(0)
@@ -3493,8 +3513,8 @@ describe('Name Wrapper', () => {
       expect(
         await NameWrapper.allFusesBurned(
           wrappedTokenId,
-          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_TRANSFER
-        )
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
+        ),
       ).to.equal(false)
     })
 
@@ -3511,11 +3531,11 @@ describe('Name Wrapper', () => {
           '0x00000000',
           '0x0',
           EMPTY_ADDRESS,
-        ])
+        ]),
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
     })
     it('Can wrap a name even if the controller address is different to the registrant address', async () => {
@@ -3528,12 +3548,12 @@ describe('Name Wrapper', () => {
         tokenId,
         abiCoder.encode(
           types,
-          ['send2contract', account, '0x00000000', '0x0', EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
-        )
+          ['send2contract', account, '0x00000000', '0x0', EMPTY_ADDRESS], // CANNOT_UNWRAP | CANNOT_TRANSFER
+        ),
       )
 
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
     })
@@ -3548,8 +3568,8 @@ describe('Name Wrapper', () => {
         tokenId,
         abiCoder.encode(
           types,
-          [label, account, 5, 0, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
-        )
+          [label, account, 5, 0, EMPTY_ADDRESS], // CANNOT_UNWRAP | CANNOT_TRANSFER
+        ),
       )
 
       await expect(tx)
@@ -3559,7 +3579,7 @@ describe('Name Wrapper', () => {
           encodeName(name),
           account,
           CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL,
-          0
+          0,
         )
     })
 
@@ -3573,8 +3593,8 @@ describe('Name Wrapper', () => {
         tokenId,
         abiCoder.encode(
           types,
-          [label, account, 5, 0, EMPTY_ADDRESS] // CANNOT_UNWRAP | CANNOT_TRANSFER
-        )
+          [label, account, 5, 0, EMPTY_ADDRESS], // CANNOT_UNWRAP | CANNOT_TRANSFER
+        ),
       )
 
       await expect(tx)
@@ -3584,7 +3604,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           account,
           wrappedTokenId,
-          1
+          1,
         )
     })
 
@@ -3596,8 +3616,8 @@ describe('Name Wrapper', () => {
           account,
           NameWrapper.address,
           labelhash(''),
-          abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS])
-        )
+          abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS]),
+        ),
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
   })
@@ -3615,7 +3635,13 @@ describe('Name Wrapper', () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
 
       await expect(
-        NameWrapper.safeTransferFrom(account, account2, wrappedTokenId, 1, '0x')
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          wrappedTokenId,
+          1,
+          '0x',
+        ),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
@@ -3628,8 +3654,8 @@ describe('Name Wrapper', () => {
           account2,
           [wrappedTokenId],
           [1],
-          '0x'
-        )
+          '0x',
+        ),
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
   })
@@ -3655,7 +3681,7 @@ describe('Name Wrapper', () => {
         account,
         initialFuses,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       const [fuses, expiry] = await NameWrapper.getFuses(nameHash)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
@@ -3672,7 +3698,7 @@ describe('Name Wrapper', () => {
         account,
         initialFuses,
         MAX_EXPIRY,
-        EMPTY_ADDRESS
+        EMPTY_ADDRESS,
       )
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.setSubnodeOwner(
@@ -3680,7 +3706,7 @@ describe('Name Wrapper', () => {
         subLabel,
         account,
         initialFuses,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
 
       await increaseTime(84600 + 1)
@@ -3712,14 +3738,14 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
 
       expect(await BaseRegistrar.ownerOf(labelHash)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
       expect(await EnsRegistry.owner(wrappedTokenId)).to.equal(
-        NameWrapper.address
+        NameWrapper.address,
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
     })
@@ -3731,7 +3757,7 @@ describe('Name Wrapper', () => {
         86400,
         account2,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
 
       expect(await EnsRegistry.resolver(wrappedTokenId)).to.equal(account2)
@@ -3746,8 +3772,8 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith('Controllable: Caller is not a controller')
     })
 
@@ -3758,7 +3784,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account2)
     })
@@ -3771,8 +3797,8 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith('ERC1155: mint to the zero address')
     })
 
@@ -3784,10 +3810,10 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(
-        'ERC1155: newOwner cannot be the NameWrapper contract'
+        'ERC1155: newOwner cannot be the NameWrapper contract',
       )
     })
 
@@ -3799,8 +3825,8 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CANNOT_SET_RESOLVER,
-          MAX_EXPIRY
-        )
+          MAX_EXPIRY,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${namehash(label + '.eth')}")`)
     })
 
@@ -3812,7 +3838,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         initialFuses,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
@@ -3826,7 +3852,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         initialFuses,
-        0
+        0,
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(0)
@@ -3839,7 +3865,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        MAX_EXPIRY
+        MAX_EXPIRY,
       )
       const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
@@ -3853,8 +3879,8 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`LabelTooShort()`)
     })
 
@@ -3869,8 +3895,8 @@ describe('Name Wrapper', () => {
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
-          0
-        )
+          0,
+        ),
       ).to.be.revertedWith(`LabelTooLong("${longString}")`)
     })
 
@@ -3881,7 +3907,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
@@ -3890,7 +3916,7 @@ describe('Name Wrapper', () => {
           encodeName('register.eth'),
           account,
           PARENT_CANNOT_CONTROL,
-          0
+          0,
         )
     })
 
@@ -3901,7 +3927,7 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
@@ -3926,12 +3952,12 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
       const expires = await BaseRegistrar.nameExpires(labelHash)
       await NameWrapper.renew(labelHash, 86400, 0)
       expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(
-        expires.toNumber() + 86400
+        expires.toNumber() + 86400,
       )
     })
 
@@ -3942,13 +3968,13 @@ describe('Name Wrapper', () => {
         86400,
         EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
-        0
+        0,
       )
       const expires = await BaseRegistrar.nameExpires(labelHash)
       const expectedExpiry = expires.toNumber() + 86400
       await NameWrapper.renew(labelHash, 86400, MAX_EXPIRY)
       expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(
-        expires.toNumber() + 86400
+        expires.toNumber() + 86400,
       )
       const [, expiry] = await NameWrapper.getFuses(wrappedTokenId)
 
@@ -3989,7 +4015,7 @@ describe('Name Wrapper', () => {
 
     it('non-owner cannot set a new MetadataService', async () => {
       await expect(
-        NameWrapper2.setMetadataService(account2)
+        NameWrapper2.setMetadataService(account2),
       ).to.be.revertedWith('Ownable: caller is not the owner')
     })
   })

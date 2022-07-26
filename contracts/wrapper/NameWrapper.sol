@@ -36,6 +36,7 @@ contract NameWrapper is
     IBaseRegistrar public immutable override registrar;
     IMetadataService public override metadataService;
     mapping(bytes32 => bytes) public override names;
+    string public name;
 
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
@@ -49,11 +50,13 @@ contract NameWrapper is
     constructor(
         ENS _ens,
         IBaseRegistrar _registrar,
-        IMetadataService _metadataService
+        IMetadataService _metadataService,
+        string memory _name
     ) {
         ens = _ens;
         registrar = _registrar;
         metadataService = _metadataService;
+        name = _name;
 
         /* Burn PARENT_CANNOT_CONTROL and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
 
