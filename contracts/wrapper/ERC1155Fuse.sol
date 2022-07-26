@@ -13,6 +13,7 @@ error OperationProhibited(bytes32 node);
 
 abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
+    uint256 private _totalSupply;
     mapping(uint256 => uint256) public _tokens;
 
     // Mapping from owner to operator approvals
@@ -25,6 +26,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     function ownerOf(uint256 id) public view virtual returns (address) {
         (address owner, , ) = getData(id);
         return owner;
+    }
+
+    function totalSupply() public view returns (uint) {
+        return _totalSupply;
     }
 
     /**
@@ -262,6 +267,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             1,
             ""
         );
+        _totalSupply++;
     }
 
     function _burn(uint256 tokenId) internal virtual {

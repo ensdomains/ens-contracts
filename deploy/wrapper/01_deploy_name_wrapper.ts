@@ -10,10 +10,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const registry = await ethers.getContract('ENSRegistry')
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
   const metadata = await ethers.getContract('StaticMetadataService')
+  const name = 'NameWrapper'
 
   const nameWrapper = await deploy('NameWrapper', {
     from: deployer,
-    args: [registry.address, registrar.address, metadata.address],
+    args: [registry.address, registrar.address, metadata.address, name],
     log: true,
   })
 
