@@ -3,7 +3,7 @@ pragma solidity ^0.8.13;
 
 interface INameWrapperUpgrade {
     function setSubnodeRecord(
-        bytes32 node,
+        bytes32 parentNode,
         string calldata label,
         address owner,
         address resolver,
