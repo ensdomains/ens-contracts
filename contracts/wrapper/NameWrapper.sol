@@ -82,6 +82,7 @@ contract NameWrapper is
     {
         return
             interfaceId == type(INameWrapper).interfaceId ||
+            interfaceId == type(IERC721Receiver).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
