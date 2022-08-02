@@ -175,7 +175,7 @@ describe('Name Wrapper', () => {
     }
   )
 
-  shouldSupportInterfaces(() => NameWrapper, ['INameWrapper'])
+  shouldSupportInterfaces(() => NameWrapper, ['INameWrapper','IERC721Receiver'])
 
   describe('wrap()', () => {
     it('Wraps a name if you are the owner', async () => {
@@ -735,7 +735,7 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
         EMPTY_ADDRESS
       )
-      let [fuses, expiry] = await NameWrapper.getFuses(namehash('wrapped2.eth'))
+      let [, fuses, expiry] = await NameWrapper.getData(namehash('wrapped2.eth'))
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
 
       // Create a subdomain that can't be unwrapped
@@ -746,7 +746,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
         MAX_EXPIRY
       )
-      ;[fuses] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))
+      ;[, fuses] = await NameWrapper.getData(namehash('sub.wrapped2.eth'))
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
 
       // Fast forward until the 2LD expires
@@ -768,12 +768,12 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
         EMPTY_ADDRESS
       )
-      ;[fuses, expiry] = await NameWrapper.getFuses(namehash('wrapped2.eth'))
+      ;[, fuses, expiry] = await NameWrapper.getData(namehash('wrapped2.eth'))
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
 
       //sub domain fuses get reset
-      ;[fuses] = await NameWrapper.getFuses(namehash('sub.wrapped2.eth'))
+      ;[, fuses] = await NameWrapper.getData(namehash('sub.wrapped2.eth'))
       expect(fuses).to.equal(0)
     })
 
@@ -925,7 +925,7 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
         EMPTY_ADDRESS
       )
-      const [fuses] = await NameWrapper.getFuses(nameHash)
+      const [, fuses] = await NameWrapper.getData(nameHash)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
     })
 
@@ -940,7 +940,7 @@ describe('Name Wrapper', () => {
         0, // set expiry to 0
         EMPTY_ADDRESS
       )
-      const [fuses] = await NameWrapper.getFuses(nameHash)
+      const [, fuses] = await NameWrapper.getData(nameHash)
       expect(fuses).to.equal(0)
     })
 
@@ -958,7 +958,7 @@ describe('Name Wrapper', () => {
 
       await increaseTime(84600 + 1)
       await mine()
-      const [fuses] = await NameWrapper.getFuses(nameHash)
+      const [, fuses] = await NameWrapper.getData(nameHash)
       expect(fuses).to.equal(0)
     })
 
@@ -1396,7 +1396,7 @@ describe('Name Wrapper', () => {
 
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
 
-      const [fuses, expiry] = await NameWrapper.getFuses(nameHash)
+      const [, fuses, expiry] = await NameWrapper.getData(nameHash)
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
@@ -1704,7 +1704,7 @@ describe('Name Wrapper', () => {
         await NameWrapper.ownerOf(namehash('to-upgrade.wrapped2.eth'))
       ).to.equal(EMPTY_ADDRESS)
 
-      const [fuses, expiry] = await NameWrapper.getFuses(
+      const [, fuses, expiry] = await NameWrapper.getData(
         namehash('to-upgrade.wrapped2.eth')
       )
 
@@ -1961,11 +1961,11 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS
       )
 
-      let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
 
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
-      ;[fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(
         CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
       )
@@ -1997,7 +1997,7 @@ describe('Name Wrapper', () => {
           expectedExpiry
         )
 
-      const [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(
         CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
       )
@@ -2021,7 +2021,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper2.setFuses(wrappedTokenId, CANNOT_UNWRAP)
 
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
     })
     it('Cannot be called by an unauthorised account', async () => {
@@ -2059,7 +2059,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.setFuses(wrappedTokenId, 128)
 
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128)
     })
 
@@ -2078,7 +2078,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.setFuses(wrappedTokenId, 128 | CANNOT_TRANSFER)
 
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128 | CANNOT_TRANSFER
       )
@@ -2286,7 +2286,7 @@ describe('Name Wrapper', () => {
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(
+      let [, fuses, expiry] = await NameWrapper.getData(
         namehash('sub.fuses.eth')
       )
 
@@ -2301,7 +2301,7 @@ describe('Name Wrapper', () => {
       )
 
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
-      ;[fuses, expiry] = await NameWrapper.getFuses(namehash('sub.fuses.eth'))
+      ;[, fuses, expiry] = await NameWrapper.getData(namehash('sub.fuses.eth'))
 
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
@@ -2316,7 +2316,7 @@ describe('Name Wrapper', () => {
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(
+      let [, fuses, expiry] = await NameWrapper.getData(
         namehash('sub.fuses.eth')
       )
 
@@ -2334,7 +2334,7 @@ describe('Name Wrapper', () => {
       )
 
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
-      ;[fuses, expiry] = await NameWrapper.getFuses(namehash('sub.fuses.eth'))
+      ;[, fuses, expiry] = await NameWrapper.getData(namehash('sub.fuses.eth'))
 
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
@@ -2350,7 +2350,7 @@ describe('Name Wrapper', () => {
       )
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+      let [, fuses, expiry] = await NameWrapper.getData(subWrappedTokenId)
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
@@ -2370,7 +2370,7 @@ describe('Name Wrapper', () => {
     it('Allows .eth owners to set their fuses/expiry', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
 
@@ -2382,7 +2382,7 @@ describe('Name Wrapper', () => {
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
         MAX_EXPIRY
       )
-      ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
 
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
@@ -2391,7 +2391,7 @@ describe('Name Wrapper', () => {
     it('Allows setting expiry to anything between oldExpiry and maxExpiry', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
-      let [, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, , expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(expiry).to.equal(0)
 
       const registrarExpiry = await BaseRegistrar.nameExpires(tokenId)
@@ -2402,7 +2402,7 @@ describe('Name Wrapper', () => {
         0,
         registrarExpiry - 42300
       )
-      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, , expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(expiry).to.equal(registrarExpiry - 42300)
     })
 
@@ -2416,7 +2416,7 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
 
-      let [, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+      let [, , expiry] = await NameWrapper.getData(subWrappedTokenId)
 
       expect(expiry).to.equal(0)
 
@@ -2428,9 +2428,9 @@ describe('Name Wrapper', () => {
       )
 
       // expiry of parent
-      const [, expectedExpiry] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, , expectedExpiry] = await NameWrapper.getData(wrappedTokenId)
 
-      ;[, expiry] = await NameWrapper.getFuses(subWrappedTokenId)
+      ;[, , expiry] = await NameWrapper.getData(subWrappedTokenId)
 
       expect(expiry).to.equal(expectedExpiry)
     })
@@ -2438,27 +2438,27 @@ describe('Name Wrapper', () => {
     it('Normalises expiry to the .eth registrar expiry', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
 
       await NameWrapper.setChildFuses(namehash('eth'), tokenId, 0, MAX_EXPIRY)
       // expiry in the .eth registrar
       const expectedExpiry = await BaseRegistrar.nameExpires(tokenId)
-      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, , expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(expiry).to.equal(expectedExpiry)
     })
 
     it('Normalises expiry to the old expiry', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 1000)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(1000)
 
       // set the expiry lower than originally
       await NameWrapper.setChildFuses(namehash('eth'), tokenId, 0, 500)
-      ;[, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, , expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(expiry).to.equal(1000)
     })
 
@@ -2485,7 +2485,7 @@ describe('Name Wrapper', () => {
     it('Does not allow burning fuses if CANNOT_UNWRAP is not burnt', async () => {
       await registerSetupAndWrapName('fuses', account, 0, MAX_EXPIRY)
 
-      let [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(64)
 
       await expect(
@@ -2562,7 +2562,7 @@ describe('Name Wrapper', () => {
     it('Fuses are set to 0 if expired', async () => {
       await registerSetupAndWrapName('fuses', account, 0, 0)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      let [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
 
@@ -2573,7 +2573,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
         0
       )
-      ;[fuses, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      ;[, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
     })
@@ -2784,7 +2784,7 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY
       )
 
-      const [, expiry] = await NameWrapper.getFuses(
+      const [, , expiry] = await NameWrapper.getData(
         namehash(`sub.${label}.eth`)
       )
 
@@ -3036,7 +3036,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
         0
       )
-      const [fuses] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      const [, fuses] = await NameWrapper.getData(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(0)
     })
 
@@ -3059,7 +3059,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
         MAX_EXPIRY
       )
-      const [fuses] = await NameWrapper.getFuses(namehash(`sub.${label}.eth`))
+      const [, fuses] = await NameWrapper.getData(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
       )
@@ -3366,7 +3366,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
         ])
       )
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(1 | PARENT_CANNOT_CONTROL)
       expect(
         await NameWrapper.allFusesBurned(wrappedTokenId, CANNOT_UNWRAP)
@@ -3414,7 +3414,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ])
         )
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith(`LabelMismatch("${labelhash('incorrectlabel')}", "${tokenId}")`)
     })
 
     it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
@@ -3434,7 +3434,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ])
         )
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
@@ -3455,7 +3455,7 @@ describe('Name Wrapper', () => {
         NameWrapper.address
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(
+      expect((await NameWrapper.getData(wrappedTokenId))[1]).to.equal(
         CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL
       )
 
@@ -3488,7 +3488,7 @@ describe('Name Wrapper', () => {
         NameWrapper.address
       )
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
-      expect((await NameWrapper.getFuses(wrappedTokenId))[0]).to.equal(0)
+      expect((await NameWrapper.getData(wrappedTokenId))[1]).to.equal(0)
 
       expect(
         await NameWrapper.allFusesBurned(
@@ -3598,7 +3598,7 @@ describe('Name Wrapper', () => {
           labelhash(''),
           abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS])
         )
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('LabelTooShort()')
     })
   })
 
@@ -3634,7 +3634,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('getFuses', () => {
+  describe('getData', () => {
     const label = 'getfuses'
     const labelHash = labelhash(label)
     const nameHash = namehash(label + '.eth')
@@ -3657,7 +3657,7 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
         EMPTY_ADDRESS
       )
-      const [fuses, expiry] = await NameWrapper.getFuses(nameHash)
+      const [, fuses, expiry] = await NameWrapper.getData(nameHash)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
     })
@@ -3686,9 +3686,9 @@ describe('Name Wrapper', () => {
       await increaseTime(84600 + 1)
       await mine()
 
-      let [fusesParent, expiryParent] = await NameWrapper.getFuses(nameHash)
+      let [, fusesParent, expiryParent] = await NameWrapper.getData(nameHash)
 
-      let [fuses, expiry] = await NameWrapper.getFuses(subNameHash)
+      let [, fuses, expiry] = await NameWrapper.getData(subNameHash)
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(expectedExpiry)
@@ -3814,7 +3814,7 @@ describe('Name Wrapper', () => {
         initialFuses,
         MAX_EXPIRY
       )
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(initialFuses | PARENT_CANNOT_CONTROL)
     })
 
@@ -3828,7 +3828,7 @@ describe('Name Wrapper', () => {
         initialFuses,
         0
       )
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(0)
     })
 
@@ -3841,7 +3841,7 @@ describe('Name Wrapper', () => {
         CAN_DO_EVERYTHING,
         MAX_EXPIRY
       )
-      const [fuses] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
     })
 
@@ -3950,7 +3950,7 @@ describe('Name Wrapper', () => {
       expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(
         expires.toNumber() + 86400
       )
-      const [, expiry] = await NameWrapper.getFuses(wrappedTokenId)
+      const [, , expiry] = await NameWrapper.getData(wrappedTokenId)
 
       expect(expiry).to.equal(expectedExpiry)
     })
