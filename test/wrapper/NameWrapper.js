@@ -3414,7 +3414,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ])
         )
-      ).to.be.revertedWith(`LabelMismatch("${labelhash('incorrectlabel')}", "${tokenId}")`)
+      ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
 
     it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
@@ -3434,7 +3434,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ])
         )
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
+      ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
@@ -3598,7 +3598,7 @@ describe('Name Wrapper', () => {
           labelhash(''),
           abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS])
         )
-      ).to.be.revertedWith('LabelTooShort()')
+      ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
   })
 
