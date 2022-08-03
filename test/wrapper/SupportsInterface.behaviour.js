@@ -36,6 +36,7 @@ const INTERFACES = {
     'onERC1155Received(address,address,uint256,uint256,bytes)',
     'onERC1155BatchReceived(address,address,uint256[],uint256[],bytes)',
   ],
+  IERC721Receiver: ['onERC721Received(address,address,uint256,bytes)'],
   AccessControl: [
     'hasRole(bytes32,address)',
     'getRoleAdmin(bytes32)',
@@ -67,7 +68,6 @@ const INTERFACES = {
     'setResolver(bytes32,address)',
     'setTTL(bytes32,uint64)',
     'ownerOf(uint256)',
-    'getFuses(bytes32)',
     'allFusesBurned(bytes32,uint32)',
   ],
 }
