@@ -73,7 +73,7 @@ async function main() {
     console.log(`Resolver address ${resolverAddress} is already set.`)
   }else{
     const PublicResolver = await ethers.getContractFactory("PublicResolver")
-    resolverArguments = [registryAddress, wrapperAddress]
+    resolverArguments = [registryAddress, wrapperAddress, deployer.address, deployer.address]
     const resolver = await PublicResolver.deploy(...resolverArguments)
     await resolver.deployTransaction.wait()
     console.log("Resolver address:", resolver.address)
