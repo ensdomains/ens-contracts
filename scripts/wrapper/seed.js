@@ -4,8 +4,7 @@ const envfile = require('envfile')
 const { utils, BigNumber: BN } = ethers
 const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
-const parsedFile = envfile.parse(fs.readFileSync('./.env'))
-const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
 
 use(solidity)
 

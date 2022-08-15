@@ -1,11 +1,10 @@
 import fs from 'fs'
 
-import envfile from 'envfile'
+import * as envfile from 'envfile'
 import n from 'eth-ens-namehash'
 import { task } from 'hardhat/config'
 
-const parsedFile = envfile.parse(fs.readFileSync('./.env').toString())
-const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+const parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
 
 const namehash = n.hash
 const labelhash = (utils: any, label: string) =>
@@ -150,6 +149,13 @@ task(
     )
 
     await (
+        await NameWrapper.setFuses(namehash(`${name}.eth`), CANNOT_UNWRAP, {
+          gasLimit: 10000000,
+        })
+      ).wait()
+      console.log('NameWrapper set CANNOT_UNWRAP fuse successful for sub2')
+
+    await (
       await NameWrapper.setFuses(namehash(`sub2.${name}.eth`), CANNOT_UNWRAP, {
         gasLimit: 10000000,
       })
@@ -170,7 +176,7 @@ task(
     await (
       await NameWrapper.unwrap(
         namehash(`${name}.eth`),
-        labelhash(ethers, 'sub1'),
+        labelhash(ethers.utils, 'sub1'),
         firstAddress,
         {
           gasLimit: 10000000,
