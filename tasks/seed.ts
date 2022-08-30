@@ -4,8 +4,6 @@ import * as envfile from 'envfile'
 import n from 'eth-ens-namehash'
 import { task } from 'hardhat/config'
 
-const parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
-
 const namehash = n.hash
 const labelhash = (utils: any, label: string) =>
   utils.keccak256(utils.toUtf8Bytes(label))
@@ -15,10 +13,21 @@ function getOpenSeaUrl(ethers: any, contract: string, namehashedname: string) {
   return `https://testnets.opensea.io/assets/${contract}/${tokenId}`
 }
 
-task(
-  'seed',
-  'Creates test subbdomains and wraps them with Namewrapper',
-  async (_, hre) => {
+task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
+  .addPositionalParam('name', 'The ENS label to seed subdomains')
+  .setAction(async ({ name }, hre) => {
+    let parsedFile
+    try {
+      parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
+    } catch (error: any) {
+      if (error.code !== 'ENOENT') {
+        throw error
+      }
+      console.warn(
+        '.env file is empty, fill as in README to complete seed action',
+      )
+      return
+    }
     const ethers = hre.ethers
     const [deployer] = await ethers.getSigners()
     const CAN_DO_EVERYTHING = 0
@@ -29,8 +38,7 @@ task(
       REGISTRY_ADDRESS: registryAddress,
       REGISTRAR_ADDRESS: registrarAddress,
       WRAPPER_ADDRESS: wrapperAddress,
-      RESOLVER_ADDRESS: resolverAddress,
-      SEED_NAME: name = 'wrappertest',
+      RESOLVER_ADDRESS: resolverAddress
     } = parsedFile
     if (
       !(
@@ -149,11 +157,11 @@ task(
     )
 
     await (
-        await NameWrapper.setFuses(namehash(`${name}.eth`), CANNOT_UNWRAP, {
-          gasLimit: 10000000,
-        })
-      ).wait()
-      console.log('NameWrapper set CANNOT_UNWRAP fuse successful for sub2')
+      await NameWrapper.setFuses(namehash(`${name}.eth`), CANNOT_UNWRAP, {
+        gasLimit: 10000000,
+      })
+    ).wait()
+    console.log('NameWrapper set CANNOT_UNWRAP fuse successful for sub2')
 
     await (
       await NameWrapper.setFuses(namehash(`sub2.${name}.eth`), CANNOT_UNWRAP, {
@@ -184,5 +192,4 @@ task(
       )
     ).wait()
     console.log(`NameWrapper unwrap successful for ${name}`)
-  },
-)
+  })
