@@ -6,7 +6,7 @@
     "test": "hardhat test",
     "test:local": "hardhat --network localhost test",
     "lint": "hardhat check",
-    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc && node ./scripts/create-index-file.js",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public"
   },
