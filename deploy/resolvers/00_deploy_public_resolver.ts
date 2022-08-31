@@ -4,7 +4,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
+  const { deploy, fetchIfDifferent } = deployments
   const { deployer } = await getNamedAccounts()
 
   const registry = await ethers.getContract('ENSRegistry')
@@ -12,7 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const controller = await ethers.getContract('ETHRegistrarController')
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
 
-  const publicResolver = await deploy('PublicResolver', {
+  const deployArgs = {
     from: deployer,
     args: [
       registry.address,
@@ -21,19 +21,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       reverseRegistrar.address,
     ],
     log: true,
-  })
+  };
+  const { differences } = await fetchIfDifferent('PublicResolver', deployArgs);
+  if(!differences) return;
+
+  const publicResolver = await deploy('PublicResolver', deployArgs)
 
   const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address, {
     from: deployer,
   })
   console.log(
-    `Setting default resolver on ReverseRegistrar to resolver (tx: ${tx.hash})...`,
+    `Setting default resolver on ReverseRegistrar to PublicResolver (tx: ${tx.hash})...`,
   )
   await tx.wait()
 }
 
 func.id = 'resolver'
 func.tags = ['resolvers', 'PublicResolver']
-func.dependencies = ['registry', 'ethregistrar', 'wrapper']
+func.dependencies = ['registry', 'ETHRegistrarController', 'NameWrapper', 'ReverseRegistrar']
 
 export default func

@@ -1,5 +1,7 @@
 {
     "ens": 2086611,
     "root": 2086752,
-    "registrar": 2086621
+    "registrar": 2086621,
+    "legacy-controller": 2086640,
+    "legacy-resolver": 2086614
 }

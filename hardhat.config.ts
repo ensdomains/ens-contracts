@@ -145,7 +145,7 @@ const config: HardhatUserConfig = {
       accounts: real_accounts,
     },
     goerli: {
-      url: `https://rpc.tenderly.co/fork/03a226b1-85b7-4c44-abd2-1300d9b2c675`,
+      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
       tags: ['test', 'legacy', 'use_root'],
       chainId: 5,
       accounts: real_accounts,
