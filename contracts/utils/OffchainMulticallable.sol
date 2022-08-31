@@ -3,6 +3,9 @@
 pragma solidity ^0.8.13;
 
 import "./LowLevelCallUtils.sol";
+import "./IOffchainMulticallable.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
 error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData);
 
 struct OffchainLookupCallData {
@@ -22,7 +25,7 @@ interface BatchGateway {
 /**
  * @dev Implements a multicall pattern that understands CCIP read.
  */
-abstract contract OffchainMulticallable {
+abstract contract OffchainMulticallable is ERC165, IOffchainMulticallable {
     function batchGatewayURLs() internal virtual view returns(string[] memory);
 
     function multicall(bytes[] memory data) public virtual returns (bytes[] memory results) {
@@ -95,5 +98,9 @@ abstract contract OffchainMulticallable {
             }
         }
         return multicall(data);
+    }
+
+    function supportsInterface(bytes4 interfaceID) virtual override(ERC165) public view returns(bool) {
+        return interfaceID == type(IOffchainMulticallable).interfaceId;
     }
 }

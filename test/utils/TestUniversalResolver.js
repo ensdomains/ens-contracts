@@ -5,6 +5,7 @@ const sha3 = require("web3-utils").sha3;
 const { ethers } = require("hardhat");
 const { dns } = require("../test-utils");
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+const { shouldSupportInterfaces } = require('../wrapper/SupportsInterface.behaviour');
 
 contract("UniversalResolver", function() {
   let 
@@ -40,7 +41,7 @@ contract("UniversalResolver", function() {
     dummyOffchainResolver = await deploy("DummyOffchainResolver");
     reverseRegistrar = await deploy("ReverseRegistrar", ens.address);
     reverseNode = accounts[0].toLowerCase().substring(2) + ".addr.reverse";
-    universalResolver = await deploy("UniversalResolver", ens.address);
+    universalResolver = await deploy("UniversalResolver", ens.address, ['http://example.com']);
     await ens.setSubnodeOwner(namehash.hash(""), sha3("eth"), accounts[0]);
     await ens.setSubnodeOwner(namehash.hash("eth"), sha3("test"), accounts[0]);
     await ens.setSubnodeOwner(namehash.hash(""), sha3("reverse"), accounts[0]);
@@ -171,4 +172,6 @@ contract("UniversalResolver", function() {
       expect(result["3"]).to.equal(publicResolver.address);
     });
   });
+
+  shouldSupportInterfaces(() => universalResolver, ['IExtendedResolver', 'IOffchainMulticallable'])
 });

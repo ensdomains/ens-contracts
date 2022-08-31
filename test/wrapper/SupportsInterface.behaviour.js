@@ -70,6 +70,12 @@ const INTERFACES = {
     'getFuses(bytes32)',
     'allFusesBurned(bytes32,uint32)',
   ],
+  IOffchainMulticallable: [
+    'multicall(bytes[])',
+  ],
+  IExtendedResolver: [
+    'resolve(bytes,bytes)'
+  ]
 }
 
 const INTERFACE_IDS = {}

@@ -1,15 +1,20 @@
 const { assert } = require("chai");
 const { ethers } = require("hardhat");
+const { shouldSupportInterfaces } = require('../wrapper/SupportsInterface.behaviour');
 const batchGatewayAbi = require('../../artifacts/contracts/utils/OffchainMulticallable.sol/BatchGateway.json').abi
 const iface = new ethers.utils.Interface(batchGatewayAbi); 
 const batchgatewayurl = "http://batchgateway.com/";
 const gatewayurl = "http://gateway.com/";
+let MulticallTestFixture, fixtureResolver
 
 describe("Multicall", function () {
-  it("returns onchain data", async function () {
-    const MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
-    const fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
+  before(async () => {
+    MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
+    fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
     await fixtureResolver.deployed();
+  })
+
+  it("returns onchain data", async function () {
     const arg1 = 2 // anything below 5 is offchain
     const arg2 = 2 // anything below 5 is offchain
     const args = [arg1, arg2]
@@ -21,9 +26,6 @@ describe("Multicall", function () {
   })
 
   it("returns onchain and offchain data recursively", async function () {
-    const MulticallTestFixture = await ethers.getContractFactory("MulticallTestFixture");
-    const fixtureResolver = await MulticallTestFixture.deploy([batchgatewayurl], [gatewayurl]);
-    await fixtureResolver.deployed();
     const threashold = 5
     const arg1 = 6
     const arg2 = 2 // anything below 5 is offchain
@@ -76,4 +78,6 @@ describe("Multicall", function () {
     }
     await recursiveTest(result, extraData)
   });
+
+  shouldSupportInterfaces(() => fixtureResolver, ['IOffchainMulticallable'])
 });

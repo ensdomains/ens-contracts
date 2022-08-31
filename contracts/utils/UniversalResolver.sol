@@ -9,28 +9,27 @@ import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
 import {NameEncoder} from "./NameEncoder.sol";
 import {BytesUtils} from "../wrapper/BytesUtil.sol";
-
-error OffchainLookup(
-    address sender,
-    string[] urls,
-    bytes callData,
-    bytes4 callbackFunction,
-    bytes extraData
-);
+import "./OffchainMulticallable.sol";
 
 /**
  * The Universal Resolver is a contract that handles the work of resolving a name entirely onchain,
  * making it possible to make a single smart contract call to resolve an ENS name.
  */
-contract UniversalResolver is IExtendedResolver, ERC165 {
+contract UniversalResolver is IExtendedResolver, ERC165, OffchainMulticallable {
     using Address for address;
     using NameEncoder for string;
     using BytesUtils for bytes;
+    string[] internal urls;
 
     ENS public immutable registry;
 
-    constructor(address _registry) {
+    constructor(address _registry, string[] memory _urls) {
         registry = ENS(_registry);
+        urls = _urls;
+    }
+
+    function batchGatewayURLs() internal override view returns(string[] memory) {
+        return urls;
     }
 
     /**
@@ -121,7 +120,7 @@ contract UniversalResolver is IExtendedResolver, ERC165 {
         public
         view
         virtual
-        override
+        override(ERC165,OffchainMulticallable)
         returns (bool)
     {
         return
