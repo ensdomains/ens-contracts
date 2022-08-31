@@ -46,10 +46,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deletePreviousDeployments: false,
     resetMemory: false,
   })
+
+  return true;
 }
 
 func.id = 'legacy-controller'
-func.tags = ['ethregistrar', 'LegacyETHRegistrarController']
+func.tags = ['LegacyETHRegistrarController']
 func.dependencies = ['registry', 'wrapper', 'LegacyPublicResolver']
 
 export default func

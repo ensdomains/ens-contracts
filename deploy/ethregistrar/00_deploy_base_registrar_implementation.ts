@@ -6,7 +6,7 @@ import { keccak256 } from 'js-sha3'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
+  const { deploy, fetchIfDifferent } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   if (!network.tags.use_root) {
@@ -16,11 +16,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const registry = await ethers.getContract('ENSRegistry')
   const root = await ethers.getContract('Root')
 
-  await deploy('BaseRegistrarImplementation', {
+  const deployArgs = {
     from: deployer,
     args: [registry.address, namehash.hash('eth')],
     log: true,
-  })
+  };
+  const { differences } = await fetchIfDifferent('BaseRegistrarImplementation', deployArgs);
+  if(!differences) return;
+
+  await deploy('BaseRegistrarImplementation', deployArgs)
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
 
