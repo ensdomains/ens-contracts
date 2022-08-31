@@ -20,7 +20,7 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
         string calldata value
     ) external virtual authorised(node) {
         texts[node][key] = value;
-        emit TextChanged(node, key, key);
+        emit TextChanged(node, key, key, value);
     }
 
     /**
