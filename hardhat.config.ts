@@ -121,8 +121,8 @@ task('save', 'Saves a specified contract as a deployed contract')
   )
 
 let real_accounts = undefined
-if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY]
+if (process.env.DEPLOYER_KEY) {
+  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
 }
 
 const config: HardhatUserConfig = {
@@ -145,7 +145,7 @@ const config: HardhatUserConfig = {
       accounts: real_accounts,
     },
     goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_ID}`,
+      url: `https://rpc.tenderly.co/fork/03a226b1-85b7-4c44-abd2-1300d9b2c675`,
       tags: ['test', 'legacy', 'use_root'],
       chainId: 5,
       accounts: real_accounts,
@@ -194,6 +194,8 @@ const config: HardhatUserConfig = {
     },
     owner: {
       default: 1,
+      goerli: 0,
+      ropsten: 0,
     },
   },
   external: {

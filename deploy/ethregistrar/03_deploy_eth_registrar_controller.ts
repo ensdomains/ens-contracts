@@ -29,7 +29,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
   })
   console.log(
-    `Adding controller as controller on registrar (tx: ${tx1.hash})...`,
+    `Adding ETHRegistrarController as controller on registrar (tx: ${tx1.hash})...`,
   )
   await tx1.wait()
 
@@ -37,7 +37,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
   })
   console.log(
-    `Setting controller of NameWrapper to controller (tx: ${tx2.hash})...`,
+    `Setting controller of NameWrapper to ETHRegistrarController (tx: ${tx2.hash})...`,
   )
   await tx2.wait()
 
@@ -45,12 +45,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
   })
   console.log(
-    `Setting controller of ReverseRegistrar to controller (tx: ${tx3.hash})...`,
+    `Setting controller of ReverseRegistrar to ETHRegistrarController (tx: ${tx3.hash})...`,
   )
   await tx3.wait()
 }
 
 func.tags = ['ethregistrar', 'ETHRegistrarController']
-func.dependencies = ['registry', 'wrapper', 'BaseRegistrarImplementation']
+func.dependencies = ['ENSRegistry', 'BaseRegistrarImplementation', 'StablePriceOracle', 'ReverseRegistrar', 'NameWrapper']
 
 export default func
