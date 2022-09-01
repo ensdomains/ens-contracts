@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
-  const priceOracle = await ethers.getContract('StablePriceOracle')
+  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
   const nameWrapper = await ethers.getContract('NameWrapper')
 
@@ -55,6 +55,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['ethregistrar', 'ETHRegistrarController']
-func.dependencies = ['ENSRegistry', 'BaseRegistrarImplementation', 'StablePriceOracle', 'ReverseRegistrar', 'NameWrapper']
+func.dependencies = [
+  'ENSRegistry',
+  'BaseRegistrarImplementation',
+  'ExponentialPremiumPriceOracle',
+  'ReverseRegistrar',
+  'NameWrapper',
+]
 
 export default func
