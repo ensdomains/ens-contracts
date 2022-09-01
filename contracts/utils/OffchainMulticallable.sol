@@ -5,11 +5,13 @@ pragma solidity ^0.8.13;
 import "./LowLevelCallUtils.sol";
 import "./IOffchainMulticallable.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "hardhat/console.sol";
 
 error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData);
 
 struct OffchainLookupCallData {
     string[] urls;
+    address revertSender;
     bytes callData;
 }
 
@@ -49,8 +51,9 @@ abstract contract OffchainMulticallable is ERC165, IOffchainMulticallable {
                     // Offchain lookup. Decode the revert message and create our own that nests it.
                     bytes memory revertData = LowLevelCallUtils.readReturnData(4, size - 4);
                     (address sender, string[] memory urls, bytes memory callData, bytes4 innerCallbackFunction, bytes memory extraData) = abi.decode(revertData, (address,string[],bytes,bytes4,bytes));
+                    (address revertSender,,) = abi.decode(extraData, (address, bytes4,bytes));
                     if(sender == address(this)) {
-                        callDatas[offchainCount] = OffchainLookupCallData(urls, callData);
+                        callDatas[offchainCount] = OffchainLookupCallData(urls, revertSender, callData);
                         extraDatas[i] = OffchainLookupExtraData(innerCallbackFunction, extraData);
                         offchainCount += 1;
                     }
