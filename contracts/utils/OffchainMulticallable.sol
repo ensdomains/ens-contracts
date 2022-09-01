@@ -10,6 +10,7 @@ error OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callb
 
 struct OffchainLookupCallData {
     string[] urls;
+    address originalSender;
     bytes callData;
 }
 
@@ -49,11 +50,11 @@ abstract contract OffchainMulticallable is ERC165, IOffchainMulticallable {
                     // Offchain lookup. Decode the revert message and create our own that nests it.
                     bytes memory revertData = LowLevelCallUtils.readReturnData(4, size - 4);
                     (address sender, string[] memory urls, bytes memory callData, bytes4 innerCallbackFunction, bytes memory extraData) = abi.decode(revertData, (address,string[],bytes,bytes4,bytes));
-                    if(sender == address(this)) {
-                        callDatas[offchainCount] = OffchainLookupCallData(urls, callData);
+                    // if(sender == address(this)) {
+                        callDatas[offchainCount] = OffchainLookupCallData(urls, sender, callData);
                         extraDatas[i] = OffchainLookupExtraData(innerCallbackFunction, extraData);
                         offchainCount += 1;
-                    }
+                    // }
                     continue;
                 }
             }
