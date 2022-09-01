@@ -45,12 +45,10 @@ describe("Multicall", function () {
       arg1result = result[0][0]
       arg3result = result[0][1]
       assert.equal(result[0].length, args.length - 1); // do not count offchain records
-      assert.equal(arg1result.urls[0], gatewayurl);
-      assert.equal(arg1result.originalSender, fixtureResolver.address);
-      assert.equal(fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg1result.callData)[0].toNumber(), arg1)
-      assert.equal(arg3result.urls[0], gatewayurl);
-      assert.equal(arg3result.originalSender, fixtureResolver.address);
-      assert.equal(fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg3result.callData)[0].toNumber(), arg3)
+      assert.equal(arg1result[0][0], gatewayurl);
+      assert.equal(fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg1result[1])[0].toNumber(), arg1)
+      assert.equal(arg3result[0][0], gatewayurl);
+      assert.equal(fixtureResolver.interface.decodeFunctionData("doSomethingOffchain", arg3result[1])[0].toNumber(), arg3)
     }
 
     const recursiveTest = async function (result, extraData){

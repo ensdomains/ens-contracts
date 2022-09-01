@@ -170,7 +170,7 @@ contract UniversalResolver is IExtendedResolver, ERC165, OffchainMulticallable {
                     );
                 if (sender == target) {
                     revert OffchainLookup(
-                        sender,
+                        address(this),
                         urls,
                         callData,
                         callbackFunction,

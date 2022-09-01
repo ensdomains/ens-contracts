@@ -140,7 +140,7 @@ contract("UniversalResolver", function() {
       expect(ret).to.equal(accounts[1]);
     });
 
-    it("should return a wrapped revert with original sender if the resolver reverts with OffchainData", async () => {
+    it("should return a wrapped revert if the resolver reverts with OffchainData", async () => {
       const data = publicResolver.interface.encodeFunctionData("addr(bytes32)", [namehash.hash("offchain.test.eth")])
       // "0xb4a85801"
       const callbackFunction =  ethers.utils.hexDataSlice(ethers.utils.id("resolveCallback(bytes,bytes)"),0,4)
@@ -151,7 +151,7 @@ contract("UniversalResolver", function() {
         await universalResolver.callStatic.resolve(dns.hexEncodeName("offchain.test.eth"), data)
       }catch(e){
         expect(e.errorName).to.equal("OffchainLookup");
-        expect(e.errorArgs.sender).to.equal(dummyOffchainResolver.address);
+        expect(e.errorArgs.sender).to.equal(universalResolver.address);
         expect(e.errorArgs.urls.length).to.equal(1);
         expect(e.errorArgs.urls[0]).to.equal("https://example.com/");
         expect(e.errorArgs.callData).to.equal(data);
