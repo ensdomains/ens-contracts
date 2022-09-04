@@ -55,6 +55,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         INameWrapper _nameWrapper
     ) {
         require(_maxCommitmentAge > _minCommitmentAge);
+        require(_maxCommitmentAge < block.timestamp);
 
         base = _base;
         prices = _prices;
@@ -228,7 +229,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint256 duration,
         bytes32 commitment
     ) internal {
-        // Require a valid commitment (is old enough and is committed)
+        // Require an old enough commitment.
         require(
             commitments[commitment] + minCommitmentAge <= block.timestamp,
             "ETHRegistrarController: Commitment is not valid"
