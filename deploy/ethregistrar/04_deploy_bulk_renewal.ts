@@ -6,9 +6,13 @@ import { namehash } from 'ethers/lib/utils';
 
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
+  const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
+
+  if (!network.tags.use_root) {
+    return true
+  }
 
   const root = await ethers.getContract('Root', await ethers.getSigner(owner))
   const registry = await ethers.getContract('ENSRegistry', await ethers.getSigner(owner))
