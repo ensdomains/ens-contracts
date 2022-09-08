@@ -21,7 +21,7 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
-
+    uint64 private constant MAX_EXPIRY = type(uint64).max;
     BaseRegistrarImplementation immutable base;
     IPriceOracle public immutable prices;
     uint256 public immutable minCommitmentAge;
@@ -165,7 +165,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             wrapperExpiry
         );
 
-        _setRecords(resolver, keccak256(bytes(name)), data);
+        if (data.length > 0) {
+            _setRecords(resolver, keccak256(bytes(name)), data);
+        }
 
         if (reverseRecord) {
             _setReverseRecord(name, resolver, msg.sender);
@@ -192,20 +194,55 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         payable
         override
     {
-        bytes32 label = keccak256(bytes(name));
+        _renew(name, duration, 0, 0);
+    }
+
+    function renewWithFuses(
+        string calldata name,
+        uint256 duration,
+        uint32 fuses,
+        uint64 wrapperExpiry
+    ) external payable {
+        bytes32 labelhash = keccak256(bytes(name));
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        require(
+            nameWrapper.isTokenOwnerOrApproved(nodehash, msg.sender),
+            "Only token owner or approved owner can renew with fuses"
+        );
+        _renew(name, duration, fuses, wrapperExpiry);
+    }
+
+    function _renew(
+        string calldata name,
+        uint256 duration,
+        uint32 fuses,
+        uint64 wrapperExpiry
+    ) internal {
+        bytes32 labelhash = keccak256(bytes(name));
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
         require(
             msg.value >= price.base,
             "ETHController: Not enough Ether provided for renewal"
         );
-
-        uint256 expires = base.renew(uint256(label), duration);
+        uint256 expires;
+        if (nameWrapper.isWrapped(nodehash)) {
+            expires = nameWrapper.renew(
+                tokenId,
+                duration,
+                fuses,
+                wrapperExpiry
+            );
+        } else {
+            expires = base.renew(tokenId, duration);
+        }
 
         if (msg.value > price.base) {
             payable(msg.sender).transfer(msg.value - price.base);
         }
 
-        emit NameRenewed(name, label, msg.value, expires);
+        emit NameRenewed(name, labelhash, msg.value, expires);
     }
 
     function withdraw() public {
@@ -248,24 +285,14 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     }
 
     function _setRecords(
-        address resolver,
+        address resolverAddress,
         bytes32 label,
         bytes[] calldata data
     ) internal {
         // use hardcoded .eth namehash
         bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
-        for (uint256 i = 0; i < data.length; i++) {
-            // check first few bytes are namehash
-            bytes32 txNamehash = bytes32(data[i][4:36]);
-            require(
-                txNamehash == nodehash,
-                "ETHRegistrarController: Namehash on record do not match the name being registered"
-            );
-            resolver.functionCall(
-                data[i],
-                "ETHRegistrarController: Failed to set Record"
-            );
-        }
+        Resolver resolver = Resolver(resolverAddress);
+        resolver.multicallWithNodeCheck(nodehash, data);
     }
 
     function _setReverseRecord(

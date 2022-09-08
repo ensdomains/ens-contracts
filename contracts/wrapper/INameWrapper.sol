@@ -62,6 +62,7 @@ interface INameWrapper is IERC1155 {
     function renew(
         uint256 labelHash,
         uint256 duration,
+        uint32 fuses,
         uint64 expiry
     ) external returns (uint256 expires);
 
@@ -127,4 +128,6 @@ interface INameWrapper is IERC1155 {
         external
         view
         returns (bool);
+
+    function isWrapped(bytes32 node) external view returns (bool);
 }
