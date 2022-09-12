@@ -22,7 +22,6 @@ error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error CannotUpgrade();
-error InvalidExpiry(bytes32 node, uint64 expiry);
 
 contract NameWrapper is
     Ownable,
