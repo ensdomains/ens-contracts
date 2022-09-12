@@ -82,6 +82,7 @@ contract NameWrapper is
     {
         return
             interfaceId == type(INameWrapper).interfaceId ||
+            interfaceId == type(IERC721Receiver).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
@@ -173,31 +174,6 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Gets fuse permissions for a specific name
-     * @dev Fuses are represented by a uint32 where each permission is represented by 1 bit
-     *      The interface has predefined fuses for all registry permissions, but additional
-     *      fuses can be added for other use cases
-     *      Also returns expiry, which is when the fuses are set to expire.
-     * @param node namehash of the name to check
-     * @return fuses A number that represents the permissions a name has. Returns 0 when expiry < block.timestamp
-     * @return expiry Unix time of when the name expires and fuses are to expire
-     */
-    function getFuses(bytes32 node)
-        public
-        view
-        override
-        returns (uint32 fuses, uint64 expiry)
-    {
-        (, fuses, expiry) = getData(uint256(node));
-        if (fuses == 0 && expiry == 0) {
-            bytes memory name = names[node];
-            if (name.length == 0) {
-                revert NameNotFound();
-            }
-        }
-    }
-
-    /**
      * @notice Wraps a .eth domain, creating a new token and sending the original ERC721 token to this contract
      * @dev Can be called by the owner of the name on the .eth registrar or an authorised caller on the registrar
      * @param label label as a string of the .eth domain to wrap
@@ -218,7 +194,6 @@ contract NameWrapper is
         address registrant = registrar.ownerOf(tokenId);
         if (
             registrant != msg.sender &&
-            !isApprovedForAll(registrant, msg.sender) &&
             !registrar.isApprovedForAll(registrant, msg.sender)
         ) {
             revert Unauthorised(
@@ -271,17 +246,18 @@ contract NameWrapper is
     function renew(
         uint256 tokenId,
         uint256 duration,
+        uint32 fuses,
         uint64 expiry
     ) external override onlyController returns (uint256 expires) {
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
         expires = registrar.renew(tokenId, duration);
-        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
+        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
         expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
 
-        _setData(node, owner, fuses, expiry);
+        _setData(node, owner, oldFuses | fuses | PARENT_CANNOT_CONTROL, expiry);
     }
 
     /**
@@ -307,11 +283,7 @@ contract NameWrapper is
 
         address owner = ens.owner(node);
 
-        if (
-            owner != msg.sender &&
-            !isApprovedForAll(owner, msg.sender) &&
-            !ens.isApprovedForAll(owner, msg.sender)
-        ) {
+        if (owner != msg.sender && !ens.isApprovedForAll(owner, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -328,21 +300,17 @@ contract NameWrapper is
      * @notice Unwraps a .eth domain. e.g. vitalik.eth
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
      * @param labelhash labelhash of the .eth domain
-     * @param newRegistrant sets the owner in the .eth registrar to this address
-     * @param newController sets the owner in the registry to this address
+     * @param registrant sets the owner in the .eth registrar to this address
+     * @param controller sets the owner in the registry to this address
      */
 
     function unwrapETH2LD(
         bytes32 labelhash,
-        address newRegistrant,
-        address newController
+        address registrant,
+        address controller
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, labelhash)) {
-        _unwrap(_makeNode(ETH_NODE, labelhash), newController);
-        registrar.transferFrom(
-            address(this),
-            newRegistrant,
-            uint256(labelhash)
-        );
+        _unwrap(_makeNode(ETH_NODE, labelhash), controller);
+        registrar.transferFrom(address(this), registrant, uint256(labelhash));
     }
 
     /**
@@ -350,24 +318,24 @@ contract NameWrapper is
      * @dev Can be called by the owner in the wrapper or an authorised caller in the wrapper
      * @param parentNode parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
      * @param labelhash labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
-     * @param newController sets the owner in the registry to this address
+     * @param controller sets the owner in the registry to this address
      */
 
     function unwrap(
         bytes32 parentNode,
         bytes32 labelhash,
-        address newController
+        address controller
     ) public override onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         if (parentNode == ETH_NODE) {
             revert IncompatibleParent();
         }
-        _unwrap(_makeNode(parentNode, labelhash), newController);
+        _unwrap(_makeNode(parentNode, labelhash), controller);
     }
 
     /**
      * @notice Sets fuses of a name
      * @param node namehash of the name
-     * @param fuses fuses to burn (cannot burn PARENT_CANOT_CONTROL)
+     * @param fuses fuses to burn (cannot burn PARENT_CANNOT_CONTROL)
      */
 
     function setFuses(bytes32 node, uint32 fuses)
@@ -376,10 +344,7 @@ contract NameWrapper is
         operationAllowed(node, CANNOT_BURN_FUSES)
         returns (uint32)
     {
-        if (fuses & PARENT_CANNOT_CONTROL != 0) {
-            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
-            revert Unauthorised(node, msg.sender);
-        }
+        _checkForParentCannotControl(node, fuses);
 
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
@@ -464,6 +429,9 @@ contract NameWrapper is
             uint256(node)
         );
         uint64 maxExpiry;
+        (, uint32 parentFuses, uint64 parentExpiry) = getData(
+            uint256(parentNode)
+        );
         if (parentNode == ETH_NODE) {
             if (!isTokenOwnerOrApproved(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
@@ -476,8 +444,10 @@ contract NameWrapper is
             }
 
             // max expiry is set to the expiry of the parent
-            (, , maxExpiry) = getData(uint256(parentNode));
+            maxExpiry = parentExpiry;
         }
+
+        _checkParentFuses(node, fuses, parentFuses);
 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
@@ -496,7 +466,7 @@ contract NameWrapper is
      * @notice Sets the subdomain owner in the registry and then wraps the subdomain
      * @param parentNode parent namehash of the subdomain
      * @param label label of the subdomain as a string
-     * @param newOwner newOwner in the registry
+     * @param owner new owner in the wrapper
      * @param fuses initial fuses for the wrapped subdomain
      * @param expiry when the fuses will expire
      */
@@ -504,7 +474,7 @@ contract NameWrapper is
     function setSubnodeOwner(
         bytes32 parentNode,
         string calldata label,
-        address newOwner,
+        address owner,
         uint32 fuses,
         uint64 expiry
     )
@@ -515,13 +485,20 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        (, , expiry) = _getDataAndNormaliseExpiry(parentNode, node, expiry);
+        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
-        if (ens.owner(node) != address(this)) {
+        if (!isWrapped(node)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _addLabelAndWrap(parentNode, node, label, newOwner, fuses, expiry);
+            _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
-            _transferAndBurnFuses(node, newOwner, fuses, expiry);
+            _addLabelSetFusesAndTransfer(
+                parentNode,
+                node,
+                label,
+                owner,
+                fuses,
+                expiry
+            );
         }
     }
 
@@ -529,7 +506,7 @@ contract NameWrapper is
      * @notice Sets the subdomain owner in the registry with records and then wraps the subdomain
      * @param parentNode parent namehash of the subdomain
      * @param label label of the subdomain as a string
-     * @param newOwner newOwner in the registry
+     * @param owner new owner in the wrapper
      * @param resolver resolver contract in the registry
      * @param ttl ttl in the regsitry
      * @param fuses initial fuses for the wrapped subdomain
@@ -539,7 +516,7 @@ contract NameWrapper is
     function setSubnodeRecord(
         bytes32 parentNode,
         string memory label,
-        address newOwner,
+        address owner,
         address resolver,
         uint64 ttl,
         uint32 fuses,
@@ -551,8 +528,8 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        (, , expiry) = _getDataAndNormaliseExpiry(parentNode, node, expiry);
-        if (ens.owner(node) != address(this)) {
+        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
+        if (!isWrapped(node)) {
             ens.setSubnodeRecord(
                 parentNode,
                 labelhash,
@@ -560,7 +537,7 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _addLabelAndWrap(parentNode, node, label, newOwner, fuses, expiry);
+            _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
             ens.setSubnodeRecord(
                 parentNode,
@@ -569,14 +546,21 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _transferAndBurnFuses(node, newOwner, fuses, expiry);
+            _addLabelSetFusesAndTransfer(
+                parentNode,
+                node,
+                label,
+                owner,
+                fuses,
+                expiry
+            );
         }
     }
 
     /**
      * @notice Sets records for the name in the ENS Registry
      * @param node namehash of the name to set a record for
-     * @param owner newOwner in the registry
+     * @param owner new owner in the registry
      * @param resolver the resolver contract
      * @param ttl ttl in the registry
      */
@@ -646,7 +630,7 @@ contract NameWrapper is
 
     /**
      * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
-     * @dev Checks both canCreateSubdomain and canReplaceSubdomain and whether not they have been burnt
+     * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
      *      replacing a subdomain. If either conditions are true, then it is possible to call
      *      setSubnodeOwner
@@ -661,12 +645,12 @@ contract NameWrapper is
         if (owner == address(0)) {
             (, uint32 fuses, ) = getData(uint256(node));
             if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
-                revert OperationProhibited(node);
+                revert OperationProhibited(subnode);
             }
         } else {
             (, uint32 subnodeFuses, ) = getData(uint256(subnode));
             if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
-                revert OperationProhibited(node);
+                revert OperationProhibited(subnode);
             }
         }
 
@@ -688,6 +672,18 @@ contract NameWrapper is
     {
         (, uint32 fuses, ) = getData(uint256(node));
         return fuses & fuseMask == fuseMask;
+    }
+
+    /**
+     * @notice Checks if a name is wrapped or not
+     * @param node namehash of the name
+     * @return Boolean of whether or not all the selected fuses are burned
+     */
+
+    function isWrapped(bytes32 node) public view override returns (bool) {
+        return
+            ownerOf(uint256(node)) != address(0) &&
+            ens.owner(node) == address(this);
     }
 
     function onERC721Received(
@@ -754,18 +750,18 @@ contract NameWrapper is
 
     function _mint(
         bytes32 node,
-        address wrappedOwner,
+        address owner,
         uint32 fuses,
         uint64 expiry
     ) internal override {
-        address oldWrappedOwner = ownerOf(uint256(node));
         _canFusesBeBurned(node, fuses);
-        if (oldWrappedOwner != address(0)) {
+        address oldOwner = ownerOf(uint256(node));
+        if (oldOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
             emit NameUnwrapped(node, address(0));
         }
-        super._mint(node, wrappedOwner, fuses, expiry);
+        super._mint(node, owner, fuses, expiry);
     }
 
     function _wrap(
@@ -784,12 +780,12 @@ contract NameWrapper is
         bytes32 parentNode,
         bytes32 node,
         string memory label,
-        address newOwner,
+        address owner,
         uint32 fuses,
         uint64 expiry
     ) internal {
         bytes memory name = _addLabel(label, names[parentNode]);
-        _wrap(node, name, newOwner, fuses, expiry);
+        _wrap(node, name, owner, fuses, expiry);
     }
 
     function _prepareUpgrade(bytes32 node)
@@ -804,43 +800,55 @@ contract NameWrapper is
             revert Unauthorised(node, msg.sender);
         }
 
-        (fuses, expiry) = getFuses(node);
+        (, fuses, expiry) = getData(uint256(node));
 
         // burn token and fuse data
         _burn(uint256(node));
     }
 
-    function _transferAndBurnFuses(
+    function _addLabelSetFusesAndTransfer(
+        bytes32 parentNode,
         bytes32 node,
-        address newOwner,
+        string memory label,
+        address owner,
         uint32 fuses,
         uint64 expiry
     ) internal {
-        (address owner, , ) = getData(uint256(node));
-        _transfer(owner, newOwner, uint256(node), 1, "");
-        _setFuses(node, newOwner, fuses, expiry);
+        address oldOwner = ownerOf(uint256(node));
+        bytes memory name = _addLabel(label, names[parentNode]);
+        if (names[node].length == 0) {
+            names[node] = name;
+        }
+        _setFuses(node, oldOwner, fuses, expiry);
+        _transfer(oldOwner, owner, uint256(node), 1, "");
     }
 
     // wrapper function for stack limit
-    function _getDataAndNormaliseExpiry(
+    function _checkParentFusesAndExpiry(
         bytes32 parentNode,
         bytes32 node,
+        uint32 fuses,
         uint64 expiry
-    )
-        internal
-        view
-        returns (
-            address owner,
-            uint32 fuses,
-            uint64
-        )
-    {
-        uint64 oldExpiry;
-        (owner, fuses, oldExpiry) = getData(uint256(node));
-        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+    ) internal view returns (uint64) {
+        (, , uint64 oldExpiry) = getData(uint256(node));
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+        _checkParentFuses(node, fuses, parentFuses);
+        return _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+    }
 
-        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
-        return (owner, fuses, expiry);
+    function _checkParentFuses(
+        bytes32 node,
+        uint32 fuses,
+        uint32 parentFuses
+    ) internal pure {
+        bool isBurningPCC = fuses & PARENT_CANNOT_CONTROL ==
+            PARENT_CANNOT_CONTROL;
+
+        bool parentHasNotBurnedCU = parentFuses & CANNOT_UNWRAP == 0;
+
+        if (isBurningPCC && parentHasNotBurnedCU) {
+            revert OperationProhibited(node);
+        }
     }
 
     function _getETH2LDDataAndNormaliseExpiry(
@@ -893,8 +901,9 @@ contract NameWrapper is
         // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
+        uint32 oldFuses;
 
-        (, , expiry) = _getETH2LDDataAndNormaliseExpiry(
+        (, oldFuses, expiry) = _getETH2LDDataAndNormaliseExpiry(
             node,
             labelhash,
             expiry
@@ -915,9 +924,9 @@ contract NameWrapper is
         return expiry;
     }
 
-    function _unwrap(bytes32 node, address newOwner) private {
-        if (newOwner == address(0x0) || newOwner == address(this)) {
-            revert IncorrectTargetOwner(newOwner);
+    function _unwrap(bytes32 node, address owner) private {
+        if (owner == address(0x0) || owner == address(this)) {
+            revert IncorrectTargetOwner(owner);
         }
 
         if (allFusesBurned(node, CANNOT_UNWRAP)) {
@@ -926,9 +935,9 @@ contract NameWrapper is
 
         // Burn token and fuse data
         _burn(uint256(node));
-        ens.setOwner(node, newOwner);
+        ens.setOwner(node, owner);
 
-        emit NameUnwrapped(node, newOwner);
+        emit NameUnwrapped(node, owner);
     }
 
     function _setFuses(
@@ -958,6 +967,16 @@ contract NameWrapper is
             (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
         ) {
             revert OperationProhibited(node);
+        }
+    }
+
+    function _checkForParentCannotControl(bytes32 node, uint32 fuses)
+        internal
+        view
+    {
+        if (fuses & PARENT_CANNOT_CONTROL != 0) {
+            // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
+            revert Unauthorised(node, msg.sender);
         }
     }
 }

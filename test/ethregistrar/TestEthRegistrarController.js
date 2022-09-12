@@ -17,7 +17,8 @@ const BUFFERED_REGISTRATION_COST = REGISTRATION_TIME + 3 * DAYS
 const NULL_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
-
+const MAX_EXPIRY = 2n ** 64n - 1n
+const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 contract('ETHRegistrarController', function() {
   let ens
   let resolver
@@ -28,6 +29,7 @@ contract('ETHRegistrarController', function() {
   let priceOracle
   let reverseRegistrar
   let nameWrapper
+  let callData
 
   const secret =
     '0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF'
@@ -48,7 +50,7 @@ contract('ETHRegistrarController', function() {
       [],
       false,
       0,
-      0
+      MAX_EXPIRY
     )
     var tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
@@ -66,7 +68,7 @@ contract('ETHRegistrarController', function() {
       [],
       false,
       0,
-      0,
+      MAX_EXPIRY,
       txOptions
     )
 
@@ -115,7 +117,6 @@ contract('ETHRegistrarController', function() {
       reverseRegistrar.address,
       nameWrapper.address
     )
-
     controller2 = controller.connect(signers[1])
     await baseRegistrar.addController(controller.address)
     await nameWrapper.setController(controller.address, true)
@@ -129,6 +130,18 @@ contract('ETHRegistrarController', function() {
       controller.address,
       reverseRegistrar.address
     )
+
+    callData = [
+      resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
+        namehash.hash('newconfigname.eth'),
+        registrantAccount,
+      ]),
+      resolver.interface.encodeFunctionData('setText', [
+        namehash.hash('newconfigname.eth'),
+        'url',
+        'ethereum.com',
+      ]),
+    ]
 
     resolver2 = await resolver.connect(signers[1])
 
@@ -218,51 +231,31 @@ contract('ETHRegistrarController', function() {
   })
 
   it('should permit new registrations with resolver and records', async () => {
-    var commitment = await controller.makeCommitment(
+    var commitment = await controller2.makeCommitment(
       'newconfigname',
       registrantAccount,
       REGISTRATION_TIME,
       secret,
       resolver.address,
-      [
-        resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-          namehash.hash('newconfigname.eth'),
-          registrantAccount,
-        ]),
-        resolver.interface.encodeFunctionData('setText', [
-          namehash.hash('newconfigname.eth'),
-          'url',
-          'ethereum.com',
-        ]),
-      ],
+      callData,
       false,
       0,
       0
     )
-    var tx = await controller.commit(commitment)
-    expect(await controller.commitments(commitment)).to.equal(
+    var tx = await controller2.commit(commitment)
+    expect(await controller2.commitments(commitment)).to.equal(
       (await web3.eth.getBlock(tx.blockNumber)).timestamp
     )
 
-    await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+    await evm.advanceTime((await controller2.minCommitmentAge()).toNumber())
     var balanceBefore = await web3.eth.getBalance(controller.address)
-    var tx = await controller.register(
+    var tx = await controller2.register(
       'newconfigname',
       registrantAccount,
       REGISTRATION_TIME,
       secret,
       resolver.address,
-      [
-        resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-          namehash.hash('newconfigname.eth'),
-          registrantAccount,
-        ]),
-        resolver.interface.encodeFunctionData('setText', [
-          namehash.hash('newconfigname.eth'),
-          'url',
-          'ethereum.com',
-        ]),
-      ],
+      callData,
       false,
       0,
       0,
@@ -307,17 +300,7 @@ contract('ETHRegistrarController', function() {
         REGISTRATION_TIME,
         secret,
         NULL_ADDRESS,
-        [
-          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-            namehash.hash('newconfigname.eth'),
-            registrantAccount,
-          ]),
-          resolver.interface.encodeFunctionData('setText', [
-            namehash.hash('newconfigname.eth'),
-            'url',
-            'ethereum.com',
-          ]),
-        ],
+        callData,
         false,
         0,
         0
@@ -334,17 +317,7 @@ contract('ETHRegistrarController', function() {
       REGISTRATION_TIME,
       secret,
       registrantAccount,
-      [
-        resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-          namehash.hash('newconfigname.eth'),
-          registrantAccount,
-        ]),
-        resolver.interface.encodeFunctionData('setText', [
-          namehash.hash('newconfigname.eth'),
-          'url',
-          'ethereum.com',
-        ]),
-      ],
+      callData,
       false,
       0,
       0
@@ -363,23 +336,13 @@ contract('ETHRegistrarController', function() {
         REGISTRATION_TIME,
         secret,
         registrantAccount,
-        [
-          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-            namehash.hash('newconfigname.eth'),
-            registrantAccount,
-          ]),
-          resolver.interface.encodeFunctionData('setText', [
-            namehash.hash('newconfigname.eth'),
-            'url',
-            'ethereum.com',
-          ]),
-        ],
+        callData,
         false,
         0,
         0,
         { value: BUFFERED_REGISTRATION_COST }
       )
-    ).to.be.revertedWith('Address: call to non-contract')
+    ).to.be.reverted
   })
 
   it('should not permit new registrations with an incompatible contract', async () => {
@@ -389,17 +352,7 @@ contract('ETHRegistrarController', function() {
       REGISTRATION_TIME,
       secret,
       controller.address,
-      [
-        resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-          namehash.hash('newconfigname.eth'),
-          registrantAccount,
-        ]),
-        resolver.interface.encodeFunctionData('setText', [
-          namehash.hash('newconfigname.eth'),
-          'url',
-          'ethereum.com',
-        ]),
-      ],
+      callData,
       false,
       0,
       0
@@ -418,27 +371,17 @@ contract('ETHRegistrarController', function() {
         REGISTRATION_TIME,
         secret,
         controller.address,
-        [
-          resolver.interface.encodeFunctionData('setAddr(bytes32,address)', [
-            namehash.hash('newconfigname.eth'),
-            registrantAccount,
-          ]),
-          resolver.interface.encodeFunctionData('setText', [
-            namehash.hash('newconfigname.eth'),
-            'url',
-            'ethereum.com',
-          ]),
-        ],
+        callData,
         false,
         0,
         0,
         { value: BUFFERED_REGISTRATION_COST }
       )
-    ).to.be.revertedWith('ETHRegistrarController: Failed to set Record')
+    ).to.be.revertedWith('Transaction reverted: function selector was not recognized and there\'s no fallback function')
   })
 
   it('should not permit new registrations with records updating a different name', async () => {
-    const commitment = await controller.makeCommitment(
+    const commitment = await controller2.makeCommitment(
       'awesome',
       registrantAccount,
       REGISTRATION_TIME,
@@ -454,15 +397,15 @@ contract('ETHRegistrarController', function() {
       0,
       0
     )
-    const tx = await controller.commit(commitment)
-    expect(await controller.commitments(commitment)).to.equal(
+    const tx = await controller2.commit(commitment)
+    expect(await controller2.commitments(commitment)).to.equal(
       (await web3.eth.getBlock(tx.blockNumber)).timestamp
     )
 
-    await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+    await evm.advanceTime((await controller2.minCommitmentAge()).toNumber())
 
     await expect(
-      controller.register(
+      controller2.register(
         'awesome',
         registrantAccount,
         REGISTRATION_TIME,
@@ -480,12 +423,12 @@ contract('ETHRegistrarController', function() {
         { value: BUFFERED_REGISTRATION_COST }
       )
     ).to.be.revertedWith(
-      'ETHRegistrarController: Namehash on record do not match the name being registered'
+      'multicall: All records must have a matching namehash'
     )
   })
 
   it('should not permit new registrations with any record updating a different name', async () => {
-    const commitment = await controller.makeCommitment(
+    const commitment = await controller2.makeCommitment(
       'awesome',
       registrantAccount,
       REGISTRATION_TIME,
@@ -505,15 +448,15 @@ contract('ETHRegistrarController', function() {
       0,
       0
     )
-    const tx = await controller.commit(commitment)
-    expect(await controller.commitments(commitment)).to.equal(
+    const tx = await controller2.commit(commitment)
+    expect(await controller2.commitments(commitment)).to.equal(
       (await web3.eth.getBlock(tx.blockNumber)).timestamp
     )
 
-    await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+    await evm.advanceTime((await controller2.minCommitmentAge()).toNumber())
 
     await expect(
-      controller.register(
+      controller2.register(
         'awesome',
         registrantAccount,
         REGISTRATION_TIME,
@@ -535,7 +478,7 @@ contract('ETHRegistrarController', function() {
         { value: BUFFERED_REGISTRATION_COST }
       )
     ).to.be.revertedWith(
-      'ETHRegistrarController: Namehash on record do not match the name being registered'
+      'multicall: All records must have a matching namehash'
     )
   })
 
@@ -695,18 +638,82 @@ contract('ETHRegistrarController', function() {
     ).to.be.revertedWith('ETHRegistrarController: Commitment has expired')
   })
 
-  it('should allow anyone to renew a name', async () => {
+  it('should allow anyone to renew a name without changing fuse expiry', async () => {
     await registerName('newname')
+    var nodehash = namehash.hash('newname.eth')
+    var fuseExpiry = (await nameWrapper.getData(nodehash))[2]
     var expires = await baseRegistrar.nameExpires(sha3('newname'))
     var balanceBefore = await web3.eth.getBalance(controller.address)
     const duration = 86400
     const [price] = await controller.rentPrice(sha3('newname'), duration)
     await controller.renew('newname', duration, { value: price })
     var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
-    expect(newExpires.toNumber() - expires.toNumber()).to.equal(86400)
+    console.log((await nameWrapper.getData(nodehash))[2])
+    var newFuseExpiry = (await nameWrapper.getData(nodehash))[2]
+    expect(newExpires.toNumber() - expires.toNumber()).to.equal(duration)
+    expect(newFuseExpiry.toNumber() - fuseExpiry.toNumber()).to.equal(0)
+
     expect(
       (await web3.eth.getBalance(controller.address)) - balanceBefore
     ).to.equal(86400)
+  })
+
+  it('should alllow token owners to renew a name with fuse and fuse expiration', async () => {
+    const CANNOT_UNWRAP = 1
+    const PARENT_CANNOT_CONTROL = 64
+
+    await registerName('newname')
+    var nodehash = namehash.hash('newname.eth')
+    const [, fuses, fuseExpiry] = await nameWrapper.getData(nodehash)
+    
+    var expires = await baseRegistrar.nameExpires(sha3('newname'))
+    var balanceBefore = await web3.eth.getBalance(controller.address)
+    const duration = 86400
+    const [price] = await controller.rentPrice(sha3('newname'), duration)
+    await controller2.renewWithFuses('newname', duration, (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP), expires.toNumber() + duration, { value: price })
+    var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
+    const [, newFuses, newFuseExpiry] = await nameWrapper.getData(nodehash)
+    expect(newExpires.toNumber() - expires.toNumber()).to.equal(duration)
+    expect(newFuseExpiry.toNumber() - fuseExpiry.toNumber()).to.equal(duration)
+    expect(newFuses).to.not.equal(fuses);
+    expect(
+      (await web3.eth.getBalance(controller.address)) - balanceBefore
+    ).to.equal(86400)
+  })
+
+  it('should not alllow non token owners to renew a name with fuse and fuse expiration', async () => {
+    const CANNOT_UNWRAP = 1
+    const PARENT_CANNOT_CONTROL = 64
+    await registerName('newname')
+    
+    var expires = await baseRegistrar.nameExpires(sha3('newname'))
+    const duration = 86400
+    const [price] = await controller.rentPrice(sha3('newname'), duration)
+    expect(
+      controller.renewWithFuses('newname', duration, (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP), expires.toNumber() + duration, { value: price })
+    ).to.be.revertedWith("Only token owner or approved owner can renew with fuses");
+  })
+
+  it('non wrapped names can renew', async () => {
+    const label = 'newname'
+    const tokenId = sha3(label)
+    const nodehash = namehash.hash(`${label}.eth`)
+    // this is to allow user to register without namewrapped
+    await baseRegistrar.addController(ownerAccount)
+    await baseRegistrar.register(tokenId, ownerAccount, 84600)
+
+    expect(await nameWrapper.ownerOf(nodehash)).to.equal(ZERO_ADDRESS)
+    expect(await baseRegistrar.ownerOf(tokenId)).to.equal(ownerAccount)
+
+    var expires = await baseRegistrar.nameExpires(tokenId)
+    const duration = 86400
+    const [price] = await controller.rentPrice(tokenId, duration)
+    await controller.renew(label, duration, { value: price })
+    
+    expect(await baseRegistrar.ownerOf(tokenId)).to.equal(ownerAccount)
+    expect(await nameWrapper.ownerOf(nodehash)).to.equal(ZERO_ADDRESS)
+    var newExpires = await baseRegistrar.nameExpires(tokenId)
+    expect(newExpires.toNumber() - expires.toNumber()).to.equal(duration)
   })
 
   it('should require sufficient value for a renewal', async () => {
@@ -953,5 +960,47 @@ contract('ETHRegistrarController', function() {
       nameWrapper.address
     )
     expect(await resolver2['addr(bytes32)'](node)).to.equal(registrantAccount)
+  })
+
+  it('should not permit new registrations with non resolver function calls', async () => {
+    const label = 'newconfigname'
+    const name = `${label}.eth`
+    const node = namehash.hash(name)
+    const secondTokenDuration = 788400000 // keep bogus NFT for 25 years;
+    const callData = [
+      baseRegistrar.interface.encodeFunctionData('register(uint256,address,uint)', [
+        node,
+        registrantAccount,
+        secondTokenDuration
+      ])
+    ]
+    var commitment = await controller.makeCommitment(
+      label,
+      registrantAccount,
+      REGISTRATION_TIME,
+      secret,
+      baseRegistrar.address,
+      callData,
+      false,
+      0,
+      0
+    )
+    var tx = await controller.commit(commitment)
+    expect(await controller.commitments(commitment)).to.equal(
+      (await web3.eth.getBlock(tx.blockNumber)).timestamp
+    )
+    await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
+    await expect(controller.register(
+      label,
+      registrantAccount,
+      REGISTRATION_TIME,
+      secret,
+      baseRegistrar.address,
+      callData,
+      false,
+      0,
+      0,
+      { value: BUFFERED_REGISTRATION_COST }
+    )).to.be.revertedWith("Transaction reverted: function selector was not recognized and there\'s no fallback function")
   })
 })

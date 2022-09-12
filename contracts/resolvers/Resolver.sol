@@ -76,6 +76,10 @@ interface Resolver is
         external
         returns (bytes[] memory results);
 
+    function multicallWithNodeCheck(bytes32 nodehash, bytes[] calldata data)
+        external
+        returns (bytes[] memory results);
+
     /* Deprecated functions */
     function content(bytes32 node) external view returns (bytes32);
 

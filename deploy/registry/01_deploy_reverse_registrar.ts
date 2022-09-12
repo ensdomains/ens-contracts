@@ -6,16 +6,20 @@ import { keccak256 } from 'js-sha3'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
+  const { deploy, fetchIfDifferent } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   const registry = await ethers.getContract('ENSRegistry')
 
-  const reverseRegistrar = await deploy('ReverseRegistrar', {
+  const deployArgs = {
     from: deployer,
     args: [registry.address],
     log: true,
-  })
+  };
+  const { differences } = await fetchIfDifferent('ReverseRegistrar', deployArgs);
+  if(!differences) return;
+
+  const reverseRegistrar = await deploy('ReverseRegistrar', deployArgs);
 
   const root = await ethers.getContract('Root')
 

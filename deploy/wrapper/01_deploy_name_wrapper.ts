@@ -28,6 +28,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = 'name-wrapper'
 func.tags = ['wrapper', 'NameWrapper']
-func.dependencies = ['BaseRegistrarImplementation', 'registry']
+func.dependencies = ['BaseRegistrarImplementation', 'StaticMetadataService', 'registry']
 
 export default func
