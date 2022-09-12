@@ -100,17 +100,19 @@ contract NameWrapper is
 
     /**
      * @notice Set the metadata service. Only the owner can do this
+     * @param _metadataService The new metadata service
      */
 
-    function setMetadataService(IMetadataService _newMetadataService)
+    function setMetadataService(IMetadataService _metadataService)
         public
         onlyOwner
     {
-        metadataService = _newMetadataService;
+        metadataService = _metadataService;
     }
 
     /**
      * @notice Get the metadata uri
+     * @param tokenId The id of the token
      * @return String uri of the metadata service
      */
 
