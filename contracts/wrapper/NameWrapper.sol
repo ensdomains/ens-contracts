@@ -310,7 +310,11 @@ contract NameWrapper is
         address controller
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, labelhash)) {
         _unwrap(_makeNode(ETH_NODE, labelhash), controller);
-        registrar.transferFrom(address(this), registrant, uint256(labelhash));
+        registrar.safeTransferFrom(
+            address(this),
+            registrant,
+            uint256(labelhash)
+        );
     }
 
     /**
