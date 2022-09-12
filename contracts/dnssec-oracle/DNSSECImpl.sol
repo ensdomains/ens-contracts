@@ -23,9 +23,9 @@ contract DNSSECImpl is DNSSEC, Owned {
     uint16 constant DNSTYPE_DS = 43;
     uint16 constant DNSTYPE_DNSKEY = 48;
 
-    uint constant DNSKEY_FLAG_ZONEKEY = 0x100;
+    uint256 constant DNSKEY_FLAG_ZONEKEY = 0x100;
 
-    error InvalidLabelCount(bytes name, uint labelsExpected);
+    error InvalidLabelCount(bytes name, uint256 labelsExpected);
     error SignatureNotValidYet(uint32 inception, uint32 now);
     error SignatureExpired(uint32 expiration, uint32 now);
     error InvalidClass(uint16 class);
@@ -36,8 +36,8 @@ contract DNSSECImpl is DNSSEC, Owned {
     error ProofNameMismatch(bytes signerName, bytes proofName);
     error NoMatchingProof(bytes signerName);
 
-    mapping (uint8 => Algorithm) public algorithms;
-    mapping (uint8 => Digest) public digests;
+    mapping(uint8 => Algorithm) public algorithms;
+    mapping(uint8 => Digest) public digests;
 
     /**
      * @dev Constructor.
@@ -78,7 +78,13 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @return rrs The RRData from the last RRSet in the chain.
      * @return inception The inception time of the signed record set.
      */
-    function verifyRRSet(RRSetWithSignature[] memory input) external virtual view override returns(bytes memory rrs, uint32 inception) {
+    function verifyRRSet(RRSetWithSignature[] memory input)
+        external
+        view
+        virtual
+        override
+        returns (bytes memory rrs, uint32 inception)
+    {
         return verifyRRSet(input, block.timestamp);
     }
 
@@ -90,10 +96,20 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @return rrs The RRData from the last RRSet in the chain.
      * @return inception The inception time of the signed record set.
      */
-    function verifyRRSet(RRSetWithSignature[] memory input, uint256 now) public virtual view override returns(bytes memory rrs, uint32 inception) {
+    function verifyRRSet(RRSetWithSignature[] memory input, uint256 now)
+        public
+        view
+        virtual
+        override
+        returns (bytes memory rrs, uint32 inception)
+    {
         bytes memory proof = anchors;
-        for(uint i = 0; i < input.length; i++) {
-            RRUtils.SignedSet memory rrset = validateSignedSet(input[i], proof, now);
+        for (uint256 i = 0; i < input.length; i++) {
+            RRUtils.SignedSet memory rrset = validateSignedSet(
+                input[i],
+                proof,
+                now
+            );
             proof = rrset.data;
             inception = rrset.inception;
         }
@@ -110,12 +126,16 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param proof The DNSKEY or DS to validate the signature against.
      * @param now The current timestamp.
      */
-    function validateSignedSet(RRSetWithSignature memory input, bytes memory proof, uint256 now) internal view returns(RRUtils.SignedSet memory rrset) {
+    function validateSignedSet(
+        RRSetWithSignature memory input,
+        bytes memory proof,
+        uint256 now
+    ) internal view returns (RRUtils.SignedSet memory rrset) {
         rrset = input.rrset.readSignedSet();
 
         // Do some basic checks on the RRs and extract the name
         bytes memory name = validateRRs(rrset, rrset.typeCovered);
-        if(name.labelCount(0) != rrset.labels) {
+        if (name.labelCount(0) != rrset.labels) {
             revert InvalidLabelCount(name, rrset.labels);
         }
         rrset.name = name;
@@ -126,13 +146,13 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         // o  The validator's notion of the current time MUST be less than or
         //    equal to the time listed in the RRSIG RR's Expiration field.
-        if(!RRUtils.serialNumberGte(rrset.expiration, uint32(now))) {
+        if (!RRUtils.serialNumberGte(rrset.expiration, uint32(now))) {
             revert SignatureExpired(rrset.expiration, uint32(now));
         }
 
         // o  The validator's notion of the current time MUST be greater than or
         //    equal to the time listed in the RRSIG RR's Inception field.
-        if(!RRUtils.serialNumberGte(uint32(now), rrset.inception)) {
+        if (!RRUtils.serialNumberGte(uint32(now), rrset.inception)) {
             revert SignatureNotValidYet(rrset.inception, uint32(now));
         }
 
@@ -147,28 +167,37 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param rrset The RR set.
      * @param typecovered The type covered by the RRSIG record.
      */
-    function validateRRs(RRUtils.SignedSet memory rrset, uint16 typecovered) internal pure returns (bytes memory name) {
+    function validateRRs(RRUtils.SignedSet memory rrset, uint16 typecovered)
+        internal
+        pure
+        returns (bytes memory name)
+    {
         // Iterate over all the RRs
-        for (RRUtils.RRIterator memory iter = rrset.rrs(); !iter.done(); iter.next()) {
+        for (
+            RRUtils.RRIterator memory iter = rrset.rrs();
+            !iter.done();
+            iter.next()
+        ) {
             // We only support class IN (Internet)
-            if(iter.class != DNSCLASS_IN) {
+            if (iter.class != DNSCLASS_IN) {
                 revert InvalidClass(iter.class);
             }
 
-            if(name.length == 0) {
+            if (name.length == 0) {
                 name = iter.name();
             } else {
                 // Name must be the same on all RRs. We do things this way to avoid copying the name
                 // repeatedly.
-                if(name.length != iter.data.nameLength(iter.offset) 
-                    || !name.equals(0, iter.data, iter.offset, name.length))
-                {
+                if (
+                    name.length != iter.data.nameLength(iter.offset) ||
+                    !name.equals(0, iter.data, iter.offset, name.length)
+                ) {
                     revert InvalidRRSet();
                 }
             }
 
             // o  The RRSIG RR's Type Covered field MUST equal the RRset's type.
-            if(iter.dnstype != typecovered) {
+            if (iter.dnstype != typecovered) {
                 revert SignatureTypeMismatch(iter.dnstype, typecovered);
             }
         }
@@ -183,12 +212,22 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param data The original data to verify.
      * @param proof A DS or DNSKEY record that's already verified by the oracle.
      */
-    function verifySignature(bytes memory name, RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, bytes memory proof) internal view {
+    function verifySignature(
+        bytes memory name,
+        RRUtils.SignedSet memory rrset,
+        RRSetWithSignature memory data,
+        bytes memory proof
+    ) internal view {
         // o  The RRSIG RR's Signer's Name field MUST be the name of the zone
         //    that contains the RRset.
-        if(rrset.signerName.length > name.length
-            || !rrset.signerName.equals(0, name, name.length - rrset.signerName.length))
-        {
+        if (
+            rrset.signerName.length > name.length ||
+            !rrset.signerName.equals(
+                0,
+                name,
+                name.length - rrset.signerName.length
+            )
+        ) {
             revert InvalidSignerName(name, rrset.signerName);
         }
 
@@ -209,17 +248,24 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param data The original data the signed set was read from.
      * @param proof The serialized DS or DNSKEY record to use as proof.
      */
-    function verifyWithKnownKey(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view {
+    function verifyWithKnownKey(
+        RRUtils.SignedSet memory rrset,
+        RRSetWithSignature memory data,
+        RRUtils.RRIterator memory proof
+    ) internal view {
         // Check the DNSKEY's owner name matches the signer name on the RRSIG
-        for(; !proof.done(); proof.next()) {
+        for (; !proof.done(); proof.next()) {
             bytes memory proofName = proof.name();
-            if(!proofName.equals(rrset.signerName)) {
+            if (!proofName.equals(rrset.signerName)) {
                 revert ProofNameMismatch(rrset.signerName, proofName);
             }
 
             bytes memory keyrdata = proof.rdata();
-            RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(0, keyrdata.length);
-            if(verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
+            RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(
+                0,
+                keyrdata.length
+            );
+            if (verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
                 return;
             }
         }
@@ -233,22 +279,23 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param data The original data `rrset` was decoded from.
      * @return True iff the key verifies the signature.
      */
-    function verifySignatureWithKey(RRUtils.DNSKEY memory dnskey, bytes memory keyrdata, RRUtils.SignedSet memory rrset, RRSetWithSignature memory data)
-        internal
-        view
-        returns (bool)
-    {
+    function verifySignatureWithKey(
+        RRUtils.DNSKEY memory dnskey,
+        bytes memory keyrdata,
+        RRUtils.SignedSet memory rrset,
+        RRSetWithSignature memory data
+    ) internal view returns (bool) {
         // TODO: Check key isn't expired, unless updating key itself
 
         // The Protocol Field MUST have value 3 (RFC4034 2.1.2)
-        if(dnskey.protocol != 3) {
+        if (dnskey.protocol != 3) {
             return false;
         }
 
         // o The RRSIG RR's Signer's Name, Algorithm, and Key Tag fields MUST
         //   match the owner name, algorithm, and key tag for some DNSKEY RR in
         //   the zone's apex DNSKEY RRset.
-        if(dnskey.algorithm != rrset.algorithm) {
+        if (dnskey.algorithm != rrset.algorithm) {
             return false;
         }
         uint16 computedkeytag = keyrdata.computeKeytag();
@@ -263,27 +310,41 @@ contract DNSSECImpl is DNSSEC, Owned {
             return false;
         }
 
-        return algorithms[dnskey.algorithm].verify(keyrdata, data.rrset, data.sig);
+        return
+            algorithms[dnskey.algorithm].verify(keyrdata, data.rrset, data.sig);
     }
 
     /**
      * @dev Attempts to verify a signed RRSET against an already known hash. This function assumes
-     *      that the record 
+     *      that the record
      * @param rrset The signed set to verify.
      * @param data The original data the signed set was read from.
      * @param proof The serialized DS or DNSKEY record to use as proof.
      */
-    function verifyWithDS(RRUtils.SignedSet memory rrset, RRSetWithSignature memory data, RRUtils.RRIterator memory proof) internal view {
-        for(RRUtils.RRIterator memory iter = rrset.rrs(); !iter.done(); iter.next()) {
-            if(iter.dnstype != DNSTYPE_DNSKEY) {
+    function verifyWithDS(
+        RRUtils.SignedSet memory rrset,
+        RRSetWithSignature memory data,
+        RRUtils.RRIterator memory proof
+    ) internal view {
+        for (
+            RRUtils.RRIterator memory iter = rrset.rrs();
+            !iter.done();
+            iter.next()
+        ) {
+            if (iter.dnstype != DNSTYPE_DNSKEY) {
                 revert InvalidProofType(iter.dnstype);
             }
 
             bytes memory keyrdata = iter.rdata();
-            RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(0, keyrdata.length);
+            RRUtils.DNSKEY memory dnskey = keyrdata.readDNSKEY(
+                0,
+                keyrdata.length
+            );
             if (verifySignatureWithKey(dnskey, keyrdata, rrset, data)) {
                 // It's self-signed - look for a DS record to verify it.
-                if(verifyKeyWithDS(rrset.signerName, proof, dnskey, keyrdata)) {
+                if (
+                    verifyKeyWithDS(rrset.signerName, proof, dnskey, keyrdata)
+                ) {
                     return;
                 }
             }
@@ -299,18 +360,24 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param keyrdata The RDATA section of the key.
      * @return True if a DS record verifies this key.
      */
-    function verifyKeyWithDS(bytes memory keyname, RRUtils.RRIterator memory dsrrs, RRUtils.DNSKEY memory dnskey, bytes memory keyrdata)
-        internal view returns (bool)
-    {
+    function verifyKeyWithDS(
+        bytes memory keyname,
+        RRUtils.RRIterator memory dsrrs,
+        RRUtils.DNSKEY memory dnskey,
+        bytes memory keyrdata
+    ) internal view returns (bool) {
         uint16 keytag = keyrdata.computeKeytag();
         for (; !dsrrs.done(); dsrrs.next()) {
             bytes memory proofName = dsrrs.name();
-            if(!proofName.equals(keyname)) {
+            if (!proofName.equals(keyname)) {
                 revert ProofNameMismatch(keyname, proofName);
             }
 
-            RRUtils.DS memory ds = dsrrs.data.readDS(dsrrs.rdataOffset, dsrrs.nextOffset - dsrrs.rdataOffset);
-            if(ds.keytag != keytag) {
+            RRUtils.DS memory ds = dsrrs.data.readDS(
+                dsrrs.rdataOffset,
+                dsrrs.nextOffset - dsrrs.rdataOffset
+            );
+            if (ds.keytag != keytag) {
                 continue;
             }
             if (ds.algorithm != dnskey.algorithm) {
@@ -335,7 +402,11 @@ contract DNSSECImpl is DNSSEC, Owned {
      * @param digest The digest data to check against.
      * @return True iff the digest matches.
      */
-    function verifyDSHash(uint8 digesttype, bytes memory data, bytes memory digest) internal view returns (bool) {
+    function verifyDSHash(
+        uint8 digesttype,
+        bytes memory data,
+        bytes memory digest
+    ) internal view returns (bool) {
         if (address(digests[digesttype]) == address(0)) {
             return false;
         }

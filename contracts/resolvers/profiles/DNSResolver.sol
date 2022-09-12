@@ -6,7 +6,11 @@ import "../../dnssec-oracle/RRUtils.sol";
 import "./IDNSRecordResolver.sol";
 import "./IDNSZoneResolver.sol";
 
-abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverBase {
+abstract contract DNSResolver is
+    IDNSRecordResolver,
+    IDNSZoneResolver,
+    ResolverBase
+{
     using RRUtils for *;
     using BytesUtils for bytes;
 
@@ -14,22 +18,24 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
     // A zone hash is an EIP-1577 content hash in binary format that should point to a
     // resource containing a single zonefile.
     // node => contenthash
-    mapping(bytes32=>bytes) private zonehashes;
+    mapping(bytes32 => bytes) private zonehashes;
 
     // Version the mapping for each zone.  This allows users who have lost
     // track of their entries to effectively delete an entire zone by bumping
     // the version number.
     // node => version
-    mapping(bytes32=>uint256) private versions;
+    mapping(bytes32 => uint256) private versions;
 
     // The records themselves.  Stored as binary RRSETs
     // node => version => name => resource => data
-    mapping(bytes32=>mapping(uint256=>mapping(bytes32=>mapping(uint16=>bytes)))) private records;
+    mapping(bytes32 => mapping(uint256 => mapping(bytes32 => mapping(uint16 => bytes))))
+        private records;
 
     // Count of number of entries for a given name.  Required for DNS resolvers
     // when resolving wildcards.
     // node => version => name => number of records
-    mapping(bytes32=>mapping(uint256=>mapping(bytes32=>uint16))) private nameEntriesCount;
+    mapping(bytes32 => mapping(uint256 => mapping(bytes32 => uint16)))
+        private nameEntriesCount;
 
     /**
      * Set one or more DNS records.  Records are supplied in wire-format.
@@ -50,14 +56,22 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * @param node the namehash of the node for which to set the records
      * @param data the DNS wire format records to set
      */
-    function setDNSRecords(bytes32 node, bytes calldata data) virtual external authorised(node) {
+    function setDNSRecords(bytes32 node, bytes calldata data)
+        external
+        virtual
+        authorised(node)
+    {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
         bytes memory value;
         bytes32 nameHash;
         // Iterate over the data to add the resource records
-        for (RRUtils.RRIterator memory iter = data.iterateRRs(0); !iter.done(); iter.next()) {
+        for (
+            RRUtils.RRIterator memory iter = data.iterateRRs(0);
+            !iter.done();
+            iter.next()
+        ) {
             if (resource == 0) {
                 resource = iter.dnstype;
                 name = iter.name();
@@ -66,7 +80,15 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
             } else {
                 bytes memory newName = iter.name();
                 if (resource != iter.dnstype || !name.equals(newName)) {
-                    setDNSRRSet(node, name, resource, data, offset, iter.offset - offset, value.length == 0);
+                    setDNSRRSet(
+                        node,
+                        name,
+                        resource,
+                        data,
+                        offset,
+                        iter.offset - offset,
+                        value.length == 0
+                    );
                     resource = iter.dnstype;
                     offset = iter.offset;
                     name = newName;
@@ -76,7 +98,15 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
             }
         }
         if (name.length > 0) {
-            setDNSRRSet(node, name, resource, data, offset, data.length - offset, value.length == 0);
+            setDNSRRSet(
+                node,
+                name,
+                resource,
+                data,
+                offset,
+                data.length - offset,
+                value.length == 0
+            );
         }
     }
 
@@ -87,7 +117,11 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types
      * @return the DNS record in wire format if present, otherwise empty
      */
-    function dnsRecord(bytes32 node, bytes32 name, uint16 resource) virtual override public view returns (bytes memory) {
+    function dnsRecord(
+        bytes32 node,
+        bytes32 name,
+        uint16 resource
+    ) public view virtual override returns (bytes memory) {
         return records[node][versions[node]][name][resource];
     }
 
@@ -96,7 +130,12 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * @param node the namehash of the node for which to check the records
      * @param name the namehash of the node for which to check the records
      */
-    function hasDNSRecords(bytes32 node, bytes32 name) virtual public view returns (bool) {
+    function hasDNSRecords(bytes32 node, bytes32 name)
+        public
+        view
+        virtual
+        returns (bool)
+    {
         return (nameEntriesCount[node][versions[node]][name] != 0);
     }
 
@@ -104,7 +143,7 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * Clear all information for a DNS zone.
      * @param node the namehash of the node for which to clear the zone
      */
-    function clearDNSZone(bytes32 node) virtual public authorised(node) {
+    function clearDNSZone(bytes32 node) public virtual authorised(node) {
         versions[node]++;
         emit DNSZoneCleared(node);
     }
@@ -115,7 +154,11 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * @param node The node to update.
      * @param hash The zonehash to set
      */
-    function setZonehash(bytes32 node, bytes calldata hash) virtual external authorised(node) {
+    function setZonehash(bytes32 node, bytes calldata hash)
+        external
+        virtual
+        authorised(node)
+    {
         bytes memory oldhash = zonehashes[node];
         zonehashes[node] = hash;
         emit DNSZonehashChanged(node, oldhash, hash);
@@ -126,14 +169,27 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
      * @param node The ENS node to query.
      * @return The associated contenthash.
      */
-    function zonehash(bytes32 node) virtual override external view returns (bytes memory) {
+    function zonehash(bytes32 node)
+        external
+        view
+        virtual
+        override
+        returns (bytes memory)
+    {
         return zonehashes[node];
     }
 
-    function supportsInterface(bytes4 interfaceID) virtual override public view returns(bool) {
-        return interfaceID == type(IDNSRecordResolver).interfaceId ||
-               interfaceID == type(IDNSZoneResolver).interfaceId ||
-               super.supportsInterface(interfaceID);
+    function supportsInterface(bytes4 interfaceID)
+        public
+        view
+        virtual
+        override
+        returns (bool)
+    {
+        return
+            interfaceID == type(IDNSRecordResolver).interfaceId ||
+            interfaceID == type(IDNSZoneResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 
     function setDNSRRSet(
@@ -143,8 +199,8 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
         bytes memory data,
         uint256 offset,
         uint256 size,
-        bool deleteRecord) private
-    {
+        bool deleteRecord
+    ) private {
         uint256 version = versions[node];
         bytes32 nameHash = keccak256(name);
         bytes memory rrData = data.substring(offset, size);
@@ -152,7 +208,7 @@ abstract contract DNSResolver is IDNSRecordResolver, IDNSZoneResolver, ResolverB
             if (records[node][version][nameHash][resource].length != 0) {
                 nameEntriesCount[node][version][nameHash]--;
             }
-            delete(records[node][version][nameHash][resource]);
+            delete (records[node][version][nameHash][resource]);
             emit DNSRecordDeleted(node, name, resource);
         } else {
             if (records[node][version][nameHash][resource].length == 0) {

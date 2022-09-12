@@ -11,14 +11,30 @@ library RecordParser {
      * @param input The input string
      * @param offset The offset to start reading at
      */
-    function readKeyValue(bytes memory input, uint256 offset, uint256 len) internal pure returns(bytes memory key, bytes memory value, uint256 nextOffset) {
+    function readKeyValue(
+        bytes memory input,
+        uint256 offset,
+        uint256 len
+    )
+        internal
+        pure
+        returns (
+            bytes memory key,
+            bytes memory value,
+            uint256 nextOffset
+        )
+    {
         uint256 separator = input.find(offset, len, "=");
-        if(separator == type(uint256).max) {
+        if (separator == type(uint256).max) {
             return ("", "", type(uint256).max);
         }
 
-        uint256 terminator = input.find(separator, len + offset - separator, " ");
-        if(terminator == type(uint256).max) {
+        uint256 terminator = input.find(
+            separator,
+            len + offset - separator,
+            " "
+        );
+        if (terminator == type(uint256).max) {
             terminator = input.length;
         }
 
