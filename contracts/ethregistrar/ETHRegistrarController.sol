@@ -14,7 +14,7 @@ import "../wrapper/INameWrapper.sol";
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
-contract ETHRegistrarController is Ownable, IETHRegistrarController {
+contract ETHRegistrarController is Ownable, IETHRegistrarController, IERC165 {
     using StringUtils for *;
     using Address for address;
 
