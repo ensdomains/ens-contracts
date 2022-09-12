@@ -53,7 +53,8 @@ contract BulkRenewal is IBulkRenewal {
         override
     {
         ETHRegistrarController controller = getController();
-        for (uint256 i = 0; i < names.length; i++) {
+        uint256 length = names.length;
+        for (uint256 i = 0; i < length; ) {
             IPriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
@@ -62,6 +63,9 @@ contract BulkRenewal is IBulkRenewal {
                 names[i],
                 duration
             );
+            unchecked {
+                ++i;
+            }
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);
