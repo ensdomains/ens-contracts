@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.17;
 
 import "./ERC1155Fuse.sol";
 import "./Controllable.sol";
@@ -11,6 +11,7 @@ import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./BytesUtil.sol";
+import "../utils/FundsRecoverable.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -28,7 +29,8 @@ contract NameWrapper is
     ERC1155Fuse,
     INameWrapper,
     Controllable,
-    IERC721Receiver
+    IERC721Receiver,
+    FundsRecoverable
 {
     using BytesUtils for bytes;
     ENS public immutable override ens;

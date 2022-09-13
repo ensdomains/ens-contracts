@@ -1,4 +1,5 @@
-pragma solidity >=0.8.15;
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 
 import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
@@ -10,6 +11,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "../wrapper/INameWrapper.sol";
+import {FundsRecoverable} from "../utils/FundsRecoverable.sol";
 
 error CommitmentTooYoung(bytes32 commitment);
 error CommitmentTooOld(bytes32 commitment);
@@ -25,7 +27,12 @@ error MaxCommitmentAgeTooHigh();
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
-contract ETHRegistrarController is Ownable, IETHRegistrarController, IERC165 {
+contract ETHRegistrarController is
+    Ownable,
+    IETHRegistrarController,
+    IERC165,
+    FundsRecoverable
+{
     using StringUtils for *;
     using Address for address;
 
