@@ -1,5 +1,5 @@
-pragma solidity >=0.8.15;
-pragma experimental ABIEncoderV2;
+//SPDX-License-Identifier: MIT
+pragma solidity >=0.8.17 <0.9.0;
 
 import "../registry/ENS.sol";
 import "./ETHRegistrarController.sol";

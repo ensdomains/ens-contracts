@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity >=0.8.17 <0.9.0;
 
 import "./BaseRegistrarImplementation.sol";
 import "./StringUtils.sol";
