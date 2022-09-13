@@ -1,4 +1,4 @@
-import "../BytesUtil.sol";
+import {BytesUtils} from "../BytesUtils.sol";
 
 contract TestBytesUtils {
     using BytesUtils for *;

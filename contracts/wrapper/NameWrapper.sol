@@ -1,17 +1,17 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./ERC1155Fuse.sol";
-import "./Controllable.sol";
-import "./INameWrapper.sol";
-import "./INameWrapperUpgrade.sol";
-import "./IMetadataService.sol";
-import "../registry/ENS.sol";
-import "../ethregistrar/IBaseRegistrar.sol";
-import "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "./BytesUtil.sol";
-import "../utils/FundsRecoverable.sol";
+import {ERC1155Fuse, IERC165, OperationProhibited} from "./ERC1155Fuse.sol";
+import {Controllable} from "./Controllable.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING} from "./INameWrapper.sol";
+import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
+import {IMetadataService} from "./IMetadataService.sol";
+import {ENS} from "../registry/ENS.sol";
+import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {BytesUtils} from "./BytesUtils.sol";
+import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -30,7 +30,7 @@ contract NameWrapper is
     INameWrapper,
     Controllable,
     IERC721Receiver,
-    FundsRecoverable
+    ERC20Recoverable
 {
     using BytesUtils for bytes;
     ENS public immutable override ens;

@@ -1,17 +1,17 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17 <0.9.0;
 
-import "./BaseRegistrarImplementation.sol";
-import "./StringUtils.sol";
-import "../resolvers/Resolver.sol";
-import "../registry/ReverseRegistrar.sol";
-import "./IETHRegistrarController.sol";
+import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
+import {StringUtils} from "./StringUtils.sol";
+import {Resolver} from "../resolvers/Resolver.sol";
+import {ReverseRegistrar} from "../registry/ReverseRegistrar.sol";
+import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "../wrapper/INameWrapper.sol";
-import {FundsRecoverable} from "../utils/FundsRecoverable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
+import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 error CommitmentTooYoung(bytes32 commitment);
 error CommitmentTooOld(bytes32 commitment);
@@ -31,7 +31,7 @@ contract ETHRegistrarController is
     Ownable,
     IETHRegistrarController,
     IERC165,
-    FundsRecoverable
+    ERC20Recoverable
 {
     using StringUtils for *;
     using Address for address;
