@@ -98,10 +98,10 @@ contract('DNSSEC', (accounts) => {
       const sigBuf = Buffer.from(sig.slice(2), 'hex')
       sets.push([rrsetBuf, sigBuf])
     }
-    var record = await instance.verifyRRSet(sets, test_rrset_timestamp);
+    const { rrs, inception } = await instance.verifyRRSet(sets, test_rrset_timestamp);
     var [_, data, sig] = test_rrsets[test_rrsets.length - 1];
     var expected = SignedSet.fromWire(Buffer.from(data.slice(2), 'hex'), Buffer.from(sig.slice(2), 'hex'));
-    expect(record.slice(2)).to.equal(expected.toWire(false).toString('hex'));
+    expect(rrs.slice(2)).to.equal(expected.toWire(false).toString('hex'));
   })
 })
 
