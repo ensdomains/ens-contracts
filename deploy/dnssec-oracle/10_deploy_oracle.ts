@@ -80,13 +80,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     1: 'SHA1NSEC3Digest',
   }
 
-  if (network.tags.test) {
-    anchors.push(dummyAnchor)
-    algorithms[253] = 'DummyAlgorithm'
-    algorithms[254] = 'DummyAlgorithm'
-    digests[253] = 'DummyDigest'
-  }
-
+  console.log('***network.tags.test', network.tags.test)
+  console.log('***network.name', network.name)
+  // if (network.tags.test) {
+  //   anchors.push(dummyAnchor)
+  //   algorithms[253] = 'DummyAlgorithm'
+  //   algorithms[254] = 'DummyAlgorithm'
+  //   digests[253] = 'DummyDigest'
+  // }
   await deploy('DNSSECImpl', {
     from: deployer,
     args: [encodeAnchors(anchors)],
