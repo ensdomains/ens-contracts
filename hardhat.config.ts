@@ -135,7 +135,6 @@ const config: HardhatUserConfig = {
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
-      initialDate: '2022-09-14T10:01:22.000+13:00',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
