@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.17;
+pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165, OperationProhibited} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
