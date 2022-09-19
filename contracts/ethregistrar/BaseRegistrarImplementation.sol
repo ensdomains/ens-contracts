@@ -11,7 +11,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     // The ENS registry
     ENS public ens;
     // The namehash of the TLD this registrar owns (eg, .eth)
-    bytes32 public baseNode;
+    bytes32 public override baseNode;
     // A map of addresses that are authorised to register and renew names.
     mapping(address => bool) public controllers;
     uint256 public constant GRACE_PERIOD = 90 days;

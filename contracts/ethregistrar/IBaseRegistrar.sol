@@ -47,4 +47,9 @@ interface IBaseRegistrar is IERC721 {
      * @dev Reclaim ownership of a name in ENS, if you own it in the registrar.
      */
     function reclaim(uint256 id, address owner) external;
+
+    /**
+     * Returns the baseNode hash.
+     */ 
+    function baseNode() external view returns (bytes32);
 }

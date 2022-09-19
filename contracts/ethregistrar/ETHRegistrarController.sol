@@ -37,8 +37,6 @@ contract ETHRegistrarController is
     using Address for address;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
-    bytes32 private constant ETH_NODE =
-        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
     BaseRegistrarImplementation immutable base;
     IPriceOracle public immutable prices;
@@ -225,7 +223,7 @@ contract ETHRegistrarController is
         uint64 wrapperExpiry
     ) external payable {
         bytes32 labelhash = keccak256(bytes(name));
-        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), labelhash));
         if (!nameWrapper.isTokenOwnerOrApproved(nodehash, msg.sender)) {
             revert Unauthorised(nodehash);
         }
@@ -239,7 +237,7 @@ contract ETHRegistrarController is
         uint64 wrapperExpiry
     ) internal {
         bytes32 labelhash = keccak256(bytes(name));
-        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), labelhash));
         uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
         if (msg.value < price.base) {
@@ -311,7 +309,7 @@ contract ETHRegistrarController is
         bytes[] calldata data
     ) internal {
         // use hardcoded .eth namehash
-        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
+        bytes32 nodehash = keccak256(abi.encodePacked(base.baseNode(), label));
         Resolver resolver = Resolver(resolverAddress);
         resolver.multicallWithNodeCheck(nodehash, data);
     }
