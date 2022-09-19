@@ -1,47 +1,51 @@
-pragma solidity ^0.8.4;
-pragma experimental ABIEncoderV2;
+//SPDX-License-Identifier: MIT
 
+pragma solidity ^0.8.4;
+
+import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import "@ensdomains/buffer/contracts/Buffer.sol";
 import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
+import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../root/Root.sol";
+import "../resolvers/profiles/AddrResolver.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
-import "../resolvers/profiles/AddrResolver.sol";
-
-interface IDNSRegistrar {
-    function claim(bytes memory name, bytes memory proof) external;
-
-    function proveAndClaim(
-        bytes memory name,
-        DNSSEC.RRSetWithSignature[] memory input,
-        bytes memory proof
-    ) external;
-
-    function proveAndClaimWithResolver(
-        bytes memory name,
-        DNSSEC.RRSetWithSignature[] memory input,
-        bytes memory proof,
-        address resolver,
-        address addr
-    ) external;
-}
+import "./IDNSRegistrar.sol";
 
 /**
  * @dev An ENS registrar that allows the owner of a DNS name to claim the
  *      corresponding name in ENS.
  */
-contract DNSRegistrar is IDNSRegistrar {
+// TODO: Record inception time of any claimed name, so old proofs can't be used to revert changes to a name.
+contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using BytesUtils for bytes;
+    using Buffer for Buffer.buffer;
+    using RRUtils for *;
 
-    DNSSEC public oracle;
-    ENS public ens;
+    ENS public immutable ens;
+    DNSSEC public immutable oracle;
     PublicSuffixList public suffixes;
+    // A mapping of the most recent signatures seen for each claimed domain.
+    mapping(bytes32 => uint32) public inceptions;
 
-    bytes4 private constant INTERFACE_META_ID =
-        bytes4(keccak256("supportsInterface(bytes4)"));
+    error NoOwnerRecordFound();
+    error StaleProof();
 
-    event Claim(bytes32 indexed node, address indexed owner, bytes dnsname);
+    struct OwnerRecord {
+        bytes name;
+        address owner;
+        address resolver;
+        uint64 ttl;
+    }
+
+    event Claim(
+        bytes32 indexed node,
+        address indexed owner,
+        bytes dnsname,
+        uint32 inception
+    );
     event NewOracle(address oracle);
     event NewPublicSuffixList(address suffixes);
 
@@ -67,60 +71,36 @@ contract DNSRegistrar is IDNSRegistrar {
         _;
     }
 
-    function setOracle(DNSSEC _dnssec) public onlyOwner {
-        oracle = _dnssec;
-        emit NewOracle(address(oracle));
-    }
-
     function setPublicSuffixList(PublicSuffixList _suffixes) public onlyOwner {
         suffixes = _suffixes;
         emit NewPublicSuffixList(address(suffixes));
     }
 
     /**
-     * @dev Claims a name by proving ownership of its DNS equivalent.
-     * @param name The name to claim, in DNS wire format.
-     * @param proof A DNS RRSet proving ownership of the name. Must be verified
-     *        in the DNSSEC oracle before calling. This RRSET must contain a TXT
-     *        record for '_ens.' + name, with the value 'a=0x...'. Ownership of
-     *        the name will be transferred to the address specified in the TXT
-     *        record.
-     */
-    function claim(bytes memory name, bytes memory proof) public override {
-        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(
-            name,
-            proof
-        );
-        ens.setSubnodeOwner(rootNode, labelHash, addr);
-    }
-
-    /**
      * @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
      * @param name The name to claim, in DNS wire format.
-     * @param input The data to be passed to the Oracle's `submitProofs` function. The last
-     *        proof must be the TXT record required by the registrar.
-     * @param proof The proof record for the first element in input.
+     * @param input A chain of signed DNS RRSETs ending with a text record.
      */
     function proveAndClaim(
         bytes memory name,
-        DNSSEC.RRSetWithSignature[] memory input,
-        bytes memory proof
+        DNSSEC.RRSetWithSignature[] memory input
     ) public override {
-        proof = oracle.submitRRSets(input, proof);
-        claim(name, proof);
+        (bytes32 rootNode, bytes32 labelHash, address addr) = _claim(
+            name,
+            input
+        );
+        ens.setSubnodeOwner(rootNode, labelHash, addr);
     }
 
     function proveAndClaimWithResolver(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input,
-        bytes memory proof,
         address resolver,
         address addr
     ) public override {
-        proof = oracle.submitRRSets(input, proof);
         (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(
             name,
-            proof
+            input
         );
         require(
             msg.sender == owner,
@@ -152,21 +132,24 @@ contract DNSRegistrar is IDNSRegistrar {
     function supportsInterface(bytes4 interfaceID)
         external
         pure
+        override
         returns (bool)
     {
         return
-            interfaceID == INTERFACE_META_ID ||
+            interfaceID == type(IERC165).interfaceId ||
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    function _claim(bytes memory name, bytes memory proof)
+    function _claim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input)
         internal
         returns (
-            bytes32 rootNode,
+            bytes32 parentNode,
             bytes32 labelHash,
             address addr
         )
     {
+        (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
+
         // Get the first label
         uint256 labelLen = name.readUint8(0);
         labelHash = name.keccak(1, labelLen);
@@ -182,15 +165,17 @@ contract DNSRegistrar is IDNSRegistrar {
         );
 
         // Make sure the parent name is enabled
-        rootNode = enableNode(parentName, 0);
+        parentNode = enableNode(parentName, 0);
 
-        (addr, ) = DNSClaimChecker.getOwnerAddress(oracle, name, proof);
+        bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
+        if (!RRUtils.serialNumberGte(inception, inceptions[node])) {
+            revert StaleProof();
+        }
+        inceptions[node] = inception;
 
-        emit Claim(
-            keccak256(abi.encodePacked(rootNode, labelHash)),
-            addr,
-            name
-        );
+        (addr, ) = DNSClaimChecker.getOwnerAddress(name, data);
+
+        emit Claim(node, addr, name, inception);
     }
 
     function enableNode(bytes memory domain, uint256 offset)
