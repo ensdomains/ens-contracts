@@ -287,7 +287,7 @@ contract ETHRegistrarController is
     ) internal {
         // Require an old enough commitment.
         if (commitments[commitment] + minCommitmentAge > block.timestamp) {
-            revert CommitmentTooYoung(commitment);
+            revert CommitmentTooNew(commitment);
         }
 
         // If the commitment is too old, or the name is registered, stop
