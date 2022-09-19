@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
 
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -97,7 +97,7 @@ interface INameWrapper is IERC1155 {
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    ) external;
+    ) external returns (bytes32);
 
     function setRecord(
         bytes32 node,

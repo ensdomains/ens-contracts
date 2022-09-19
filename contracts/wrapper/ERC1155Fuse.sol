@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ~0.8.17;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
@@ -149,21 +149,6 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     }
 
     /**
-     * @dev Sets the Name's owner address and fuses
-     */
-    function _setData(
-        uint256 tokenId,
-        address owner,
-        uint32 fuses,
-        uint64 expiry
-    ) internal virtual {
-        _tokens[tokenId] =
-            uint256(uint160(owner)) |
-            (uint256(fuses) << 160) |
-            (uint256(expiry) << 192);
-    }
-
-    /**
      * @dev See {IERC1155-safeTransferFrom}.
      */
     function safeTransferFrom(
@@ -234,6 +219,21 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     /**************************************************************************
      * Internal/private methods
      *************************************************************************/
+
+    /**
+     * @dev Sets the Name's owner address and fuses
+     */
+    function _setData(
+        uint256 tokenId,
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    ) internal virtual {
+        _tokens[tokenId] =
+            uint256(uint160(owner)) |
+            (uint256(fuses) << 160) |
+            (uint256(expiry) << 192);
+    }
 
     function _canTransfer(uint32 fuses) internal virtual returns (bool);
 
