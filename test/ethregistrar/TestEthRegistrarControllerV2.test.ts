@@ -12,8 +12,6 @@ import { ethers } from 'hardhat'
 import { expect } from 'chai'
 import { namehash } from 'ethers/lib/utils'
 import { describe } from 'mocha'
-import { BigNumber } from 'ethers'
-import names1000 from './names-1000.json'
 
 const {
   evm,
@@ -247,73 +245,6 @@ describe('ETHRegistrarControllerV2', () => {
   afterEach(async () => {
     await ethers.provider.send('evm_revert', [result])
   })
-
-  // it('GAS TEST: Reveal, 10 names one at a time, paying at reveal', async () => {
-  //   let aggregatedGas = 0
-  //   for(let i = 0; i < 10; i++){
-  //     const tx = await registerName({ name: [(names1000[i].name).toString()] })
-  //     const receipt = await tx.wait()
-  //     aggregatedGas += (receipt.gasUsed).toNumber()
-  //     console.log("Registering name %s using %s gas", names1000[i].name, aggregatedGas)
-  //   }
-  // })
-
-  // it('GAS TEST: Reveal and Renew, batch of 190 names, paying at reveal', async () => {
-  //   const names = []
-  //   let aggregatedPrice = 0
-  //   for(let i = 0; i < 190; i++){
-  //     const name = (names1000[i].name).toString()
-  //     const [price] = await controller.rentPrice(name,sha3(name),86400)
-  //     names.push(name)
-  //     aggregatedPrice += price.toNumber()
-  //   }
-
-  //   const tx = await registerName({ name: names })
-  //   const receipt = await tx.wait()
-  //   console.log("Gas used for Reveal: ",(receipt.gasUsed).toNumber())
-
-  //   const txRenew = await controller.renew(
-  //     names,
-  //     86400,
-  //     referrerAccount.address,
-  //     { value: aggregatedPrice }
-  //   )
-
-  //   const receiptRenew = await txRenew.wait()
-  //   console.log("Gas used for Renew: ",(receiptRenew.gasUsed).toNumber())
-  // }).timeout(10000000)
-
-  // it('GAS TEST: Reveal and Renew, batch combinations from 1 to 25, paying at reveal', async () => {
-  //   const gasUsedForRegister = []
-  //   const gasUsedForRenew = []
-  //   let aggregatedPrice = 0
-  //   let t = names1000.length
-  //   for(let k = 1; k < 26; k++){
-  //     const names = []
-  //     for(let i = 0; i < k; i++, t--){
-  //       const name = (names1000[t-1].name).toString()
-  //       const [price] = await controller.rentPrice(name,sha3(name),86400)
-  //       aggregatedPrice += price.toNumber()        
-  //       names.push(name)      
-  //     }
-
-  //     const tx = await registerName({ name: names })
-  //     const receipt = await tx.wait()
-  //     console.log((receipt.gasUsed).toNumber())
-  //     gasUsedForRegister.push((receipt.gasUsed).toNumber())  
-  //     const txRenew = await controller.renew(
-  //       names,
-  //       86400,
-  //       referrerAccount.address,
-  //       { value: aggregatedPrice }
-  //       )      
-  //       const receiptRenew = await txRenew.wait()
-  //       gasUsedForRenew.push((receiptRenew.gasUsed).toNumber())       
-  //   }
-
-  //   console.log("Gas used for Reveal: ",gasUsedForRegister)
-  //   console.log("Gas used for Renew:  ",gasUsedForRenew)    
-  // }).timeout(10000000)
 
   it('Should report unused names as available', async () => {
     const label = 'available'
@@ -641,7 +572,6 @@ describe('ETHRegistrarControllerV2', () => {
         block.timestamp + REGISTRATION_TIME,
       )
     const receipt = await tx.wait()
-    console.log(receipt.gasUsed)
   })
 
   it('Should permit new registration with referral, sending eth to referrer', async () => {
