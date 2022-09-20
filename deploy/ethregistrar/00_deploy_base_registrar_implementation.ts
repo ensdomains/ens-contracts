@@ -21,10 +21,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [registry.address, namehash.hash('eth')],
     log: true,
   };
-  const { differences } = await fetchIfDifferent('BaseRegistrarImplementation', deployArgs);
-  if(!differences) return;
 
-  await deploy('BaseRegistrarImplementation', deployArgs)
+  const bri = await deploy('BaseRegistrarImplementation', deployArgs)
+  if(!bri.newlyDeployed) return;
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
 

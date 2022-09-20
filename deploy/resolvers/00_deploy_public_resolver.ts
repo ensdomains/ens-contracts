@@ -22,10 +22,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     log: true,
   };
-  const { differences } = await fetchIfDifferent('PublicResolver', deployArgs);
-  if(!differences) return;
-
   const publicResolver = await deploy('PublicResolver', deployArgs)
+  if(!publicResolver.newlyDeployed) return;
 
   const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address, {
     from: deployer,

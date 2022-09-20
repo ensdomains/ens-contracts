@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/ethregistrar/DummyOracle.sol": {
+      "content": "pragma solidity >=0.8.4;\n\ncontract DummyOracle {\n    int256 value;\n\n    constructor(int256 _value) public {\n        set(_value);\n    }\n\n    function set(int256 _value) public {\n        value = _value;\n    }\n\n    function latestAnswer() public view returns (int256) {\n        return value;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 10000
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
