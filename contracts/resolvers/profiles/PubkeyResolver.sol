@@ -1,16 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ResolverBase.sol";
+import "../ClearableResolver.sol";
 import "./IPubkeyResolver.sol";
 
-abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
+abstract contract PubkeyResolver is IPubkeyResolver, ClearableResolver {
     struct PublicKey {
         bytes32 x;
         bytes32 y;
     }
 
-    mapping(bytes32 => PublicKey) pubkeys;
+    mapping(uint64 => mapping(bytes32 => PublicKey)) clearable_pubkeys;
 
     /**
      * Sets the SECP256k1 public key associated with an ENS node.
@@ -23,7 +23,7 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         bytes32 x,
         bytes32 y
     ) external virtual authorised(node) {
-        pubkeys[node] = PublicKey(x, y);
+        clearable_pubkeys[clearIndexes[node]][node] = PublicKey(x, y);
         emit PubkeyChanged(node, x, y);
     }
 
@@ -41,7 +41,10 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         override
         returns (bytes32 x, bytes32 y)
     {
-        return (pubkeys[node].x, pubkeys[node].y);
+        return (
+            clearable_pubkeys[clearIndexes[node]][node].x,
+            clearable_pubkeys[clearIndexes[node]][node].y
+        );
     }
 
     function supportsInterface(bytes4 interfaceID)
