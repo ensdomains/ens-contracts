@@ -41,9 +41,10 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         override
         returns (bytes32 x, bytes32 y)
     {
+        uint64 currentRecordVersion = recordVersions[node];
         return (
-            versionable_pubkeys[recordVersions[node]][node].x,
-            versionable_pubkeys[recordVersions[node]][node].y
+            versionable_pubkeys[currentRecordVersion][node].x,
+            versionable_pubkeys[currentRecordVersion][node].y
         );
     }
 

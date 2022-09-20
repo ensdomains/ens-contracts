@@ -66,6 +66,7 @@ abstract contract DNSResolver is
         bytes memory name;
         bytes memory value;
         bytes32 nameHash;
+        uint64 currentRecordVersion = recordVersions[node];
         // Iterate over the data to add the resource records
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
@@ -87,7 +88,8 @@ abstract contract DNSResolver is
                         data,
                         offset,
                         iter.offset - offset,
-                        value.length == 0
+                        value.length == 0,
+                        currentRecordVersion
                     );
                     resource = iter.dnstype;
                     offset = iter.offset;
@@ -105,7 +107,8 @@ abstract contract DNSResolver is
                 data,
                 offset,
                 data.length - offset,
-                value.length == 0
+                value.length == 0,
+                currentRecordVersion
             );
         }
     }
@@ -122,9 +125,10 @@ abstract contract DNSResolver is
         bytes32 name,
         uint16 resource
     ) public view virtual override returns (bytes memory) {
+        uint64 currentRecordVersion = recordVersions[node];
         return
-            versionable_records[recordVersions[node]][node][
-                versionable_versions[recordVersions[node]][node]
+            versionable_records[currentRecordVersion][node][
+                versionable_versions[currentRecordVersion][node]
             ][name][resource];
     }
 
@@ -139,8 +143,9 @@ abstract contract DNSResolver is
         virtual
         returns (bool)
     {
-        return (versionable_nameEntriesCount[recordVersions[node]][node][
-            versionable_versions[recordVersions[node]][node]
+        uint64 currentRecordVersion = recordVersions[node];
+        return (versionable_nameEntriesCount[currentRecordVersion][node][
+            versionable_versions[currentRecordVersion][node]
         ][name] != 0);
     }
 
@@ -164,10 +169,11 @@ abstract contract DNSResolver is
         virtual
         authorised(node)
     {
-        bytes memory oldhash = versionable_zonehashes[recordVersions[node]][
+        uint64 currentRecordVersion = recordVersions[node];
+        bytes memory oldhash = versionable_zonehashes[currentRecordVersion][
             node
         ];
-        versionable_zonehashes[recordVersions[node]][node] = hash;
+        versionable_zonehashes[currentRecordVersion][node] = hash;
         emit DNSZonehashChanged(node, oldhash, hash);
     }
 
@@ -206,38 +212,39 @@ abstract contract DNSResolver is
         bytes memory data,
         uint256 offset,
         uint256 size,
-        bool deleteRecord
+        bool deleteRecord,
+        uint64 currentRecordVersion
     ) private {
-        uint256 version = versionable_versions[recordVersions[node]][node];
+        uint256 version = versionable_versions[currentRecordVersion][node];
         bytes32 nameHash = keccak256(name);
         bytes memory rrData = data.substring(offset, size);
         if (deleteRecord) {
             if (
-                versionable_records[recordVersions[node]][node][version][
+                versionable_records[currentRecordVersion][node][version][
                     nameHash
                 ][resource].length != 0
             ) {
-                versionable_nameEntriesCount[recordVersions[node]][node][
+                versionable_nameEntriesCount[currentRecordVersion][node][
                     version
                 ][nameHash]--;
             }
             delete (
-                versionable_records[recordVersions[node]][node][version][
+                versionable_records[currentRecordVersion][node][version][
                     nameHash
                 ][resource]
             );
             emit DNSRecordDeleted(node, name, resource);
         } else {
             if (
-                versionable_records[recordVersions[node]][node][version][
+                versionable_records[currentRecordVersion][node][version][
                     nameHash
                 ][resource].length == 0
             ) {
-                versionable_nameEntriesCount[recordVersions[node]][node][
+                versionable_nameEntriesCount[currentRecordVersion][node][
                     version
                 ][nameHash]++;
             }
-            versionable_records[recordVersions[node]][node][version][nameHash][
+            versionable_records[currentRecordVersion][node][version][nameHash][
                 resource
             ] = rrData;
             emit DNSRecordChanged(node, name, resource, rrData);
