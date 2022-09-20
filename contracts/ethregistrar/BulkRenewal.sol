@@ -1,5 +1,5 @@
-pragma solidity >=0.8.4;
-pragma experimental ABIEncoderV2;
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
 
 import "../registry/ENS.sol";
 import "./ETHRegistrarController.sol";
@@ -38,12 +38,16 @@ contract BulkRenewal is IBulkRenewal {
         returns (uint256 total)
     {
         ETHRegistrarController controller = getController();
-        for (uint256 i = 0; i < names.length; i++) {
+        uint256 length = names.length;
+        for (uint256 i = 0; i < length; ) {
             IPriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
-            total += (price.base + price.premium);
+            unchecked {
+                ++i;
+                total += (price.base + price.premium);
+            }
         }
     }
 
@@ -53,15 +57,19 @@ contract BulkRenewal is IBulkRenewal {
         override
     {
         ETHRegistrarController controller = getController();
-        for (uint256 i = 0; i < names.length; i++) {
+        uint256 length = names.length;
+        uint256 total;
+        for (uint256 i = 0; i < length; ) {
             IPriceOracle.Price memory price = controller.rentPrice(
                 names[i],
                 duration
             );
-            controller.renew{value: price.base + price.premium}(
-                names[i],
-                duration
-            );
+            uint256 totalPrice = price.base + price.premium;
+            controller.renew{value: totalPrice}(names[i], duration);
+            unchecked {
+                ++i;
+                total += totalPrice;
+            }
         }
         // Send any excess funds back
         payable(msg.sender).transfer(address(this).balance);

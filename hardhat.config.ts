@@ -129,8 +129,6 @@ if (process.env.DEPLOYER_KEY) {
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {
-      // Required for real DNS record tests
-      initialDate: '2019-03-15T14:06:45.000+13:00',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
@@ -162,7 +160,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.13',
+        version: '0.8.17',
         settings: {
           optimizer: {
             enabled: true,

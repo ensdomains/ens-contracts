@@ -76,9 +76,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     1: 'SHA1Digest',
     2: 'SHA256Digest',
   }
-  const nsec_digests: Record<number, string> = {
-    1: 'SHA1NSEC3Digest',
-  }
 
   if (network.tags.test) {
     anchors.push(dummyAnchor)
@@ -106,13 +103,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const address = (await deployments.get(digest)).address
     if (address != (await dnssec.digests(id))) {
       transactions.push(await dnssec.setDigest(id, address))
-    }
-  }
-
-  for (const [id, digest] of Object.entries(nsec_digests)) {
-    const address = (await deployments.get(digest)).address
-    if (address != (await dnssec.nsec3Digests(id))) {
-      transactions.push(await dnssec.setNSEC3Digest(id, address))
     }
   }
 

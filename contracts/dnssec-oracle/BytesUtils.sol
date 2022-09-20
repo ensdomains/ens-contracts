@@ -377,4 +377,26 @@ library BytesUtils {
 
         return bytes32(ret << (256 - bitlen));
     }
+
+    /**
+     * @dev Finds the first occurrence of the byte `needle` in `self`.
+     * @param self The string to search
+     * @param off The offset to start searching at
+     * @param len The number of bytes to search
+     * @param needle The byte to search for
+     * @return The offset of `needle` in `self`, or 2**256-1 if it was not found.
+     */
+    function find(
+        bytes memory self,
+        uint256 off,
+        uint256 len,
+        bytes1 needle
+    ) internal pure returns (uint256) {
+        for (uint256 idx = off; idx < off + len; idx++) {
+            if (self[idx] == needle) {
+                return idx;
+            }
+        }
+        return type(uint256).max;
+    }
 }
