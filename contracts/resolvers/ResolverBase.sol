@@ -5,17 +5,13 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./profiles/IVersionableResolver.sol";
 
 abstract contract ResolverBase is ERC165, IVersionableResolver {
-    mapping(bytes32 => uint64) recordVersions;
+    mapping(bytes32 => uint64) public recordVersions;
 
     function isAuthorised(bytes32 node) internal view virtual returns (bool);
 
     modifier authorised(bytes32 node) {
         require(isAuthorised(node));
         _;
-    }
-
-    function recordVersion(bytes32 node) external view returns (uint64) {
-        return recordVersions[node];
     }
 
     /**
