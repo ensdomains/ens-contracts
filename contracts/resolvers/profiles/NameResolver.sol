@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ClearableResolver.sol";
+import "../ResolverBase.sol";
 import "./INameResolver.sol";
 
-abstract contract NameResolver is INameResolver, ClearableResolver {
-    mapping(uint64 => mapping(bytes32 => string)) clearable_names;
+abstract contract NameResolver is INameResolver, ResolverBase {
+    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
     /**
      * Sets the name associated with an ENS node, for reverse records.
@@ -17,7 +17,7 @@ abstract contract NameResolver is INameResolver, ClearableResolver {
         virtual
         authorised(node)
     {
-        clearable_names[clearIndexes[node]][node] = newName;
+        versionable_names[recordVersions[node]][node] = newName;
         emit NameChanged(node, newName);
     }
 
@@ -34,7 +34,7 @@ abstract contract NameResolver is INameResolver, ClearableResolver {
         override
         returns (string memory)
     {
-        return clearable_names[clearIndexes[node]][node];
+        return versionable_names[recordVersions[node]][node];
     }
 
     function supportsInterface(bytes4 interfaceID)

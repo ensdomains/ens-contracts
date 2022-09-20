@@ -2,10 +2,10 @@
 pragma solidity >=0.8.4;
 
 import "./IABIResolver.sol";
-import "../ClearableResolver.sol";
+import "../ResolverBase.sol";
 
-abstract contract ABIResolver is IABIResolver, ClearableResolver {
-    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) clearable_abis;
+abstract contract ABIResolver is IABIResolver, ResolverBase {
+    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_abis;
 
     /**
      * Sets the ABI associated with an ENS node.
@@ -23,7 +23,7 @@ abstract contract ABIResolver is IABIResolver, ClearableResolver {
         // Content types must be powers of 2
         require(((contentType - 1) & contentType) == 0);
 
-        clearable_abis[clearIndexes[node]][node][contentType] = data;
+        versionable_abis[recordVersions[node]][node][contentType] = data;
         emit ABIChanged(node, contentType);
     }
 
@@ -42,8 +42,8 @@ abstract contract ABIResolver is IABIResolver, ClearableResolver {
         override
         returns (uint256, bytes memory)
     {
-        mapping(uint256 => bytes) storage abiset = clearable_abis[
-            clearIndexes[node]
+        mapping(uint256 => bytes) storage abiset = versionable_abis[
+            recordVersions[node]
         ][node];
 
         for (

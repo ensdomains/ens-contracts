@@ -1,14 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ClearableResolver.sol";
+import "../ResolverBase.sol";
 import "./IContentHashResolver.sol";
 
-abstract contract ContentHashResolver is
-    IContentHashResolver,
-    ClearableResolver
-{
-    mapping(uint64 => mapping(bytes32 => bytes)) clearable_hashes;
+abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
+    mapping(uint64 => mapping(bytes32 => bytes)) versionable_hashes;
 
     /**
      * Sets the contenthash associated with an ENS node.
@@ -21,7 +18,7 @@ abstract contract ContentHashResolver is
         virtual
         authorised(node)
     {
-        clearable_hashes[clearIndexes[node]][node] = hash;
+        versionable_hashes[recordVersions[node]][node] = hash;
         emit ContenthashChanged(node, hash);
     }
 
@@ -37,7 +34,7 @@ abstract contract ContentHashResolver is
         override
         returns (bytes memory)
     {
-        return clearable_hashes[clearIndexes[node]][node];
+        return versionable_hashes[recordVersions[node]][node];
     }
 
     function supportsInterface(bytes4 interfaceID)

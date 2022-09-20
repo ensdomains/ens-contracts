@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ClearableResolver.sol";
+import "../ResolverBase.sol";
 import "./ITextResolver.sol";
 
-abstract contract TextResolver is ITextResolver, ClearableResolver {
-    mapping(uint64 => mapping(bytes32 => mapping(string => string))) clearable_texts;
+abstract contract TextResolver is ITextResolver, ResolverBase {
+    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
 
     /**
      * Sets the text data associated with an ENS node and key.
@@ -19,7 +19,7 @@ abstract contract TextResolver is ITextResolver, ClearableResolver {
         string calldata key,
         string calldata value
     ) external virtual authorised(node) {
-        clearable_texts[clearIndexes[node]][node][key] = value;
+        versionable_texts[recordVersions[node]][node][key] = value;
         emit TextChanged(node, key, key, value);
     }
 
@@ -36,7 +36,7 @@ abstract contract TextResolver is ITextResolver, ClearableResolver {
         override
         returns (string memory)
     {
-        return clearable_texts[clearIndexes[node]][node][key];
+        return versionable_texts[recordVersions[node]][node][key];
     }
 
     function supportsInterface(bytes4 interfaceID)

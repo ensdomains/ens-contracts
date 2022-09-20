@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ClearableResolver.sol";
+import "../ResolverBase.sol";
 import "../../dnssec-oracle/RRUtils.sol";
 import "./IDNSRecordResolver.sol";
 import "./IDNSZoneResolver.sol";
@@ -9,7 +9,7 @@ import "./IDNSZoneResolver.sol";
 abstract contract DNSResolver is
     IDNSRecordResolver,
     IDNSZoneResolver,
-    ClearableResolver
+    ResolverBase
 {
     using RRUtils for *;
     using BytesUtils for bytes;
@@ -18,24 +18,24 @@ abstract contract DNSResolver is
     // A zone hash is an EIP-1577 content hash in binary format that should point to a
     // resource containing a single zonefile.
     // node => contenthash
-    mapping(uint64 => mapping(bytes32 => bytes)) private clearable_zonehashes;
+    mapping(uint64 => mapping(bytes32 => bytes)) private versionable_zonehashes;
 
     // Version the mapping for each zone.  This allows users who have lost
     // track of their entries to effectively delete an entire zone by bumping
     // the version number.
     // node => version
-    mapping(uint64 => mapping(bytes32 => uint256)) private clearable_versions;
+    mapping(uint64 => mapping(bytes32 => uint256)) private versionable_versions;
 
     // The records themselves.  Stored as binary RRSETs
     // node => version => name => resource => data
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => mapping(bytes32 => mapping(uint16 => bytes)))))
-        private clearable_records;
+        private versionable_records;
 
     // Count of number of entries for a given name.  Required for DNS resolvers
     // when resolving wildcards.
     // node => version => name => number of records
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => mapping(bytes32 => uint16))))
-        private clearable_nameEntriesCount;
+        private versionable_nameEntriesCount;
 
     /**
      * Set one or more DNS records.  Records are supplied in wire-format.
@@ -123,8 +123,8 @@ abstract contract DNSResolver is
         uint16 resource
     ) public view virtual override returns (bytes memory) {
         return
-            clearable_records[clearIndexes[node]][node][
-                clearable_versions[clearIndexes[node]][node]
+            versionable_records[recordVersions[node]][node][
+                versionable_versions[recordVersions[node]][node]
             ][name][resource];
     }
 
@@ -139,8 +139,8 @@ abstract contract DNSResolver is
         virtual
         returns (bool)
     {
-        return (clearable_nameEntriesCount[clearIndexes[node]][node][
-            clearable_versions[clearIndexes[node]][node]
+        return (versionable_nameEntriesCount[recordVersions[node]][node][
+            versionable_versions[recordVersions[node]][node]
         ][name] != 0);
     }
 
@@ -149,7 +149,7 @@ abstract contract DNSResolver is
      * @param node the namehash of the node for which to clear the zone
      */
     function clearDNSZone(bytes32 node) public virtual authorised(node) {
-        clearable_versions[clearIndexes[node]][node]++;
+        versionable_versions[recordVersions[node]][node]++;
         emit DNSZoneCleared(node);
     }
 
@@ -164,8 +164,10 @@ abstract contract DNSResolver is
         virtual
         authorised(node)
     {
-        bytes memory oldhash = clearable_zonehashes[clearIndexes[node]][node];
-        clearable_zonehashes[clearIndexes[node]][node] = hash;
+        bytes memory oldhash = versionable_zonehashes[recordVersions[node]][
+            node
+        ];
+        versionable_zonehashes[recordVersions[node]][node] = hash;
         emit DNSZonehashChanged(node, oldhash, hash);
     }
 
@@ -181,7 +183,7 @@ abstract contract DNSResolver is
         override
         returns (bytes memory)
     {
-        return clearable_zonehashes[clearIndexes[node]][node];
+        return versionable_zonehashes[recordVersions[node]][node];
     }
 
     function supportsInterface(bytes4 interfaceID)
@@ -206,36 +208,36 @@ abstract contract DNSResolver is
         uint256 size,
         bool deleteRecord
     ) private {
-        uint256 version = clearable_versions[clearIndexes[node]][node];
+        uint256 version = versionable_versions[recordVersions[node]][node];
         bytes32 nameHash = keccak256(name);
         bytes memory rrData = data.substring(offset, size);
         if (deleteRecord) {
             if (
-                clearable_records[clearIndexes[node]][node][version][nameHash][
-                    resource
-                ].length != 0
-            ) {
-                clearable_nameEntriesCount[clearIndexes[node]][node][version][
+                versionable_records[recordVersions[node]][node][version][
                     nameHash
-                ]--;
+                ][resource].length != 0
+            ) {
+                versionable_nameEntriesCount[recordVersions[node]][node][
+                    version
+                ][nameHash]--;
             }
             delete (
-                clearable_records[clearIndexes[node]][node][version][nameHash][
-                    resource
-                ]
+                versionable_records[recordVersions[node]][node][version][
+                    nameHash
+                ][resource]
             );
             emit DNSRecordDeleted(node, name, resource);
         } else {
             if (
-                clearable_records[clearIndexes[node]][node][version][nameHash][
-                    resource
-                ].length == 0
-            ) {
-                clearable_nameEntriesCount[clearIndexes[node]][node][version][
+                versionable_records[recordVersions[node]][node][version][
                     nameHash
-                ]++;
+                ][resource].length == 0
+            ) {
+                versionable_nameEntriesCount[recordVersions[node]][node][
+                    version
+                ][nameHash]++;
             }
-            clearable_records[clearIndexes[node]][node][version][nameHash][
+            versionable_records[recordVersions[node]][node][version][nameHash][
                 resource
             ] = rrData;
             emit DNSRecordChanged(node, name, resource, rrData);
