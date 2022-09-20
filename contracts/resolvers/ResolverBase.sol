@@ -23,23 +23,13 @@ abstract contract ResolverBase is ERC165, IVersionableResolver {
      * May only be called by the owner of that node in the ENS registry.
      * @param node The node to update.
      */
-    function clearRecords(bytes32 node) public virtual authorised(node) {
-        setRecordVersion(node, recordVersions[node] + 1);
-    }
-
-    /**
-     * Sets the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param newVersion The new version number.
-     */
-    function setRecordVersion(bytes32 node, uint64 newVersion)
+    function incrementRecordVersion(bytes32 node)
         public
         virtual
         authorised(node)
     {
-        emit RecordVersionChanged(node, newVersion);
-        recordVersions[node] = newVersion;
+        recordVersions[node]++;
+        emit RecordVersionChanged(node, recordVersions[node]);
     }
 
     function supportsInterface(bytes4 interfaceID)
