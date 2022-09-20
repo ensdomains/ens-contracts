@@ -20,21 +20,15 @@ abstract contract DNSResolver is
     // node => contenthash
     mapping(uint64 => mapping(bytes32 => bytes)) private versionable_zonehashes;
 
-    // Version the mapping for each zone.  This allows users who have lost
-    // track of their entries to effectively delete an entire zone by bumping
-    // the version number.
-    // node => version
-    mapping(uint64 => mapping(bytes32 => uint256)) private versionable_versions;
-
     // The records themselves.  Stored as binary RRSETs
     // node => version => name => resource => data
-    mapping(uint64 => mapping(bytes32 => mapping(uint256 => mapping(bytes32 => mapping(uint16 => bytes)))))
+    mapping(uint64 => mapping(bytes32 => mapping(bytes32 => mapping(uint16 => bytes))))
         private versionable_records;
 
     // Count of number of entries for a given name.  Required for DNS resolvers
     // when resolving wildcards.
     // node => version => name => number of records
-    mapping(uint64 => mapping(bytes32 => mapping(uint256 => mapping(bytes32 => uint16))))
+    mapping(uint64 => mapping(bytes32 => mapping(bytes32 => uint16)))
         private versionable_nameEntriesCount;
 
     /**
@@ -66,7 +60,7 @@ abstract contract DNSResolver is
         bytes memory name;
         bytes memory value;
         bytes32 nameHash;
-        uint64 currentRecordVersion = recordVersions[node];
+        uint64 version = recordVersions[node];
         // Iterate over the data to add the resource records
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
@@ -89,7 +83,7 @@ abstract contract DNSResolver is
                         offset,
                         iter.offset - offset,
                         value.length == 0,
-                        currentRecordVersion
+                        version
                     );
                     resource = iter.dnstype;
                     offset = iter.offset;
@@ -108,7 +102,7 @@ abstract contract DNSResolver is
                 offset,
                 data.length - offset,
                 value.length == 0,
-                currentRecordVersion
+                version
             );
         }
     }
@@ -125,11 +119,7 @@ abstract contract DNSResolver is
         bytes32 name,
         uint16 resource
     ) public view virtual override returns (bytes memory) {
-        uint64 currentRecordVersion = recordVersions[node];
-        return
-            versionable_records[currentRecordVersion][node][
-                versionable_versions[currentRecordVersion][node]
-            ][name][resource];
+        return versionable_records[recordVersions[node]][node][name][resource];
     }
 
     /**
@@ -143,19 +133,9 @@ abstract contract DNSResolver is
         virtual
         returns (bool)
     {
-        uint64 currentRecordVersion = recordVersions[node];
-        return (versionable_nameEntriesCount[currentRecordVersion][node][
-            versionable_versions[currentRecordVersion][node]
-        ][name] != 0);
-    }
-
-    /**
-     * Clear all information for a DNS zone.
-     * @param node the namehash of the node for which to clear the zone
-     */
-    function clearDNSZone(bytes32 node) public virtual authorised(node) {
-        versionable_versions[recordVersions[node]][node]++;
-        emit DNSZoneCleared(node);
+        return (versionable_nameEntriesCount[recordVersions[node]][node][
+            name
+        ] != 0);
     }
 
     /**
@@ -213,40 +193,27 @@ abstract contract DNSResolver is
         uint256 offset,
         uint256 size,
         bool deleteRecord,
-        uint64 currentRecordVersion
+        uint64 version
     ) private {
-        uint256 version = versionable_versions[currentRecordVersion][node];
         bytes32 nameHash = keccak256(name);
         bytes memory rrData = data.substring(offset, size);
         if (deleteRecord) {
             if (
-                versionable_records[currentRecordVersion][node][version][
-                    nameHash
-                ][resource].length != 0
+                versionable_records[version][node][nameHash][resource].length !=
+                0
             ) {
-                versionable_nameEntriesCount[currentRecordVersion][node][
-                    version
-                ][nameHash]--;
+                versionable_nameEntriesCount[version][node][nameHash]--;
             }
-            delete (
-                versionable_records[currentRecordVersion][node][version][
-                    nameHash
-                ][resource]
-            );
+            delete (versionable_records[version][node][nameHash][resource]);
             emit DNSRecordDeleted(node, name, resource);
         } else {
             if (
-                versionable_records[currentRecordVersion][node][version][
-                    nameHash
-                ][resource].length == 0
+                versionable_records[version][node][nameHash][resource].length ==
+                0
             ) {
-                versionable_nameEntriesCount[currentRecordVersion][node][
-                    version
-                ][nameHash]++;
+                versionable_nameEntriesCount[version][node][nameHash]++;
             }
-            versionable_records[currentRecordVersion][node][version][nameHash][
-                resource
-            ] = rrData;
+            versionable_records[version][node][nameHash][resource] = rrData;
             emit DNSRecordChanged(node, name, resource, rrData);
         }
     }
