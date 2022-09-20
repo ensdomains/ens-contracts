@@ -10,6 +10,7 @@
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public"
   },
+  "postinstall": "typechain",
   "files": [
     "build",
     "contracts/**/*.sol",
