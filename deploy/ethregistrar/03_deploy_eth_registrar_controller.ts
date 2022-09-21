@@ -1,6 +1,13 @@
+import { Interface } from 'ethers/lib/utils';
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
+
+const { makeInterfaceId } = require('@openzeppelin/test-helpers')
+
+function computeInterfaceId(iface: Interface) {
+  return makeInterfaceId.ERC165(Object.values(iface.functions).map((frag) => frag.format("sighash")));
+}
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
@@ -24,32 +31,40 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     ],
     log: true,
   };
-  const { differences } = await fetchIfDifferent('ETHRegistrarController', deployArgs);
-  if(!differences) return;
-
   const controller = await deploy('ETHRegistrarController', deployArgs)
+  if(!controller.newlyDeployed) return;
 
-  const tx1 = await registrar.addController(controller.address, {
+  // Only attempt to make controller etc changes directly on testnets
+  if(network.name === 'mainnet') return;
+
+  const tx1 = await nameWrapper.setController(controller.address, {
     from: deployer,
   })
   console.log(
-    `Adding ETHRegistrarController as controller on BaseRegistrarImplementation (tx: ${tx1.hash})...`,
+    `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${tx1.hash})...`,
   )
   await tx1.wait()
 
-  const tx2 = await nameWrapper.setController(controller.address, {
+  const tx2 = await reverseRegistrar.setController(controller.address, {
     from: deployer,
   })
   console.log(
-    `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${tx2.hash})...`,
+    `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${tx2.hash})...`,
   )
   await tx2.wait()
 
-  const tx3 = await reverseRegistrar.setController(controller.address, {
-    from: deployer,
-  })
+  const artifact = await deployments.getArtifact("IETHRegistrarController");
+  const interfaceId = computeInterfaceId(new Interface(artifact.abi));
+  const provider = await ethers.getDefaultProvider();
+  const resolver = await provider.getResolver("eth");
+  if(resolver === null) {
+    console.log("No resolver set for .eth; not setting interface for ETH Registrar Controller");
+    return;
+  }
+  const resolverContract = await ethers.getContractAt('PublicResolver', resolver.address);
+  const tx3 = await resolverContract.setInterface(ethers.utils.namehash('eth'), interfaceId, controller.address);
   console.log(
-    `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${tx3.hash})...`,
+    `Setting ETHRegistrarController interface ID ${interfaceId} on .eth resolver (tx: ${tx3.hash})...`
   )
   await tx3.wait()
 }
