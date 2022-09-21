@@ -20,8 +20,8 @@ abstract contract ResolverBase is ERC165, IVersionableResolver {
      * @param node The node to update.
      */
     function clearRecords(bytes32 node) public virtual authorised(node) {
-        uint64 newVersion = recordVersions[node]++;
-        emit VersionChanged(node, newVersion);
+        recordVersions[node]++;
+        emit VersionChanged(node, recordVersions[node]);
     }
 
     function supportsInterface(bytes4 interfaceID)
