@@ -4,15 +4,15 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
+  const { deploy, fetchIfDifferent } = deployments
   const { deployer } = await getNamedAccounts()
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
-  const priceOracle = await ethers.getContract('StablePriceOracle')
+  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
   const nameWrapper = await ethers.getContract('NameWrapper')
 
-  const controller = await deploy('ETHRegistrarController', {
+  const deployArgs = {
     from: deployer,
     args: [
       registrar.address,
@@ -23,13 +23,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       nameWrapper.address,
     ],
     log: true,
-  })
+  };
+  const { differences } = await fetchIfDifferent('ETHRegistrarController', deployArgs);
+  if(!differences) return;
+
+  const controller = await deploy('ETHRegistrarController', deployArgs)
 
   const tx1 = await registrar.addController(controller.address, {
     from: deployer,
   })
   console.log(
-    `Adding controller as controller on registrar (tx: ${tx1.hash})...`,
+    `Adding ETHRegistrarController as controller on BaseRegistrarImplementation (tx: ${tx1.hash})...`,
   )
   await tx1.wait()
 
@@ -37,7 +41,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
   })
   console.log(
-    `Setting controller of NameWrapper to controller (tx: ${tx2.hash})...`,
+    `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${tx2.hash})...`,
   )
   await tx2.wait()
 
@@ -45,12 +49,18 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
   })
   console.log(
-    `Setting controller of ReverseRegistrar to controller (tx: ${tx3.hash})...`,
+    `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${tx3.hash})...`,
   )
   await tx3.wait()
 }
 
 func.tags = ['ethregistrar', 'ETHRegistrarController']
-func.dependencies = ['registry', 'wrapper', 'BaseRegistrarImplementation']
+func.dependencies = [
+  'ENSRegistry',
+  'BaseRegistrarImplementation',
+  'ExponentialPremiumPriceOracle',
+  'ReverseRegistrar',
+  'NameWrapper',
+]
 
 export default func

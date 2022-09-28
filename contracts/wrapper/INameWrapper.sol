@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
 
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -64,6 +64,7 @@ interface INameWrapper is IERC1155 {
     function renew(
         uint256 labelHash,
         uint256 duration,
+        uint32 fuses,
         uint64 expiry
     ) external returns (uint256 expires);
 
@@ -98,7 +99,7 @@ interface INameWrapper is IERC1155 {
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    ) external;
+    ) external returns (bytes32);
 
     function setRecord(
         bytes32 node,
@@ -123,12 +124,12 @@ interface INameWrapper is IERC1155 {
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function getFuses(bytes32 node)
-        external
-        returns (uint32 fuses, uint64 expiry);
+    function ownerOf(uint256 id) external returns (address owner);
 
     function allFusesBurned(bytes32 node, uint32 fuseMask)
         external
         view
         returns (bool);
+
+    function isWrapped(bytes32 node) external view returns (bool);
 }

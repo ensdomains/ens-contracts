@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.13;
+pragma solidity >=0.8.17 <0.9.0;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -8,7 +8,7 @@ import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
 import {NameEncoder} from "./NameEncoder.sol";
-import {BytesUtils} from "../wrapper/BytesUtil.sol";
+import {BytesUtils} from "../wrapper/BytesUtils.sol";
 
 error OffchainLookup(
     address sender,

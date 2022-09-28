@@ -5,7 +5,7 @@ const ETHRegistrarController = artifacts.require('./ETHRegistrarController')
 const DummyOracle = artifacts.require('./DummyOracle')
 const StablePriceOracle = artifacts.require('./StablePriceOracle')
 const BulkRenewal = artifacts.require('./BulkRenewal')
-const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+const NameWrapper = artifacts.require('./wrapper/NameWrapper.sol')
 
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -31,7 +31,16 @@ contract('BulkRenewal', function(accounts) {
   before(async () => {
     // Create a registry
     ens = await ENS.new()
-    nameWrapper = await NameWrapper.new()
+    // Create a base registrar
+    baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
+      from: ownerAccount,
+    })
+
+    nameWrapper = await NameWrapper.new(
+      ens.address,
+      baseRegistrar.address,
+      ownerAccount
+    )
     // Create a public resolver
     resolver = await PublicResolver.new(
       ens.address,
@@ -39,11 +48,6 @@ contract('BulkRenewal', function(accounts) {
       EMPTY_ADDRESS,
       EMPTY_ADDRESS
     )
-
-    // Create a base registrar
-    baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
-      from: ownerAccount,
-    })
 
     // Set up a dummy price oracle and a controller
     const dummyOracle = await DummyOracle.new(toBN(100000000))
@@ -59,14 +63,17 @@ contract('BulkRenewal', function(accounts) {
       priceOracle.address,
       600,
       86400,
-      nameWrapper.address,
       EMPTY_ADDRESS,
+      nameWrapper.address,
       { from: ownerAccount }
     )
+    var wrapperAddress = await controller.nameWrapper()
     await baseRegistrar.addController(controller.address, {
       from: ownerAccount,
     })
     await baseRegistrar.addController(ownerAccount, { from: ownerAccount })
+    await baseRegistrar.addController(nameWrapper.address, { from: ownerAccount })
+    await nameWrapper.setController(controller.address, true, { from: ownerAccount })
     // Create the bulk registration contract
     bulkRenewal = await BulkRenewal.new(ens.address)
 

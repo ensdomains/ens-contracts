@@ -19,6 +19,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
     contract: await deployments.getArtifact('PublicResolver_mainnet_9412610'),
   })
+
+  return true
 }
 
 func.id = 'legacy-resolver'

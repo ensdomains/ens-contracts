@@ -1,27 +1,45 @@
-pragma solidity >=0.8.4;
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
 
-import "./BaseRegistrarImplementation.sol";
-import "./StringUtils.sol";
-import "../resolvers/Resolver.sol";
-import "../registry/ReverseRegistrar.sol";
-import "./IETHRegistrarController.sol";
+import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
+import {StringUtils} from "./StringUtils.sol";
+import {Resolver} from "../resolvers/Resolver.sol";
+import {ReverseRegistrar} from "../registry/ReverseRegistrar.sol";
+import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "@openzeppelin/contracts/utils/Address.sol";
-import "../wrapper/INameWrapper.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
+import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
+
+error CommitmentTooNew(bytes32 commitment);
+error CommitmentTooOld(bytes32 commitment);
+error NameNotAvailable(string name);
+error DurationTooShort(uint256 duration);
+error ResolverRequiredWhenDataSupplied();
+error UnexpiredCommitmentExists(bytes32 commitment);
+error InsufficientValue();
+error Unauthorised(bytes32 node);
+error MaxCommitmentAgeTooLow();
+error MaxCommitmentAgeTooHigh();
 
 /**
  * @dev A registrar controller for registering and renewing names at fixed cost.
  */
-contract ETHRegistrarController is Ownable, IETHRegistrarController {
+contract ETHRegistrarController is
+    Ownable,
+    IETHRegistrarController,
+    IERC165,
+    ERC20Recoverable
+{
     using StringUtils for *;
     using Address for address;
 
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
-
+    uint64 private constant MAX_EXPIRY = type(uint64).max;
     BaseRegistrarImplementation immutable base;
     IPriceOracle public immutable prices;
     uint256 public immutable minCommitmentAge;
@@ -54,7 +72,13 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         ReverseRegistrar _reverseRegistrar,
         INameWrapper _nameWrapper
     ) {
-        require(_maxCommitmentAge > _minCommitmentAge);
+        if (_maxCommitmentAge <= _minCommitmentAge) {
+            revert MaxCommitmentAgeTooLow();
+        }
+
+        if (_maxCommitmentAge > block.timestamp) {
+            revert MaxCommitmentAgeTooHigh();
+        }
 
         base = _base;
         prices = _prices;
@@ -95,11 +119,8 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint64 wrapperExpiry
     ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
-        if (data.length > 0) {
-            require(
-                resolver != address(0),
-                "ETHRegistrarController: resolver is required when data is supplied"
-            );
+        if (data.length > 0 && resolver == address(0)) {
+            revert ResolverRequiredWhenDataSupplied();
         }
         return
             keccak256(
@@ -118,7 +139,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
     }
 
     function commit(bytes32 commitment) public override {
-        require(commitments[commitment] + maxCommitmentAge < block.timestamp);
+        if (commitments[commitment] + maxCommitmentAge >= block.timestamp) {
+            revert UnexpiredCommitmentExists(commitment);
+        }
         commitments[commitment] = block.timestamp;
     }
 
@@ -134,10 +157,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint64 wrapperExpiry
     ) public payable override {
         IPriceOracle.Price memory price = rentPrice(name, duration);
-        require(
-            msg.value >= (price.base + price.premium),
-            "ETHRegistrarController: Not enough ether provided"
-        );
+        if (msg.value < price.base + price.premium) {
+            revert InsufficientValue();
+        }
 
         _consumeCommitment(
             name,
@@ -164,7 +186,9 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
             wrapperExpiry
         );
 
-        _setRecords(resolver, keccak256(bytes(name)), data);
+        if (data.length > 0) {
+            _setRecords(resolver, keccak256(bytes(name)), data);
+        }
 
         if (reverseRecord) {
             _setReverseRecord(name, resolver, msg.sender);
@@ -191,20 +215,53 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         payable
         override
     {
-        bytes32 label = keccak256(bytes(name));
-        IPriceOracle.Price memory price = rentPrice(name, duration);
-        require(
-            msg.value >= price.base,
-            "ETHController: Not enough Ether provided for renewal"
-        );
+        _renew(name, duration, 0, 0);
+    }
 
-        uint256 expires = base.renew(uint256(label), duration);
+    function renewWithFuses(
+        string calldata name,
+        uint256 duration,
+        uint32 fuses,
+        uint64 wrapperExpiry
+    ) external payable {
+        bytes32 labelhash = keccak256(bytes(name));
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        if (!nameWrapper.isTokenOwnerOrApproved(nodehash, msg.sender)) {
+            revert Unauthorised(nodehash);
+        }
+        _renew(name, duration, fuses, wrapperExpiry);
+    }
+
+    function _renew(
+        string calldata name,
+        uint256 duration,
+        uint32 fuses,
+        uint64 wrapperExpiry
+    ) internal {
+        bytes32 labelhash = keccak256(bytes(name));
+        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+        uint256 tokenId = uint256(labelhash);
+        IPriceOracle.Price memory price = rentPrice(name, duration);
+        if (msg.value < price.base) {
+            revert InsufficientValue();
+        }
+        uint256 expires;
+        if (nameWrapper.isWrapped(nodehash)) {
+            expires = nameWrapper.renew(
+                tokenId,
+                duration,
+                fuses,
+                wrapperExpiry
+            );
+        } else {
+            expires = base.renew(tokenId, duration);
+        }
 
         if (msg.value > price.base) {
             payable(msg.sender).transfer(msg.value - price.base);
         }
 
-        emit NameRenewed(name, label, msg.value, expires);
+        emit NameRenewed(name, labelhash, msg.value, expires);
     }
 
     function withdraw() public {
@@ -228,43 +285,35 @@ contract ETHRegistrarController is Ownable, IETHRegistrarController {
         uint256 duration,
         bytes32 commitment
     ) internal {
-        // Require a valid commitment (is old enough and is committed)
-        require(
-            commitments[commitment] + minCommitmentAge <= block.timestamp,
-            "ETHRegistrarController: Commitment is not valid"
-        );
+        // Require an old enough commitment.
+        if (commitments[commitment] + minCommitmentAge > block.timestamp) {
+            revert CommitmentTooNew(commitment);
+        }
 
         // If the commitment is too old, or the name is registered, stop
-        require(
-            commitments[commitment] + maxCommitmentAge > block.timestamp,
-            "ETHRegistrarController: Commitment has expired"
-        );
-        require(available(name), "ETHRegistrarController: Name is unavailable");
+        if (commitments[commitment] + maxCommitmentAge <= block.timestamp) {
+            revert CommitmentTooOld(commitment);
+        }
+        if (!available(name)) {
+            revert NameNotAvailable(name);
+        }
 
         delete (commitments[commitment]);
 
-        require(duration >= MIN_REGISTRATION_DURATION);
+        if (duration < MIN_REGISTRATION_DURATION) {
+            revert DurationTooShort(duration);
+        }
     }
 
     function _setRecords(
-        address resolver,
+        address resolverAddress,
         bytes32 label,
         bytes[] calldata data
     ) internal {
         // use hardcoded .eth namehash
         bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
-        for (uint256 i = 0; i < data.length; i++) {
-            // check first few bytes are namehash
-            bytes32 txNamehash = bytes32(data[i][4:36]);
-            require(
-                txNamehash == nodehash,
-                "ETHRegistrarController: Namehash on record do not match the name being registered"
-            );
-            resolver.functionCall(
-                data[i],
-                "ETHRegistrarController: Failed to set Record"
-            );
-        }
+        Resolver resolver = Resolver(resolverAddress);
+        resolver.multicallWithNodeCheck(nodehash, data);
     }
 
     function _setReverseRecord(

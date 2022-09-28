@@ -121,8 +121,8 @@ task('save', 'Saves a specified contract as a deployed contract')
   )
 
 let real_accounts = undefined
-if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY]
+if (process.env.DEPLOYER_KEY) {
+  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
 }
 
 const config: HardhatUserConfig = {
@@ -161,7 +161,7 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.15',
+        version: '0.8.17',
         settings: {
           optimizer: {
             enabled: true,
@@ -194,6 +194,8 @@ const config: HardhatUserConfig = {
     },
     owner: {
       default: 1,
+      goerli: 0,
+      ropsten: 0,
     },
   },
   external: {

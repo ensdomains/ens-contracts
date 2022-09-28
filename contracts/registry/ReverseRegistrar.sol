@@ -20,6 +20,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     NameResolver public defaultResolver;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
+    event DefaultResolverChanged(NameResolver indexed resolver);
 
     /**
      * @dev Constructor
@@ -54,6 +55,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
             "ReverseRegistrar: Resolver address must not be 0"
         );
         defaultResolver = NameResolver(resolver);
+        emit DefaultResolverChanged(NameResolver(resolver));
     }
 
     /**
@@ -71,6 +73,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      *      calling account.
      * @param addr The reverse record to set
      * @param owner The address to set as the owner of the reverse record in ENS.
+     * @param resolver The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
     function claimForAddr(
@@ -121,11 +124,11 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
 
     /**
      * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the account provided. First updates the resolver to the default reverse
-     * resolver if necessary.
+     * the account provided. Updates the resolver to a designated resolver
      * Only callable by controllers and authorised users
      * @param addr The reverse record to set
      * @param owner The owner of the reverse node
+     * @param resolver The resolver of the reverse node
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */

@@ -8,7 +8,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, owner } = await getNamedAccounts()
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
-  const priceOracle = await ethers.getContract('StablePriceOracle')
+  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
 
   await deploy('LegacyETHRegistrarController', {
@@ -46,10 +46,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     deletePreviousDeployments: false,
     resetMemory: false,
   })
+
+  return true
 }
 
 func.id = 'legacy-controller'
-func.tags = ['ethregistrar', 'LegacyETHRegistrarController']
+func.tags = ['LegacyETHRegistrarController']
 func.dependencies = ['registry', 'wrapper', 'LegacyPublicResolver']
 
 export default func
