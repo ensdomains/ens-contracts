@@ -88,6 +88,12 @@ contract NameWrapper is
 
     /* ERC1155 Fuse */
 
+    /**
+     * @notice Gets the owner of a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return owner The owner of the name
+     */
+
     function ownerOf(uint256 id)
         public
         view
