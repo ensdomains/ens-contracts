@@ -86,6 +86,44 @@ contract NameWrapper is
             super.supportsInterface(interfaceId);
     }
 
+    /* ERC1155 Fuse */
+
+    /**
+     * @notice Gets the owner of a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return owner The owner of the name
+     */
+
+    function ownerOf(uint256 id)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (address owner)
+    {
+        return super.ownerOf(id);
+    }
+
+    /**
+     * @notice Gets the data for a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return address The owner of the name
+     * @return uint32 Fuses of the name
+     * @return uint64 Expiry of when the fuses expire for the name
+     */
+
+    function getData(uint256 id)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (
+            address,
+            uint32,
+            uint64
+        )
+    {
+        return super.getData(id);
+    }
+
     /* Metadata service */
 
     /**
@@ -251,21 +289,6 @@ contract NameWrapper is
         expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
 
         _setData(node, owner, oldFuses | fuses | PARENT_CANNOT_CONTROL, expiry);
-    }
-
-    /**
-     * @dev Returns the owner of the ERC1155 token
-     *
-     * @param tokenId The hash of the label to register (eg, `keccak256('foo')`, for 'foo.eth').
-     * @return expires The expiry date of the name, in seconds since the Unix epoch.
-     */
-    function ownerOf(uint256 tokenId)
-        public
-        view
-        override(ERC1155Fuse, INameWrapper)
-        returns (address)
-    {
-        return super.ownerOf(tokenId);
     }
 
     /**

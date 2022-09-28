@@ -62,7 +62,11 @@ contract SubdomainRegistrar is ERC1155Holder {
     }
 
     function available(bytes32 node) public returns (bool) {
-        try wrapper.getFuses(node) returns (uint32, uint64 expiry) {
+        try wrapper.getData(uint256(node)) returns (
+            address,
+            uint32,
+            uint64 expiry
+        ) {
             return expiry < block.timestamp;
         } catch {
             return true;
@@ -207,7 +211,11 @@ contract SubdomainRegistrar is ERC1155Holder {
     /* Internal Functions */
 
     function _checkParent(bytes32 node, uint256 duration) internal {
-        try wrapper.getFuses(node) returns (uint32, uint64 expiry) {
+        try wrapper.getData(uint256(node)) returns (
+            address,
+            uint32,
+            uint64 expiry
+        ) {
             if (expiry < block.timestamp) {
                 revert ParentExpired(node);
             }
@@ -267,7 +275,7 @@ contract SubdomainRegistrar is ERC1155Holder {
         uint64 duration
     ) internal returns (uint64 newExpiry) {
         bytes32 node = _makeNode(parentNode, labelhash);
-        (, uint64 expiry) = wrapper.getFuses(node);
+        (, , uint64 expiry) = wrapper.getData(uint256(node));
         if (expiry < block.timestamp) {
             revert NameNotRegistered();
         }
