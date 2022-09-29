@@ -11,12 +11,12 @@ function computeInterfaceId(iface: Interface) {
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
-  const { deploy, fetchIfDifferent } = deployments
+  const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
-  const registry = await ethers.getContract('ENSRegistry')
-  const registrar = await ethers.getContract('BaseRegistrarImplementation')
-  const metadata = await ethers.getContract('StaticMetadataService')
+  const registry = await ethers.getContract('ENSRegistry', owner)
+  const registrar = await ethers.getContract('BaseRegistrarImplementation', owner)
+  const metadata = await ethers.getContract('StaticMetadataService', owner)
 
   const deployArgs = {
     from: deployer,
@@ -27,16 +27,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const nameWrapper = await deploy('NameWrapper', deployArgs)
   if(!nameWrapper.newlyDeployed) return;
 
+  if(owner !== deployer) {
+    const wrapper = await ethers.getContract('NameWrapper', deployer);
+    const tx = await wrapper.transferOwnership(owner);
+    console.log(`Transferring ownership of NameWrapper to ${owner} (tx: ${tx.hash})...`);
+    await tx.wait();
+  }
+
   // Only attempt to make controller etc changes directly on testnets
   if(network.name === 'mainnet') return;
 
-  const tx = await registrar.addController(nameWrapper.address, {
-    from: owner,
-  })
+  const tx2 = await registrar.addController(nameWrapper.address);
   console.log(
-    `Adding NameWrapper as controller on registrar (tx: ${tx.hash})...`,
+    `Adding NameWrapper as controller on registrar (tx: ${tx2.hash})...`,
   )
-  await tx.wait()
+  await tx2.wait()
 
   const artifact = await deployments.getArtifact("NameWrapper");
   const interfaceId = computeInterfaceId(new Interface(artifact.abi));
@@ -47,11 +52,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     return;
   }
   const resolverContract = await ethers.getContractAt('PublicResolver', resolver.address);
-  const tx2 = await resolverContract.setInterface(ethers.utils.namehash('eth'), interfaceId, nameWrapper.address);
+  const tx3 = await resolverContract.setInterface(ethers.utils.namehash('eth'), interfaceId, nameWrapper.address);
   console.log(
-    `Setting NameWrapper interface ID ${interfaceId} on .eth resolver (tx: ${tx2.hash})...`
+    `Setting NameWrapper interface ID ${interfaceId} on .eth resolver (tx: ${tx3.hash})...`
   )
-  await tx2.wait()
+  await tx3.wait()
 }
 
 func.id = 'name-wrapper'

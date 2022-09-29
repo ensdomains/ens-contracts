@@ -192,8 +192,6 @@ const config: HardhatUserConfig = {
     },
     owner: {
       default: 1,
-      goerli: 0,
-      ropsten: 0,
     },
   },
   external: {
