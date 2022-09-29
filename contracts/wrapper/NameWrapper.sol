@@ -86,7 +86,13 @@ contract NameWrapper is
             super.supportsInterface(interfaceId);
     }
 
-    /* ERC1155 */
+    /* ERC1155 Fuse */
+
+    /**
+     * @notice Gets the owner of a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return owner The owner of the name
+     */
 
     function ownerOf(uint256 id)
         public
@@ -95,6 +101,27 @@ contract NameWrapper is
         returns (address owner)
     {
         return super.ownerOf(id);
+    }
+
+    /**
+     * @notice Gets the data for a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return address The owner of the name
+     * @return uint32 Fuses of the name
+     * @return uint64 Expiry of when the fuses expire for the name
+     */
+
+    function getData(uint256 id)
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (
+            address,
+            uint32,
+            uint64
+        )
+    {
+        return super.getData(id);
     }
 
     /* Metadata service */

@@ -124,6 +124,14 @@ interface INameWrapper is IERC1155 {
 
     function ownerOf(uint256 id) external returns (address owner);
 
+    function getData(uint256 id)
+        external
+        returns (
+            address,
+            uint32,
+            uint64
+        );
+
     function allFusesBurned(bytes32 node, uint32 fuseMask)
         external
         view
