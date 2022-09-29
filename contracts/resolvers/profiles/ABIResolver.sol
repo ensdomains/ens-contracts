@@ -5,7 +5,7 @@ import "./IABIResolver.sol";
 import "../ResolverBase.sol";
 
 abstract contract ABIResolver is IABIResolver, ResolverBase {
-    mapping(bytes32 => mapping(uint256 => bytes)) abis;
+    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_abis;
 
     /**
      * Sets the ABI associated with an ENS node.
@@ -23,7 +23,7 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         // Content types must be powers of 2
         require(((contentType - 1) & contentType) == 0);
 
-        abis[node][contentType] = data;
+        versionable_abis[recordVersions[node]][node][contentType] = data;
         emit ABIChanged(node, contentType);
     }
 
@@ -42,7 +42,9 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         override
         returns (uint256, bytes memory)
     {
-        mapping(uint256 => bytes) storage abiset = abis[node];
+        mapping(uint256 => bytes) storage abiset = versionable_abis[
+            recordVersions[node]
+        ][node];
 
         for (
             uint256 contentType = 1;

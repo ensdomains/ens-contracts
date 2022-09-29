@@ -10,7 +10,7 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         bytes32 y;
     }
 
-    mapping(bytes32 => PublicKey) pubkeys;
+    mapping(uint64 => mapping(bytes32 => PublicKey)) versionable_pubkeys;
 
     /**
      * Sets the SECP256k1 public key associated with an ENS node.
@@ -23,7 +23,7 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         bytes32 x,
         bytes32 y
     ) external virtual authorised(node) {
-        pubkeys[node] = PublicKey(x, y);
+        versionable_pubkeys[recordVersions[node]][node] = PublicKey(x, y);
         emit PubkeyChanged(node, x, y);
     }
 
@@ -41,7 +41,11 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         override
         returns (bytes32 x, bytes32 y)
     {
-        return (pubkeys[node].x, pubkeys[node].y);
+        uint64 currentRecordVersion = recordVersions[node];
+        return (
+            versionable_pubkeys[currentRecordVersion][node].x,
+            versionable_pubkeys[currentRecordVersion][node].y
+        );
     }
 
     function supportsInterface(bytes4 interfaceID)

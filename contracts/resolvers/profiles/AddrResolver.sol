@@ -12,7 +12,7 @@ abstract contract AddrResolver is
 {
     uint256 private constant COIN_TYPE_ETH = 60;
 
-    mapping(bytes32 => mapping(uint256 => bytes)) _addresses;
+    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
 
     /**
      * Sets the address associated with an ENS node.
@@ -56,7 +56,7 @@ abstract contract AddrResolver is
         if (coinType == COIN_TYPE_ETH) {
             emit AddrChanged(node, bytesToAddress(a));
         }
-        _addresses[node][coinType] = a;
+        versionable_addresses[recordVersions[node]][node][coinType] = a;
     }
 
     function addr(bytes32 node, uint256 coinType)
@@ -66,7 +66,7 @@ abstract contract AddrResolver is
         override
         returns (bytes memory)
     {
-        return _addresses[node][coinType];
+        return versionable_addresses[recordVersions[node]][node][coinType];
     }
 
     function supportsInterface(bytes4 interfaceID)
