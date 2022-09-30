@@ -239,23 +239,13 @@ contract ETHRegistrarController is
         uint64 wrapperExpiry
     ) internal {
         bytes32 labelhash = keccak256(bytes(name));
-        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
         uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
         if (msg.value < price.base) {
             revert InsufficientValue();
         }
         uint256 expires;
-        if (nameWrapper.isWrapped(nodehash)) {
-            expires = nameWrapper.renew(
-                tokenId,
-                duration,
-                fuses,
-                wrapperExpiry
-            );
-        } else {
-            expires = base.renew(tokenId, duration);
-        }
+        expires = nameWrapper.renew(tokenId, duration, fuses, wrapperExpiry);
 
         if (msg.value > price.base) {
             payable(msg.sender).transfer(msg.value - price.base);
