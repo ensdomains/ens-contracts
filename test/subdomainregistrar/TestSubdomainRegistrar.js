@@ -4,7 +4,10 @@ const { use, expect } = require('chai')
 const { solidity } = require('ethereum-waffle')
 const n = require('eth-ens-namehash')
 const namehash = n.hash
+const { FUSES } = require('../test-utils/ens')
 const { deploy } = require('../test-utils/contracts')
+
+const { CANNOT_UNWRAP } = FUSES
 
 use(solidity)
 
@@ -123,7 +126,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
