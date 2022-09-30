@@ -284,12 +284,19 @@ contract NameWrapper is
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
         expires = registrar.renew(tokenId, duration);
-        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
-            uint256(node)
-        );
-        expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
+        if (isWrapped(node)) {
+            (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
+                uint256(node)
+            );
+            expiry = _normaliseExpiry(expiry, oldExpiry, uint64(expires));
 
-        _setData(node, owner, oldFuses | fuses | PARENT_CANNOT_CONTROL, expiry);
+            _setData(
+                node,
+                owner,
+                oldFuses | fuses | PARENT_CANNOT_CONTROL,
+                expiry
+            );
+        }
     }
 
     /**
