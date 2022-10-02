@@ -4,13 +4,13 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
-  const { deploy, fetchIfDifferent } = deployments
-  const { deployer } = await getNamedAccounts()
+  const { deploy } = deployments
+  const { deployer, owner } = await getNamedAccounts()
 
-  const registry = await ethers.getContract('ENSRegistry')
-  const nameWrapper = await ethers.getContract('NameWrapper')
-  const controller = await ethers.getContract('ETHRegistrarController')
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
+  const registry = await ethers.getContract('ENSRegistry', owner)
+  const nameWrapper = await ethers.getContract('NameWrapper', owner)
+  const controller = await ethers.getContract('ETHRegistrarController', owner)
+  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
 
   const deployArgs = {
     from: deployer,
@@ -25,13 +25,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const publicResolver = await deploy('PublicResolver', deployArgs)
   if(!publicResolver.newlyDeployed) return;
 
-  const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address, {
-    from: deployer,
-  })
+  const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address)
   console.log(
     `Setting default resolver on ReverseRegistrar to PublicResolver (tx: ${tx.hash})...`,
   )
   await tx.wait()
+
+  const pr = await ethers.getContract('PublicResolver', owner);
+  const resolverHash = ethers.utils.namehash('resolver.eth');
+  const tx2 = await registry.setResolver(resolverHash, pr.address);
+  console.log(`Setting resolver for resolver.eth to PublicResolver (tx: ${tx2.hash})...`);
+  await tx2.wait();
+
+  const tx3 = await pr['setAddr(bytes32,address)'](resolverHash, pr.address);
+  console.log(`Setting address for resolver.eth to PublicResolver (tx: ${tx3.hash})...`);
+  await tx3.wait();
 }
 
 func.id = 'resolver'

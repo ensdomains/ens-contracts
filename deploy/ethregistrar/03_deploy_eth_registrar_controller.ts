@@ -12,12 +12,12 @@ function computeInterfaceId(iface: Interface) {
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy, fetchIfDifferent } = deployments
-  const { deployer } = await getNamedAccounts()
+  const { deployer, owner } = await getNamedAccounts()
 
-  const registrar = await ethers.getContract('BaseRegistrarImplementation')
-  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar')
-  const nameWrapper = await ethers.getContract('NameWrapper')
+  const registrar = await ethers.getContract('BaseRegistrarImplementation', owner)
+  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle', owner)
+  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
+  const nameWrapper = await ethers.getContract('NameWrapper', owner)
 
   const deployArgs = {
     from: deployer,
@@ -34,20 +34,23 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const controller = await deploy('ETHRegistrarController', deployArgs)
   if(!controller.newlyDeployed) return;
 
+  if(owner !== deployer) {
+    const c = await ethers.getContract('ETHRegistrarController', deployer);
+    const tx = await c.transferOwnership(owner);
+    console.log(`Transferring ownership of ETHRegistrarController to ${owner} (tx: ${tx.hash})...`);
+    await tx.wait();
+  }
+
   // Only attempt to make controller etc changes directly on testnets
   if(network.name === 'mainnet') return;
 
-  const tx1 = await nameWrapper.setController(controller.address, {
-    from: deployer,
-  })
+  const tx1 = await nameWrapper.setController(controller.address, true)
   console.log(
     `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${tx1.hash})...`,
   )
   await tx1.wait()
 
-  const tx2 = await reverseRegistrar.setController(controller.address, {
-    from: deployer,
-  })
+  const tx2 = await reverseRegistrar.setController(controller.address, true)
   console.log(
     `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${tx2.hash})...`,
   )
