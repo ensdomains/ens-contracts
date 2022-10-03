@@ -63,7 +63,7 @@ function encodeAnchors(anchors: any[]) {
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   const anchors = realAnchors.slice()
   let algorithms: Record<number, string> = {
@@ -113,10 +113,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['dnssec-oracle']
-func.dependencies = [
-  'dnssec-algorithms',
-  'dnssec-digests',
-  'dnssec-nsec3-digests',
-]
+func.dependencies = ['dnssec-algorithms', 'dnssec-digests']
 
 export default func

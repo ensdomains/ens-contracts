@@ -27,8 +27,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
 
-  const tx1 = await registrar.addController(owner, { from: deployer })
-  console.log(`Adding owner as controller to registrar (tx: ${tx1.hash})...`)
+  const tx1 = await registrar.transferOwnership(owner, { from: deployer })
+  console.log(`Transferring ownership of registrar to owner (tx: ${tx1.hash})...`)
   await tx1.wait()
 
   const tx2 = await root
