@@ -21,9 +21,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       reverseRegistrar.address,
     ],
     log: true,
-  };
+  }
   const publicResolver = await deploy('PublicResolver', deployArgs)
-  if(!publicResolver.newlyDeployed) return;
+  if (!publicResolver.newlyDeployed) return
 
   const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address)
   console.log(
@@ -31,19 +31,34 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await tx.wait()
 
-  const pr = await ethers.getContract('PublicResolver', owner);
-  const resolverHash = ethers.utils.namehash('resolver.eth');
-  const tx2 = await registry.setResolver(resolverHash, pr.address);
-  console.log(`Setting resolver for resolver.eth to PublicResolver (tx: ${tx2.hash})...`);
-  await tx2.wait();
+  if ((await registry.owner(ethers.utils.namehash('resolver.eth'))) === owner) {
+    const pr = await ethers.getContract('PublicResolver')
+    const resolverHash = ethers.utils.namehash('resolver.eth')
+    const tx2 = await registry.setResolver(resolverHash, pr.address)
+    console.log(
+      `Setting resolver for resolver.eth to PublicResolver (tx: ${tx2.hash})...`,
+    )
+    await tx2.wait()
 
-  const tx3 = await pr['setAddr(bytes32,address)'](resolverHash, pr.address);
-  console.log(`Setting address for resolver.eth to PublicResolver (tx: ${tx3.hash})...`);
-  await tx3.wait();
+    const tx3 = await pr['setAddr(bytes32,address)'](resolverHash, pr.address)
+    console.log(
+      `Setting address for resolver.eth to PublicResolver (tx: ${tx3.hash})...`,
+    )
+    await tx3.wait()
+  } else {
+    console.log(
+      'resolver.eth is not owned by the owner address, not setting resolver',
+    )
+  }
 }
 
 func.id = 'resolver'
 func.tags = ['resolvers', 'PublicResolver']
-func.dependencies = ['registry', 'ETHRegistrarController', 'NameWrapper', 'ReverseRegistrar']
+func.dependencies = [
+  'registry',
+  'ETHRegistrarController',
+  'NameWrapper',
+  'ReverseRegistrar',
+]
 
 export default func
