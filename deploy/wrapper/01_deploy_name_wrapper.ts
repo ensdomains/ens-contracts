@@ -16,18 +16,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
-  const registry = await ethers.getContract(
-    'ENSRegistry',
-    await ethers.getSigner(owner),
-  )
+  const registry = await ethers.getContract('ENSRegistry', owner)
   const registrar = await ethers.getContract(
     'BaseRegistrarImplementation',
-    await ethers.getSigner(owner),
+    owner,
   )
-  const metadata = await ethers.getContract(
-    'StaticMetadataService',
-    await ethers.getSigner(owner),
-  )
+  const metadata = await ethers.getContract('StaticMetadataService', owner)
 
   const deployArgs = {
     from: deployer,
@@ -39,9 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!nameWrapper.newlyDeployed) return
 
   if (owner !== deployer) {
-    console.log('OWNER IS NOT DEPLOYER')
     const wrapper = await ethers.getContract('NameWrapper', deployer)
-    console.log('WRAPPER OWNER', await wrapper.owner())
     const tx = await wrapper.transferOwnership(owner)
     console.log(
       `Transferring ownership of NameWrapper to ${owner} (tx: ${tx.hash})...`,

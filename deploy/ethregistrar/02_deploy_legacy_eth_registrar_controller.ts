@@ -9,13 +9,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const registrar = await ethers.getContract(
     'BaseRegistrarImplementation',
-    await ethers.getSigner(owner),
+    owner,
   )
   const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
-  const reverseRegistrar = await ethers.getContract(
-    'ReverseRegistrar',
-    await ethers.getSigner(owner),
-  )
+  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
 
   await deploy('LegacyETHRegistrarController', {
     from: deployer,
@@ -28,7 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const controller = await ethers.getContract(
     'LegacyETHRegistrarController',
-    await ethers.getSigner(owner),
+    owner,
   )
 
   const tx1 = await registrar.addController(controller.address)

@@ -18,20 +18,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const registrar = await ethers.getContract(
     'BaseRegistrarImplementation',
-    await ethers.getSigner(owner),
+    owner,
   )
   const priceOracle = await ethers.getContract(
     'ExponentialPremiumPriceOracle',
-    await ethers.getSigner(owner),
+    owner,
   )
-  const reverseRegistrar = await ethers.getContract(
-    'ReverseRegistrar',
-    await ethers.getSigner(owner),
-  )
-  const nameWrapper = await ethers.getContract(
-    'NameWrapper',
-    await ethers.getSigner(owner),
-  )
+  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
+  const nameWrapper = await ethers.getContract('NameWrapper', owner)
 
   const deployArgs = {
     from: deployer,
