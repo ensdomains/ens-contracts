@@ -197,7 +197,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -257,7 +257,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -278,14 +278,14 @@ describe('Subdomain registrar', () => {
         [],
       )
 
-      const [, expiry] = await NameWrapper.getFuses(
+      const [, , expiry] = await NameWrapper.getData(
         namehash('subname.test.eth'),
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
 
       await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
-      const [, expiry2] = await NameWrapper.getFuses(
+      const [, , expiry2] = await NameWrapper.getData(
         namehash('subname.test.eth'),
       )
       expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
@@ -297,7 +297,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -314,14 +314,14 @@ describe('Subdomain registrar', () => {
         [],
       )
 
-      const [, expiry] = await NameWrapper.getFuses(
+      const [, , expiry] = await NameWrapper.getData(
         namehash('subname.test.eth'),
       )
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
 
       await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
-      const [, expiry2] = await NameWrapper.getFuses(
+      const [, , expiry2] = await NameWrapper.getData(
         namehash('subname.test.eth'),
       )
 
@@ -372,7 +372,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -409,7 +409,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -453,7 +453,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -509,7 +509,7 @@ describe('Subdomain registrar', () => {
       await NameWrapper.wrapETH2LD(
         'test',
         account,
-        0,
+        CANNOT_UNWRAP,
         MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
@@ -550,8 +550,8 @@ describe('Subdomain registrar', () => {
         account2,
       )
 
-      const [, expiry] = await NameWrapper.getFuses(subNode)
-      const [, expiry2] = await NameWrapper.getFuses(subNode2)
+      const [, , expiry] = await NameWrapper.getData(subNode)
+      const [, , expiry2] = await NameWrapper.getData(subNode2)
 
       const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
 
@@ -566,8 +566,8 @@ describe('Subdomain registrar', () => {
         duration,
       )
 
-      const [, expiryAfter] = await NameWrapper.getFuses(subNode)
-      const [, expiryAfter2] = await NameWrapper.getFuses(subNode2)
+      const [, , expiryAfter] = await NameWrapper.getData(subNode)
+      const [, , expiryAfter2] = await NameWrapper.getData(subNode2)
 
       expect(expiryAfter).to.equal(expiry.add(duration))
       expect(expiryAfter2).to.equal(expiry2.add(duration))
