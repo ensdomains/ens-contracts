@@ -3,7 +3,7 @@
   "version": "0.0.9",
   "description": "ENS contracts",
   "scripts": {
-    "test": "hardhat test",
+    "test": "TS_NODE_TRANSPILE_ONLY=1 hardhat test",
     "test:local": "hardhat --network localhost test",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
