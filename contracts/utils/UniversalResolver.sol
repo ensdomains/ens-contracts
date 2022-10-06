@@ -19,6 +19,17 @@ error OffchainLookup(
     bytes extraData
 );
 
+struct MulticallData {
+    bytes name;
+    bytes[] data;
+    string[] gateways;
+    bytes4 callbackFunction;
+    address resolver;
+    bool shouldEncode;
+    bytes metaData;
+    bool[] failures;
+}
+
 struct OffchainLookupCallData {
     address sender;
     string[] urls;
@@ -33,7 +44,7 @@ struct OffchainLookupExtraData {
 interface BatchGateway {
     function query(OffchainLookupCallData[] memory data)
         external
-        returns (bytes[] memory responses);
+        returns (bool[] memory failures, bytes[] memory responses);
 }
 
 /**
@@ -151,13 +162,16 @@ contract UniversalResolver is ERC165, Ownable {
         } catch {}
 
         results = _multicall(
-            name,
-            data,
-            gateways,
-            callbackFunction,
-            resolverAddress,
-            hasExtendedResolver,
-            metaData
+            MulticallData(
+                name,
+                data,
+                gateways,
+                callbackFunction,
+                resolverAddress,
+                hasExtendedResolver,
+                metaData,
+                new bool[](data.length)
+            )
         );
     }
 
@@ -347,47 +361,50 @@ contract UniversalResolver is ERC165, Ownable {
             bytes memory
         )
     {
-        bytes[] memory responses = abi.decode(response, (bytes[]));
+        MulticallData memory multicallData;
+        multicallData.callbackFunction = callbackFunction;
+        bytes[] memory responses;
+        (multicallData.failures, responses) = abi.decode(
+            response,
+            (bool[], bytes[])
+        );
+        OffchainLookupExtraData[] memory extraDatas;
         (
-            address resolver,
-            string[] memory gateways,
-            bytes memory metaData,
-            OffchainLookupExtraData[] memory extraDatas
+            multicallData.resolver,
+            multicallData.gateways,
+            multicallData.metaData,
+            extraDatas
         ) = abi.decode(
-                extraData,
-                (address, string[], bytes, OffchainLookupExtraData[])
-            );
+            extraData,
+            (address, string[], bytes, OffchainLookupExtraData[])
+        );
         require(responses.length <= extraDatas.length);
-        bytes[] memory data = new bytes[](extraDatas.length);
+        multicallData.data = new bytes[](extraDatas.length);
 
         uint256 offchainCount = 0;
         for (uint256 i = 0; i < extraDatas.length; i++) {
             if (extraDatas[i].callbackFunction == bytes4(0)) {
                 // This call did not require an offchain lookup; use the previous input data.
-                data[i] = extraDatas[i].data;
+                multicallData.data[i] = extraDatas[i].data;
             } else {
-                // Encode the callback as another multicall
-                data[i] = abi.encodeWithSelector(
-                    extraDatas[i].callbackFunction,
-                    responses[offchainCount],
-                    extraDatas[i].data
-                );
+                if (multicallData.failures[i]) {
+                    multicallData.data[i] = responses[offchainCount];
+                } else {
+                    multicallData.data[i] = abi.encodeWithSelector(
+                        extraDatas[i].callbackFunction,
+                        responses[offchainCount],
+                        extraDatas[i].data
+                    );
+                }
                 offchainCount = offchainCount + 1;
             }
         }
+
         return (
-            _multicall(
-                new bytes(0),
-                data,
-                gateways,
-                callbackFunction,
-                resolver,
-                false,
-                metaData
-            ),
-            resolver,
-            gateways,
-            metaData
+            _multicall(multicallData),
+            multicallData.resolver,
+            multicallData.gateways,
+            multicallData.metaData
         );
     }
 
@@ -461,8 +478,6 @@ contract UniversalResolver is ERC165, Ownable {
                 }
             }
         }
-
-        LowLevelCallUtils.propagateRevert();
     }
 
     /**
@@ -503,35 +518,39 @@ contract UniversalResolver is ERC165, Ownable {
         return (parentresolver, node);
     }
 
-    function _multicall(
-        bytes memory name,
-        bytes[] memory data,
-        string[] memory gateways,
-        bytes4 callbackFunction,
-        address resolver,
-        bool shouldEncode,
-        bytes memory metaData
-    ) internal view returns (bytes[] memory results) {
-        uint256 length = data.length;
+    function _multicall(MulticallData memory multicallData)
+        internal
+        view
+        returns (bytes[] memory results)
+    {
+        uint256 length = multicallData.data.length;
         uint256 offchainCount = 0;
         OffchainLookupCallData[]
             memory callDatas = new OffchainLookupCallData[](length);
         OffchainLookupExtraData[]
             memory extraDatas = new OffchainLookupExtraData[](length);
         results = new bytes[](length);
-        bool shouldDecode = name.length == 0;
+        bool shouldDecode = multicallData.name.length == 0;
 
         for (uint256 i = 0; i < length; i++) {
-            bytes memory eData = data[i];
-            bytes memory item = data[i];
-            if (shouldEncode) {
-                item = abi.encodeCall(IExtendedResolver.resolve, (name, item));
+            bytes memory eData = multicallData.data[i];
+            bytes memory item = multicallData.data[i];
+            bool failure = multicallData.failures[i];
+            if (failure) {
+                results[i] = multicallData.data[i];
+                continue;
+            }
+            if (multicallData.shouldEncode) {
+                item = abi.encodeCall(
+                    IExtendedResolver.resolve,
+                    (multicallData.name, item)
+                );
             }
             (
                 bool offchain,
                 bytes memory returnData,
                 OffchainLookupExtraData memory extraData
-            ) = callWithOffchainLookupPropagation(resolver, item);
+            ) = callWithOffchainLookupPropagation(multicallData.resolver, item);
 
             if (offchain) {
                 callDatas[offchainCount] = abi.decode(
@@ -563,10 +582,15 @@ contract UniversalResolver is ERC165, Ownable {
 
         revert OffchainLookup(
             address(this),
-            gateways,
+            multicallData.gateways,
             abi.encodeWithSelector(BatchGateway.query.selector, callDatas),
-            callbackFunction,
-            abi.encode(resolver, gateways, metaData, extraDatas)
+            multicallData.callbackFunction,
+            abi.encode(
+                multicallData.resolver,
+                multicallData.gateways,
+                multicallData.metaData,
+                extraDatas
+            )
         );
     }
 }
