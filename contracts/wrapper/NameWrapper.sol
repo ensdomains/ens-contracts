@@ -537,14 +537,19 @@ contract NameWrapper is
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
-            _addLabelSetFusesAndTransfer(
-                parentNode,
-                node,
-                label,
-                owner,
-                fuses,
-                expiry
-            );
+            if (owner == address(0)) {
+                _burn(uint256(node));
+                ens.setSubnodeOwner(parentNode, labelhash, address(0));
+            } else {
+                _addLabelSetFusesAndTransfer(
+                    parentNode,
+                    node,
+                    label,
+                    owner,
+                    fuses,
+                    expiry
+                );
+            }
         }
     }
 
