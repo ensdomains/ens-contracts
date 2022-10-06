@@ -2,6 +2,7 @@
 pragma solidity >=0.8.17 <0.9.0;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -39,7 +40,7 @@ interface BatchGateway {
  * The Universal Resolver is a contract that handles the work of resolving a name entirely onchain,
  * making it possible to make a single smart contract call to resolve an ENS name.
  */
-contract UniversalResolver is ERC165 {
+contract UniversalResolver is ERC165, Ownable {
     using Address for address;
     using NameEncoder for string;
     using BytesUtils for bytes;
@@ -49,6 +50,10 @@ contract UniversalResolver is ERC165 {
 
     constructor(address _registry, string[] memory _urls) {
         registry = ENS(_registry);
+        batchGatewayURLs = _urls;
+    }
+
+    function setGatewayURLs(string[] memory _urls) public onlyOwner {
         batchGatewayURLs = _urls;
     }
 
