@@ -514,8 +514,10 @@ contract UniversalResolver is ERC165 {
         OffchainLookupExtraData[]
             memory extraDatas = new OffchainLookupExtraData[](length);
         results = new bytes[](length);
+        bool shouldDecode = name.length == 0;
 
         for (uint256 i = 0; i < length; i++) {
+            bytes memory eData = data[i];
             bytes memory item = data[i];
             if (shouldEncode) {
                 item = abi.encodeCall(IExtendedResolver.resolve, (name, item));
@@ -536,8 +538,13 @@ contract UniversalResolver is ERC165 {
                 continue;
             }
 
-            results[i] = abi.decode(returnData, (bytes));
-            extraDatas[i].data = data[i];
+            if (shouldDecode) {
+                results[i] = abi.decode(returnData, (bytes));
+            } else {
+                // if name is empty, this is a callback request so we should decode the result
+                results[i] = returnData;
+            }
+            extraDatas[i].data = eData;
         }
 
         if (offchainCount == 0) {
