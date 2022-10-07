@@ -546,14 +546,7 @@ contract NameWrapper is
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
-            _addLabelSetFusesAndDoTransfer(
-                parentNode,
-                node,
-                label,
-                owner,
-                fuses,
-                expiry
-            );
+            _updateName(parentNode, node, label, owner, fuses, expiry);
         }
     }
 
@@ -603,14 +596,7 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _addLabelSetFusesAndDoTransfer(
-                parentNode,
-                node,
-                label,
-                owner,
-                fuses,
-                expiry
-            );
+            _updateName(parentNode, node, label, owner, fuses, expiry);
         }
     }
 
@@ -864,7 +850,7 @@ contract NameWrapper is
         _burn(uint256(node));
     }
 
-    function _addLabelSetFusesAndDoTransfer(
+    function _updateName(
         bytes32 parentNode,
         bytes32 node,
         string memory label,
