@@ -348,6 +348,12 @@ contract NameWrapper is
         address registrant,
         address controller
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, labelhash)) {
+        if (controller == address(0x0)) {
+            revert IncorrectTargetOwner(controller);
+        }
+        if (registrant == address(this)) {
+            revert IncorrectTargetOwner(registrant);
+        }
         _unwrap(_makeNode(ETH_NODE, labelhash), controller);
         registrar.safeTransferFrom(
             address(this),
@@ -371,6 +377,9 @@ contract NameWrapper is
     ) public override onlyTokenOwner(_makeNode(parentNode, labelhash)) {
         if (parentNode == ETH_NODE) {
             revert IncompatibleParent();
+        }
+        if (controller == address(0x0) || controller == address(this)) {
+            revert IncorrectTargetOwner(controller);
         }
         _unwrap(_makeNode(parentNode, labelhash), controller);
     }
@@ -537,14 +546,7 @@ contract NameWrapper is
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
-            _addLabelSetFusesAndTransfer(
-                parentNode,
-                node,
-                label,
-                owner,
-                fuses,
-                expiry
-            );
+            _updateName(parentNode, node, label, owner, fuses, expiry);
         }
     }
 
@@ -594,14 +596,7 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _addLabelSetFusesAndTransfer(
-                parentNode,
-                node,
-                label,
-                owner,
-                fuses,
-                expiry
-            );
+            _updateName(parentNode, node, label, owner, fuses, expiry);
         }
     }
 
@@ -855,7 +850,7 @@ contract NameWrapper is
         _burn(uint256(node));
     }
 
-    function _addLabelSetFusesAndTransfer(
+    function _updateName(
         bytes32 parentNode,
         bytes32 node,
         string memory label,
@@ -869,7 +864,11 @@ contract NameWrapper is
             names[node] = name;
         }
         _setFuses(node, oldOwner, fuses, expiry);
-        _transfer(oldOwner, owner, uint256(node), 1, "");
+        if (owner == address(0)) {
+            _unwrap(node, address(0));
+        } else {
+            _transfer(oldOwner, owner, uint256(node), 1, "");
+        }
     }
 
     // wrapper function for stack limit
@@ -974,10 +973,6 @@ contract NameWrapper is
     }
 
     function _unwrap(bytes32 node, address owner) private {
-        if (owner == address(0x0) || owner == address(this)) {
-            revert IncorrectTargetOwner(owner);
-        }
-
         if (allFusesBurned(node, CANNOT_UNWRAP)) {
             revert OperationProhibited(node);
         }

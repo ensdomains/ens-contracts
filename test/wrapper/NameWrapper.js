@@ -3030,6 +3030,40 @@ describe('Name Wrapper', () => {
       )
     })
 
+    it('setting owner to 0 burns and unwraps', async () => {
+      const label = 'test'
+      const wrappedTokenId = namehash(label + '.eth')
+      const subLabel = 'sub'
+      const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      // Confirm that the name is wrapped
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      // NameWrapper.setSubnodeOwner to account2
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        0,
+        MAX_EXPIRY,
+      )
+
+      tx = await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        EMPTY_ADDRESS,
+        PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY,
+      )
+
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(subWrappedTokenId, EMPTY_ADDRESS)
+    })
+
     it('Unwrapping within an external contract does not create any state inconsistencies', async () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
@@ -3465,6 +3499,46 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(namehash(`sub.${label}.eth`))).to.equal(
         account2,
       )
+    })
+
+    it('setting owner to 0 burns and unwraps', async () => {
+      const label = 'test'
+      const wrappedTokenId = namehash(label + '.eth')
+      const subLabel = 'sub'
+      const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      // Confirm that the name is wrapped
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      // NameWrapper.setSubnodeOwner to account2
+      await NameWrapper.setSubnodeRecord(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        0,
+        MAX_EXPIRY,
+      )
+
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(account2)
+
+      const tx = await NameWrapper.setSubnodeRecord(
+        wrappedTokenId,
+        subLabel,
+        EMPTY_ADDRESS,
+        EMPTY_ADDRESS,
+        0,
+        PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY,
+      )
+
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(subWrappedTokenId, EMPTY_ADDRESS)
     })
 
     it('Unwrapping within an external contract does not create any state inconsistencies', async () => {
@@ -4489,7 +4563,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
       )
       expect(expiry).to.equal(expectedExpiry)
-    })    
+    })
   })
 
   describe('Controllable', () => {
