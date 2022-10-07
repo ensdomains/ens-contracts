@@ -247,7 +247,7 @@ contract UniversalResolver is ERC165, Ownable {
 
         bytes memory encodedCall = abi.encodeCall(IAddrResolver.addr, namehash);
         bytes memory metaData = abi.encode(
-            resolvedReverseData,
+            resolvedName,
             reverseResolverAddress
         );
         (bytes memory resolvedData, address resolverAddress) = this
@@ -272,7 +272,7 @@ contract UniversalResolver is ERC165, Ownable {
     function resolveSingleCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external virtual returns (bytes memory, address) {
+    ) external view returns (bytes memory, address) {
         (bytes[] memory results, address resolver, , ) = _resolveCallback(
             response,
             extraData,
@@ -283,7 +283,7 @@ contract UniversalResolver is ERC165, Ownable {
 
     function resolveCallback(bytes calldata response, bytes calldata extraData)
         external
-        virtual
+        view
         returns (bytes[] memory, address)
     {
         (bytes[] memory results, address resolver, , ) = _resolveCallback(
@@ -296,7 +296,7 @@ contract UniversalResolver is ERC165, Ownable {
 
     function reverseCallback(bytes calldata response, bytes calldata extraData)
         external
-        virtual
+        view
         returns (
             string memory,
             address,
@@ -353,7 +353,7 @@ contract UniversalResolver is ERC165, Ownable {
         bytes4 callbackFunction
     )
         internal
-        virtual
+        view
         returns (
             bytes[] memory,
             address,
@@ -563,9 +563,9 @@ contract UniversalResolver is ERC165, Ownable {
             }
 
             if (shouldDecode) {
+                // if name is empty, this is a callback request so we should decode the result
                 results[i] = abi.decode(returnData, (bytes));
             } else {
-                // if name is empty, this is a callback request so we should decode the result
                 results[i] = returnData;
             }
             extraDatas[i].data = eData;
