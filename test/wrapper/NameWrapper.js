@@ -3030,7 +3030,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Recalling with owner set to 0 burns the token', async () => {
+    it('setting owner to 0 burns and unwraps', async () => {
       const label = 'test'
       const wrappedTokenId = namehash(label + '.eth')
       const subLabel = 'sub'
@@ -3047,7 +3047,7 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
       )
 
-      await NameWrapper.setSubnodeOwner(
+      tx = await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         subLabel,
         EMPTY_ADDRESS,
@@ -3058,6 +3058,10 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(
         EMPTY_ADDRESS,
       )
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(subWrappedTokenId, EMPTY_ADDRESS)
     })
 
     it('Unwrapping within an external contract does not create any state inconsistencies', async () => {
@@ -3497,7 +3501,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('Recalling with owner set to 0 burns the token', async () => {
+    it('setting owner to 0 burns and unwraps', async () => {
       const label = 'test'
       const wrappedTokenId = namehash(label + '.eth')
       const subLabel = 'sub'
@@ -3518,7 +3522,7 @@ describe('Name Wrapper', () => {
 
       expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(account2)
 
-      await NameWrapper.setSubnodeRecord(
+      const tx = await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         subLabel,
         EMPTY_ADDRESS,
@@ -3531,6 +3535,10 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(
         EMPTY_ADDRESS,
       )
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(subWrappedTokenId, EMPTY_ADDRESS)
     })
 
     it('Unwrapping within an external contract does not create any state inconsistencies', async () => {
