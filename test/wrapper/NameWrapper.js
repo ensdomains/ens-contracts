@@ -3516,6 +3516,8 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
       )
 
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(account2)
+
       await NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         subLabel,
