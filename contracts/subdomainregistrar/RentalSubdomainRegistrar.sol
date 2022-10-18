@@ -24,7 +24,7 @@ struct Name {
     address beneficiary;
 }
 
-contract SubdomainRegistrar is ERC1155Holder {
+contract RentalSubdomainRegistrar is ERC1155Holder {
     INameWrapper public immutable wrapper;
     using Address for address;
 

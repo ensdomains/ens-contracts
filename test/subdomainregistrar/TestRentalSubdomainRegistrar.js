@@ -106,7 +106,10 @@ describe('Subdomain registrar', () => {
       BaseRegistrar.address,
     )
 
-    SubdomainRegistrar = await deploy('SubdomainRegistrar', NameWrapper.address)
+    SubdomainRegistrar = await deploy(
+      'RentalSubdomainRegistrar',
+      NameWrapper.address,
+    )
 
     SubdomainRegistrar2 = SubdomainRegistrar.connect(signers[1])
     SubdomainRegistrar3 = SubdomainRegistrar.connect(signers[2])
