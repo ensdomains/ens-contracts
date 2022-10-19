@@ -5,18 +5,7 @@ import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-
-error Unavailable();
-error Unauthorised(bytes32 node);
-error InsufficientFunds();
-error NameNotRegistered();
-error InvalidTokenAddress(address);
-error NameNotSetup(bytes32 node);
-error DataMissing();
-error ParentExpired(bytes32 node);
-error ParentNotWrapped(bytes32 node);
-error ParentWillHaveExpired(bytes32 node);
-error DurationTooLong(bytes32 node);
+import {BaseSubdomainRegistrar} from "./BaseSubdomainRegistrar.sol";
 
 struct Name {
     uint256 registrationFee; // per second
@@ -24,31 +13,12 @@ struct Name {
     address beneficiary;
 }
 
-contract RentalSubdomainRegistrar is ERC1155Holder {
+contract RentalSubdomainRegistrar is SubdomainRegistrar, ERC1155Holder {
     INameWrapper public immutable wrapper;
     using Address for address;
 
     mapping(bytes32 => Name) public names;
     mapping(bytes32 => uint256) public expiries;
-
-    event NameRegistered(bytes32 node, uint256 expiry);
-    event NameRenewed(bytes32 node, uint256 expiry);
-
-    constructor(INameWrapper _wrapper) {
-        wrapper = _wrapper;
-    }
-
-    modifier onlyOwner(bytes32 node) {
-        if (!wrapper.isTokenOwnerOrApproved(node, msg.sender)) {
-            revert Unauthorised(node);
-        }
-        _;
-    }
-
-    modifier canBeRegistered(bytes32 parentNode, uint64 duration) {
-        _checkParent(parentNode, duration);
-        _;
-    }
 
     function setupDomain(
         bytes32 node,
@@ -209,24 +179,6 @@ contract RentalSubdomainRegistrar is ERC1155Holder {
     }
 
     /* Internal Functions */
-
-    function _checkParent(bytes32 node, uint256 duration) internal {
-        try wrapper.getData(uint256(node)) returns (
-            address,
-            uint32,
-            uint64 expiry
-        ) {
-            if (expiry < block.timestamp) {
-                revert ParentExpired(node);
-            }
-
-            if (duration + block.timestamp > expiry) {
-                revert ParentWillHaveExpired(node);
-            }
-        } catch {
-            revert ParentNotWrapped(node);
-        }
-    }
 
     function _register(
         bytes32 parentNode,
