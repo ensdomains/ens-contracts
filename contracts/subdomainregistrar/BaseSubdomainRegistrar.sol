@@ -1,3 +1,5 @@
+//SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
 import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 
 error Unavailable();
@@ -12,12 +14,14 @@ error ParentNotWrapped(bytes32 node);
 error ParentWillHaveExpired(bytes32 node);
 error DurationTooLong(bytes32 node);
 
-contract BaseSubdomainRegistrar {
+abstract contract BaseSubdomainRegistrar {
+    INameWrapper public immutable wrapper;
+
     event NameRegistered(bytes32 node, uint256 expiry);
     event NameRenewed(bytes32 node, uint256 expiry);
 
-    constructor(INameWrapper _wrapper) {
-        wrapper = _wrapper;
+    constructor(address _wrapper) {
+        wrapper = INameWrapper(_wrapper);
     }
 
     modifier onlyOwner(bytes32 node) {

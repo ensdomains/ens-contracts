@@ -9,9 +9,11 @@ import fs from 'fs/promises'
 import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
-import { HardhatUserConfig, task } from 'hardhat/config'
+import { HardhatUserConfig, task, subtask } from 'hardhat/config'
 import { Artifact } from 'hardhat/types'
 import { promisify } from 'util'
+import path from 'path'
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names'
 
 const exec = promisify(_exec)
 
@@ -22,6 +24,17 @@ const archivedDeploymentPath = './deployments/archive'
 // that have already been set.
 // https://github.com/motdotla/dotenv
 dotenv.config({ debug: false })
+
+
+// Remove all Foundry test contracts from contract source files
+subtask(
+  TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS,
+  async (_, { config }, runSuper) => {
+    const sources = await runSuper();
+
+    return sources.filter((source: string) => !source.endsWith('.t.sol'));
+  }
+);
 
 task('accounts', 'Prints the list of accounts', async (_, hre) => {
   const accounts = await hre.ethers.getSigners()

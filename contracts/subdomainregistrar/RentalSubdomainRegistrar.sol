@@ -5,7 +5,7 @@ import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {BaseSubdomainRegistrar} from "./BaseSubdomainRegistrar.sol";
+import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 
 struct Name {
     uint256 registrationFee; // per second
@@ -13,12 +13,13 @@ struct Name {
     address beneficiary;
 }
 
-contract RentalSubdomainRegistrar is SubdomainRegistrar, ERC1155Holder {
-    INameWrapper public immutable wrapper;
+contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
     using Address for address;
 
     mapping(bytes32 => Name) public names;
     mapping(bytes32 => uint256) public expiries;
+
+    constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}
 
     function setupDomain(
         bytes32 node,

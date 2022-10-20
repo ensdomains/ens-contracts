@@ -146,10 +146,11 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         uint256 duration,
         bool updateRegistry
     ) internal live onlyController returns (uint256) {
-        require(available(id));
+        require(available(id), "here1");
         require(
             block.timestamp + duration + GRACE_PERIOD >
-                block.timestamp + GRACE_PERIOD
+                block.timestamp + GRACE_PERIOD,
+            "here"
         ); // Prevent future overflow
 
         expiries[id] = block.timestamp + duration;
