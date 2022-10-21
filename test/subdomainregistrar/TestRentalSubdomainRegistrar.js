@@ -205,7 +205,6 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      const fee = (await SubdomainRegistrar.names(node)).registrationFee
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(node, EMPTY_ADDRESS, 0, account)
       await SubdomainRegistrar2.register(
