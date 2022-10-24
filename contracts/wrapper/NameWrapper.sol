@@ -871,22 +871,6 @@ contract NameWrapper is
         return name;
     }
 
-    // function _saveLabelAndWrap(
-    //     bytes32 parentNode,
-    //     bytes32 node,
-    //     string memory label,
-    //     address owner,
-    //     uint32 fuses,
-    //     uint64 expiry
-    // ) internal {
-    //     bytes memory name = _saveLabel(
-    //         parentNode,
-    //         node,
-    //         label
-    //     );
-    //     _wrap(node, names[node], owner, fuses, expiry);
-    // }
-
     function _isDotEth(bytes memory name)
         internal
         pure
