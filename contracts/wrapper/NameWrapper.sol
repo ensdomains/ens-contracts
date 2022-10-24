@@ -128,24 +128,14 @@ contract NameWrapper is
         (address owner, uint32 fuses, uint64 expiry) = super.getData(id);
 
         bytes memory name = names[bytes32(id)];
+
         // if there was a way around the preimagedb, this could be an attack vector
+
         if (name.length == 0) {
             return super.getData(id);
         }
 
-        (bytes32 label, uint256 i) = name.readLabel(0);
-        bool isEth = false;
-
-        if (label != bytes32(0)) {
-            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
-
-            if (nextLabel != bytes32(0)) {
-                (bytes32 lastLabel, ) = name.readLabel(j);
-                if (lastLabel == bytes32(0) && nextLabel == ETH_LABELHASH) {
-                    isEth = true;
-                }
-            }
-        }
+        (bool isEth, bytes32 label) = _isDotEth(name);
 
         if (isEth) {
             uint256 expiry = registrar.nameExpires(uint256(label));
@@ -563,12 +553,12 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        _saveLabel(parentNode, node, label);
+        bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
         if (!isWrapped(node)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
+            _wrap(node, name, owner, fuses, expiry);
         } else {
             _addLabelSetFusesAndTransfer(
                 parentNode,
@@ -609,6 +599,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
         if (!isWrapped(node)) {
             ens.setSubnodeRecord(
@@ -896,6 +887,27 @@ contract NameWrapper is
     //     _wrap(node, names[node], owner, fuses, expiry);
     // }
 
+    function _isDotEth(bytes memory name)
+        internal
+        pure
+        returns (bool, bytes32)
+    {
+        (bytes32 label, uint256 i) = name.readLabel(0);
+
+        if (label != bytes32(0)) {
+            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
+
+            if (nextLabel != bytes32(0)) {
+                (bytes32 lastLabel, ) = name.readLabel(j);
+                if (lastLabel == bytes32(0) && nextLabel == ETH_LABELHASH) {
+                    return (true, label);
+                }
+            }
+        }
+
+        return (false, label);
+    }
+
     function _prepareUpgrade(bytes32 node)
         private
         returns (uint32 fuses, uint64 expiry)
@@ -1012,7 +1024,8 @@ contract NameWrapper is
         uint32 oldFuses;
 
         // hardcode dns-encoded eth string for gas savings
-        names[node] = _addLabel(label, "\x03eth\x00");
+        bytes memory name = _addLabel(label, "\x03eth\x00");
+        names[node] = name;
 
         (, oldFuses, ) = getData(uint256(node));
 
@@ -1022,14 +1035,8 @@ contract NameWrapper is
             expiry
         );
 
-        _addLabelAndWrap(
-            ETH_NODE,
-            node,
-            label,
-            wrappedOwner,
-            fuses | PARENT_CANNOT_CONTROL,
-            expiry
-        );
+        _wrap(node, name, wrappedOwner, fuses | PARENT_CANNOT_CONTROL, expiry);
+
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
