@@ -130,11 +130,13 @@ const config: HardhatUserConfig = {
     hardhat: {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
+      allowUnlimitedContractSize: true,
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
+      allowUnlimitedContractSize: true,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`,

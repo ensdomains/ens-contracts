@@ -4489,7 +4489,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
       )
       expect(expiry).to.equal(expectedExpiry)
-    })    
+    })
   })
 
   describe('Controllable', () => {

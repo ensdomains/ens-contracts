@@ -12,6 +12,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
+import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error NameNotFound();
@@ -41,6 +42,8 @@ contract NameWrapper is
 
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    bytes32 private constant ETH_LABELHASH =
+        0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0;
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
@@ -122,7 +125,36 @@ contract NameWrapper is
             uint64
         )
     {
-        return super.getData(id);
+        (address owner, uint32 fuses, uint64 expiry) = super.getData(id);
+
+        bytes memory name = names[bytes32(id)];
+        // if there was a way around the preimagedb, this could be an attack vector
+        if (name.length == 0) {
+            return super.getData(id);
+        }
+
+        (bytes32 label, uint256 i) = name.readLabel(0);
+        bool isEth = false;
+
+        if (label != bytes32(0)) {
+            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
+
+            if (nextLabel != bytes32(0)) {
+                (bytes32 lastLabel, ) = name.readLabel(j);
+                if (lastLabel == bytes32(0) && nextLabel == ETH_LABELHASH) {
+                    isEth = true;
+                }
+            }
+        }
+
+        if (isEth) {
+            uint256 expiry = registrar.nameExpires(uint256(label));
+            if (expiry < block.timestamp) {
+                owner = address(0);
+            }
+        }
+
+        return (owner, fuses, expiry);
     }
 
     /* Metadata service */
@@ -531,6 +563,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
         if (!isWrapped(node)) {
@@ -837,6 +870,32 @@ contract NameWrapper is
         _wrap(node, name, owner, fuses, expiry);
     }
 
+    function _saveLabel(
+        bytes32 parentNode,
+        bytes32 node,
+        string memory label
+    ) internal returns (bytes memory) {
+        bytes memory name = _addLabel(label, names[parentNode]);
+        names[node] = name;
+        return name;
+    }
+
+    // function _saveLabelAndWrap(
+    //     bytes32 parentNode,
+    //     bytes32 node,
+    //     string memory label,
+    //     address owner,
+    //     uint32 fuses,
+    //     uint64 expiry
+    // ) internal {
+    //     bytes memory name = _saveLabel(
+    //         parentNode,
+    //         node,
+    //         label
+    //     );
+    //     _wrap(node, names[node], owner, fuses, expiry);
+    // }
+
     function _prepareUpgrade(bytes32 node)
         private
         returns (uint32 fuses, uint64 expiry)
@@ -951,6 +1010,11 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
         uint32 oldFuses;
+
+        // hardcode dns-encoded eth string for gas savings
+        names[node] = _addLabel(label, "\x03eth\x00");
+
+        (, oldFuses, ) = getData(uint256(node));
 
         (, oldFuses, expiry) = _getETH2LDDataAndNormaliseExpiry(
             node,
