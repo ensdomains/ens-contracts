@@ -15,7 +15,8 @@ const FUSES = {
   CANNOT_SET_TTL: 16,
   CANNOT_CREATE_SUBDOMAIN: 32,
   PARENT_CANNOT_CONTROL: 64,
-  CAN_DO_EVERYTHING: 0
+  CAN_DO_EVERYTHING: 0,
+  IS_DOT_ETH: 128,
 }
 
 let MAX_EXPIRY = 2n ** 64n - 1n
@@ -25,5 +26,5 @@ module.exports = {
   namehash,
   encodeName,
   FUSES,
-  MAX_EXPIRY
+  MAX_EXPIRY,
 }

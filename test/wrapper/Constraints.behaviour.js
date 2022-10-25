@@ -28,6 +28,7 @@ const {
   CANNOT_SET_RESOLVER,
   PARENT_CANNOT_CONTROL,
   CAN_DO_EVERYTHING,
+  IS_DOT_ETH,
 } = FUSES
 
 const DAY = 84600
@@ -96,7 +97,7 @@ function shouldRespectConstraints(contracts, getSigners) {
       childExpiry: 0,
     })
     const [, parentFuses] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(CAN_DO_EVERYTHING)
     expect(childExpiry).to.equal(0)
@@ -113,7 +114,9 @@ function shouldRespectConstraints(contracts, getSigners) {
       childExpiry: 0,
     })
     const [, parentFuses] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(
+      CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+    )
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(CAN_DO_EVERYTHING)
     expect(childExpiry).to.equal(0)
@@ -155,7 +158,7 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     const [, parentFuses, parentExpiry] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(CAN_DO_EVERYTHING)
     expect(childExpiry).to.equal(parentExpiry - 86400)
@@ -171,7 +174,9 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     const [, parentFuses, parentExpiry] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(
+      CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+    )
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(CAN_DO_EVERYTHING)
     expect(childExpiry).to.equal(parentExpiry - 86400)
@@ -191,7 +196,9 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     const [, parentFuses, parentExpiry] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(
+      CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+    )
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(PARENT_CANNOT_CONTROL)
     expect(childExpiry).to.equal(parentExpiry - 86400)
@@ -211,7 +218,9 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     const [, parentFuses, parentExpiry] = await NameWrapper.getData(parentNode)
-    expect(parentFuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
+    expect(parentFuses).to.equal(
+      CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+    )
     const [, childFuses, childExpiry] = await NameWrapper.getData(childNode)
     expect(childFuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
     expect(childExpiry).to.equal(parentExpiry - 86400)

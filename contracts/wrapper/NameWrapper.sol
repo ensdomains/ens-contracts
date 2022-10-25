@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165, OperationProhibited} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -1009,7 +1009,13 @@ contract NameWrapper is
             expiry
         );
 
-        _wrap(node, name, wrappedOwner, fuses | PARENT_CANNOT_CONTROL, expiry);
+        _wrap(
+            node,
+            name,
+            wrappedOwner,
+            fuses | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+            expiry
+        );
 
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
@@ -1056,7 +1062,7 @@ contract NameWrapper is
 
     function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
         if (
-            fuses & ~PARENT_CANNOT_CONTROL != 0 &&
+            fuses & ~(PARENT_CANNOT_CONTROL | IS_DOT_ETH) != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=
             (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
         ) {

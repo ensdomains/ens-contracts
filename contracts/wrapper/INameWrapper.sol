@@ -13,6 +13,7 @@ uint32 constant CANNOT_SET_RESOLVER = 8;
 uint32 constant CANNOT_SET_TTL = 16;
 uint32 constant CANNOT_CREATE_SUBDOMAIN = 32;
 uint32 constant PARENT_CANNOT_CONTROL = 64;
+uint32 constant IS_DOT_ETH = 128;
 uint32 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
