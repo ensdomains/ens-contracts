@@ -124,35 +124,11 @@ contract NameWrapper is
     {
         (address owner, uint32 fuses, uint64 expiry) = super.getData(id);
 
-        bytes memory name = names[bytes32(id)];
-
-        // if there was a way around the preimagedb, this could be an attack vector
-
-        if (name.length == 0) {
-            return super.getData(id);
-        }
-
-        (bytes32 label, uint256 i) = name.readLabel(0);
-
-        if (label != bytes32(0)) {
-            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
-
-            if (nextLabel != bytes32(0)) {
-                (bytes32 lastLabel, ) = name.readLabel(j);
-                // ETH labelhash
-                if (
-                    lastLabel == bytes32(0) &&
-                    nextLabel ==
-                    bytes32(
-                        0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0
-                    )
-                ) {
-                    if (
-                        registrar.nameExpires(uint256(label)) < block.timestamp
-                    ) {
-                        owner = address(0);
-                    }
-                }
+        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+            bytes memory name = names[bytes32(id)];
+            (bytes32 label, ) = name.readLabel(0);
+            if (registrar.nameExpires(uint256(label)) < block.timestamp) {
+                owner = address(0);
             }
         }
 
