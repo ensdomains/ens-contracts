@@ -971,19 +971,16 @@ contract NameWrapper is
         // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
-        uint32 oldFuses;
 
         // hardcode dns-encoded eth string for gas savings
         bytes memory name = _addLabel(label, "\x03eth\x00");
         names[node] = name;
 
-        (, oldFuses, ) = getData(uint256(node));
-
-        (, oldFuses, expiry) = _getETH2LDDataAndNormaliseExpiry(
-            node,
-            labelhash,
-            expiry
-        );
+        // _getETH2LDDataAndNormaliseExpiry
+        (, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
+        uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+        // end _getETH2LDDataAndNormaliseExpiry
 
         _wrap(
             node,
