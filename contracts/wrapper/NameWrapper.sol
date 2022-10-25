@@ -12,12 +12,9 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
-import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
-error NameNotFound();
 error IncompatibleParent();
-error IncompatibleName(bytes name);
 error IncorrectTokenType();
 error LabelMismatch(bytes32 labelHash, bytes32 expectedLabelhash);
 error LabelTooShort();
@@ -135,12 +132,27 @@ contract NameWrapper is
             return super.getData(id);
         }
 
-        (bool isEth, bytes32 label) = _isDotEth(name);
+        (bytes32 label, uint256 i) = name.readLabel(0);
 
-        if (isEth) {
-            uint256 expiry = registrar.nameExpires(uint256(label));
-            if (expiry < block.timestamp) {
-                owner = address(0);
+        if (label != bytes32(0)) {
+            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
+
+            if (nextLabel != bytes32(0)) {
+                (bytes32 lastLabel, ) = name.readLabel(j);
+                // ETH labelhash
+                if (
+                    lastLabel == bytes32(0) &&
+                    nextLabel ==
+                    bytes32(
+                        0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0
+                    )
+                ) {
+                    if (
+                        registrar.nameExpires(uint256(label)) < block.timestamp
+                    ) {
+                        owner = address(0);
+                    }
+                }
             }
         }
 
@@ -871,27 +883,6 @@ contract NameWrapper is
         return name;
     }
 
-    function _isDotEth(bytes memory name)
-        internal
-        pure
-        returns (bool, bytes32)
-    {
-        (bytes32 label, uint256 i) = name.readLabel(0);
-
-        if (label != bytes32(0)) {
-            (bytes32 nextLabel, uint256 j) = name.readLabel(i);
-
-            if (nextLabel != bytes32(0)) {
-                (bytes32 lastLabel, ) = name.readLabel(j);
-                if (lastLabel == bytes32(0) && nextLabel == ETH_LABELHASH) {
-                    return (true, label);
-                }
-            }
-        }
-
-        return (false, label);
-    }
-
     function _prepareUpgrade(bytes32 node)
         private
         returns (uint32 fuses, uint64 expiry)
@@ -906,7 +897,6 @@ contract NameWrapper is
 
         (, fuses, expiry) = getData(uint256(node));
 
-        // burn token and fuse data
         _burn(uint256(node));
     }
 

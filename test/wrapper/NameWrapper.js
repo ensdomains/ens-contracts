@@ -3128,7 +3128,7 @@ describe('Name Wrapper', () => {
         subLabel,
         account2,
         PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY,
+        parentExpiry - DAY / 2,
       )
       // Confirm fuses are set
       const [, fusesBefore] = await NameWrapper.getData(subWrappedTokenId)
@@ -3139,17 +3139,17 @@ describe('Name Wrapper', () => {
       )
 
       expect(owner).to.equal(EMPTY_ADDRESS)
-      expect(expiry).to.equal(parentExpiry)
+      expect(expiry).to.equal(parentExpiry - DAY / 2)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
 
-      // Advance time so the name expires
-      await evm.advanceTime(DAY + 1)
+      // Advance time so the subdomain expires, but not the parent
+      await evm.advanceTime(DAY / 2 + 1)
       await evm.mine()
 
       const [, fusesAfter, expiryAfter] = await NameWrapper.getData(
         subWrappedTokenId,
       )
-      expect(expiryAfter).to.equal(parentExpiry)
+      expect(expiryAfter).to.equal(parentExpiry - DAY / 2)
       expect(fusesAfter).to.equal(0)
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
@@ -3581,7 +3581,7 @@ describe('Name Wrapper', () => {
         'sub',
         account2,
         PARENT_CANNOT_CONTROL,
-        MAX_EXPIRY,
+        parentExpiry - DAY / 2,
       )
       // Confirm fuses are set
       const [, fusesBefore] = await NameWrapper.getData(subWrappedTokenId)
@@ -3592,17 +3592,17 @@ describe('Name Wrapper', () => {
         subWrappedTokenId,
       )
       expect(owner).to.equal(EMPTY_ADDRESS)
-      expect(expiry).to.equal(parentExpiry)
+      expect(expiry).to.equal(parentExpiry - DAY / 2)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
 
-      // Advance time so the name expires
-      await evm.advanceTime(DAY + 1)
+      // Advance time so the subname expires, but not the parent
+      await evm.advanceTime(DAY / 2 + 1)
       await evm.mine()
 
       const [, fusesAfter, expiryAfter] = await NameWrapper.getData(
         subWrappedTokenId,
       )
-      expect(expiryAfter).to.equal(parentExpiry)
+      expect(expiryAfter).to.equal(parentExpiry - DAY / 2)
       expect(fusesAfter).to.equal(0)
 
       await NameWrapper.setSubnodeRecord(
