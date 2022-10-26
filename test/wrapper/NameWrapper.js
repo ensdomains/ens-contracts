@@ -2427,7 +2427,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('setChildFuses', () => {
+  describe('setChildFuses()', () => {
     const label = 'fuses'
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(`${label}.eth`)
@@ -2461,6 +2461,32 @@ describe('Name Wrapper', () => {
 
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(expectedExpiry)
+    })
+
+    it('does not allow parent owners to burn IS_DOT_ETH fuse', async () => {
+      await registerSetupAndWrapName(
+        'fuses',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+      )
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      let [, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.fuses.eth'),
+      )
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+          MAX_EXPIRY,
+        ),
+      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
     it('Allows accounts authorised by the parent node owner to set fuses/expiry', async () => {
@@ -2917,6 +2943,26 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
     })
 
+    it('Does not allow IS_DOT_ETH to be burned', async () => {
+      const label = 'subdomain2'
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await expect(
+        NameWrapper.setSubnodeOwner(
+          wrappedTokenId,
+          'sub',
+          account,
+          CANNOT_UNWRAP |
+            PARENT_CANNOT_CONTROL |
+            CANNOT_SET_RESOLVER |
+            IS_DOT_ETH,
+          MAX_EXPIRY,
+        ),
+      ).to.be.revertedWith(
+        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`,
+      )
+    })
+
     it('Does not allow fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL are burned, but the name is expired', async () => {
       const label = 'subdomain2'
       const wrappedTokenId = namehash(label + '.eth')
@@ -3368,6 +3414,26 @@ describe('Name Wrapper', () => {
       const [, fuses] = await NameWrapper.getData(namehash(`sub.${label}.eth`))
       expect(fuses).to.equal(
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
+      )
+    })
+
+    it('does not allow burning IS_DOT_ETH', async () => {
+      const label = 'subdomain3'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await expect(
+        NameWrapper.setSubnodeRecord(
+          wrappedTokenId,
+          'sub',
+          account,
+          resolver,
+          0,
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER | IS_DOT_ETH,
+          MAX_EXPIRY,
+        ),
+      ).to.be.revertedWith(
+        `OperationProhibited("${namehash(`sub.${label}.eth`)}")`,
       )
     })
 

@@ -480,6 +480,7 @@ contract NameWrapper is
         uint64 expiry
     ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
+        _checkDotEthFuse(node, fuses);
         (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
@@ -541,6 +542,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _checkDotEthFuse(node, fuses);
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
@@ -587,6 +589,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _checkDotEthFuse(node, fuses);
         _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
         if (!isWrapped(node)) {
@@ -1050,6 +1053,17 @@ contract NameWrapper is
         if (fuses & PARENT_CANNOT_CONTROL != 0) {
             // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
             revert Unauthorised(node, msg.sender);
+        }
+    }
+
+    function _checkDotEthFuse(bytes32 node, uint32 fuses)
+        internal
+        pure
+        returns (uint32)
+    {
+        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+            // Cannot directly burn IS_DOT_ETH fuse
+            revert OperationProhibited(node);
         }
     }
 }
