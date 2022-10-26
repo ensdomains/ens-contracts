@@ -12,6 +12,7 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
+import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error IncompatibleParent();
@@ -398,7 +399,7 @@ contract NameWrapper is
         operationAllowed(node, CANNOT_BURN_FUSES)
         returns (uint32)
     {
-        _checkForParentCannotControl(node, fuses);
+        _checkForParentControlledFuses(node, fuses);
 
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
@@ -1046,21 +1047,17 @@ contract NameWrapper is
         }
     }
 
-    function _checkForParentCannotControl(bytes32 node, uint32 fuses)
+    function _checkForParentControlledFuses(bytes32 node, uint32 fuses)
         internal
         view
     {
-        if (fuses & PARENT_CANNOT_CONTROL != 0) {
+        if (fuses & (uint32(type(uint8).max) << 24) != 0) {
             // Only the parent can burn the PARENT_CANNOT_CONTROL fuse.
             revert Unauthorised(node, msg.sender);
         }
     }
 
-    function _checkDotEthFuse(bytes32 node, uint32 fuses)
-        internal
-        pure
-        returns (uint32)
-    {
+    function _checkDotEthFuse(bytes32 node, uint32 fuses) internal pure {
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             // Cannot directly burn IS_DOT_ETH fuse
             revert OperationProhibited(node);

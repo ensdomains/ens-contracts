@@ -2020,6 +2020,35 @@ describe('Name Wrapper', () => {
       )
     })
 
+    it('cannot burn any parent controlled fuse', async () => {
+      await BaseRegistrar.register(labelhash('abc'), account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'abc',
+        account,
+        CANNOT_UNWRAP,
+        MAX_EXPIRY,
+        EMPTY_ADDRESS,
+      )
+
+      await NameWrapper.setSubnodeOwner(
+        namehash('abc.eth'),
+        'sub',
+        account,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY,
+      )
+
+      // check the 7 fuses above PCC
+      for (let i = 0; i < 7; i++) {
+        await expect(
+          NameWrapper.setFuses(namehash('sub.abc.eth'), IS_DOT_ETH * 2 ** i),
+        ).to.be.revertedWith(
+          `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`,
+        )
+      }
+    })
+
     it('Will not allow burning fuses if PARENT_CANNOT_CONTROL has not been burned', async () => {
       await BaseRegistrar.register(labelhash('abc'), account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
