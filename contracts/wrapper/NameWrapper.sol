@@ -579,23 +579,17 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
+        
+        ens.setSubnodeRecord(
+            parentNode,
+            labelhash,
+            address(this),
+            resolver,
+            ttl );
+            
         if (!isWrapped(node)) {
-            ens.setSubnodeRecord(
-                parentNode,
-                labelhash,
-                address(this),
-                resolver,
-                ttl
-            );
             _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
-            ens.setSubnodeRecord(
-                parentNode,
-                labelhash,
-                address(this),
-                resolver,
-                ttl
-            );
             _updateName(parentNode, node, label, owner, fuses, expiry);
         }
     }
