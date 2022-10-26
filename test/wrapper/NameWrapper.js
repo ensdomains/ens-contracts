@@ -2205,10 +2205,12 @@ describe('Name Wrapper', () => {
 
       // Each fuse is represented by the next bit, 64 is the next undefined fuse
 
-      await NameWrapper.setFuses(wrappedTokenId, 128)
+      await NameWrapper.setFuses(wrappedTokenId, 64)
 
       const [, fuses] = await NameWrapper.getData(wrappedTokenId)
-      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH | 64,
+      )
     })
 
     it('Logically ORs passed in fuses with already-burned fuses.', async () => {
@@ -2224,11 +2226,15 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS,
       )
 
-      await NameWrapper.setFuses(wrappedTokenId, 128 | CANNOT_TRANSFER)
+      await NameWrapper.setFuses(wrappedTokenId, 64 | CANNOT_TRANSFER)
 
       const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | 128 | CANNOT_TRANSFER,
+        CANNOT_UNWRAP |
+          PARENT_CANNOT_CONTROL |
+          IS_DOT_ETH |
+          64 |
+          CANNOT_TRANSFER,
       )
     })
 
