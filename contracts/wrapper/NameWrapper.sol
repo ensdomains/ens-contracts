@@ -128,9 +128,16 @@ contract NameWrapper is
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             bytes memory name = names[bytes32(id)];
             (bytes32 label, ) = name.readLabel(0);
-            if (registrar.nameExpires(uint256(label)) < block.timestamp) {
+            expiry = uint64(registrar.nameExpires(uint256(label)));
+        }
+
+        //  if PCC is burned, then allow the domain to expire
+        if (expiry < block.timestamp) {
+            if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
                 owner = address(0);
             }
+            // zero out fuses if expired
+            fuses = 0;
         }
 
         return (owner, fuses, expiry);
@@ -981,7 +988,7 @@ contract NameWrapper is
         names[node] = name;
 
         // _getETH2LDDataAndNormaliseExpiry
-        (, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
+        (, , uint64 oldExpiry) = getData(uint256(node));
         uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
         // end _getETH2LDDataAndNormaliseExpiry

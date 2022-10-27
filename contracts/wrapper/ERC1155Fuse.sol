@@ -142,11 +142,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint256 t = _tokens[tokenId];
         owner = address(uint160(t));
         expiry = uint64(t >> 192);
-        if (block.timestamp > expiry) {
-            fuses = 0;
-        } else {
-            fuses = uint32(t >> 160);
-        }
+        fuses = uint32(t >> 160);
     }
 
     /**
