@@ -13,8 +13,8 @@ uint32 constant CANNOT_SET_RESOLVER = 8;
 uint32 constant CANNOT_SET_TTL = 16;
 uint32 constant CANNOT_CREATE_SUBDOMAIN = 32;
 //uint8 reserved for parent controlled fuses
-uint32 constant PARENT_CANNOT_CONTROL = 16777216;
-uint32 constant IS_DOT_ETH = 33554432;
+uint32 constant PARENT_CANNOT_CONTROL = 2**16;
+uint32 constant IS_DOT_ETH = 2**17;
 uint32 constant CAN_DO_EVERYTHING = 0;
 
 interface INameWrapper is IERC1155 {
@@ -48,7 +48,6 @@ interface INameWrapper is IERC1155 {
         string calldata label,
         address wrappedOwner,
         uint32 fuses,
-        uint64 _expiry,
         address resolver
     ) external returns (uint64 expiry);
 
@@ -57,15 +56,13 @@ interface INameWrapper is IERC1155 {
         address wrappedOwner,
         uint256 duration,
         address resolver,
-        uint32 fuses,
-        uint64 expiry
+        uint32 fuses
     ) external returns (uint256 registrarExpiry);
 
     function renew(
         uint256 labelHash,
         uint256 duration,
-        uint32 fuses,
-        uint64 expiry
+        uint32 fuses
     ) external returns (uint256 expires);
 
     function unwrap(

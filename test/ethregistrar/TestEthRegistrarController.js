@@ -50,7 +50,6 @@ contract('ETHRegistrarController', function () {
       [],
       false,
       0,
-      MAX_EXPIRY,
     )
     var tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
@@ -68,7 +67,6 @@ contract('ETHRegistrarController', function () {
       [],
       false,
       0,
-      MAX_EXPIRY,
       txOptions,
     )
 
@@ -300,7 +298,6 @@ contract('ETHRegistrarController', function () {
         callData,
         false,
         0,
-        0,
       ),
     ).to.be.revertedWith('ResolverRequiredWhenDataSupplied()')
   })
@@ -314,7 +311,6 @@ contract('ETHRegistrarController', function () {
       registrantAccount,
       callData,
       false,
-      0,
       0,
     )
 
@@ -334,7 +330,6 @@ contract('ETHRegistrarController', function () {
         callData,
         false,
         0,
-        0,
         { value: BUFFERED_REGISTRATION_COST },
       ),
     ).to.be.reverted
@@ -349,7 +344,6 @@ contract('ETHRegistrarController', function () {
       controller.address,
       callData,
       false,
-      0,
       0,
     )
 
@@ -368,7 +362,6 @@ contract('ETHRegistrarController', function () {
         controller.address,
         callData,
         false,
-        0,
         0,
         { value: BUFFERED_REGISTRATION_COST },
       ),
@@ -391,7 +384,6 @@ contract('ETHRegistrarController', function () {
         ]),
       ],
       false,
-      0,
       0,
     )
     const tx = await controller2.commit(commitment)
@@ -485,7 +477,6 @@ contract('ETHRegistrarController', function () {
       [],
       false,
       0,
-      0,
     )
     let tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
@@ -502,7 +493,6 @@ contract('ETHRegistrarController', function () {
       resolver.address,
       [],
       false,
-      0,
       0,
       { value: BUFFERED_REGISTRATION_COST },
     )
@@ -539,7 +529,6 @@ contract('ETHRegistrarController', function () {
         [],
         false,
         0,
-        0,
       ),
     )
 
@@ -553,7 +542,6 @@ contract('ETHRegistrarController', function () {
         NULL_ADDRESS,
         [],
         false,
-        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -575,7 +563,6 @@ contract('ETHRegistrarController', function () {
         [],
         false,
         0,
-        0,
       ),
     )
 
@@ -589,7 +576,6 @@ contract('ETHRegistrarController', function () {
         NULL_ADDRESS,
         [],
         false,
-        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -608,7 +594,6 @@ contract('ETHRegistrarController', function () {
       [],
       false,
       0,
-      0,
     )
     await controller.commit(commitment)
 
@@ -622,7 +607,6 @@ contract('ETHRegistrarController', function () {
         NULL_ADDRESS,
         [],
         false,
-        0,
         0,
         {
           value: BUFFERED_REGISTRATION_COST,
@@ -692,7 +676,6 @@ contract('ETHRegistrarController', function () {
         'newname',
         duration,
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        expires.toNumber() + duration,
         { value: price },
       ),
     ).to.be.revertedWith(`Unauthorised("${namehash('newname.eth')}")`)
@@ -741,7 +724,6 @@ contract('ETHRegistrarController', function () {
       [],
       true,
       0,
-      0,
     )
     await controller.commit(commitment)
 
@@ -754,7 +736,6 @@ contract('ETHRegistrarController', function () {
       resolver.address,
       [],
       true,
-      0,
       0,
       { value: BUFFERED_REGISTRATION_COST },
     )
@@ -774,7 +755,6 @@ contract('ETHRegistrarController', function () {
       [],
       false,
       0,
-      0,
     )
     await controller.commit(commitment)
 
@@ -787,7 +767,6 @@ contract('ETHRegistrarController', function () {
       resolver.address,
       [],
       false,
-      0,
       0,
       { value: BUFFERED_REGISTRATION_COST },
     )
@@ -807,7 +786,6 @@ contract('ETHRegistrarController', function () {
       [],
       true,
       0,
-      0,
     )
     await controller.commit(commitment)
 
@@ -820,7 +798,6 @@ contract('ETHRegistrarController', function () {
       resolver.address,
       [],
       true,
-      0,
       0,
       { value: BUFFERED_REGISTRATION_COST },
     )
@@ -848,7 +825,6 @@ contract('ETHRegistrarController', function () {
       [],
       true,
       1,
-      MAX_INT_64,
     )
     await controller.commit(commitment)
 
@@ -862,7 +838,6 @@ contract('ETHRegistrarController', function () {
       [],
       true,
       1,
-      MAX_INT_64, // max number for uint64, but wrapper expiry is block.timestamp + REGISTRATION_TIME
       { value: BUFFERED_REGISTRATION_COST },
     )
 
@@ -891,7 +866,6 @@ contract('ETHRegistrarController', function () {
       ],
       true,
       1,
-      0,
     )
 
     await controller.commit(commitment)
@@ -986,7 +960,6 @@ contract('ETHRegistrarController', function () {
       callData,
       false,
       0,
-      0,
     )
     var tx = await controller.commit(commitment)
     expect(await controller.commitments(commitment)).to.equal(
@@ -1002,7 +975,6 @@ contract('ETHRegistrarController', function () {
         baseRegistrar.address,
         callData,
         false,
-        0,
         0,
         { value: BUFFERED_REGISTRATION_COST },
       ),

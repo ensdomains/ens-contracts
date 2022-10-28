@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
+import "hardhat/console.sol";
+
 /* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
 
 error OperationProhibited(bytes32 node);
@@ -245,6 +247,9 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             uint256(node)
         );
 
+        uint32 parentControlledFuses = (uint32(type(uint16).max) << 16) &
+            oldFuses;
+
         if (oldExpiry > expiry) {
             expiry = oldExpiry;
         }
@@ -256,7 +261,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             "ERC1155: newOwner cannot be the NameWrapper contract"
         );
 
-        _setData(tokenId, owner, fuses | oldFuses, expiry);
+        _setData(tokenId, owner, fuses | parentControlledFuses, expiry);
         emit TransferSingle(msg.sender, address(0x0), owner, tokenId, 1);
         _doSafeTransferAcceptanceCheck(
             msg.sender,

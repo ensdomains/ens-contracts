@@ -73,7 +73,6 @@ function shouldRespectConstraints(contracts, getSigners) {
       parentLabel,
       account,
       parentFuses,
-      MAX_EXPIRY,
       EMPTY_ADDRESS,
     )
 
@@ -135,7 +134,6 @@ function shouldRespectConstraints(contracts, getSigners) {
       parentLabel,
       account,
       parentFuses,
-      MAX_EXPIRY,
       EMPTY_ADDRESS,
     )
 
@@ -813,7 +811,6 @@ function shouldRespectConstraints(contracts, getSigners) {
         'test1',
         account,
         CANNOT_UNWRAP, // Parent's CU is burned
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
 
