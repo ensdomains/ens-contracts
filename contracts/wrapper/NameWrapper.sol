@@ -12,7 +12,6 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
-import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error IncompatibleParent();
@@ -131,7 +130,7 @@ contract NameWrapper is
             expiry = uint64(registrar.nameExpires(uint256(label)));
         }
 
-        //  if PCC is burned, then allow the domain to expire
+        //  if PCC is burned, then zero out the owner when expired
         if (expiry < block.timestamp) {
             if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
                 owner = address(0);
