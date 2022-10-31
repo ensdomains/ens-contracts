@@ -632,9 +632,14 @@ contract NameWrapper is
             CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
         )
     {
-        ens.setRecord(node, address(this), resolver, ttl);
-        (address oldOwner, , ) = getData(uint256(node));
-        _transfer(oldOwner, owner, uint256(node), 1, "");
+        if (owner == address(0)) {
+            ens.setRecord(node, address(this), resolver, ttl);
+            _unwrap(node, address(0));
+        } else {
+            ens.setRecord(node, address(this), resolver, ttl);
+            (address oldOwner, , ) = getData(uint256(node));
+            _transfer(oldOwner, owner, uint256(node), 1, "");
+        }
     }
 
     /**
