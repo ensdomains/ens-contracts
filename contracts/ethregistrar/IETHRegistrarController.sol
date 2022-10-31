@@ -6,6 +6,7 @@ import "./IPriceOracle.sol";
 interface IETHRegistrarController {
     function rentPrice(string memory, uint256)
         external
+        view
         returns (IPriceOracle.Price memory);
 
     function available(string memory) external returns (bool);
@@ -19,7 +20,7 @@ interface IETHRegistrarController {
         bytes[] calldata,
         bool,
         uint32
-    ) external returns (bytes32);
+    ) external pure returns (bytes32);
 
     function commit(bytes32) external;
 
