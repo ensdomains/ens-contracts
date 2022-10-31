@@ -3,13 +3,14 @@
   "version": "0.0.13",
   "description": "ENS contracts",
   "scripts": {
-    "test": "hardhat test",
+    "test": "TS_NODE_TRANSPILE_ONLY=1 hardhat test",
     "test:local": "hardhat --network localhost test",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public"
   },
+  "postinstall": "typechain",
   "files": [
     "build",
     "contracts/**/*.sol",
@@ -27,6 +28,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@nomiclabs/hardhat-web3": "^2.0.0",
     "@openzeppelin/test-helpers": "^0.5.11",
+    "@typechain/hardhat": "^6.1.3",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "chai": "^4.3.4",
@@ -42,6 +44,7 @@
     "prettier-plugin-solidity": "^1.0.0-beta.24",
     "rfc4648": "^1.5.0",
     "ts-node": "^10.8.1",
+    "typechain": "^8.1.0",
     "typescript": "^4.7.3"
   },
   "resolutions": {
@@ -52,6 +55,7 @@
     "@ensdomains/buffer": "^0.0.13",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
+    "@typechain/ethers-v5": "^10.1.0",
     "dns-packet": "^5.3.0"
   },
   "directories": {
