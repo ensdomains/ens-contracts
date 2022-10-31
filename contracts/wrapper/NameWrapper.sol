@@ -46,6 +46,8 @@ contract NameWrapper is
 
     INameWrapperUpgrade public upgradeContract;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
+    uint32 private constant PARENT_CONTROLLED_FUSES =
+        uint32(type(uint16).max) << 16;
 
     constructor(
         ENS _ens,
@@ -1024,8 +1026,9 @@ contract NameWrapper is
     }
 
     function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
+        // If a non-parent controlled fuses is being burned, check PCC and CU are burnt
         if (
-            fuses & ~(PARENT_CANNOT_CONTROL | IS_DOT_ETH) != 0 &&
+            fuses & ~PARENT_CONTROLLED_FUSES != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=
             (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
         ) {
@@ -1038,7 +1041,7 @@ contract NameWrapper is
         view
     {
         // Only the parent can burn the parent controlled fuses.
-        if (fuses & (uint32(type(uint16).max) << 16) != 0) {
+        if (fuses & PARENT_CONTROLLED_FUSES != 0) {
             revert Unauthorised(node, msg.sender);
         }
     }

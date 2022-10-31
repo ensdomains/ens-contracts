@@ -235,7 +235,6 @@ contract('ETHRegistrarController', function () {
       callData,
       false,
       0,
-      0,
     )
     var tx = await controller2.commit(commitment)
     expect(await controller2.commitments(commitment)).to.equal(
@@ -252,7 +251,6 @@ contract('ETHRegistrarController', function () {
       resolver.address,
       callData,
       false,
-      0,
       0,
       { value: BUFFERED_REGISTRATION_COST },
     )

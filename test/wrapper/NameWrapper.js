@@ -9,7 +9,6 @@ const { shouldRespectConstraints } = require('./Constraints.behaviour')
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 const { deploy } = require('../test-utils/contracts')
 const { EMPTY_BYTES32, EMPTY_ADDRESS } = require('../test-utils/constants')
-const { advanceTime } = require('../test-utils/evm')
 
 const abiCoder = new ethers.utils.AbiCoder()
 
@@ -4523,7 +4522,7 @@ describe('Name Wrapper', () => {
     const labelHash = labelhash
     const wrappedTokenId = namehash(`${label}.eth`)
 
-    it('Transferring a token that the ', async () => {
+    it('Transferring a token that is not owned by the owner reverts', async () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       await expect(
         NameWrapperH.safeTransferFrom(hacker, account, wrappedTokenId, 1, '0x'),
@@ -4545,6 +4544,29 @@ describe('Name Wrapper', () => {
       await expect(
         NameWrapperH.wrap(encodeName('xyz'), hacker, EMPTY_ADDRESS),
       ).to.be.revertedWith(`Unauthorised("${namehash('xyz')}", "${hacker}")`)
+    })
+
+    it('Approval on the Wrapper does not give permission to transfer after expiry', async () => {
+      await BaseRegistrar.register(labelhash(label), account, 84600)
+      await NameWrapper.wrapETH2LD(label, hacker, 0, EMPTY_ADDRESS)
+      await NameWrapper.setApprovalForAll(hacker, true)
+
+      await evm.advanceTime(84601)
+      await mine()
+
+      await expect(
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          wrappedTokenId,
+          1,
+          '0x',
+        ),
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+
+      await expect(
+        NameWrapperH.safeTransferFrom(account, hacker, wrappedTokenId, 1, '0x'),
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
   })
 })
