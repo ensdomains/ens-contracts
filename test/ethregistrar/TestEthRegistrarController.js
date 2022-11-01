@@ -2,7 +2,10 @@ const {
   evm,
   reverse: { getReverseNode },
   contracts: { deploy },
+  ens: { FUSES },
 } = require('../test-utils')
+
+const { CANNOT_UNWRAP, PARENT_CANNOT_CONTROL, IS_DOT_ETH } = FUSES
 
 const { expect } = require('chai')
 
@@ -406,7 +409,6 @@ contract('ETHRegistrarController', function () {
         ],
         false,
         0,
-        0,
         { value: BUFFERED_REGISTRATION_COST },
       ),
     ).to.be.revertedWith('multicall: All records must have a matching namehash')
@@ -430,7 +432,6 @@ contract('ETHRegistrarController', function () {
         ),
       ],
       false,
-      0,
       0,
     )
     const tx = await controller2.commit(commitment)
@@ -458,7 +459,6 @@ contract('ETHRegistrarController', function () {
           ),
         ],
         false,
-        0,
         0,
         { value: BUFFERED_REGISTRATION_COST },
       ),
@@ -625,7 +625,7 @@ contract('ETHRegistrarController', function () {
     var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
     var newFuseExpiry = (await nameWrapper.getData(nodehash))[2]
     expect(newExpires.toNumber() - expires.toNumber()).to.equal(duration)
-    expect(newFuseExpiry.toNumber() - fuseExpiry.toNumber()).to.equal(0)
+    expect(newFuseExpiry.toNumber() - fuseExpiry.toNumber()).to.equal(86400)
 
     expect(
       (await web3.eth.getBalance(controller.address)) - balanceBefore,
@@ -648,7 +648,6 @@ contract('ETHRegistrarController', function () {
       'newname',
       duration,
       PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-      expires.toNumber() + duration,
       { value: price },
     )
     var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
@@ -842,7 +841,7 @@ contract('ETHRegistrarController', function () {
     const block = await provider.getBlock(tx.block)
 
     const [, fuses, expiry] = await nameWrapper.getData(namehash(name))
-    expect(fuses).to.equal(65)
+    expect(fuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | IS_DOT_ETH)
     expect(expiry).to.equal(REGISTRATION_TIME + block.timestamp)
   })
 
@@ -884,7 +883,6 @@ contract('ETHRegistrarController', function () {
       ],
       true,
       1,
-      0,
       { value: BUFFERED_REGISTRATION_COST },
     )
 
@@ -904,7 +902,6 @@ contract('ETHRegistrarController', function () {
       ],
       true,
       1,
-      0,
       { value: BUFFERED_REGISTRATION_COST },
     )
 
@@ -922,7 +919,6 @@ contract('ETHRegistrarController', function () {
       ],
       true,
       1,
-      0,
       { value: BUFFERED_REGISTRATION_COST },
     )
 
