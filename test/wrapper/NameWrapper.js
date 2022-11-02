@@ -4016,7 +4016,6 @@ describe('Name Wrapper', () => {
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
     const types = ['string', 'address', 'uint32', 'address']
-    const MAX_EXPIRY = '0xffffffffffffffff'
     it('Wraps a name transferred to it and sets the owner to the provided address', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
 
