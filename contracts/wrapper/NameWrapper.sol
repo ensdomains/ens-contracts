@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165, OperationProhibited} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -46,8 +46,6 @@ contract NameWrapper is
 
     INameWrapperUpgrade public upgradeContract;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
-    uint32 private constant PARENT_CONTROLLED_FUSES =
-        uint32(type(uint16).max) << 16;
 
     constructor(
         ENS _ens,
@@ -491,7 +489,7 @@ contract NameWrapper is
         uint64 expiry
     ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
-        _checkDotEthFuse(node, fuses);
+        _checkFusesAreSettable(node, fuses);
         (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
@@ -546,7 +544,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        _checkDotEthFuse(node, fuses);
+        _checkFusesAreSettable(node, fuses);
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
@@ -586,7 +584,7 @@ contract NameWrapper is
     {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
-        _checkDotEthFuse(node, fuses);
+        _checkFusesAreSettable(node, fuses);
         _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
         if (!isWrapped(node)) {
@@ -921,27 +919,6 @@ contract NameWrapper is
         }
     }
 
-    function _getETH2LDDataAndNormaliseExpiry(
-        bytes32 node,
-        bytes32 labelhash,
-        uint64 expiry
-    )
-        internal
-        view
-        returns (
-            address owner,
-            uint32 fuses,
-            uint64
-        )
-    {
-        uint64 oldExpiry;
-        (owner, fuses, oldExpiry) = getData(uint256(node));
-        uint64 maxExpiry = uint64(registrar.nameExpires(uint256(labelhash)));
-
-        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
-        return (owner, fuses, expiry);
-    }
-
     function _normaliseExpiry(
         uint64 expiry,
         uint64 oldExpiry,
@@ -1046,9 +1023,9 @@ contract NameWrapper is
         }
     }
 
-    function _checkDotEthFuse(bytes32 node, uint32 fuses) internal pure {
-        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
-            // Cannot directly burn IS_DOT_ETH fuse
+    function _checkFusesAreSettable(bytes32 node, uint32 fuses) internal pure {
+        if (fuses | USER_SETTABLE_FUSES != USER_SETTABLE_FUSES) {
+            // Cannot directly burn other non-user settable fuses
             revert OperationProhibited(node);
         }
     }
