@@ -21,6 +21,7 @@ error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error CannotUpgrade();
+error DotEthCannotBurnOwner();
 
 contract NameWrapper is
     Ownable,
@@ -126,8 +127,8 @@ contract NameWrapper is
 
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             bytes memory name = names[bytes32(id)];
-            (bytes32 label, ) = name.readLabel(0);
-            expiry = uint64(registrar.nameExpires(uint256(label)));
+            (bytes32 labelhash, ) = name.readLabel(0);
+            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
         }
 
         //  if PCC is burned, then zero out the owner when expired
@@ -358,9 +359,6 @@ contract NameWrapper is
         address registrant,
         address controller
     ) public override onlyTokenOwner(_makeNode(ETH_NODE, labelhash)) {
-        if (controller == address(0x0)) {
-            revert IncorrectTargetOwner(controller);
-        }
         if (registrant == address(this)) {
             revert IncorrectTargetOwner(registrant);
         }
@@ -631,6 +629,10 @@ contract NameWrapper is
         )
     {
         if (owner == address(0)) {
+            (, uint32 fuses, ) = getData(uint256(node));
+            if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+                revert IncorrectTargetOwner(owner);
+            }
             ens.setRecord(node, address(this), resolver, ttl);
             _unwrap(node, address(0));
         } else {

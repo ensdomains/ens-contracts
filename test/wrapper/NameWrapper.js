@@ -3842,7 +3842,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('setRecord', () => {
+  describe('setRecord()', () => {
     const label = 'setrecord'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -3902,29 +3902,50 @@ describe('Name Wrapper', () => {
     it('Setting the owner to 0 reverts if CANNOT_UNWRAP is burned', async () => {
       await registerSetupAndWrapName('setrecord2', account, CANNOT_UNWRAP)
       const wrappedTokenId2 = namehash('setrecord2.eth')
-      expect(await NameWrapper.ownerOf(wrappedTokenId2)).to.equal(account)
+      const subWrappedTokenId = namehash('sub.setrecord2.eth')
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId2,
+        'sub',
+        account,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY,
+      )
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(account)
       await expect(
-        NameWrapper.setRecord(wrappedTokenId2, EMPTY_ADDRESS, account, 50),
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId2}")`)
+        NameWrapper.setRecord(subWrappedTokenId, EMPTY_ADDRESS, account, 50),
+      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it('Setting the owner to 0 unwraps the name and passes through resolver/ttl', async () => {
+    it('Setting the owner of a subdomain to 0 unwraps the name and passes through resolver/ttl', async () => {
       await registerSetupAndWrapName('setrecord2', account, 0)
       const wrappedTokenId2 = namehash('setrecord2.eth')
-      expect(await NameWrapper.ownerOf(wrappedTokenId2)).to.equal(account)
+      const subWrappedTokenId = namehash('sub.setrecord2.eth')
+      await NameWrapper.setSubnodeOwner(wrappedTokenId2, 'sub', account, 0, 0)
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(account)
       const tx = await NameWrapper.setRecord(
-        wrappedTokenId2,
+        subWrappedTokenId,
         EMPTY_ADDRESS,
         account,
         50,
       )
       await expect(tx)
         .to.emit(NameWrapper, 'NameUnwrapped')
-        .withArgs(wrappedTokenId2, EMPTY_ADDRESS)
-      expect(await NameWrapper.ownerOf(wrappedTokenId2)).to.equal(EMPTY_ADDRESS)
-      expect(await EnsRegistry.owner(wrappedTokenId2)).to.equal(EMPTY_ADDRESS)
-      expect(await EnsRegistry.resolver(wrappedTokenId2)).to.equal(account)
-      expect(await EnsRegistry.ttl(wrappedTokenId2)).to.equal(50)
+        .withArgs(subWrappedTokenId, EMPTY_ADDRESS)
+      expect(await NameWrapper.ownerOf(subWrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+      expect(await EnsRegistry.owner(subWrappedTokenId)).to.equal(EMPTY_ADDRESS)
+      expect(await EnsRegistry.resolver(subWrappedTokenId)).to.equal(account)
+      expect(await EnsRegistry.ttl(subWrappedTokenId)).to.equal(50)
+    })
+
+    it('Setting the owner to 0 on a .eth reverts', async () => {
+      await registerSetupAndWrapName('setrecord2', account, 0)
+      const wrappedTokenId2 = namehash('setrecord2.eth')
+      expect(await NameWrapper.ownerOf(wrappedTokenId2)).to.equal(account)
+      const tx = await expect(
+        NameWrapper.setRecord(wrappedTokenId2, EMPTY_ADDRESS, account, 50),
+      ).to.be.revertedWith(`IncorrectTargetOwner("${EMPTY_ADDRESS}")`)
     })
   })
 
