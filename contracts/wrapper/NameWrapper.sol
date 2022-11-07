@@ -911,12 +911,12 @@ contract NameWrapper is
         uint32 fuses,
         uint32 parentFuses
     ) internal pure {
-        bool isBurningPCC = fuses & PARENT_CANNOT_CONTROL ==
-            PARENT_CANNOT_CONTROL;
+        bool isBurningParentControlledFuses = fuses & PARENT_CONTROLLED_FUSES !=
+            0;
 
         bool parentHasNotBurnedCU = parentFuses & CANNOT_UNWRAP == 0;
 
-        if (isBurningPCC && parentHasNotBurnedCU) {
+        if (isBurningParentControlledFuses && parentHasNotBurnedCU) {
             revert OperationProhibited(node);
         }
     }
@@ -1005,7 +1005,7 @@ contract NameWrapper is
     }
 
     function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
-        // If a non-parent controlled fuses is being burned, check PCC and CU are burnt
+        // If a non-parent controlled fuse is being burned, check PCC and CU are burnt
         if (
             fuses & ~PARENT_CONTROLLED_FUSES != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=

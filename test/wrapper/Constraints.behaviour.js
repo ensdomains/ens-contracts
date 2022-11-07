@@ -710,6 +710,51 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
   }
 
+  function parentCanBurnParentControlledFusesWithExpiry({
+    parentNode,
+    childLabelHash,
+    childNode,
+  }) {
+    it('Parent cannot burn parent-controlled fuses as they reset to 0', async () => {
+      await NameWrapper.setChildFuses(parentNode, childLabelHash, 1 << 18, 0)
+      // expired names get normalised to 0
+      expect((await NameWrapper.getData(childNode))[1]).to.equal(0)
+    })
+
+    it('Parent can burn parent-controlled fuses, if expiry is extended', async () => {
+      await NameWrapper.setChildFuses(
+        parentNode,
+        childLabelHash,
+        1 << 18,
+        MAX_EXPIRY,
+      )
+      expect((await NameWrapper.getData(childNode))[1]).to.equal(1 << 18)
+    })
+  }
+
+  function parentCanBurnParentControlledFuses({
+    parentNode,
+    childLabelHash,
+    childNode,
+  }) {
+    it('Parent can burn parent-controlled fuses', async () => {
+      await NameWrapper.setChildFuses(parentNode, childLabelHash, 1 << 18, 0)
+      expect((await NameWrapper.getData(childNode))[1]).to.equal(1 << 18)
+    })
+  }
+
+  function parentCannotBurnParentControlledFuses({
+    parentNode,
+    childNode,
+    childLabelHash,
+  }) {
+    it('Parent cannot burn parent-controlled fuses', async () => {
+      await expect(
+        NameWrapper.setChildFuses(parentNode, childLabelHash, 1 << 18, 0),
+      ).to.be.revertedWith(`OperationProhibited("${childNode}")`)
+    })
+  }
+
   function testStateTransition1000to1010({
     parentNode,
     parentLabel,
@@ -797,6 +842,12 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     parentCanUnwrapChild({ childNode, childLabelHash, childLabel, parentNode })
 
+    parentCannotBurnParentControlledFuses({
+      parentNode,
+      childNode,
+      childLabelHash,
+    })
+
     ownerCannotBurnFuses({ childNode })
 
     ownerCanUnwrap({ childNode, childLabelHash })
@@ -862,6 +913,11 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     parentCanReplaceOwner({ parentNode, childLabel, childNode })
     parentCanUnwrapChild({ childNode, childLabelHash, childLabel, parentNode })
+    parentCanBurnParentControlledFusesWithExpiry({
+      parentNode,
+      childNode,
+      childLabelHash,
+    })
 
     it('Parent cannot unwrap itself', async () => {
       await expect(
@@ -1059,6 +1115,11 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
     parentCanReplaceOwner({ parentNode, childLabel, childNode })
     parentCanUnwrapChild({ childNode, childLabelHash, childLabel, parentNode })
+    parentCannotBurnParentControlledFuses({
+      parentNode,
+      childLabelHash,
+      childNode,
+    })
     ownerCannotBurnFuses({ childNode })
     ownerCanUnwrap({ childNode, childLabelHash })
   })
@@ -1086,6 +1147,11 @@ function shouldRespectConstraints(contracts, getSigners) {
     parentCanBurnFusesOrPCC({ childNode, childLabelHash, parentNode })
     parentCanReplaceOwner({ parentNode, childLabel, childNode })
     parentCanUnwrapChild({ childNode, childLabelHash, childLabel, parentNode })
+    parentCanBurnParentControlledFuses({
+      parentNode,
+      childNode,
+      childLabelHash,
+    })
     ownerCannotBurnFuses({ childNode })
     ownerCanUnwrap({ childNode, childLabelHash })
   })
@@ -1158,6 +1224,12 @@ function shouldRespectConstraints(contracts, getSigners) {
     parentCannotReplaceOwner({ parentNode, childLabel, childNode })
 
     parentCannotUnwrapChild({ parentLabelHash, childNode, childLabelHash })
+
+    parentCannotBurnParentControlledFuses({
+      parentNode,
+      childNode,
+      childLabelHash,
+    })
 
     it('Owner can burn CU', async () => {
       await NameWrapper2.setFuses(childNode, CANNOT_UNWRAP)
@@ -1350,6 +1422,12 @@ function shouldRespectConstraints(contracts, getSigners) {
     parentCannotReplaceOwner({ parentNode, childLabel, childNode })
 
     parentCannotUnwrapChild({ parentLabelHash, childNode, childLabelHash })
+
+    parentCannotBurnParentControlledFuses({
+      parentNode,
+      childLabelHash,
+      childNode,
+    })
 
     it('Owner can burn fuses', async () => {
       const [, fusesBefore] = await NameWrapper2.getData(childNode)
