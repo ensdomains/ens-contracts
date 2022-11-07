@@ -6,6 +6,8 @@ const {
   FUSES,
   MAX_EXPIRY,
 } = require('../test-utils/ens')
+
+const { advanceTime, mine } = require('../test-utils/evm')
 const { EMPTY_ADDRESS } = require('../test-utils/constants')
 
 const { expect } = require('chai')
@@ -416,6 +418,41 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
   }
 
+  function ownerIsOwnerWhenExpired({ childNode }) {
+    it('Owner is still owner when expired', async () => {
+      const blockNumber = await ethers.provider.getBlockNumber()
+      const timestamp = (await ethers.provider.getBlock(blockNumber)).timestamp
+      expect((await NameWrapper.getData(childNode))[1]).to.be.below(timestamp)
+      expect(await NameWrapper.ownerOf(childNode)).to.equal(account2)
+    })
+  }
+
+  function ownerResetsToZeroWhenExpired({ childNode, fuses }) {
+    it('Owner resets to 0 after expiry', async () => {
+      const [owner, fuses, expiry] = await NameWrapper.getData(childNode)
+      expect(owner).to.equal(account2)
+      const blockNumber = await ethers.provider.getBlockNumber()
+      const timestamp = (await ethers.provider.getBlock(blockNumber)).timestamp
+      // not expired
+      expect(expiry).to.be.above(timestamp)
+      expect(fuses).to.equal(fuses)
+      // force expiry
+      await advanceTime(DAY * 2)
+      await mine()
+      const [ownerAfter, fusesAfter, expiryAfter] = await NameWrapper.getData(
+        childNode,
+      )
+
+      const blockNumberAfter = await ethers.provider.getBlockNumber()
+      const timestampAfter = (await ethers.provider.getBlock(blockNumberAfter))
+        .timestamp
+      // owner and fuses are reset when expired
+      expect(ownerAfter).to.equal(EMPTY_ADDRESS)
+      expect(expiryAfter).to.be.below(timestampAfter)
+      expect(fusesAfter).to.equal(0)
+    })
+  }
+
   function parentCannotBurnFusesOrPCC({
     childNode,
     childLabelHash,
@@ -821,8 +858,6 @@ function shouldRespectConstraints(contracts, getSigners) {
       childNode,
     })
 
-    // TODO: replace with parentCannotBurnFuses({ childNode, childLabelHash, parentNode })
-
     parentCannotBurnFusesOrPCC({ childLabelHash, childNode, parentNode })
 
     it('Parent cannot burn fuses with setChildFuses() even with extending expiry', async () => {
@@ -847,6 +882,8 @@ function shouldRespectConstraints(contracts, getSigners) {
       childNode,
       childLabelHash,
     })
+
+    ownerIsOwnerWhenExpired({ childNode })
 
     ownerCannotBurnFuses({ childNode })
 
@@ -927,6 +964,7 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     ownerCannotBurnFuses({ childNode })
     ownerCanUnwrap({ childNode, childLabelHash })
+    ownerIsOwnerWhenExpired({ childNode })
   })
 
   describe("0010 - PCC -  Impossible state - WrappedPCC burned without Parent's CU ", () => {
@@ -1122,6 +1160,7 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
     ownerCannotBurnFuses({ childNode })
     ownerCanUnwrap({ childNode, childLabelHash })
+    ownerIsOwnerWhenExpired({ childNode })
   })
 
   describe("1001 - NE_PCU - Wrapped unexpired, CU and PCC unburned, and Parent's CU burned ", () => {
@@ -1154,6 +1193,7 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
     ownerCannotBurnFuses({ childNode })
     ownerCanUnwrap({ childNode, childLabelHash })
+    ownerIsOwnerWhenExpired({ childNode })
   })
 
   describe("1010 - NE_PCC - Impossible state - Wrapped unexpired, CU unburned, PCC burned and Parent's CU burned ", () => {
@@ -1258,6 +1298,8 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     ownerCanUnwrap({ childNode, childLabelHash })
+
+    ownerResetsToZeroWhenExpired({ childNode, fuses: PARENT_CANNOT_CONTROL })
   })
 
   describe("1100 - NE_CU - Impossible State - Wrapped unexpired, CU burned, and PCC and Parent's CU unburned ", () => {
@@ -1451,6 +1493,11 @@ function shouldRespectConstraints(contracts, getSigners) {
       await expect(
         NameWrapper2.unwrap(parentNode, childLabelHash, account2),
       ).to.be.revertedWith(`OperationProhibited("${childNode}")`)
+    })
+
+    ownerResetsToZeroWhenExpired({
+      childNode,
+      fuses: PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
     })
   })
 }
