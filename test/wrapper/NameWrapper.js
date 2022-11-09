@@ -4563,7 +4563,7 @@ describe('Name Wrapper', () => {
         )
     })
 
-    it('emits TransferSingle event', async () => {
+    it('Emits TransferSingle event', async () => {
       const tx = await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4577,7 +4577,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('renew', () => {
+  describe('renew()', () => {
     const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -4587,7 +4587,7 @@ describe('Name Wrapper', () => {
       await NameWrapper.setController(account, true)
     })
 
-    it('renews names', async () => {
+    it('Renews names', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4602,7 +4602,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('renews names and can extend wrapper expiry', async () => {
+    it('Renews names and can extend wrapper expiry', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4621,7 +4621,7 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(expectedExpiry)
     })
 
-    it('can be renewed and fuses burned', async () => {
+    it('Can be renewed and fuses burned', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4637,7 +4637,7 @@ describe('Name Wrapper', () => {
       expect(fusesExpire).to.equal(expectedExpiry)
     })
 
-    it('fuses cannot be burned without first burning CU', async () => {
+    it('Fuses cannot be burned without first burning CU', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4650,7 +4650,32 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
-    it('renews name in grace period and allows burning of fuses', async () => {
+    it('Renews names and can extend wrapper expiry', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CAN_DO_EVERYTHING,
+      )
+
+      await evm.advanceTime(DAY * 2)
+      await mine()
+
+      const [, , expiryBefore] = await NameWrapper.getData(wrappedTokenId)
+      const block1 = await ethers.provider.getBlock(
+        await ethers.provider.getBlockNumber(),
+      )
+      //confirm expired
+      expect(expiryBefore).to.be.below(block1.timestamp)
+
+      // renew less than what is required
+      await expect(NameWrapper.renew(labelHash, 10000, 0)).to.be.revertedWith(
+        `RenewalTooShort("${labelHash}")`,
+      )
+    })
+
+    it('Renews name in grace period and allows burning of fuses', async () => {
       const block = await ethers.provider.getBlock(
         await ethers.provider.getBlockNumber(),
       )

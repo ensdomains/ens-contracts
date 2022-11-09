@@ -21,7 +21,7 @@ error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error CannotUpgrade();
-error DotEthCannotBurnOwner();
+error RenewalTooShort(bytes32 labelHash);
 
 contract NameWrapper is
     Ownable,
@@ -297,8 +297,11 @@ contract NameWrapper is
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
         expires = registrar.renew(tokenId, duration);
+        if (expires < block.timestamp) {
+            revert RenewalTooShort(bytes32(tokenId));
+        }
         if (isWrapped(node)) {
-            (address owner, uint32 oldFuses, ) = getData(uint256(node));
+            (address owner, uint32 oldFuses, ) = getData(uint256(tokenId));
             _setFuses(
                 node,
                 owner,
