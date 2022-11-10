@@ -1116,7 +1116,7 @@ describe('Name Wrapper', () => {
           NameWrapper.wrapETH2LD(
             label,
             account,
-            IS_DOT_ETH * 2, // next undefined fuse
+            IS_DOT_ETH * 2 ** i, // next undefined fuse
             EMPTY_ADDRESS,
           ),
         ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
@@ -4635,6 +4635,42 @@ describe('Name Wrapper', () => {
       const [, fuses, fusesExpire] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH)
       expect(fusesExpire).to.equal(expectedExpiry)
+    })
+
+    it('Can be renewed, fuses burned and owner remains the same', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CAN_DO_EVERYTHING,
+      )
+      const expires = await BaseRegistrar.nameExpires(labelHash)
+      const expectedExpiry = expires.toNumber() + 86400
+      await NameWrapper.renew(labelHash, 86400, CANNOT_UNWRAP)
+      const [owner, fuses, fusesExpire] = await NameWrapper.getData(
+        wrappedTokenId,
+      )
+      expect(fuses).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH)
+      expect(fusesExpire).to.equal(expectedExpiry)
+      expect(owner).to.equal(account)
+    })
+
+    it('Renew cannot burn parent controlled fuses', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CAN_DO_EVERYTHING,
+      )
+      await NameWrapper.renew(labelHash, 86400, CANNOT_UNWRAP)
+
+      for (let i = 0; i < 7; i++) {
+        await expect(
+          NameWrapper.renew(labelHash, 86400, IS_DOT_ETH * 2 ** i),
+        ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+      }
     })
 
     it('Fuses cannot be burned without first burning CU', async () => {

@@ -295,13 +295,13 @@ contract NameWrapper is
         uint32 fuses
     ) external override onlyController returns (uint256 expires) {
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
-
+        _checkForParentControlledFuses(node, fuses);
         expires = registrar.renew(tokenId, duration);
         if (expires < block.timestamp) {
             revert RenewalTooShort(bytes32(tokenId));
         }
         if (isWrapped(node)) {
-            (address owner, uint32 oldFuses, ) = getData(uint256(tokenId));
+            (address owner, uint32 oldFuses, ) = getData(uint256(node));
             _setFuses(
                 node,
                 owner,
