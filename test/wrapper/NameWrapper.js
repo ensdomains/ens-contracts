@@ -1112,14 +1112,16 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.register(labelHash, account, 84600)
 
       for (let i = 0; i < 7; i++) {
-        await expect(
-          NameWrapper.wrapETH2LD(
+        try {
+          await NameWrapper.wrapETH2LD(
             label,
             account,
             IS_DOT_ETH * 2 ** i, // next undefined fuse
             EMPTY_ADDRESS,
-          ),
-        ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
+          )
+        } catch (e) {
+          expect(e.reason).to.contain('value out-of-bounds')
+        }
       }
     })
 
@@ -2081,11 +2083,14 @@ describe('Name Wrapper', () => {
         MAX_EXPIRY,
       )
 
-      await expect(
-        NameWrapper.setFuses(namehash('sub.abc.eth'), PARENT_CANNOT_CONTROL),
-      ).to.be.revertedWith(
-        `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`,
-      )
+      try {
+        await NameWrapper.setFuses(
+          namehash('sub.abc.eth'),
+          PARENT_CANNOT_CONTROL,
+        )
+      } catch (e) {
+        expect(e.reason).to.equal('value out-of-bounds')
+      }
     })
 
     it('cannot burn any parent controlled fuse', async () => {
@@ -2103,11 +2108,14 @@ describe('Name Wrapper', () => {
 
       // check the 7 fuses above PCC
       for (let i = 0; i < 7; i++) {
-        await expect(
-          NameWrapper.setFuses(namehash('sub.abc.eth'), IS_DOT_ETH * 2 ** i),
-        ).to.be.revertedWith(
-          `Unauthorised("${namehash('sub.abc.eth')}", "${account}")`,
-        )
+        try {
+          await NameWrapper.setFuses(
+            namehash('sub.abc.eth'),
+            IS_DOT_ETH * 2 ** i,
+          )
+        } catch (e) {
+          expect(e.reason).to.contain('value out-of-bounds')
+        }
       }
     })
 
@@ -4388,7 +4396,7 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('registerAndWrapETH2LD', () => {
+  describe('registerAndWrapETH2LD()', () => {
     const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
@@ -4513,6 +4521,22 @@ describe('Name Wrapper', () => {
       )
       const [, fuses] = await NameWrapper.getData(wrappedTokenId)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
+    })
+
+    it('Errors when passing a parent-controlled fuse', async () => {
+      for (let i = 0; i < 7; i++) {
+        try {
+          await NameWrapper.registerAndWrapETH2LD(
+            label,
+            account,
+            86400,
+            EMPTY_ADDRESS,
+            IS_DOT_ETH * 2 ** i,
+          )
+        } catch (e) {
+          expect(e.reason).to.equal('value out-of-bounds')
+        }
+      }
     })
 
     it('Will not wrap a name with an empty label', async () => {
@@ -4656,7 +4680,7 @@ describe('Name Wrapper', () => {
       expect(owner).to.equal(account)
     })
 
-    it('Renew cannot burn parent controlled fuses', async () => {
+    it('Errors when passing a parent-controlled fuse', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4667,9 +4691,11 @@ describe('Name Wrapper', () => {
       await NameWrapper.renew(labelHash, 86400, CANNOT_UNWRAP)
 
       for (let i = 0; i < 7; i++) {
-        await expect(
-          NameWrapper.renew(labelHash, 86400, IS_DOT_ETH * 2 ** i),
-        ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+        try {
+          await NameWrapper.renew(labelHash, 86400, IS_DOT_ETH * 2 ** i)
+        } catch (e) {
+          expect(e.reason).to.equal('value out-of-bounds')
+        }
       }
     })
 

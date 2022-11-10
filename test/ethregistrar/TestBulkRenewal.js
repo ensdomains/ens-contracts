@@ -87,7 +87,7 @@ contract('BulkRenewal', function (accounts) {
       resolver.address,
       0,
     )
-    await resolver.setInterface(ETH_NAMEHASH, '0x5bef8628', controller.address)
+    await resolver.setInterface(ETH_NAMEHASH, '0x612e8c09', controller.address)
     await ens.setOwner(ETH_NAMEHASH, baseRegistrar.address)
 
     // Register some names

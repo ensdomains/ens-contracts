@@ -49,7 +49,7 @@ interface INameWrapper is IERC1155 {
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint32 fuses,
+        uint16 ownerControlledFuses,
         address resolver
     ) external returns (uint64 expiry);
 
@@ -58,13 +58,13 @@ interface INameWrapper is IERC1155 {
         address wrappedOwner,
         uint256 duration,
         address resolver,
-        uint32 fuses
+        uint16 ownerControlledFuses
     ) external returns (uint256 registrarExpiry);
 
     function renew(
         uint256 labelHash,
         uint256 duration,
-        uint32 fuses
+        uint16 ownerControlledFuses
     ) external returns (uint256 expires);
 
     function unwrap(
@@ -79,7 +79,7 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function setFuses(bytes32 node, uint32 fuses)
+    function setFuses(bytes32 node, uint16 ownerControlledFuses)
         external
         returns (uint32 newFuses);
 
