@@ -12,6 +12,7 @@ import 'hardhat-gas-reporter'
 import { HardhatUserConfig, task } from 'hardhat/config'
 import { Artifact } from 'hardhat/types'
 import { promisify } from 'util'
+import "hardhat-contract-sizer";
 
 const exec = promisify(_exec)
 
@@ -136,7 +137,6 @@ const config: HardhatUserConfig = {
       url: 'http://127.0.0.1:8545',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
-      allowUnlimitedContractSize: true,
     },
     ropsten: {
       url: `https://ropsten.infura.io/v3/${process.env.INFURA_ID}`,
