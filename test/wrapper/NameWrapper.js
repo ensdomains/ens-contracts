@@ -4246,7 +4246,8 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
       )
 
-      const [owner, fuses] = await NameWrapper.getData(wrappedTokenId)
+      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
+      const owner = await NameWrapper.ownerOf(wrappedTokenId)
       // owner should be 0 as expired
       expect(owner).to.equal(EMPTY_ADDRESS)
       expect(fuses).to.equal(0)
@@ -4826,7 +4827,7 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it.only('Renews name in grace period and allows burning of fuses', async () => {
+    it('Renews name in grace period and allows burning of fuses', async () => {
       const block = await ethers.provider.getBlock(
         await ethers.provider.getBlockNumber(),
       )
@@ -4847,12 +4848,11 @@ describe('Name Wrapper', () => {
       await mine()
 
       // fuses are reset
-      const [ownerAfteExpiry, fusesAfterExpiry] = await NameWrapper.getData(
-        wrappedTokenId,
-      )
+      const [, fusesAfterExpiry] = await NameWrapper.getData(wrappedTokenId)
+      const ownerAfterExpiry = await NameWrapper.ownerOf(wrappedTokenId)
       expect(fusesAfterExpiry).to.equal(CAN_DO_EVERYTHING)
 
-      expect(ownerAfteExpiry).to.equal(EMPTY_ADDRESS)
+      expect(ownerAfterExpiry).to.equal(EMPTY_ADDRESS)
 
       await NameWrapper.renew(
         labelHash,
