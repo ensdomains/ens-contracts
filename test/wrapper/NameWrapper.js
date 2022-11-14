@@ -4847,8 +4847,12 @@ describe('Name Wrapper', () => {
       await mine()
 
       // fuses are reset
-      const [, fusesAfterExpiry] = await NameWrapper.getData(wrappedTokenId)
+      const [ownerAfteExpiry, fusesAfterExpiry] = await NameWrapper.getData(
+        wrappedTokenId,
+      )
       expect(fusesAfterExpiry).to.equal(CAN_DO_EVERYTHING)
+
+      expect(ownerAfteExpiry).to.equal(EMPTY_ADDRESS)
 
       await NameWrapper.renew(
         labelHash,
@@ -4859,9 +4863,11 @@ describe('Name Wrapper', () => {
         expires.toNumber() + 86400,
       )
 
-      const [, fusesAfterRenew, expiry] = await NameWrapper.getData(
+      const [owner, fusesAfterRenew, expiry] = await NameWrapper.getData(
         wrappedTokenId,
       )
+
+      expect(owner).to.equal(account)
 
       // renew allows burning of fuses by burning PCC first
       expect(fusesAfterRenew).to.equal(
