@@ -2119,6 +2119,35 @@ describe('Name Wrapper', () => {
       }
     })
 
+    it('Errors when manually changing calldata to incorrect type', async () => {
+      await BaseRegistrar.register(labelhash('abc'), account, 84600)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD('abc', account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwner(
+        namehash('abc.eth'),
+        'sub',
+        account,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
+        MAX_EXPIRY,
+      )
+
+      const tx = await NameWrapper.populateTransaction.setFuses(
+        namehash('sub.abc.eth'),
+        4,
+      )
+      const rogueFuse = '40000' // 2 ** 18 in hex
+      tx.data = tx.data.substring(0, tx.data.length - rogueFuse.length)
+      tx.data += String(rogueFuse)
+      try {
+        await signers[0].sendTransaction(tx)
+      } catch (e) {
+        expect(e.message).to.equal(
+          `Transaction reverted: function was called with incorrect parameters`,
+        )
+      }
+    })
+
     it('cannot burn fuses as the previous owner of a .eth when the name has expired', async () => {
       await BaseRegistrar.register(labelhash('abc'), account, 84600)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
@@ -4145,6 +4174,24 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith('reverted with an unrecognized custom error')
     })
 
+    it('Reverts when manually changing fuse calldata to incorrect type', async () => {
+      await BaseRegistrar.register(tokenId, account, 84600)
+
+      const tx = await BaseRegistrar.populateTransaction[
+        'safeTransferFrom(address,address,uint256,bytes)'
+      ](
+        account,
+        NameWrapper.address,
+        tokenId,
+        abiCoder.encode(types, [label, account, 273, EMPTY_ADDRESS]),
+      )
+      const rogueFuse = '40000' // 2 ** 18 in hex
+      tx.data = tx.data.replace('00111', rogueFuse)
+      await expect(signers[0].sendTransaction(tx)).to.be.revertedWith(
+        'ERC721: transfer to non ERC721Receiver implementer',
+      )
+    })
+
     it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
       await BaseRegistrar.register(tokenId, account, 84600)
       await EnsRegistry.setOwner(wrappedTokenId, account2)
@@ -4523,6 +4570,26 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
     })
 
+    it('Errors when adding a number greater than uint16 for fuses', async () => {
+      const tx = await NameWrapper.populateTransaction.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        273,
+      )
+
+      const rogueFuse = '40000' // 2 ** 18 in hex
+      tx.data = tx.data.replace('00111', rogueFuse)
+      try {
+        await signers[0].sendTransaction(tx)
+      } catch (e) {
+        expect(e.message).to.equal(
+          'Transaction reverted: function was called with incorrect parameters',
+        )
+      }
+    })
+
     it('Errors when passing a parent-controlled fuse', async () => {
       for (let i = 0; i < 7; i++) {
         try {
@@ -4696,6 +4763,28 @@ describe('Name Wrapper', () => {
         } catch (e) {
           expect(e.reason).to.equal('value out-of-bounds')
         }
+      }
+    })
+
+    it('Errors when manually changing calldata to incorrect type', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CANNOT_UNWRAP,
+      )
+
+      const tx = await NameWrapper.populateTransaction.renew(labelHash, 1000, 4)
+      const rogueFuse = '40000' // 2 ** 18 in hex
+      tx.data = tx.data.substring(0, tx.data.length - rogueFuse.length)
+      tx.data += String(rogueFuse)
+      try {
+        await signers[0].sendTransaction(tx)
+      } catch (e) {
+        expect(e.message).to.equal(
+          `Transaction reverted: function was called with incorrect parameters`,
+        )
       }
     })
 
