@@ -245,12 +245,16 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             uint256(node)
         );
 
-        uint32 parentControlledFuses = (uint32(type(uint16).max) << 16) &
-            oldFuses;
+        if (oldExpiry < block.timestamp) {
+            oldFuses = 0;
+        }
 
         if (oldExpiry > expiry) {
             expiry = oldExpiry;
         }
+
+        uint32 parentControlledFuses = (uint32(type(uint16).max) << 16) &
+            oldFuses;
 
         require(oldOwner == address(0), "ERC1155: mint of existing token");
         require(owner != address(0), "ERC1155: mint to the zero address");

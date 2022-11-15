@@ -102,13 +102,7 @@ contract NameWrapper is
         override(ERC1155Fuse, INameWrapper)
         returns (address)
     {
-        (address owner, uint32 fuses, uint64 expiry) = super.getData(id);
-
-        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
-            bytes memory name = names[bytes32(id)];
-            (bytes32 labelhash, ) = name.readLabel(0);
-            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
-        }
+        (address owner, uint32 fuses, uint64 expiry) = getData(id);
 
         if (
             fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL &&
@@ -146,11 +140,11 @@ contract NameWrapper is
             expiry = uint64(registrar.nameExpires(uint256(labelhash)));
         }
 
-        //  if PCC is burned, then zero out the owner when expired
-        if (expiry < block.timestamp) {
-            // zero out fuses if expired
-            fuses = 0;
-        }
+        // //  if PCC is burned, then zero out the owner when expired
+        // if (expiry < block.timestamp) {
+        //     // zero out fuses if expired
+        //     fuses = 0;
+        // }
 
         return (owner, fuses, expiry);
     }
@@ -509,8 +503,17 @@ contract NameWrapper is
         (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
+
+        if (oldExpiry < block.timestamp) {
+            oldFuses = 0;
+        }
         // max expiry is set to the expiry of the parent
         (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+
+        if (maxExpiry < block.timestamp) {
+            parentFuses = 0;
+        }
+
         if (parentNode == ROOT_NODE) {
             if (!isTokenOwnerOrApproved(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
@@ -532,6 +535,11 @@ contract NameWrapper is
         ) {
             revert OperationProhibited(node);
         }
+
+        if (expiry < block.timestamp) {
+            fuses = 0;
+        }
+
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
     }
@@ -656,7 +664,7 @@ contract NameWrapper is
         } else {
             ens.setRecord(node, address(this), resolver, ttl);
             // protected by onlyTokenOwner
-            (address oldOwner, , ) = getData(uint256(node));
+            address oldOwner = ownerOf(uint256(node));
             _transfer(oldOwner, owner, uint256(node), 1, "");
         }
     }
@@ -698,7 +706,10 @@ contract NameWrapper is
      */
 
     modifier operationAllowed(bytes32 node, uint32 fuseMask) {
-        (, uint32 fuses, ) = getData(uint256(node));
+        (, uint32 fuses, uint64 expiry) = getData(uint256(node));
+        if (expiry < block.timestamp) {
+            fuses = 0;
+        }
         if (fuses & fuseMask != 0) {
             revert OperationProhibited(node);
         }
@@ -720,12 +731,20 @@ contract NameWrapper is
         address owner = ens.owner(subnode);
 
         if (owner == address(0)) {
-            (, uint32 fuses, ) = getData(uint256(node));
+            (, uint32 fuses, uint64 expiry) = getData(uint256(node));
+            if (expiry < block.timestamp) {
+                fuses = 0;
+            }
             if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(subnode);
             }
         } else {
-            (, uint32 subnodeFuses, ) = getData(uint256(subnode));
+            (, uint32 subnodeFuses, uint64 subnodeExpiry) = getData(
+                uint256(subnode)
+            );
+            if (subnodeExpiry < block.timestamp) {
+                subnodeFuses = 0;
+            }
             if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(subnode);
             }
@@ -747,7 +766,10 @@ contract NameWrapper is
         override
         returns (bool)
     {
-        (, uint32 fuses, ) = getData(uint256(node));
+        (, uint32 fuses, uint64 expiry) = getData(uint256(node));
+        if (expiry < block.timestamp) {
+            fuses = 0;
+        }
         return fuses & fuseMask == fuseMask;
     }
 
@@ -887,6 +909,7 @@ contract NameWrapper is
             revert Unauthorised(node, msg.sender);
         }
 
+        // no need to zero out fuses, can just upgrade as is
         (, fuses, expiry) = getData(uint256(node));
 
         _burn(uint256(node));
@@ -905,6 +928,9 @@ contract NameWrapper is
         if (names[node].length == 0) {
             names[node] = name;
         }
+        if (expiry < block.timestamp) {
+            fuses = 0;
+        }
         _setFuses(node, oldOwner, fuses, expiry);
         if (owner == address(0)) {
             _unwrap(node, address(0));
@@ -922,6 +948,9 @@ contract NameWrapper is
     ) internal view returns (uint64) {
         (, , uint64 oldExpiry) = getData(uint256(node));
         (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+        if (maxExpiry < block.timestamp) {
+            parentFuses = 0;
+        }
         _checkParentFuses(node, fuses, parentFuses);
         return _normaliseExpiry(expiry, oldExpiry, maxExpiry);
     }
@@ -1023,7 +1052,7 @@ contract NameWrapper is
     }
 
     function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
-        // If a non-parent controlled fuse is being burned, check PCC and CU are burnt
+        // If a owner-controlled fuse is being burned, check PCC and CU are burnt
         if (
             fuses & ~PARENT_CONTROLLED_FUSES != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=

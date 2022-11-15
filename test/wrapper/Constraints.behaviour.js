@@ -35,6 +35,12 @@ const {
 
 const DAY = 84600
 
+async function getTimestamp() {
+  const blockNumber = await ethers.provider.getBlockNumber()
+  const timestamp = (await ethers.provider.getBlock(blockNumber)).timestamp
+  return timestamp
+}
+
 function shouldRespectConstraints(contracts, getSigners) {
   let account
   let account2
@@ -445,10 +451,11 @@ function shouldRespectConstraints(contracts, getSigners) {
       const blockNumberAfter = await ethers.provider.getBlockNumber()
       const timestampAfter = (await ethers.provider.getBlock(blockNumberAfter))
         .timestamp
-      // owner and fuses are reset when expired
+      // owner reset when expired
+      // fuses remain the same
       expect(ownerAfter).to.equal(EMPTY_ADDRESS)
       expect(expiryAfter).to.be.below(timestampAfter)
-      expect(fusesAfter).to.equal(0)
+      expect(fusesAfter).to.equal(fuses)
     })
   }
 
@@ -917,7 +924,7 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     parentCanExtend({ parentNode, childLabel, childLabelHash, childNode })
 
-    it('Parent cannot burn fuses with setChildFuses()', async () => {
+    it('Parent can burn fuses with setChildFuses(), but is still expired', async () => {
       const [, fusesBefore] = await NameWrapper.getData(childNode)
       expect(fusesBefore).to.equal(0)
       await NameWrapper.setChildFuses(
@@ -927,9 +934,55 @@ function shouldRespectConstraints(contracts, getSigners) {
         0,
       )
 
-      // expired names get normalised to 0
-      const [, fuses] = await NameWrapper.getData(childNode)
+      const [, fuses, expiry] = await NameWrapper.getData(childNode)
       expect(fuses).to.equal(0)
+      const timestamp = await getTimestamp()
+      expect(expiry).to.be.below(timestamp)
+    })
+
+    it('Parent can burn fuses with setChildFuses(), and then reset to 0 if not expired', async () => {
+      const [, fusesBefore] = await NameWrapper.getData(childNode)
+      expect(fusesBefore).to.equal(0)
+      await NameWrapper.setChildFuses(
+        parentNode,
+        childLabelHash,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
+        0,
+      )
+
+      const [, fuses, expiry] = await NameWrapper.getData(childNode)
+      expect(fuses).to.equal(0)
+      const timestamp = await getTimestamp()
+      expect(expiry).to.be.below(timestamp)
+
+      await NameWrapper.setChildFuses(parentNode, childLabelHash, 0, 0)
+
+      const [, fuses2] = await NameWrapper.getData(childNode)
+      expect(fuses2).to.equal(0)
+    })
+
+    it('Parent can burn fuses with setChildFuses(), and if not expired cannot be reset to 0', async () => {
+      const [, fusesBefore] = await NameWrapper.getData(childNode)
+      expect(fusesBefore).to.equal(0)
+      await NameWrapper.setChildFuses(
+        parentNode,
+        childLabelHash,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
+        MAX_EXPIRY,
+      )
+
+      const [, fuses, expiry] = await NameWrapper.getData(childNode)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
+      )
+      const timestamp = await getTimestamp()
+      expect(expiry).to.be.above(timestamp)
+
+      await NameWrapper.setChildFuses(parentNode, childLabelHash, 0, MAX_EXPIRY)
+      const [, fuses2] = await NameWrapper.getData(childNode)
+      expect(fuses2).to.equal(
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
+      )
     })
 
     it('Parent can burn fuses with setChildFuses() if expiry is also extended', async () => {
@@ -1031,12 +1084,15 @@ function shouldRespectConstraints(contracts, getSigners) {
       await ethers.provider.send('evm_revert', [result])
     })
 
-    it('0000 => 0100 - DW => CU Parent - cannot burn CANNOT_UNWRAP with setChildFuses()', async () => {
-      await expect(
-        NameWrapper.setChildFuses(parentNode, childLabelHash, CANNOT_UNWRAP, 0),
-      ).to.be.revertedWith(
-        `OperationProhibited("0x40e4b5d9555b6f20c264b5922e90f08889074195ec29c4256db06da93d187ce0")`,
+    it('0000 => 0100 - DW => CU Parent - can burn CANNOT_UNWRAP with setChildFuses(), but it is reset to 0', async () => {
+      await NameWrapper.setChildFuses(
+        parentNode,
+        childLabelHash,
+        CANNOT_UNWRAP,
+        0,
       )
+      const [, fuses] = await NameWrapper.getData(childNode)
+      expect(fuses).to.equal(0)
     })
 
     it('0000 => 0100 - DW => CU - Owner cannot burn CANNOT_UNWRAP with setFuses()', async () => {
@@ -1060,11 +1116,14 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     it('0001 => 0101 - PCU => CU_PCU - Parent cannot burn CANNOT_UNWRAP with setChildFuses()', async () => {
-      await expect(
-        NameWrapper.setChildFuses(parentNode, childLabelHash, CANNOT_UNWRAP, 0),
-      ).to.be.revertedWith(
-        `OperationProhibited("0x40e4b5d9555b6f20c264b5922e90f08889074195ec29c4256db06da93d187ce0")`,
+      await NameWrapper.setChildFuses(
+        parentNode,
+        childLabelHash,
+        CANNOT_UNWRAP,
+        0,
       )
+      const [, fuses] = await NameWrapper.getData(childNode)
+      expect(fuses).to.equal(0)
     })
 
     it('0001 => 0101 - PCU => CU_PCU -  Owner cannot burn CANNOT_UNWRAP with setFuses()', async () => {

@@ -27,6 +27,12 @@ function mine() {
   return ethers.provider.send('evm_mine')
 }
 
+async function getTimestamp() {
+  const blockNumber = await ethers.provider.getBlockNumber()
+  const timestamp = (await ethers.provider.getBlock(blockNumber)).timestamp
+  return timestamp
+}
+
 const {
   CANNOT_UNWRAP,
   CANNOT_BURN_FUSES,
@@ -920,9 +926,33 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
       expect(expiry).to.equal(expectedExpiry)
 
-      //sub domain fuses get reset
-      ;[, fuses] = await NameWrapper.getData(namehash('sub.wrapped2.eth'))
-      expect(fuses).to.equal(0)
+      // sub domain expires, owner resets, fuses stay the same but are expired
+      ;[, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.wrapped2.eth'),
+      )
+      const owner = await NameWrapper.ownerOf(namehash('sub.wrapped2.eth'))
+      expect(fuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
+      const timestamp = await getTimestamp()
+      expect(expiry).to.be.below(timestamp)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapper2.setSubnodeOwner(
+        namehash('wrapped2.eth'),
+        'sub',
+        account,
+        0,
+        MAX_EXPIRY,
+      )
+
+      // sub domain can be recreated/wrapped and fuses can be zero'd out because it is expired
+      ;[, fuses2, expiry2] = await NameWrapper.getData(
+        namehash('sub.wrapped2.eth'),
+      )
+      const owner2 = await NameWrapper.ownerOf(namehash('sub.wrapped2.eth'))
+      expect(fuses2).to.equal(0)
+      const timestamp2 = await getTimestamp()
+      expect(expiry2).to.be.above(timestamp2)
+      expect(owner2).to.equal(account)
     })
 
     it('correctly reports fuses for a name that has expired and been rewrapped more permissively with registerAndWrap()', async () => {
