@@ -916,12 +916,14 @@ describe('Name Wrapper', () => {
         CAN_DO_EVERYTHING,
         EMPTY_ADDRESS,
       )
-      ;[, fuses, expiry] = await NameWrapper.getData(namehash('wrapped2.eth'))
+      ;[fuses, expiry] = await NameWrapper.getActiveFuses(
+        namehash('wrapped2.eth'),
+      )
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
       expect(expiry).to.equal(expectedExpiry)
 
       //sub domain fuses get reset
-      ;[, fuses] = await NameWrapper.getData(namehash('sub.wrapped2.eth'))
+      ;[fuses] = await NameWrapper.getActiveFuses(namehash('sub.wrapped2.eth'))
       expect(fuses).to.equal(0)
     })
 
@@ -968,12 +970,14 @@ describe('Name Wrapper', () => {
       const expectedExpiry = (
         await BaseRegistrar.nameExpires(labelHash)
       ).toNumber()
-      ;[, fuses, expiry] = await NameWrapper.getData(namehash('wrapped2.eth'))
+      ;[fuses, expiry] = await NameWrapper.getActiveFuses(
+        namehash('wrapped2.eth'),
+      )
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | IS_DOT_ETH)
       expect(expiry).to.equal(expectedExpiry)
 
       //sub domain fuses get reset
-      ;[, fuses] = await NameWrapper.getData(namehash('sub.wrapped2.eth'))
+      ;[fuses] = await NameWrapper.getActiveFuses(namehash('sub.wrapped2.eth'))
       expect(fuses).to.equal(0)
     })
 
@@ -1142,7 +1146,7 @@ describe('Name Wrapper', () => {
 
       await increaseTime(84600 + 1)
       await mine()
-      const [, fuses] = await NameWrapper.getData(nameHash)
+      const [fuses] = await NameWrapper.getActiveFuses(nameHash)
       expect(fuses).to.equal(0)
     })
 
@@ -2907,7 +2911,7 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
         0,
       )
-      ;[, fuses, expiry] = await NameWrapper.getData(subWrappedTokenId)
+      ;[fuses, expiry] = await NameWrapper.getActiveFuses(subWrappedTokenId)
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
     })
@@ -3354,7 +3358,7 @@ describe('Name Wrapper', () => {
       await evm.advanceTime(DAY / 2 + 1)
       await evm.mine()
 
-      const [, fusesAfter, expiryAfter] = await NameWrapper.getData(
+      const [fusesAfter, expiryAfter] = await NameWrapper.getActiveFuses(
         subWrappedTokenId,
       )
       expect(expiryAfter).to.equal(parentExpiry - DAY / 2)
@@ -3544,7 +3548,9 @@ describe('Name Wrapper', () => {
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER,
         0,
       )
-      const [, fuses] = await NameWrapper.getData(namehash(`sub.${label}.eth`))
+      const [fuses] = await NameWrapper.getActiveFuses(
+        namehash(`sub.${label}.eth`),
+      )
       expect(fuses).to.equal(0)
     })
 
@@ -3861,7 +3867,7 @@ describe('Name Wrapper', () => {
       await evm.advanceTime(DAY / 2 + 1)
       await evm.mine()
 
-      const [, fusesAfter, expiryAfter] = await NameWrapper.getData(
+      const [fusesAfter, expiryAfter] = await NameWrapper.getActiveFuses(
         subWrappedTokenId,
       )
       expect(expiryAfter).to.equal(parentExpiry - DAY / 2)
@@ -4246,7 +4252,7 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
       )
 
-      const [, fuses] = await NameWrapper.getData(wrappedTokenId)
+      const [fuses] = await NameWrapper.getActiveFuses(wrappedTokenId)
       const owner = await NameWrapper.ownerOf(wrappedTokenId)
       // owner should be 0 as expired
       expect(owner).to.equal(EMPTY_ADDRESS)
@@ -4437,7 +4443,7 @@ describe('Name Wrapper', () => {
       await increaseTime(84600 + 1)
       await mine()
 
-      let [, fuses, expiry] = await NameWrapper.getData(subNameHash)
+      let [fuses, expiry] = await NameWrapper.getActiveFuses(subNameHash)
 
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(expectedExpiry)
@@ -4828,9 +4834,6 @@ describe('Name Wrapper', () => {
     })
 
     it('Renews name in grace period and allows burning of fuses', async () => {
-      const block = await ethers.provider.getBlock(
-        await ethers.provider.getBlockNumber(),
-      )
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -4848,7 +4851,9 @@ describe('Name Wrapper', () => {
       await mine()
 
       // fuses are reset
-      const [, fusesAfterExpiry] = await NameWrapper.getData(wrappedTokenId)
+      const [fusesAfterExpiry] = await NameWrapper.getActiveFuses(
+        wrappedTokenId,
+      )
       const ownerAfterExpiry = await NameWrapper.ownerOf(wrappedTokenId)
       expect(fusesAfterExpiry).to.equal(CAN_DO_EVERYTHING)
 
@@ -4866,6 +4871,12 @@ describe('Name Wrapper', () => {
       const [owner, fusesAfterRenew, expiry] = await NameWrapper.getData(
         wrappedTokenId,
       )
+
+      const [fusesAfterRenew2] = await NameWrapper.getActiveFuses(
+        wrappedTokenId,
+      )
+
+      console.log(fusesAfterRenew, fusesAfterRenew2)
 
       expect(owner).to.equal(account)
 

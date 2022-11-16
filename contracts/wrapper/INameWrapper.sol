@@ -17,6 +17,7 @@ uint32 constant PARENT_CANNOT_CONTROL = 1 << 16;
 uint32 constant IS_DOT_ETH = 1 << 17;
 uint32 constant CAN_DO_EVERYTHING = 0;
 uint32 constant PARENT_CONTROLLED_FUSES = 0xFFFF0000;
+// all fuses apart from IS_DOT_ETH
 uint32 constant USER_SETTABLE_FUSES = 0xFFFDFFFF;
 
 interface INameWrapper is IERC1155 {

@@ -439,7 +439,9 @@ function shouldRespectConstraints(contracts, getSigners) {
       // force expiry
       await advanceTime(DAY * 2)
       await mine()
-      const [, fusesAfter, expiryAfter] = await NameWrapper.getData(childNode)
+      const [fusesAfter, expiryAfter] = await NameWrapper.getActiveFuses(
+        childNode,
+      )
       const ownerAfter = await NameWrapper.ownerOf(childNode)
 
       const blockNumberAfter = await ethers.provider.getBlockNumber()
@@ -754,7 +756,7 @@ function shouldRespectConstraints(contracts, getSigners) {
     it('Parent cannot burn parent-controlled fuses as they reset to 0', async () => {
       await NameWrapper.setChildFuses(parentNode, childLabelHash, 1 << 18, 0)
       // expired names get normalised to 0
-      expect((await NameWrapper.getData(childNode))[1]).to.equal(0)
+      expect((await NameWrapper.getActiveFuses(childNode))[0]).to.equal(0)
     })
 
     it('Parent can burn parent-controlled fuses, if expiry is extended', async () => {
@@ -928,7 +930,7 @@ function shouldRespectConstraints(contracts, getSigners) {
       )
 
       // expired names get normalised to 0
-      const [, fuses] = await NameWrapper.getData(childNode)
+      const [fuses] = await NameWrapper.getActiveFuses(childNode)
       expect(fuses).to.equal(0)
     })
 
@@ -1013,7 +1015,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         0,
       )
 
-      const [, fuses] = await NameWrapper.getData(childNode)
+      const [fuses] = await NameWrapper.getActiveFuses(childNode)
 
       // fuses are normalised
       expect(fuses).to.equal(0)
@@ -1121,7 +1123,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         0,
       )
 
-      const [, fuses, expiry] = await NameWrapper.getData(childNode)
+      const [fuses] = await NameWrapper.getActiveFuses(childNode)
       expect(fuses).to.equal(0)
     })
   })
