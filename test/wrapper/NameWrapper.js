@@ -4808,31 +4808,6 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
-    it('Renews names and can extend wrapper expiry', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
-        label,
-        account,
-        86400,
-        EMPTY_ADDRESS,
-        CAN_DO_EVERYTHING,
-      )
-
-      await evm.advanceTime(DAY * 2)
-      await mine()
-
-      const [, , expiryBefore] = await NameWrapper.getData(wrappedTokenId)
-      const block1 = await ethers.provider.getBlock(
-        await ethers.provider.getBlockNumber(),
-      )
-      //confirm expired
-      expect(expiryBefore).to.be.below(block1.timestamp)
-
-      // renew less than what is required
-      await expect(NameWrapper.renew(labelHash, 10000, 0)).to.be.revertedWith(
-        `RenewalTooShort("${labelHash}")`,
-      )
-    })
-
     it('Renews name in grace period and allows burning of fuses', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
