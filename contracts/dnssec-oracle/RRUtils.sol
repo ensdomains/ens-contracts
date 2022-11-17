@@ -346,7 +346,9 @@ library RRUtils {
         pure
         returns (bool)
     {
-        return int32(i1) - int32(i2) >= 0;
+        unchecked {
+            return int32(i1) - int32(i2) >= 0;
+        }
     }
 
     function progress(bytes memory body, uint256 off)
