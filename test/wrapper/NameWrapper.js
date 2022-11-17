@@ -3937,7 +3937,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('LabelMismatch')
     })
 
     it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
@@ -3957,7 +3957,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('OperationProhibited')
     })
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
@@ -4122,7 +4122,7 @@ describe('Name Wrapper', () => {
           labelhash(''),
           abiCoder.encode(types, ['', account, 0, 0, EMPTY_ADDRESS]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('LabelTooShort')
     })
   })
 
