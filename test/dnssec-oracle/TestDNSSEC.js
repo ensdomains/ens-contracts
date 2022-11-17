@@ -465,6 +465,74 @@ contract('DNSSEC', function(accounts) {
     )
   })
 
+  it('should reject signatures with invalid signer names (2)', async function() {
+    var instance = await dnssec.deployed()
+    await expectRevert(instance.verifyRRSet([
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
+        hexEncodeSignedSet({
+          name: 'xample',
+          sig: {
+            name: 'xample',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'DNSKEY',
+              algorithm: 253,
+              labels: 1,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1278,
+              signersName: '.',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'xample',
+              type: 'DNSKEY',
+              class: 'IN',
+              ttl: 3600,
+              data: { flags: 0x0101, algorithm: 253, key: Buffer.from('0000', 'HEX') },
+            },
+          ],
+        }),
+        hexEncodeSignedSet({
+          name: 'test.e\x06xample',
+          sig: {
+            name: 'test.e\x06xample',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'TXT',
+              algorithm: 253,
+              labels: 2,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1278,
+              signersName: 'xample',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'test.e\x06xample',
+              type: 'TXT',
+              class: 'IN',
+              ttl: 3600,
+              data: ["Test"],
+            },
+          ],
+        })
+      ]), 'InvalidSignerName'
+    )      
+  })
+
   it('should reject entries with expirations in the past', async function() {
     var instance = await dnssec.deployed()
     var keys = rootKeys(expiration, inception)

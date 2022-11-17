@@ -220,14 +220,7 @@ contract DNSSECImpl is DNSSEC, Owned {
     ) internal view {
         // o  The RRSIG RR's Signer's Name field MUST be the name of the zone
         //    that contains the RRset.
-        if (
-            rrset.signerName.length > name.length ||
-            !rrset.signerName.equals(
-                0,
-                name,
-                name.length - rrset.signerName.length
-            )
-        ) {
+        if (!name.isSubdomainOf(rrset.signerName)) {
             revert InvalidSignerName(name, rrset.signerName);
         }
 
