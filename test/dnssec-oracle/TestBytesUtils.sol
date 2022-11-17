@@ -24,6 +24,9 @@ contract TestBytesUtils {
     require("xax".compare(1, 1, "xxbxx", 2, 1)   < 0 == true,  "Compare same length");
     require("xax".compare(1, 1, "xxabxx", 2, 2)  < 0 == true,  "Compare different length");
     require("xax".compare(1, 1, "xxaxx", 2, 1)  == 0 == true,  "Compare same with different offset");
+    require("01234567890123450123456789012345ab".compare(0, 33, "01234567890123450123456789012345aa", 0, 33) == 0 == true,   "Compare different long strings same length smaller partial length which must be equal");
+    require("01234567890123450123456789012345ab".compare(0, 33, "01234567890123450123456789012345aa", 0, 34) < 0 == true,   "Compare long strings same length different partial length");
+    require("0123456789012345012345678901234a".compare(0, 32, "0123456789012345012345678901234b", 0, 32) < 0 == true,   "Compare strings exactly 32 characters long");
   }
 
   function testCompare() public pure {

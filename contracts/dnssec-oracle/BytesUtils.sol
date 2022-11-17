@@ -76,10 +76,10 @@ library BytesUtils {
             if (a != b) {
                 // Mask out irrelevant bytes and check again
                 uint256 mask;
-                if (shortest > 32) {
+                if (shortest - idx >= 32) {
                     mask = type(uint256).max;
                 } else {
-                    mask = ~(2**(8 * (32 - shortest + idx)) - 1);
+                    mask = ~(2 ** (8 * (idx + 32 - shortest)) - 1);
                 }
                 int256 diff = int256(a & mask) - int256(b & mask);
                 if (diff != 0) return diff;

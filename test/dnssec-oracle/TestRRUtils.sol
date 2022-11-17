@@ -58,6 +58,8 @@ contract TestRRUtils {
     bytes memory b_a_c  = hex'01620161016300';
     bytes memory ab_c_d = hex'0261620163016400';
     bytes memory a_c_d  = hex'01610163016400';
+  	bytes memory verylong1_eth = hex'223031323334353637383930313233343536373839303132333435363738393031613031303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637380365746800';
+  	bytes memory verylong2_eth = hex'2130313233343536373839303132333435363738393031323334353637383930316131303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637380365746800';
 
     require(hex'0301616100'.compareNames(hex'0302616200') <  0,  "label lengths are correctly checked");
     require(a_b_c.compareNames(c)      >  0,  "one name has a difference of >1 label to with the same root name");
@@ -71,6 +73,8 @@ contract TestRRUtils {
     require(bthLabXyz.compareNames(bthLabXyz) == 0, "bthLab.xyz and bthLab.xyz are the same");
     require(ethLabXyz.compareNames(bthLabXyz) >  0, "ethLab.xyz comes after bethLab.xyz");
     require(bthLabXyz.compareNames(xyz)       >  0, "bthLab.xyz comes after xyz");
+
+    require(verylong1_eth.compareNames(verylong2_eth)       >  0, "longa.vlong.eth comes after long.vlong.eth");
   }
 
   function testSerialNumberGt() public pure {
