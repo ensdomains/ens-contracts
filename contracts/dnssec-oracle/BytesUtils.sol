@@ -143,7 +143,7 @@ library BytesUtils {
         bytes memory other
     ) internal pure returns (bool) {
         return
-            self.length >= offset + other.length &&
+            self.length == offset + other.length &&
             equals(self, offset, other, 0, other.length);
     }
 

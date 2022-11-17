@@ -18,6 +18,7 @@ contract TestBytesUtils {
     require("hello".equals(1, "ello") == true, "Substring to string equality");
     require("hello".equals(1, "jello", 1, 4) == true, "Substring to substring equality");
     require("zhello".equals(1, "abchello", 3) == true,   "Compare different value with multiple length");
+    require("0x0102030000".equals(0, "0x010203") == false, "Compare with offset and trailing bytes");
   }
 
   function testComparePartial() public pure {
