@@ -310,8 +310,11 @@ contract DNSSECImpl is DNSSEC, Owned {
             return false;
         }
 
-        return
-            algorithms[dnskey.algorithm].verify(keyrdata, data.rrset, data.sig);
+        Algorithm algorithm = algorithms[dnskey.algorithm];
+        if(address(algorithm) == address(0)) {
+            return false;
+        }
+        return algorithm.verify(keyrdata, data.rrset, data.sig);
     }
 
     /**
