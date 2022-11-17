@@ -323,14 +323,12 @@ contract NameWrapper is
 
         expires = registrar.renew(tokenId, duration);
         if (isWrapped(node)) {
+            // gets raw data so allow fuses/owner to remain the same
             (address owner, uint32 oldFuses, ) = getData(uint256(node));
             _setFuses(
                 node,
                 owner,
-                ownerControlledFuses |
-                    oldFuses |
-                    PARENT_CANNOT_CONTROL |
-                    IS_DOT_ETH,
+                ownerControlledFuses | oldFuses,
                 uint64(expires)
             );
         }
