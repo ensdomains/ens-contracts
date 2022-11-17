@@ -329,6 +329,7 @@ contract DNSSECImpl is DNSSEC, Owned {
         RRSetWithSignature memory data,
         RRUtils.RRIterator memory proof
     ) internal view {
+        uint256 proofOffset = proof.offset;
         for (
             RRUtils.RRIterator memory iter = rrset.rrs();
             !iter.done();
@@ -350,6 +351,9 @@ contract DNSSECImpl is DNSSEC, Owned {
                 ) {
                     return;
                 }
+                // Rewind proof iterator to the start for the next loop iteration.
+                proof.nextOffset = proofOffset;
+                proof.next();
             }
         }
         revert NoMatchingProof(rrset.signerName);
