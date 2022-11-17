@@ -100,11 +100,16 @@ contract NameWrapper is
         public
         view
         override(ERC1155Fuse, INameWrapper)
-        returns (address)
+        returns (address owner)
     {
-        (address owner, uint32 fuses, uint64 expiry) = getData(id);
+        uint32 fuses;
+        uint64 expiry;
+        (owner, fuses, expiry) = getData(id);
 
-        expiry = _deriveExpiryIfDotEth(bytes32(id), fuses, expiry);
+        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
+        if (labelhash != bytes32(0)) {
+            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        }
 
         if (
             fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL &&
@@ -116,10 +121,24 @@ contract NameWrapper is
         return owner;
     }
 
-    function getActiveFuses(uint256 id) public view returns (uint32, uint64) {
-        (, uint32 fuses, uint64 expiry) = getData(id);
+    /**
+     * @notice Gets the active fuses for a name
+     * @param id Label as a string of the .eth domain to wrap
+     * @return fuses Active fuses of the name
+     * @return expiry Expiry of when the fuses expire for the name
+     */
 
-        expiry = _deriveExpiryIfDotEth(bytes32(id), fuses, expiry);
+    function getActiveFuses(uint256 id)
+        public
+        view
+        returns (uint32 fuses, uint64 expiry)
+    {
+        (, fuses, expiry) = getData(id);
+
+        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
+        if (labelhash != bytes32(0)) {
+            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        }
 
         if (expiry < block.timestamp) {
             fuses = 0;
@@ -130,10 +149,10 @@ contract NameWrapper is
 
     /**
      * @notice Gets the data for a name
-     * @param id Label as a string of the .eth domain to wrap
-     * @return address The owner of the name
+     * @param id Namehash of the name
+     * @return address Owner of the name
      * @return uint32 Fuses of the name
-     * @return uint64 Expiry of when the fuses expire for the name
+     * @return uint64 Expiry of the name
      */
 
     function getData(uint256 id)
@@ -308,8 +327,7 @@ contract NameWrapper is
             revert RenewalTooShort(bytes32(tokenId));
         }
         if (isWrapped(node)) {
-            (address owner, , ) = getData(uint256(node));
-            (uint32 oldFuses, ) = getActiveFuses(uint256(node));
+            (address owner, uint32 oldFuses, ) = getData(uint256(node));
             _setFuses(
                 node,
                 owner,
@@ -1034,16 +1052,15 @@ contract NameWrapper is
         }
     }
 
-    function _deriveExpiryIfDotEth(
-        bytes32 node,
-        uint32 fuses,
-        uint64 expiry
-    ) internal view returns (uint64) {
+    function _getEthLabelhash(bytes32 node, uint32 fuses)
+        internal
+        view
+        returns (bytes32 labelhash)
+    {
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             bytes memory name = names[node];
-            (bytes32 labelhash, ) = name.readLabel(0);
-            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+            (labelhash, ) = name.readLabel(0);
         }
-        return expiry;
+        return labelhash;
     }
 }
