@@ -4808,6 +4808,43 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
     })
 
+    it('Renewing name less than required to unexpire it still has original owner/fuses', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+      )
+
+      await evm.advanceTime(DAY * 2)
+      await mine()
+
+      const [, , expiryBefore] = await NameWrapper.getData(wrappedTokenId)
+      const block1 = await ethers.provider.getBlock(
+        await ethers.provider.getBlockNumber(),
+      )
+      //confirm expired
+      expect(expiryBefore).to.be.below(block1.timestamp)
+
+      //renew less than what the grace period
+      await NameWrapper.renew(labelHash, 10000, 0)
+
+      const [ownerAfter, fusesAfter, expiryAfter] = await NameWrapper.getData(
+        wrappedTokenId,
+      )
+      expect(ownerAfter).to.equal(account)
+      // fuses remain the same
+      expect(fusesAfter).to.equal(
+        CANNOT_UNWRAP |
+          CANNOT_SET_RESOLVER |
+          IS_DOT_ETH |
+          PARENT_CANNOT_CONTROL,
+      )
+      // still expired
+      expect(expiryAfter).to.be.below(block1.timestamp)
+    })
+
     it('Renews name in grace period and allows burning of fuses', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
