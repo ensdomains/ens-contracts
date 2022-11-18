@@ -533,6 +533,74 @@ contract('DNSSEC', function(accounts) {
     )      
   })
 
+  it.only('should reject signatures with unknown algorithms', async function() {
+    var instance = await dnssec.deployed()
+    await expectRevert(instance.verifyRRSet([
+        hexEncodeSignedSet(rootKeys(expiration, inception)),
+        hexEncodeSignedSet({
+          name: 'test',
+          sig: {
+            name: 'test',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'DNSKEY',
+              algorithm: 253,
+              labels: 1,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1278,
+              signersName: '.',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'test',
+              type: 'DNSKEY',
+              class: 'IN',
+              ttl: 3600,
+              data: { flags: 0x0101, algorithm: 250, key: Buffer.from('0000', 'HEX') },
+            },
+          ],
+        }),
+        hexEncodeSignedSet({
+          name: 'test.test',
+          sig: {
+            name: 'test.test',
+            type: 'RRSIG',
+            ttl: 0,
+            class: 'IN',
+            flush: false,
+            data: {
+              typeCovered: 'TXT',
+              algorithm: 250,
+              labels: 2,
+              originalTTL: 3600,
+              expiration,
+              inception,
+              keyTag: 1275,
+              signersName: 'test',
+              signature: new Buffer([]),
+            },
+          },
+          rrs: [
+            {
+              name: 'test.test',
+              type: 'TXT',
+              class: 'IN',
+              ttl: 3600,
+              data: ["Test"],
+            },
+          ],
+        })
+      ]), 'NoMatchingProof'
+    )      
+  })
+
   it('should reject entries with expirations in the past', async function() {
     var instance = await dnssec.deployed()
     var keys = rootKeys(expiration, inception)
