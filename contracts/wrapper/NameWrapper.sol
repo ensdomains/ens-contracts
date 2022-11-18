@@ -764,9 +764,7 @@ contract NameWrapper is
      */
 
     function isWrapped(bytes32 node) public view override returns (bool) {
-        return
-            ownerOf(uint256(node)) != address(0) &&
-            ens.owner(node) == address(this);
+        return ownerOf(uint256(node)) != address(0);
     }
 
     function onERC721Received(
