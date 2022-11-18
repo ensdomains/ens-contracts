@@ -3366,7 +3366,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it.only('Rewrapping a name that had PCC burned, but has now expired is possible', async () => {
+    it('Rewrapping a name that had PCC burned, but has now expired is possible and resets fuses', async () => {
       const label = 'test'
       const labelHash = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')

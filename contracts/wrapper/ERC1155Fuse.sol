@@ -252,6 +252,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             expiry = oldExpiry;
         }
 
+        if (expiry >= block.timestamp) {
+            fuses = fuses | parentControlledFuses;
+        }
+
         require(oldOwner == address(0), "ERC1155: mint of existing token");
         require(owner != address(0), "ERC1155: mint to the zero address");
         require(
@@ -259,7 +263,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             "ERC1155: newOwner cannot be the NameWrapper contract"
         );
 
-        _setData(tokenId, owner, fuses | parentControlledFuses, expiry);
+        _setData(tokenId, owner, fuses, expiry);
         emit TransferSingle(msg.sender, address(0x0), owner, tokenId, 1);
         _doSafeTransferAcceptanceCheck(
             msg.sender,
