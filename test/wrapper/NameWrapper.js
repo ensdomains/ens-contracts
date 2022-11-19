@@ -5168,7 +5168,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited`)
     })
 
-    it('When emancipated nemes expire, they are untransferrible', async () => {
+    it('When emancipated names expire, they are untransferrible', async () => {
       await BaseRegistrar.register(labelhash(label), account, 86400)
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
       await NameWrapper.setSubnodeOwner(
