@@ -3424,9 +3424,10 @@ describe('Name Wrapper', () => {
         subWrappedTokenId,
       )
       const [activeFuses] = await NameWrapper.getActiveFuses(subWrappedTokenId)
-      console.log(activeFuses)
-      console.log(rawOwner, rawFuses)
-      console.log(expiry2.toNumber(), block1.timestamp)
+      expect(activeFuses).to.equal(0)
+      expect(rawFuses).to.equal(0)
+      expect(rawOwner).to.equal(account2)
+      expect(expiry2).to.be.below(block1.timestamp)
       expect(owner3).to.equal(account2)
     })
   })
