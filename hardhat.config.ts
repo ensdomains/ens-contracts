@@ -131,7 +131,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
@@ -165,7 +165,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 2500,
           },
         },
       },
