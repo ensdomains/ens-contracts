@@ -2900,7 +2900,7 @@ describe('Name Wrapper', () => {
       ).be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it('Fuses are set to 0 if expired', async () => {
+    it('Fuses and owner are set to 0 if expired', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2912,8 +2912,52 @@ describe('Name Wrapper', () => {
         0,
       )
       ;[fuses, expiry] = await NameWrapper.getActiveFuses(subWrappedTokenId)
+      const owner = await NameWrapper.ownerOf(subWrappedTokenId)
+      const [rawOwner, rawFuses] = await NameWrapper.getData(subWrappedTokenId)
+
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+      expect(rawOwner).to.equal(account)
+      expect(rawFuses).to.equal(
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+      )
+    })
+
+    it('Fuses and owner are set to 0 if expired and fuses can be reset after, but owner remains burnt', async () => {
+      await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
+
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+
+      await NameWrapper.setChildFuses(
+        wrappedTokenId,
+        labelhash('sub'),
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+        0,
+      )
+      ;[fuses, expiry] = await NameWrapper.getActiveFuses(subWrappedTokenId)
+      const owner = await NameWrapper.ownerOf(subWrappedTokenId)
+      const [rawOwner, rawFuses] = await NameWrapper.getData(subWrappedTokenId)
+
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(0)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+      expect(rawOwner).to.equal(account)
+      expect(rawFuses).to.equal(
+        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
+      )
+
+      await NameWrapper.setChildFuses(wrappedTokenId, labelhash('sub'), 0, 0)
+      ;[fuses2, expiry2] = await NameWrapper.getActiveFuses(subWrappedTokenId)
+      const owner2 = await NameWrapper.ownerOf(subWrappedTokenId)
+      const [rawOwner2, rawFuses2] = await NameWrapper.getData(
+        subWrappedTokenId,
+      )
+
+      expect(owner2).to.equal(EMPTY_ADDRESS)
+      expect(fuses2).to.equal(0)
+      expect(rawOwner2).to.equal(EMPTY_ADDRESS)
+      expect(rawFuses2).to.equal(0)
     })
   })
 
@@ -3322,7 +3366,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it('Rewrapping a name that had PCC burned, but has now expired is possible', async () => {
+    it('Rewrapping a name that had PCC burned, but has now expired is possible and resets fuses', async () => {
       const label = 'test'
       const labelHash = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
@@ -3370,6 +3414,21 @@ describe('Name Wrapper', () => {
         0,
         0,
       )
+
+      const block1 = await ethers.provider.getBlock(
+        await ethers.provider.getBlockNumber(),
+      )
+
+      const owner3 = await NameWrapper.ownerOf(subWrappedTokenId)
+      const [rawOwner, rawFuses, expiry2] = await NameWrapper.getData(
+        subWrappedTokenId,
+      )
+      const [activeFuses] = await NameWrapper.getActiveFuses(subWrappedTokenId)
+      expect(activeFuses).to.equal(0)
+      expect(rawFuses).to.equal(0)
+      expect(rawOwner).to.equal(account2)
+      expect(expiry2).to.be.below(block1.timestamp)
+      expect(owner3).to.equal(account2)
     })
   })
 
