@@ -500,7 +500,7 @@ contract NameWrapper is
      * @param parentNode Parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
      * @param labelhash Labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
      * @param fuses Fuses to burn
-     * @param expiry When the fuses will expire
+     * @param expiry When the name will expire in seconds since the Unix epoch
      */
 
     function setChildFuses(
@@ -548,7 +548,7 @@ contract NameWrapper is
      * @param label Label of the subdomain as a string
      * @param owner New owner in the wrapper
      * @param fuses Initial fuses for the wrapped subdomain
-     * @param expiry When the fuses will expire
+     * @param expiry When the name will expire in seconds since the Unix epoch
      * @return node Namehash of the subdomain
      */
 
@@ -586,7 +586,7 @@ contract NameWrapper is
      * @param resolver resolver contract in the registry
      * @param ttl ttl in the regsitry
      * @param fuses initial fuses for the wrapped subdomain
-     * @param expiry expiry date for the domain
+     * @param expiry When the name will expire in seconds since the Unix epoch
      * @return node Namehash of the subdomain
      */
 
