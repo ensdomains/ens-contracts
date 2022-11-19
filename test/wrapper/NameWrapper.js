@@ -5127,10 +5127,9 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`Unauthorised("${namehash('xyz')}", "${hacker}")`)
     })
 
-    it('When .eth name expires, it is untransferrable', async () => {
+    it.only('When .eth name expires, it is untransferrable', async () => {
       await BaseRegistrar.register(labelhash(label), account, 84600)
-      await NameWrapper.wrapETH2LD(label, hacker, 0, EMPTY_ADDRESS)
-      await NameWrapper.setApprovalForAll(hacker, true)
+      await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
 
       await evm.advanceTime(84601)
       await mine()
@@ -5143,7 +5142,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+      ).to.be.revertedWith(`OperationProhibited`)
     })
 
     it('Approval on the Wrapper does not give permission to transfer after expiry', async () => {

@@ -188,9 +188,9 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             uint256 id = ids[i];
             uint256 amount = amounts[i];
 
-            (address oldOwner, uint32 fuses, uint64 expiration) = getData(id);
+            (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-            if (!_canTransfer(fuses)) {
+            if (!_canTransfer(fuses, expiry)) {
                 revert OperationProhibited(bytes32(id));
             }
 
@@ -198,7 +198,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
                 amount == 1 && oldOwner == from,
                 "ERC1155: insufficient balance for transfer"
             );
-            _setData(id, to, fuses, expiration);
+            _setData(id, to, fuses, expiry);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, amounts);
@@ -232,7 +232,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             (uint256(expiry) << 192);
     }
 
-    function _canTransfer(uint32 fuses) internal virtual returns (bool);
+    function _canTransfer(uint32 fuses, uint64 expiry) internal virtual returns (bool);
 
     function _mint(
         bytes32 node,
@@ -291,7 +291,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     ) internal {
         (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-        if (!_canTransfer(fuses)) {
+        if (!_canTransfer(fuses, expiry)) {
             revert OperationProhibited(bytes32(id));
         }
 
