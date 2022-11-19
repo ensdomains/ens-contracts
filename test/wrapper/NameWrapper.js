@@ -5167,5 +5167,30 @@ describe('Name Wrapper', () => {
         NameWrapperH.safeTransferFrom(account, hacker, wrappedTokenId, 1, '0x'),
       ).to.be.revertedWith(`OperationProhibited`)
     })
+
+    it.only('When emancipated nemes expire, they are untransferrible', async () => {
+      await BaseRegistrar.register(labelhash(label), account, 86400)
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'test',
+        account,
+        PARENT_CANNOT_CONTROL,
+        3600 + (await ethers.provider.getBlock('latest')).timestamp
+      )
+
+      await evm.advanceTime(3601)
+      await mine()
+
+      await expect(
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          namehash(`test.${label}.eth`),
+          1,
+          '0x'
+        )
+      ).to.be.revertedWith('OperationProhibited');
+    });
   })
 })
