@@ -215,7 +215,7 @@ contract NameWrapper is
         returns (bool)
     {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
-        return (owner == addr || isApprovedForAll(owner, addr)) && (fuses & IS_DOT_ETH == 0 || expiry - GRACE_PERIOD > block.timestamp);
+        return (owner == addr || isApprovedForAll(owner, addr)) && (fuses & IS_DOT_ETH == 0 || expiry - GRACE_PERIOD >= block.timestamp);
     }
 
     /**
@@ -225,7 +225,6 @@ contract NameWrapper is
      * @param wrappedOwner Owner of the name in this contract
      * @param ownerControlledFuses Initial owner-controlled fuses to set
      * @param resolver Resolver contract address
-     * @return Normalised expiry of when the fuses expire
      */
 
     function wrapETH2LD(
@@ -233,7 +232,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint16 ownerControlledFuses,
         address resolver
-    ) public override returns (uint64) {
+    ) public override {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
@@ -252,7 +251,7 @@ contract NameWrapper is
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(tokenId, address(this));
 
-        return _wrapETH2LD(label, wrappedOwner, ownerControlledFuses, resolver);
+        _wrapETH2LD(label, wrappedOwner, ownerControlledFuses, resolver);
     }
 
     /**
@@ -470,8 +469,7 @@ contract NameWrapper is
     ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
-        address owner = ownerOf(uint256(node));
-        (, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
+        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
         // max expiry is set to the expiry of the parent
         (, uint32 parentFuses, uint64 maxExpiry) = getData(
             uint256(parentNode)
@@ -611,15 +609,14 @@ contract NameWrapper is
             CANNOT_TRANSFER | CANNOT_SET_RESOLVER | CANNOT_SET_TTL
         )
     {
+        ens.setRecord(node, address(this), resolver, ttl);
         if (owner == address(0)) {
             (, uint32 fuses, ) = getData(uint256(node));
             if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
                 revert IncorrectTargetOwner(owner);
             }
-            ens.setRecord(node, address(this), resolver, ttl);
             _unwrap(node, address(0));
         } else {
-            ens.setRecord(node, address(this), resolver, ttl);
             address oldOwner = ownerOf(uint256(node));
             _transfer(oldOwner, owner, uint256(node), 1, "");
         }
@@ -662,7 +659,7 @@ contract NameWrapper is
      */
 
     modifier operationAllowed(bytes32 node, uint32 fuseMask) {
-        (, uint32 fuses, uint64 expiry) = getData(uint256(node));
+        (, uint32 fuses, ) = getData(uint256(node));
         if (fuses & fuseMask != 0) {
             revert OperationProhibited(node);
         }
@@ -723,7 +720,9 @@ contract NameWrapper is
      */
 
     function isWrapped(bytes32 node) public view override returns (bool) {
-        return ownerOf(uint256(node)) != address(0);
+        return
+            ownerOf(uint256(node)) != address(0) &&
+            ens.owner(node) == address(this);
     }
 
     function onERC721Received(
@@ -809,7 +808,7 @@ contract NameWrapper is
         uint64 expiry
     ) internal override {
         _canFusesBeBurned(node, fuses);
-        (address oldOwner, , ) = getData(uint256(node));
+        address oldOwner = ownerOf(uint256(node));
         if (oldOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
@@ -942,7 +941,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint16 ownerControlledFuses,
         address resolver
-    ) private returns (uint64) {
+    ) private {
         // Mint a new ERC1155 token with fuses
         // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
         bytes32 labelhash = keccak256(bytes(label));
@@ -951,7 +950,7 @@ contract NameWrapper is
         bytes memory name = _addLabel(label, "\x03eth\x00");
         names[node] = name;
 
-        uint64 expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        uint64 expiry = uint64(registrar.nameExpires(uint256(labelhash))) + GRACE_PERIOD;
 
         _wrap(
             node,
@@ -964,8 +963,6 @@ contract NameWrapper is
         if (resolver != address(0)) {
             ens.setResolver(node, resolver);
         }
-
-        return expiry;
     }
 
     function _unwrap(bytes32 node, address owner) private {

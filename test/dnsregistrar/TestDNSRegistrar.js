@@ -140,7 +140,6 @@ contract('DNSRegistrar', function(accounts) {
     )
 
     const newRrset = testRrset('foo.test', accounts[1])
-    console.log(newRrset)
     newRrset.sig.data.inception -= 3600
     proof[1] = hexEncodeSignedSet(newRrset)
 
