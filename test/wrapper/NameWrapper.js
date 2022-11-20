@@ -5193,7 +5193,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith("ERC1155: insufficient balance for transfer");
     })
 
-    it.only('Returns a balance of 0 for expired names', async () => {
+    it('Returns a balance of 0 for expired names', async () => {
       await BaseRegistrar.register(labelhash(label), account, 86400)
       await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
 
@@ -5203,6 +5203,37 @@ describe('Name Wrapper', () => {
       await(evm.mine())
 
       expect(await NameWrapper.balanceOf(account, wrappedTokenId)).to.equal(0)
+    })
+
+    it('Reregistering an expired name does not inherit its previous parent fuses', async () => {
+      await BaseRegistrar.register(labelhash(label), account, 86400)
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      // Mint the subdomain
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'test',
+        account,
+        PARENT_CANNOT_CONTROL,
+        3600 + (await ethers.provider.getBlock('latest')).timestamp
+      )
+
+      // Let it expire
+      await evm.advanceTime(3601)
+      await mine()
+
+      // Mint it again, without PCC
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'test',
+        account,
+        0,
+        3600 + (await ethers.provider.getBlock('latest')).timestamp
+      )
+
+      // Check PCC isn't set
+      const [owner, fuses, expiry] = await NameWrapper.getData(namehash(`test.${label}.eth`))
+      expect(fuses).to.equal(0)
     })
   })
 })
