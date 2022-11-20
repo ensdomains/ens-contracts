@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 /* This contract is a variation on ERC1155 with the additions of _setData, getData and _preTransferCheck and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
 
-error OperationProhibited(bytes32 node);
-
 abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
     mapping(uint256 => uint256) public _tokens;
@@ -61,7 +59,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             account != address(0),
             "ERC1155: balance query for the zero address"
         );
-        (address owner, , ) = getData(id);
+        address owner = ownerOf(id);
         if (owner == account) {
             return 1;
         }
@@ -250,7 +248,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             expiry = oldExpiry;
         }
 
-        if (expiry >= block.timestamp) {
+        if (oldExpiry >= block.timestamp) {
             fuses = fuses | parentControlledFuses;
         }
 

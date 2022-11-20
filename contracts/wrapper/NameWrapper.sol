@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {ERC1155Fuse, IERC165, OperationProhibited} from "./ERC1155Fuse.sol";
+import {ERC1155Fuse, IERC165} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
 import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
@@ -21,6 +21,7 @@ error LabelTooShort();
 error LabelTooLong(string label);
 error IncorrectTargetOwner(address owner);
 error CannotUpgrade();
+error OperationProhibited(bytes32 node);
 
 contract NameWrapper is
     Ownable,
