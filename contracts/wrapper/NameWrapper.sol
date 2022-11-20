@@ -796,13 +796,17 @@ contract NameWrapper is
 
     /***** Internal functions */
 
-    function _canTransfer(uint32 fuses, uint64 expiry) internal view override returns (bool) {
+    function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal view override returns (bool) {
         if(expiry < block.timestamp) {
             // Tranferrible if the name is not emancipated
-            return fuses & PARENT_CANNOT_CONTROL == 0;
+            if(fuses & PARENT_CANNOT_CONTROL != 0) {
+                revert("ERC1155: insufficient balance for transfer");
+            }
         } else {
             // Transferrible if CANNOT_TRANSFER is unburned
-            return fuses & CANNOT_TRANSFER == 0;
+            if(fuses & CANNOT_TRANSFER != 0) {
+                revert OperationProhibited(bytes32(id));
+            }
         }
     }
 

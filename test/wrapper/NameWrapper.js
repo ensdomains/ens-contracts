@@ -5142,7 +5142,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`OperationProhibited`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
     })
 
     it('Approval on the Wrapper does not give permission to transfer after expiry', async () => {
@@ -5161,11 +5161,11 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`OperationProhibited`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
 
       await expect(
         NameWrapperH.safeTransferFrom(account, hacker, wrappedTokenId, 1, '0x'),
-      ).to.be.revertedWith(`OperationProhibited`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
     })
 
     it('When emancipated names expire, they are untransferrible', async () => {
@@ -5190,7 +5190,7 @@ describe('Name Wrapper', () => {
           1,
           '0x'
         )
-      ).to.be.revertedWith('OperationProhibited');
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer");
     });
   })
 })
