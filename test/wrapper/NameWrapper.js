@@ -5191,6 +5191,18 @@ describe('Name Wrapper', () => {
           '0x'
         )
       ).to.be.revertedWith("ERC1155: insufficient balance for transfer");
-    });
+    })
+
+    it.only('Returns a balance of 0 for expired names', async () => {
+      await BaseRegistrar.register(labelhash(label), account, 86400)
+      await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.balanceOf(account, wrappedTokenId)).to.equal(1)
+
+      await evm.advanceTime(86401)
+      await(evm.mine())
+
+      expect(await NameWrapper.balanceOf(account, wrappedTokenId)).to.equal(0)
+    })
   })
 })

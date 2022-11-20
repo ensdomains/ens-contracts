@@ -61,7 +61,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             account != address(0),
             "ERC1155: balance query for the zero address"
         );
-        (address owner, , ) = getData(id);
+        address owner = ownerOf(id);
         if (owner == account) {
             return 1;
         }
