@@ -132,11 +132,11 @@ contract NameWrapper is
             expiry = uint64(registrar.nameExpires(uint256(labelhash))) + GRACE_PERIOD;
         }
 
-        if (
-            fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL &&
-            expiry < block.timestamp
-        ) {
-            owner = address(0);
+        if (expiry < block.timestamp) {
+            if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
+                owner = address(0);
+            }
+            fuses = 0;
         }
     }
 
@@ -762,7 +762,12 @@ contract NameWrapper is
     /***** Internal functions */
 
     function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal view override returns (bool) {
-        if(expiry - GRACE_PERIOD < block.timestamp) {
+        // For this check, treat .eth 2LDs as expiring at the start of the grace period.
+        if(fuses & IS_DOT_ETH == IS_DOT_ETH) {
+            expiry -= GRACE_PERIOD;
+        }
+
+        if(expiry < block.timestamp) {
             // Transferable if the name was not emancipated
             if(fuses & PARENT_CANNOT_CONTROL != 0) {
                 revert("ERC1155: insufficient balance for transfer");
