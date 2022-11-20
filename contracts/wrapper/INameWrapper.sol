@@ -64,8 +64,7 @@ interface INameWrapper is IERC1155 {
 
     function renew(
         uint256 labelHash,
-        uint256 duration,
-        uint16 ownerControlledFuses
+        uint256 duration
     ) external returns (uint256 expires);
 
     function unwrap(

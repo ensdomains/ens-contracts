@@ -210,27 +210,6 @@ contract ETHRegistrarController is
         payable
         override
     {
-        _renew(name, duration, 0);
-    }
-
-    function renewWithFuses(
-        string calldata name,
-        uint256 duration,
-        uint16 ownerControlledFuses
-    ) external payable {
-        bytes32 labelhash = keccak256(bytes(name));
-        bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
-        if (!nameWrapper.isTokenOwnerOrApproved(nodehash, msg.sender)) {
-            revert Unauthorised(nodehash);
-        }
-        _renew(name, duration, ownerControlledFuses);
-    }
-
-    function _renew(
-        string calldata name,
-        uint256 duration,
-        uint16 ownerControlledFuses
-    ) internal {
         bytes32 labelhash = keccak256(bytes(name));
         uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
@@ -239,8 +218,7 @@ contract ETHRegistrarController is
         }
         uint256 expires = nameWrapper.renew(
             tokenId,
-            duration,
-            ownerControlledFuses
+            duration
         );
 
         if (msg.value > price.base) {
