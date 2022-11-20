@@ -5129,8 +5129,7 @@ describe('Name Wrapper', () => {
 
     it('When .eth name expires, it is untransferrable', async () => {
       await BaseRegistrar.register(labelhash(label), account, 84600)
-      await NameWrapper.wrapETH2LD(label, hacker, 0, EMPTY_ADDRESS)
-      await NameWrapper.setApprovalForAll(hacker, true)
+      await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
 
       await evm.advanceTime(84601)
       await mine()
@@ -5143,12 +5142,12 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
     })
 
     it('Approval on the Wrapper does not give permission to transfer after expiry', async () => {
       await BaseRegistrar.register(labelhash(label), account, 84600)
-      await NameWrapper.wrapETH2LD(label, hacker, 0, EMPTY_ADDRESS)
+      await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
       await NameWrapper.setApprovalForAll(hacker, true)
 
       await evm.advanceTime(84601)
@@ -5162,11 +5161,36 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
 
       await expect(
         NameWrapperH.safeTransferFrom(account, hacker, wrappedTokenId, 1, '0x'),
-      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer")
     })
+
+    it('When emancipated names expire, they are untransferrible', async () => {
+      await BaseRegistrar.register(labelhash(label), account, 86400)
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'test',
+        account,
+        PARENT_CANNOT_CONTROL,
+        3600 + (await ethers.provider.getBlock('latest')).timestamp
+      )
+
+      await evm.advanceTime(3601)
+      await mine()
+
+      await expect(
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          namehash(`test.${label}.eth`),
+          1,
+          '0x'
+        )
+      ).to.be.revertedWith("ERC1155: insufficient balance for transfer");
+    });
   })
 })

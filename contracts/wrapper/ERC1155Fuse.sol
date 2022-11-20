@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-/* This contract is a variation on ERC1155 with the additions of _setData, getData and _canTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
+/* This contract is a variation on ERC1155 with the additions of _setData, getData and _preTransferCheck and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
 
 error OperationProhibited(bytes32 node);
 
@@ -188,17 +188,15 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             uint256 id = ids[i];
             uint256 amount = amounts[i];
 
-            (address oldOwner, uint32 fuses, uint64 expiration) = getData(id);
+            (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-            if (!_canTransfer(fuses)) {
-                revert OperationProhibited(bytes32(id));
-            }
+            _preTransferCheck(id, fuses, expiry);
 
             require(
                 amount == 1 && oldOwner == from,
                 "ERC1155: insufficient balance for transfer"
             );
-            _setData(id, to, fuses, expiration);
+            _setData(id, to, fuses, expiry);
         }
 
         emit TransferBatch(msg.sender, from, to, ids, amounts);
@@ -232,7 +230,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             (uint256(expiry) << 192);
     }
 
-    function _canTransfer(uint32 fuses) internal virtual returns (bool);
+    function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal virtual returns (bool);
 
     function _mint(
         bytes32 node,
@@ -291,9 +289,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     ) internal {
         (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-        if (!_canTransfer(fuses)) {
-            revert OperationProhibited(bytes32(id));
-        }
+        _preTransferCheck(id, fuses, expiry);
 
         require(
             amount == 1 && oldOwner == from,

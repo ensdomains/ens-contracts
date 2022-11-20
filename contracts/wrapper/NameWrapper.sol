@@ -105,11 +105,6 @@ contract NameWrapper is
         uint64 expiry;
         (owner, fuses, expiry) = getData(id);
 
-        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
-        if (labelhash != bytes32(0)) {
-            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
-        }
-
         if (
             fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL &&
             expiry < block.timestamp
@@ -134,11 +129,6 @@ contract NameWrapper is
     {
         (, fuses, expiry) = getData(id);
 
-        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
-        if (labelhash != bytes32(0)) {
-            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
-        }
-
         if (expiry < block.timestamp) {
             fuses = 0;
         }
@@ -149,9 +139,9 @@ contract NameWrapper is
     /**
      * @notice Gets the data for a name
      * @param id Namehash of the name
-     * @return address Owner of the name
-     * @return uint32 Fuses of the name
-     * @return uint64 Expiry of the name
+     * @return owner Owner of the name
+     * @return fuses Fuses of the name
+     * @return expiry Expiry of the name
      */
 
     function getData(uint256 id)
@@ -159,12 +149,16 @@ contract NameWrapper is
         view
         override(ERC1155Fuse, INameWrapper)
         returns (
-            address,
-            uint32,
-            uint64
+            address owner,
+            uint32 fuses,
+            uint64 expiry
         )
     {
-        return super.getData(id);
+        (owner, fuses, expiry) = super.getData(id);
+        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
+        if (labelhash != bytes32(0)) {
+            expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        }
     }
 
     /* Metadata service */
@@ -802,8 +796,18 @@ contract NameWrapper is
 
     /***** Internal functions */
 
-    function _canTransfer(uint32 fuses) internal pure override returns (bool) {
-        return fuses & CANNOT_TRANSFER == 0;
+    function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal view override returns (bool) {
+        if(expiry < block.timestamp) {
+            // Transferable if the name was not emancipated
+            if(fuses & PARENT_CANNOT_CONTROL != 0) {
+                revert("ERC1155: insufficient balance for transfer");
+            }
+        } else {
+            // Transferable if CANNOT_TRANSFER is unburned
+            if(fuses & CANNOT_TRANSFER != 0) {
+                revert OperationProhibited(bytes32(id));
+            }
+        }
     }
 
     function _makeNode(bytes32 node, bytes32 labelhash)
