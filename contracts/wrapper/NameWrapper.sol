@@ -798,12 +798,12 @@ contract NameWrapper is
 
     function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal view override returns (bool) {
         if(expiry < block.timestamp) {
-            // Tranferrible if the name is not emancipated
+            // Transferable if the name was not emancipated
             if(fuses & PARENT_CANNOT_CONTROL != 0) {
                 revert("ERC1155: insufficient balance for transfer");
             }
         } else {
-            // Transferrible if CANNOT_TRANSFER is unburned
+            // Transferable if CANNOT_TRANSFER is unburned
             if(fuses & CANNOT_TRANSFER != 0) {
                 revert OperationProhibited(bytes32(id));
             }
