@@ -1870,7 +1870,7 @@ describe('Name Wrapper', () => {
       const expectedFuses =
         PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
 
-      expect(tx)
+      await expect(tx)
         .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
         .withArgs(
           namehash('wrapped2.eth'),
@@ -1879,7 +1879,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
           0,
           expectedFuses,
-          expectedExpiry,
+          expectedExpiry.add(GRACE_PERIOD),
         )
     })
 
@@ -2027,6 +2027,7 @@ describe('Name Wrapper', () => {
         .to.emit(NameWrapperUpgraded, 'SetSubnodeRecord')
         .withArgs(namehash('xyz'), 'to-upgrade', account, account2, 0, 0, 0)
     })
+
     it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
@@ -2060,6 +2061,7 @@ describe('Name Wrapper', () => {
       )
     })
   })
+  
   describe('setFuses()', () => {
     const label = 'fuses'
     const tokenId = labelhash('fuses')
