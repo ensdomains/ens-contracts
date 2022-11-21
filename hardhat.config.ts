@@ -12,6 +12,7 @@ import 'hardhat-gas-reporter'
 import { HardhatUserConfig, task } from 'hardhat/config'
 import { Artifact } from 'hardhat/types'
 import { promisify } from 'util'
+import "hardhat-contract-sizer";
 
 const exec = promisify(_exec)
 
@@ -130,6 +131,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
+      allowUnlimitedContractSize: false,
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
@@ -163,7 +165,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 2500,
           },
         },
       },
