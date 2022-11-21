@@ -115,7 +115,7 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (bytes32);
 
-    function isTokenOwnerOrApproved(bytes32 node, address addr)
+    function canModifyName(bytes32 node, address addr)
         external
         returns (bool);
 

@@ -64,7 +64,7 @@ const INTERFACES = {
     'setSubnodeRecord(bytes32,string,address,address,uint64,uint32,uint64)',
     'setRecord(bytes32,address,address,uint64)',
     'setSubnodeOwner(bytes32,string,address,uint32,uint64)',
-    'isTokenOwnerOrApproved(bytes32,address)',
+    'canModifyName(bytes32,address)',
     'setResolver(bytes32,address)',
     'setTTL(bytes32,uint64)',
     'getData(uint256)',

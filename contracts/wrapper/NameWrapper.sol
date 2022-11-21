@@ -194,7 +194,7 @@ contract NameWrapper is
      */
 
     modifier onlyTokenOwner(bytes32 node) {
-        if (!isTokenOwnerOrApproved(node, msg.sender)) {
+        if (!canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -208,7 +208,7 @@ contract NameWrapper is
      * @return whether or not is owner or approved
      */
 
-    function isTokenOwnerOrApproved(bytes32 node, address addr)
+    function canModifyName(bytes32 node, address addr)
         public
         view
         override
@@ -475,11 +475,11 @@ contract NameWrapper is
             uint256(parentNode)
         );
         if (parentNode == ROOT_NODE) {
-            if (!isTokenOwnerOrApproved(node, msg.sender)) {
+            if (!canModifyName(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
         } else {
-            if (!isTokenOwnerOrApproved(parentNode, msg.sender)) {
+            if (!canModifyName(parentNode, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
         }
@@ -574,7 +574,7 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _addLabelAndWrap(parentNode, node, label, owner, fuses, expiry);
+            _storeNameAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
             ens.setSubnodeRecord(
                 parentNode,
@@ -815,7 +815,7 @@ contract NameWrapper is
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
 
-    function _addLabelAndWrap(
+    function _storeNameAndWrap(
         bytes32 parentNode,
         bytes32 node,
         string memory label,
@@ -845,7 +845,7 @@ contract NameWrapper is
             revert CannotUpgrade();
         }
 
-        if (!isTokenOwnerOrApproved(node, msg.sender)) {
+        if (!canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
