@@ -42,7 +42,7 @@ graph TD;
   locked-->|expire|unregistered;
 ```
 
-State transitions are facilitated by functions on the name wrapper and registrar controller contracts. One function can potentially move a name through multiple states - for example, calling `registerAndWrapETH2LD()` will register a .eth second-level name, wrap it, and protect it, moving it from `[Unregistered]` to `Protected` state in a single call.
+State transitions are facilitated by functions on the name wrapper and registrar controller contracts. One function can potentially move a name through multiple states - for example, calling `registerAndWrapETH2LD()` will register a .eth second-level name, wrap it, and emancipate it, moving it from `[Unregistered]` to `Emancipated` state in a single call.
 
 Some state transitions are irrevocable; once a name is Emancipated or Locked, it can only return to being Wrapped or Unwrapped after it expires.
 
@@ -66,7 +66,7 @@ To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `addr
 
 Wrapping an Unwrapped name makes it Wrapped. Wrapped names are managed by the name wrapper, and have ERC1155 tokens, but can be unwrapped at any time, and have no special protections over and above an unwrapped name - for example, the owner of the parent name can still make changes to the name or take back ownership.
 
-Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar.
+Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar, and have a wrapper expiry equal to the end of the name's grace period.
 
 To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return `address(0)`.
 
@@ -75,6 +75,8 @@ To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return
 An Emancipated name provides the assurance that the owner of the parent name cannot affect it in any way until it expires.
 
 A name is Emancipated when the owner of the parent domain gives up control over it. They do this by setting an expiration date - which can be extended at any time - and burning the `PARENT_CANNOT_CONTROL` fuse over the name. To do this, the parent name must already be in the `Locked` state.
+
+.eth second-level names are automatically Emancipated when wrapped, and their expiry is fixed at the end of the grace period in the .eth registrar.
 
 An Emancipated name can be unwrapped - but when it is wrapped again it will automatically return to the `Emancipated` state.
 
@@ -99,11 +101,11 @@ The NameWrapper tracks an expiration time for each name. Expiry of names is not 
 If the name is Emancipated or Locked, the following changes happen:
 
 - The NameWrapper returns `address(0)` as the name owner from `ownerOf()` or `getData()` if the name is expired.
-- The NameWrapper treats all fuses as unset and returns uint32(0) from `getActiveFuses()` for fuses if the name is expired.
+- The NameWrapper treats all fuses as unset and returns uint32(0) from `getData()` for fuses if the name is expired.
 
 Expiry can still be extended even if a name is in the Wrapped state, but does not have any practical effect on the name.
 
-.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper.
+.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper.
 
 Expiry can be extended using the following functions:
 
@@ -112,7 +114,7 @@ Expiry can be extended using the following functions:
 - `setSubnodeRecord()`
 - `renew()`
 
-`setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has completely expired (past grace period) on the .eth registrar and must be re-registered instead.
+`setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has expired (past grace period) on the .eth registrar and must be re-registered instead.
 
 `setSubnodeOwner()` and `setSubnodeRecord()` both revert when the subdomain is Emancipated or Locked.
 
@@ -184,7 +186,7 @@ const areBurned = await allFusesBurned(
 
 ### Get current owner, fuses and expiry using `getData(node)`
 
-getData gets the owner, raw fuses and also the expiry of the name. The raw fuses it returns will be a `uint32` and you will have to decode this yourself. If you just need to check a fuse has been burned, you can call `allFusesBurned` as it will use less gas.
+getData gets the owner, fuses and also the expiry of the name. The fuses it returns will be a `uint32` and you will have to decode this yourself. If you just need to check a fuse has been burned, you can call `allFusesBurned` as it will use less gas.
 
 ## Function Reference
 
@@ -193,7 +195,7 @@ getData gets the owner, raw fuses and also the expiry of the name. The raw fuses
 **Start State**: Unwrapped
 **End State**: Emancipated | Locked
 
-Wraps a .eth second-level name. The wrapped name's expiration will always be equal to the name's expiration in the .eth registrar.
+Wraps a .eth second-level name. The wrapped name's expiration will always be equal to the name's expiration in the .eth registrar plus the grace period (90 days).
 
 If fuses are provided, they will be burned at the same time as wrapping, moving the name directly to Locked status.
 
@@ -224,7 +226,7 @@ Allows a registrar controller to register and wrap a name in a single operation.
 **Start State**: Emancipated | Locked
 **End State**: Emancipated | Locked
 
-Allows a registrar controller to renewa a .eth second-level name, optionally updating the owner controlled fuses at the same time.
+Allows a registrar controller to renew a .eth second-level name.
 
 ### `setSubnodeOwner()`
 **Start State**: Unregistered | Unwrapped | Wrapped
@@ -304,18 +306,14 @@ The NameWrapper mirrors most of the functionality from the original ENS registry
 
 ### Getting Data
 
-The NameWrapper has 3 functions for getting data from the contract. 
+The NameWrapper has 2 functions for getting data from the contract. 
 
 - `getData`
 - `ownerOf`
-- `getActiveFuses`
 
-
-`getData` gets the raw data that is stored for a name. This is a tuple of `owner`,`fuses` and `expiry`. It does not transform this data at all dependent on if a name is a certain state or is expired.
+`getData` gets the data that is stored for a name. This is a tuple of `owner`,`fuses` and `expiry`.
 
 `ownerOf` will return the owner of a name. It adheres to the rules applied by emancipating a name. If the name is emancipated, expired names will return `address(0)` when calling `ownerOf`
-
-`getActiveFuses` will return a tuple of `activeFuses` and `expiry`. If the name is expired, names will return `0` for fuses when calling `getActiveFuses`.
 
 ### Subdomain management
 
@@ -347,7 +345,7 @@ Since the NameWrapper does have `onERC721Received` support, the NameWrapper WILL
 
 Names can be registered as normal using the current .eth registrar controller. However, the new .eth registrar controller will be a controller on the NameWrapper, and have NameWrapper will be a controller on the .eth base registrar. The NameWrapper exposes a `registerAndWrapETH2LD()` function that can be called by the new .eth registrar to directly register wrapped names. This new function removes the need to first transfer the owner to the contract itself before transferring it to the final owner, which saves gas.
 
-For a short period of time, both .eth registrar controllers will be active giving time for front-end clients to switch their code to point at the new and improved .eth registrar controller.
+Both .eth registrar controllers will be active during a deprecation period, giving time for front-end clients to switch their code to point at the new and improved .eth registrar controller.
 
 ## Ownership of the NameWrapper
 
