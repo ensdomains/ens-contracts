@@ -566,7 +566,7 @@ contract('ETHRegistrarController', function () {
     )
 
     await evm.advanceTime((await controller.minCommitmentAge()).toNumber())
-    expect(
+    await expect(
       controller.register(
         label,
         registrantAccount,
@@ -597,7 +597,7 @@ contract('ETHRegistrarController', function () {
     await controller.commit(commitment)
 
     await evm.advanceTime((await controller.maxCommitmentAge()).toNumber() + 1)
-    expect(
+    await expect(
       controller.register(
         'newname2',
         registrantAccount,
@@ -660,23 +660,6 @@ contract('ETHRegistrarController', function () {
     ).to.equal(86400)
   })
 
-  it('should not allow non token owners to renew a name', async () => {
-    const CANNOT_UNWRAP = 1
-    const PARENT_CANNOT_CONTROL = 64
-    await registerName('newname')
-
-    var expires = await baseRegistrar.nameExpires(sha3('newname'))
-    const duration = 86400
-    const [price] = await controller.rentPrice(sha3('newname'), duration)
-    expect(
-      controller.renew(
-        'newname',
-        duration,
-        { value: price },
-      ),
-    ).to.be.revertedWith(`Unauthorised("${namehash('newname.eth')}")`)
-  })
-
   it('non wrapped names can renew', async () => {
     const label = 'newname'
     const tokenId = sha3(label)
@@ -700,7 +683,7 @@ contract('ETHRegistrarController', function () {
   })
 
   it('should require sufficient value for a renewal', async () => {
-    expect(controller.renew('name', 86400)).to.be.revertedWith(
+    await expect(controller.renew('name', 86400)).to.be.revertedWith(
       'InsufficientValue()',
     )
   })
