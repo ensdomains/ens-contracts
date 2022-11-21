@@ -1,6 +1,8 @@
 pragma solidity ^0.8.4;
 
 library BytesUtils {
+    error OffsetOutOfBoundsError(uint256 offset, uint256 length);
+
     /*
      * @dev Returns the keccak-256 hash of a byte range.
      * @param self The byte string to hash.
@@ -56,6 +58,13 @@ library BytesUtils {
         uint256 otheroffset,
         uint256 otherlen
     ) internal pure returns (int256) {
+        if(offset + len > self.length) {
+            revert OffsetOutOfBoundsError(offset + len, self.length);
+        }
+        if(otheroffset + otherlen > other.length) {
+            revert OffsetOutOfBoundsError(otheroffset + otherlen, other.length);
+        }
+        
         uint256 shortest = len;
         if (otherlen < len) shortest = otherlen;
 
@@ -76,10 +85,10 @@ library BytesUtils {
             if (a != b) {
                 // Mask out irrelevant bytes and check again
                 uint256 mask;
-                if (shortest > 32) {
+                if (shortest - idx >= 32) {
                     mask = type(uint256).max;
                 } else {
-                    mask = ~(2**(8 * (32 - shortest + idx)) - 1);
+                    mask = ~(2 ** (8 * (idx + 32 - shortest)) - 1);
                 }
                 int256 diff = int256(a & mask) - int256(b & mask);
                 if (diff != 0) return diff;
@@ -143,7 +152,7 @@ library BytesUtils {
         bytes memory other
     ) internal pure returns (bool) {
         return
-            self.length >= offset + other.length &&
+            self.length == offset + other.length &&
             equals(self, offset, other, 0, other.length);
     }
 

@@ -12,6 +12,12 @@ import "@ensdomains/buffer/contracts/Buffer.sol";
 
 /*
  * @dev An oracle contract that verifies and stores DNSSEC-validated DNS records.
+ * @note This differs from the DNSSEC spec defined in RFC4034 and RFC4035 in some key regards:
+ *       - NSEC & NSEC3 are not supported; only positive proofs are allowed.
+ *       - Proofs involving wildcard names will not validate.
+ *       - TTLs on records are ignored, as data is not stored persistently.
+ *       - Canonical form of names is not checked; in ENS this is done on the frontend, so submitting
+ *         proofs with non-canonical names will only result in registering unresolvable ENS names.
  */
 contract DNSSECImpl is DNSSEC, Owned {
     using Buffer for Buffer.buffer;
@@ -220,14 +226,7 @@ contract DNSSECImpl is DNSSEC, Owned {
     ) internal view {
         // o  The RRSIG RR's Signer's Name field MUST be the name of the zone
         //    that contains the RRset.
-        if (
-            rrset.signerName.length > name.length ||
-            !rrset.signerName.equals(
-                0,
-                name,
-                name.length - rrset.signerName.length
-            )
-        ) {
+        if (!name.isSubdomainOf(rrset.signerName)) {
             revert InvalidSignerName(name, rrset.signerName);
         }
 
@@ -310,8 +309,11 @@ contract DNSSECImpl is DNSSEC, Owned {
             return false;
         }
 
-        return
-            algorithms[dnskey.algorithm].verify(keyrdata, data.rrset, data.sig);
+        Algorithm algorithm = algorithms[dnskey.algorithm];
+        if(address(algorithm) == address(0)) {
+            return false;
+        }
+        return algorithm.verify(keyrdata, data.rrset, data.sig);
     }
 
     /**
@@ -326,6 +328,7 @@ contract DNSSECImpl is DNSSEC, Owned {
         RRSetWithSignature memory data,
         RRUtils.RRIterator memory proof
     ) internal view {
+        uint256 proofOffset = proof.offset;
         for (
             RRUtils.RRIterator memory iter = rrset.rrs();
             !iter.done();
@@ -347,6 +350,9 @@ contract DNSSECImpl is DNSSEC, Owned {
                 ) {
                     return;
                 }
+                // Rewind proof iterator to the start for the next loop iteration.
+                proof.nextOffset = proofOffset;
+                proof.next();
             }
         }
         revert NoMatchingProof(rrset.signerName);

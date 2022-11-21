@@ -266,6 +266,23 @@ library RRUtils {
         self.digest = data.substring(offset + DS_DIGEST, length - DS_DIGEST);
     }
 
+    function isSubdomainOf(bytes memory self, bytes memory other) 
+        internal
+        pure
+        returns (bool)
+    {
+        uint256 off = 0;
+        uint256 counts = labelCount(self, 0);
+        uint256 othercounts = labelCount(other, 0);
+
+        while(counts > othercounts) {
+            off = progress(self, off);
+            counts--;
+        }
+
+        return self.equals(off, other, 0);
+    }
+
     function compareNames(bytes memory self, bytes memory other)
         internal
         pure
@@ -329,7 +346,9 @@ library RRUtils {
         pure
         returns (bool)
     {
-        return int32(i1) - int32(i2) >= 0;
+        unchecked {
+            return int32(i1) - int32(i2) >= 0;
+        }
     }
 
     function progress(bytes memory body, uint256 off)

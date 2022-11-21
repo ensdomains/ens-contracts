@@ -18,12 +18,16 @@ contract TestBytesUtils {
     require("hello".equals(1, "ello") == true, "Substring to string equality");
     require("hello".equals(1, "jello", 1, 4) == true, "Substring to substring equality");
     require("zhello".equals(1, "abchello", 3) == true,   "Compare different value with multiple length");
+    require("0x0102030000".equals(0, "0x010203") == false, "Compare with offset and trailing bytes");
   }
 
   function testComparePartial() public pure {
     require("xax".compare(1, 1, "xxbxx", 2, 1)   < 0 == true,  "Compare same length");
     require("xax".compare(1, 1, "xxabxx", 2, 2)  < 0 == true,  "Compare different length");
     require("xax".compare(1, 1, "xxaxx", 2, 1)  == 0 == true,  "Compare same with different offset");
+    require("01234567890123450123456789012345ab".compare(0, 33, "01234567890123450123456789012345aa", 0, 33) == 0 == true,   "Compare different long strings same length smaller partial length which must be equal");
+    require("01234567890123450123456789012345ab".compare(0, 33, "01234567890123450123456789012345aa", 0, 34) < 0 == true,   "Compare long strings same length different partial length");
+    require("0123456789012345012345678901234a".compare(0, 32, "0123456789012345012345678901234b", 0, 32) < 0 == true,   "Compare strings exactly 32 characters long");
   }
 
   function testCompare() public pure {
