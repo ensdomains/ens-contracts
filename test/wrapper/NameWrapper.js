@@ -4197,7 +4197,7 @@ describe('Name Wrapper', () => {
             EMPTY_ADDRESS,
           ]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('LabelMismatch')
     })
 
     it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
@@ -4211,7 +4211,7 @@ describe('Name Wrapper', () => {
           tokenId,
           abiCoder.encode(types, [label, account, '0x00000002', EMPTY_ADDRESS]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('OperationProhibited')
     })
 
     it('Reverts when manually changing fuse calldata to incorrect type', async () => {
@@ -4395,7 +4395,7 @@ describe('Name Wrapper', () => {
           labelhash(''),
           abiCoder.encode(types, ['', account, 0, EMPTY_ADDRESS]),
         ),
-      ).to.be.revertedWith('reverted with an unrecognized custom error')
+      ).to.be.revertedWith('LabelTooShort')
     })
   })
 
