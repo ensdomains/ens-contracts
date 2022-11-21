@@ -574,7 +574,7 @@ contract NameWrapper is
                 resolver,
                 ttl
             );
-            _storeNameAndWrap(parentNode, node, label, owner, fuses, expiry);
+            _getNameAndWrap(parentNode, node, label, owner, fuses, expiry);
         } else {
             ens.setSubnodeRecord(
                 parentNode,
@@ -815,7 +815,8 @@ contract NameWrapper is
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
 
-    function _storeNameAndWrap(
+    // wrapper function for stack limit
+    function _getNameAndWrap(
         bytes32 parentNode,
         bytes32 node,
         string memory label,
