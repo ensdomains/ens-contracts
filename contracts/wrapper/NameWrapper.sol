@@ -527,7 +527,7 @@ contract NameWrapper is
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
-        if (!isWrapped(node)) {
+        if (ownerOf(uint256(node)) == address(0)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _wrap(node, name, owner, fuses, expiry);
         } else {
@@ -566,7 +566,7 @@ contract NameWrapper is
         _checkFusesAreSettable(node, fuses);
         _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
-        if (!isWrapped(node)) {
+        if (ownerOf(uint256(node)) == address(0)) {
             ens.setSubnodeRecord(
                 parentNode,
                 labelhash,
@@ -710,19 +710,6 @@ contract NameWrapper is
     {
         (, uint32 fuses, ) = getData(uint256(node));
         return fuses & fuseMask == fuseMask;
-    }
-
-    /**
-     * @notice Checks if a name is wrapped or not
-     * @dev Both of these checks need to be true to be considered wrapped if checked without this contract
-     * @param node Namehash of the name
-     * @return Boolean of whether or not the name is wrapped
-     */
-
-    function isWrapped(bytes32 node) public view override returns (bool) {
-        return
-            ownerOf(uint256(node)) != address(0) &&
-            ens.owner(node) == address(this);
     }
 
     function onERC721Received(

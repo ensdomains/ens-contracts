@@ -70,7 +70,6 @@ const INTERFACES = {
     'getData(uint256)',
     'ownerOf(uint256)',
     'allFusesBurned(bytes32,uint32)',
-    'isWrapped(bytes32)',
   ],
 }
 
