@@ -533,7 +533,7 @@ contract('DNSSEC', function(accounts) {
     )      
   })
 
-  it.only('should reject signatures with unknown algorithms', async function() {
+  it('should reject signatures with unknown algorithms', async function() {
     var instance = await dnssec.deployed()
     await expectRevert(instance.verifyRRSet([
         hexEncodeSignedSet(rootKeys(expiration, inception)),
