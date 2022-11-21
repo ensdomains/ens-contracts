@@ -8,7 +8,12 @@ import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
-import { HardhatUserConfig } from 'hardhat/config'
+import { HardhatUserConfig, task } from 'hardhat/config'
+import { Artifact } from 'hardhat/types'
+import { promisify } from 'util'
+import "hardhat-contract-sizer";
+
+const exec = promisify(_exec)
 
 // hardhat actions
 import './tasks/accounts'
@@ -23,8 +28,8 @@ import './tasks/seed'
 dotenv.config({ debug: false })
 
 let real_accounts = undefined
-if (process.env.DEPLOYER_KEY && process.env.OWNER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY]
+if (process.env.DEPLOYER_KEY) {
+  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
 }
 
 // circular dependency shared with actions
@@ -33,10 +38,9 @@ export const archivedDeploymentPath = './deployments/archive'
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {
-      // Required for real DNS record tests
-      initialDate: '2019-03-15T14:06:45.000+13:00',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
+      allowUnlimitedContractSize: false,
     },
     localhost: {
       url: 'http://127.0.0.1:8545',
@@ -72,11 +76,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.13',
+        version: '0.8.17',
         settings: {
           optimizer: {
             enabled: true,
-            runs: 10000,
+            runs: 2500,
           },
         },
       },

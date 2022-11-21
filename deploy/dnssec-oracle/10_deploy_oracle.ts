@@ -63,7 +63,7 @@ function encodeAnchors(anchors: any[]) {
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
   const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const { deployer } = await getNamedAccounts()
 
   const anchors = realAnchors.slice()
   let algorithms: Record<number, string> = {
@@ -75,9 +75,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const digests: Record<number, string> = {
     1: 'SHA1Digest',
     2: 'SHA256Digest',
-  }
-  const nsec_digests: Record<number, string> = {
-    1: 'SHA1NSEC3Digest',
   }
 
   if (network.tags.test) {
@@ -109,13 +106,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
   }
 
-  for (const [id, digest] of Object.entries(nsec_digests)) {
-    const address = (await deployments.get(digest)).address
-    if (address != (await dnssec.nsec3Digests(id))) {
-      transactions.push(await dnssec.setNSEC3Digest(id, address))
-    }
-  }
-
   console.log(
     `Waiting on ${transactions.length} transactions setting DNSSEC parameters`,
   )
@@ -123,10 +113,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['dnssec-oracle']
-func.dependencies = [
-  'dnssec-algorithms',
-  'dnssec-digests',
-  'dnssec-nsec3-digests',
-]
+func.dependencies = ['dnssec-algorithms', 'dnssec-digests']
 
 export default func

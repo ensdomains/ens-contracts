@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
 
 import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
@@ -12,8 +12,13 @@ uint32 constant CANNOT_TRANSFER = 4;
 uint32 constant CANNOT_SET_RESOLVER = 8;
 uint32 constant CANNOT_SET_TTL = 16;
 uint32 constant CANNOT_CREATE_SUBDOMAIN = 32;
-uint32 constant PARENT_CANNOT_CONTROL = 64;
+//uint16 reserved for parent controlled fuses from bit 17 to bit 32
+uint32 constant PARENT_CANNOT_CONTROL = 1 << 16;
+uint32 constant IS_DOT_ETH = 1 << 17;
 uint32 constant CAN_DO_EVERYTHING = 0;
+uint32 constant PARENT_CONTROLLED_FUSES = 0xFFFF0000;
+// all fuses apart from IS_DOT_ETH
+uint32 constant USER_SETTABLE_FUSES = 0xFFFDFFFF;
 
 interface INameWrapper is IERC1155 {
     event NameWrapped(
@@ -45,24 +50,21 @@ interface INameWrapper is IERC1155 {
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint32 fuses,
-        uint64 _expiry,
+        uint16 ownerControlledFuses,
         address resolver
-    ) external returns (uint64 expiry);
+    ) external;
 
     function registerAndWrapETH2LD(
         string calldata label,
         address wrappedOwner,
         uint256 duration,
         address resolver,
-        uint32 fuses,
-        uint64 expiry
+        uint16 ownerControlledFuses
     ) external returns (uint256 registrarExpiry);
 
     function renew(
         uint256 labelHash,
-        uint256 duration,
-        uint64 expiry
+        uint256 duration
     ) external returns (uint256 expires);
 
     function unwrap(
@@ -77,7 +79,7 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function setFuses(bytes32 node, uint32 fuses)
+    function setFuses(bytes32 node, uint16 ownerControlledFuses)
         external
         returns (uint32 newFuses);
 
@@ -96,7 +98,7 @@ interface INameWrapper is IERC1155 {
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    ) external;
+    ) external returns (bytes32);
 
     function setRecord(
         bytes32 node,
@@ -113,7 +115,7 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (bytes32);
 
-    function isTokenOwnerOrApproved(bytes32 node, address addr)
+    function canModifyName(bytes32 node, address addr)
         external
         returns (bool);
 
@@ -123,9 +125,13 @@ interface INameWrapper is IERC1155 {
 
     function ownerOf(uint256 id) external returns (address owner);
 
-    function getFuses(bytes32 node)
+    function getData(uint256 id)
         external
-        returns (uint32 fuses, uint64 expiry);
+        returns (
+            address,
+            uint32,
+            uint64
+        );
 
     function allFusesBurned(bytes32 node, uint32 fuseMask)
         external

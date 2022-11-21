@@ -2,6 +2,7 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const PublicResolver = artifacts.require('PublicResolver.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
 
+const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 
@@ -69,6 +70,16 @@ contract('PublicResolver', function(accounts) {
     })
   })
 
+  describe('recordVersion', async () => {
+    it('permits clearing records', async () => {
+      var tx = await resolver.clearRecords(node, { from: accounts[0] })
+      assert.equal(tx.logs.length, 1)
+      assert.equal(tx.logs[0].event, 'VersionChanged')
+      assert.equal(tx.logs[0].args.node, node)
+      assert.equal(tx.logs[0].args.newVersion, 1)
+    })
+  })
+
   describe('addr', async () => {
     it('permits setting address by owner', async () => {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
@@ -211,7 +222,7 @@ contract('PublicResolver', function(accounts) {
   })
 
   describe('addr', async () => {
-    it('permits setting address by owner', async () => {
+    const basicSetAddr = async () => {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
         node,
         accounts[1],
@@ -225,7 +236,9 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[1].args.node, node)
       assert.equal(tx.logs[1].args.a, accounts[1])
       assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
-    })
+    }
+
+    it('permits setting address by owner', basicSetAddr)
 
     it('can overwrite previously set address', async () => {
       await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
@@ -338,13 +351,21 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[1].args.a, accounts[2])
       assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[2])
     })
+
+    it('resets record on version change', async () => {
+      await basicSetAddr()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.methods['addr(bytes32)'](node), EMPTY_ADDRESS)
+    })
   })
 
   describe('name', async () => {
-    it('permits setting name by owner', async () => {
+    const basicSetName = async () => {
       await resolver.setName(node, 'name1', { from: accounts[0] })
       assert.equal(await resolver.name(node), 'name1')
-    })
+    }
+
+    it('permits setting name by owner', basicSetName)
 
     it('can overwrite previously set names', async () => {
       await resolver.setName(node, 'name1', { from: accounts[0] })
@@ -363,9 +384,28 @@ contract('PublicResolver', function(accounts) {
     it('returns empty when fetching nonexistent name', async () => {
       assert.equal(await resolver.name(node), '')
     })
+
+    it('resets record on version change', async () => {
+      await basicSetName()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.name(node), '')
+    })
   })
 
   describe('pubkey', async () => {
+    const basicSetPubkey = async () => {
+      let x =
+        '0x1000000000000000000000000000000000000000000000000000000000000000'
+      let y =
+        '0x2000000000000000000000000000000000000000000000000000000000000000'
+
+      await resolver.setPubkey(node, x, y, { from: accounts[0] })
+
+      let result = await resolver.pubkey(node)
+      assert.equal(result[0], x)
+      assert.equal(result[1], y)
+    }
+
     it('returns empty when fetching nonexistent values', async () => {
       let result = await resolver.pubkey(node)
       assert.equal(
@@ -378,18 +418,7 @@ contract('PublicResolver', function(accounts) {
       )
     })
 
-    it('permits setting public key by owner', async () => {
-      let x =
-        '0x1000000000000000000000000000000000000000000000000000000000000000'
-      let y =
-        '0x2000000000000000000000000000000000000000000000000000000000000000'
-
-      await resolver.setPubkey(node, x, y, { from: accounts[0] })
-
-      let result = await resolver.pubkey(node)
-      assert.equal(result[0], x)
-      assert.equal(result[1], y)
-    })
+    it('permits setting public key by owner', basicSetPubkey)
 
     it('can overwrite previously set value', async () => {
       await resolver.setPubkey(
@@ -465,19 +494,29 @@ contract('PublicResolver', function(accounts) {
         )
       )
     })
+
+    it('resets record on version change', async () => {
+      await basicSetPubkey()
+      await resolver.clearRecords(node)
+      result = await resolver.pubkey(node)
+      assert.equal(result[0], '0x0000000000000000000000000000000000000000000000000000000000000000')
+      assert.equal(result[1], '0x0000000000000000000000000000000000000000000000000000000000000000')
+    })
   })
 
   describe('ABI', async () => {
+    const basicSetABI = async () => {
+      await resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[0] })
+      let result = await resolver.ABI(node, 0xffffffff)
+      assert.deepEqual([result[0].toNumber(), result[1]], [1, '0x666f6f'])
+    }
+
     it('returns a contentType of 0 when nothing is available', async () => {
       let result = await resolver.ABI(node, 0xffffffff)
       assert.equal(result[0], 0)
     })
 
-    it('returns an ABI after it has been set', async () => {
-      await resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[0] })
-      let result = await resolver.ABI(node, 0xffffffff)
-      assert.deepEqual([result[0].toNumber(), result[1]], [1, '0x666f6f'])
-    })
+    it('returns an ABI after it has been set', basicSetABI)
 
     it('returns the first valid ABI', async () => {
       await resolver.setABI(node, 0x2, '0x666f6f', { from: accounts[0] })
@@ -511,16 +550,25 @@ contract('PublicResolver', function(accounts) {
         resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[1] })
       )
     })
+
+    it('resets on version change', async () => {
+      await basicSetABI()
+      await resolver.clearRecords(node)
+      result = await resolver.ABI(node, 0xffffffff)
+      assert.equal(result[0], 0)
+    })
   })
 
   describe('text', async () => {
     var url = 'https://ethereum.org'
     var url2 = 'https://github.com/ethereum'
 
-    it('permits setting text by owner', async () => {
+    const basicSetText = async () => {
       await resolver.setText(node, 'url', url, { from: accounts[0] })
       assert.equal(await resolver.text(node, 'url'), url)
-    })
+    }
+
+    it('permits setting text by owner', basicSetText)
 
     it('can overwrite previously set text', async () => {
       await resolver.setText(node, 'url', url, { from: accounts[0] })
@@ -551,10 +599,16 @@ contract('PublicResolver', function(accounts) {
         resolver.setText(node, 'url', url, { from: accounts[1] })
       )
     })
+
+    it('resets record on version change', async () => {
+      await basicSetText()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.text(node, 'url'), '')
+    })
   })
 
   describe('contenthash', async () => {
-    it('permits setting contenthash by owner', async () => {
+    const basicSetContenthash = async () => {
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
@@ -564,7 +618,9 @@ contract('PublicResolver', function(accounts) {
         await resolver.contenthash(node),
         '0x0000000000000000000000000000000000000000000000000000000000000001'
       )
-    })
+    }
+
+    it('permits setting contenthash by owner', basicSetContenthash)
 
     it('can overwrite previously set contenthash', async () => {
       await resolver.setContenthash(
@@ -639,10 +695,16 @@ contract('PublicResolver', function(accounts) {
     it('returns empty when fetching nonexistent contenthash', async () => {
       assert.equal(await resolver.contenthash(node), null)
     })
+
+    it('resets record on version change', async () => {
+      await basicSetContenthash()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.contenthash(node), null)
+    })
   })
 
   describe('dns', async () => {
-    it('permits setting name by owner', async () => {
+    const basicSetDNSRecords = async () => {
       // a.eth. 3600 IN A 1.2.3.4
       const arec = '016103657468000001000100000e10000401020304'
       // b.eth. 3600 IN A 2.3.4.5
@@ -668,7 +730,8 @@ contract('PublicResolver', function(accounts) {
         await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
         '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840'
       )
-    })
+    }
+    it('permits setting name by owner', basicSetDNSRecords)
 
     it('should update existing records', async () => {
       // a.eth. 3600 IN A 4.5.6.7
@@ -722,36 +785,6 @@ contract('PublicResolver', function(accounts) {
       assert.equal(hasEntries, false)
     })
 
-    it('can clear a zone', async () => {
-      // a.eth. 3600 IN A 1.2.3.4
-      const arec = '016103657468000001000100000e10000401020304'
-      const rec = '0x' + arec
-
-      await resolver.setDNSRecords(node, rec, { from: accounts[0] })
-
-      // Ensure the record is present
-      assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
-        '0x016103657468000001000100000e10000401020304'
-      )
-
-      // Clear the zone
-      await resolver.clearDNSZone(node, { from: accounts[0] })
-
-      // Ensure the record is no longer present
-      assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
-        null
-      )
-
-      // Ensure the record can be set again
-      await resolver.setDNSRecords(node, rec, { from: accounts[0] })
-      assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
-        '0x016103657468000001000100000e10000401020304'
-      )
-    })
-
     it('should handle single-record updates', async () => {
       // e.eth. 3600 IN A 1.2.3.4
       const erec = '016503657468000001000100000e10000401020304'
@@ -774,7 +807,7 @@ contract('PublicResolver', function(accounts) {
       )
     })
 
-    it('permits setting zonehash by owner', async () => {
+    const basicSetZonehash = async () => {
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
@@ -784,7 +817,9 @@ contract('PublicResolver', function(accounts) {
         await resolver.zonehash(node),
         '0x0000000000000000000000000000000000000000000000000000000000000001'
       )
-    })
+    }
+
+    it('permits setting zonehash by owner', basicSetZonehash)
 
     it('can overwrite previously set zonehash', async () => {
       await resolver.setZonehash(
@@ -909,10 +944,33 @@ contract('PublicResolver', function(accounts) {
         '0x0000000000000000000000000000000000000000000000000000000000000000'
       )
     })
+
+    it('resets dnsRecords on version change', async () => {
+      await basicSetDNSRecords()
+      await resolver.clearRecords(node)
+      assert.equal(
+        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
+        null,
+      )
+      assert.equal(
+        await resolver.dnsRecord(node, sha3(dnsName('b.eth.')), 1),
+        null,
+      )
+      assert.equal(
+        await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
+        null,
+      )
+    })
+
+    it('resets zonehash on version change', async () => {
+      await basicSetZonehash()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.zonehash(node), null)
+    })
   })
 
   describe('implementsInterface', async () => {
-    it('permits setting interface by owner', async () => {
+    const basicSetInterface = async () => {
       await resolver.setInterface(node, '0x12345678', accounts[0], {
         from: accounts[0],
       })
@@ -920,7 +978,9 @@ contract('PublicResolver', function(accounts) {
         await resolver.interfaceImplementer(node, '0x12345678'),
         accounts[0]
       )
-    })
+    }
+
+    it('permits setting interface by owner', basicSetInterface)
 
     it('can update previously set interface', async () => {
       await resolver.setInterface(node, '0x12345678', resolver.address, {
@@ -996,6 +1056,12 @@ contract('PublicResolver', function(accounts) {
         await resolver.interfaceImplementer(node, '0x01ffc9a7'),
         '0x0000000000000000000000000000000000000000'
       )
+    })
+
+    it('resets record on version change', async () => {
+      await basicSetInterface()
+      await resolver.clearRecords(node)
+      assert.equal(await resolver.interfaceImplementer(node, '0x12345678'), '0x0000000000000000000000000000000000000000')
     })
   })
 

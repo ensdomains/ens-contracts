@@ -1,5 +1,6 @@
 {
     "address": "0x112234455C3a32FD11230C42E7Bccd4A84e02010",
+    "transactionHash": "0xb224be1316b42012c5f562c28eed1e3bcf401c938016b9edbe0e71d2b0e8cfff",
     "abi": [
         {
             "constant": true,

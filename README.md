@@ -41,7 +41,6 @@ import '@ensdomains/ens-contracts/contracts/registry/TestRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrarImplementation.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/BulkRenewal.sol';
-import '@ensdomains/ens-contracts/contracts/ethregistrar/BaseRegistrar.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/ETHRegistrarController.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/LinearPremiumPriceOracle.sol';
 import '@ensdomains/ens-contracts/contracts/ethregistrar/PriceOracle.sol';
@@ -72,7 +71,7 @@ Implementation of the ENS Registry, the central contract used to look up resolve
 
 ### ENSRegistryWithFallback
 
-The new impelmentation of the ENS Registry after [the 2020 ENS Registry Migration](https://docs.ens.domains/ens-migration-february-2020/technical-description#new-ens-deployment).
+The new implementation of the ENS Registry after [the 2020 ENS Registry Migration](https://docs.ens.domains/ens-migration-february-2020/technical-description#new-ens-deployment).
 
 ### FIFSRegistrar
 
@@ -92,7 +91,7 @@ Implementation of the `.test` registrar facilitates easy testing of ENS on the E
 
 Implements an [ENS](https://ens.domains/) registrar intended for the .eth TLD.
 
-These contracts were audited by ConsenSys dilligence; the audit report is available [here](https://github.com/ConsenSys/ens-audit-report-2019-02).
+These contracts were audited by ConsenSys Diligence; the audit report is available [here](https://github.com/ConsenSys/ens-audit-report-2019-02).
 
 ### BaseRegistrar
 
@@ -120,7 +119,7 @@ The commit/reveal process is used to avoid frontrunning, and operates as follows
  1. A user commits to a hash, the preimage of which contains the name to be registered and a secret value.
  2. After a minimum delay period and before the commitment expires, the user calls the register function with the name to register and the secret value from the commitment. If a valid commitment is found and the other preconditions are met, the name is registered.
 
-The minimum delay and expiry for commitments exist to prevent miners or other users from effectively frontrunnig registrations.
+The minimum delay and expiry for commitments exist to prevent miners or other users from effectively frontrunning registrations.
 
 ### SimplePriceOracle
 
@@ -132,7 +131,7 @@ StablePriceOracle is a price oracle implementation that allows the contract owne
 
 ## Resolvers
 
-Resolver implements a general-purpose ENS resolver that is suitable for most standard ENS use-cases. The public resolver permits updates to ENS records by the owner of the corresponding name.
+Resolver implements a general-purpose ENS resolver that is suitable for most standard ENS use cases. The public resolver permits updates to ENS records by the owner of the corresponding name.
 
 PublicResolver includes the following profiles that implements different EIPs.
 
@@ -169,4 +168,4 @@ yarn pub
 
 ### Release flow
 
-Smart contract development tends to take a long release cycle. To prevent unnecesarily dependency conflicts, please create a feature branch (`features/$BRNACH_NAME`) and raise a PR against the feature branch. The feature branch must be merged into master only after the smart contracts are deployed to the Ethereum mainnet.
+Smart contract development tends to take a long release cycle. To prevent unnecessary dependency conflicts, please create a feature branch (`features/$BRNACH_NAME`) and raise a PR against the feature branch. The feature branch must be merged into master only after the smart contracts are deployed to the Ethereum mainnet.

@@ -6,7 +6,7 @@ import { keccak256 } from 'js-sha3'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
+  const { deploy, fetchIfDifferent } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   if (!network.tags.use_root) {
@@ -16,16 +16,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const registry = await ethers.getContract('ENSRegistry')
   const root = await ethers.getContract('Root')
 
-  await deploy('BaseRegistrarImplementation', {
+  const deployArgs = {
     from: deployer,
     args: [registry.address, namehash.hash('eth')],
     log: true,
-  })
+  };
+
+  const bri = await deploy('BaseRegistrarImplementation', deployArgs)
+  if(!bri.newlyDeployed) return;
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
 
-  const tx1 = await registrar.addController(owner, { from: deployer })
-  console.log(`Adding owner as controller to registrar (tx: ${tx1.hash})...`)
+  const tx1 = await registrar.transferOwnership(owner, { from: deployer })
+  console.log(`Transferring ownership of registrar to owner (tx: ${tx1.hash})...`)
   await tx1.wait()
 
   const tx2 = await root

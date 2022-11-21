@@ -5,7 +5,7 @@ const ETHRegistrarController = artifacts.require('./ETHRegistrarController')
 const DummyOracle = artifacts.require('./DummyOracle')
 const StablePriceOracle = artifacts.require('./StablePriceOracle')
 const BulkRenewal = artifacts.require('./BulkRenewal')
-const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+const NameWrapper = artifacts.require('./wrapper/NameWrapper.sol')
 
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -15,7 +15,7 @@ const { exceptions } = require('../test-utils')
 const ETH_LABEL = sha3('eth')
 const ETH_NAMEHASH = namehash.hash('eth')
 
-contract('BulkRenewal', function(accounts) {
+contract('BulkRenewal', function (accounts) {
   let ens
   let resolver
   let baseRegistrar
@@ -31,42 +31,50 @@ contract('BulkRenewal', function(accounts) {
   before(async () => {
     // Create a registry
     ens = await ENS.new()
-    nameWrapper = await NameWrapper.new()
-    // Create a public resolver
-    resolver = await PublicResolver.new(
-      ens.address,
-      nameWrapper.address,
-      EMPTY_ADDRESS,
-      EMPTY_ADDRESS
-    )
-
     // Create a base registrar
     baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
       from: ownerAccount,
     })
 
+    nameWrapper = await NameWrapper.new(
+      ens.address,
+      baseRegistrar.address,
+      ownerAccount,
+    )
+    // Create a public resolver
+    resolver = await PublicResolver.new(
+      ens.address,
+      nameWrapper.address,
+      EMPTY_ADDRESS,
+      EMPTY_ADDRESS,
+    )
+
     // Set up a dummy price oracle and a controller
     const dummyOracle = await DummyOracle.new(toBN(100000000))
-    priceOracle = await StablePriceOracle.new(dummyOracle.address, [
-      0,
-      0,
-      4,
-      2,
-      1,
-    ])
+    priceOracle = await StablePriceOracle.new(
+      dummyOracle.address,
+      [0, 0, 4, 2, 1],
+    )
     controller = await ETHRegistrarController.new(
       baseRegistrar.address,
       priceOracle.address,
       600,
       86400,
-      nameWrapper.address,
       EMPTY_ADDRESS,
-      { from: ownerAccount }
+      nameWrapper.address,
+      { from: ownerAccount },
     )
+    var wrapperAddress = await controller.nameWrapper()
     await baseRegistrar.addController(controller.address, {
       from: ownerAccount,
     })
     await baseRegistrar.addController(ownerAccount, { from: ownerAccount })
+    await baseRegistrar.addController(nameWrapper.address, {
+      from: ownerAccount,
+    })
+    await nameWrapper.setController(controller.address, true, {
+      from: ownerAccount,
+    })
     // Create the bulk registration contract
     bulkRenewal = await BulkRenewal.new(ens.address)
 
@@ -77,9 +85,9 @@ contract('BulkRenewal', function(accounts) {
       ETH_LABEL,
       ownerAccount,
       resolver.address,
-      0
+      0,
     )
-    await resolver.setInterface(ETH_NAMEHASH, '0xdf7ed181', controller.address)
+    await resolver.setInterface(ETH_NAMEHASH, '0x612e8c09', controller.address)
     await ens.setOwner(ETH_NAMEHASH, baseRegistrar.address)
 
     // Register some names
@@ -91,7 +99,7 @@ contract('BulkRenewal', function(accounts) {
   it('should return the cost of a bulk renewal', async () => {
     assert.equal(
       await bulkRenewal.rentPrice(['test1', 'test2'], 86400),
-      86400 * 2
+      86400 * 2,
     )
   })
 

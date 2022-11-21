@@ -1,0 +1,35 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/wrapper/StaticMetadataService.sol": {
+      "content": "//SPDX-License-Identifier: MIT\npragma solidity ~0.8.17;\n\ncontract StaticMetadataService {\n    string private _uri;\n\n    constructor(string memory _metaDataUri) {\n        _uri = _metaDataUri;\n    }\n\n    function uri(uint256) public view returns (string memory) {\n        return _uri;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 10000
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
