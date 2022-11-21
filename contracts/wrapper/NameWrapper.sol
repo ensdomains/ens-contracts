@@ -929,8 +929,6 @@ contract NameWrapper is
         uint16 ownerControlledFuses,
         address resolver
     ) private {
-        // Mint a new ERC1155 token with fuses
-        // Set PARENT_CANNOT_REPLACE to reflect wrapper + registrar control over the 2LD
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
         // hardcode dns-encoded eth string for gas savings
