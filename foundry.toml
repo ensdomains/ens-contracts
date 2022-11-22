@@ -1,0 +1,9 @@
+[profile.default]
+src = 'contracts'
+out = 'deploy'
+libs = ['node_modules', 'lib']
+cache_path = 'forge-cache'
+test = 'test'
+solc_version = '0.8.17'
+
+# See more config options https://github.com/foundry-rs/foundry/tree/master/config

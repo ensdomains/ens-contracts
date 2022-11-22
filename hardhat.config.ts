@@ -8,10 +8,19 @@ import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
-import { HardhatUserConfig, task } from 'hardhat/config'
+import { HardhatUserConfig, task, subtask } from 'hardhat/config'
 import { Artifact } from 'hardhat/types'
 import { promisify } from 'util'
 import "hardhat-contract-sizer";
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names'
+
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
+  async (_, __, runSuper) => {
+    const paths = await runSuper()
+
+    return paths.filter((p: string) => !p.endsWith('.t.sol'))
+  },
+)
 
 const exec = promisify(_exec)
 
@@ -29,7 +38,10 @@ dotenv.config({ debug: false })
 
 let real_accounts = undefined
 if (process.env.DEPLOYER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
+  real_accounts = [
+    process.env.DEPLOYER_KEY,
+    process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
+  ]
 }
 
 // circular dependency shared with actions
