@@ -2574,13 +2574,6 @@ describe('Name Wrapper', () => {
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrap(encodeName('anothertld'), account, ZERO_ADDRESS)
 
-      let [, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.fuses.eth'),
-      )
-
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(0)
-
       const block = await ethers.provider.getBlock(
         await ethers.provider.getBlockNumber(),
       )
