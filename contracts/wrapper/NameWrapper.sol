@@ -484,7 +484,7 @@ contract NameWrapper is
             }
         }
 
-        _checkParentFuses(node, fuses, parentFuses);
+        _checkParentCannotUnwrap(node, fuses, parentFuses);
 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
@@ -524,8 +524,8 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
-        bytes memory name = _saveLabel(parentNode, node, label);
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
+        bytes memory name = _saveName(parentNode, node, label);
+        expiry = _checkParentCannotUnwrapAndExpiry(parentNode, node, fuses, expiry);
 
         if (ownerOf(uint256(node)) == address(0)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
@@ -564,8 +564,8 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
-        _saveLabel(parentNode, node, label);
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
+        _saveName(parentNode, node, label);
+        expiry = _checkParentCannotUnwrapAndExpiry(parentNode, node, fuses, expiry);
         if (ownerOf(uint256(node)) == address(0)) {
             ens.setSubnodeRecord(
                 parentNode,
@@ -828,7 +828,7 @@ contract NameWrapper is
         _wrap(node, name, owner, fuses, expiry);
     }
 
-    function _saveLabel(
+    function _saveName(
         bytes32 parentNode,
         bytes32 node,
         string memory label
@@ -877,7 +877,7 @@ contract NameWrapper is
     }
 
     // wrapper function for stack limit
-    function _checkParentFusesAndExpiry(
+    function _checkParentCannotUnwrapAndExpiry(
         bytes32 parentNode,
         bytes32 node,
         uint32 fuses,
@@ -887,11 +887,11 @@ contract NameWrapper is
         (, uint32 parentFuses, uint64 maxExpiry) = getData(
             uint256(parentNode)
         );
-        _checkParentFuses(node, fuses, parentFuses);
+        _checkParentCannotUnwrap(node, fuses, parentFuses);
         return _normaliseExpiry(expiry, oldExpiry, maxExpiry);
     }
 
-    function _checkParentFuses(
+    function _checkParentCannotUnwrap(
         bytes32 node,
         uint32 fuses,
         uint32 parentFuses
@@ -984,7 +984,7 @@ contract NameWrapper is
     }
 
     function _canFusesBeBurned(bytes32 node, uint32 fuses) internal pure {
-        // If a non-parent controlled fuse is being burned, check PCC and CU are burnt
+        // If user settable fuses are being burned, check to make sure PCC and CU are burnt
         if (
             fuses & ~PARENT_CONTROLLED_FUSES != 0 &&
             fuses & (PARENT_CANNOT_CONTROL | CANNOT_UNWRAP) !=
