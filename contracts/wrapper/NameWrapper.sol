@@ -469,13 +469,14 @@ contract NameWrapper is
     ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
+
         (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
+
         // max expiry is set to the expiry of the parent
-        (, uint32 parentFuses, uint64 maxExpiry) = getData(
-            uint256(parentNode)
-        );
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+
         if (parentNode == ROOT_NODE) {
-            if (!canModifyName(node, msg.sender)) {
+            if (!canModifyName(node, msg.sender)) {   
                 revert Unauthorised(node, msg.sender);
             }
         } else {
@@ -488,13 +489,14 @@ contract NameWrapper is
 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
-        // if PARENT_CANNOT_CONTROL has been burned and fuses have changed
+        // disallow burning any new fuses if the parent cannot control fuse has been burned
         if (
             oldFuses & PARENT_CANNOT_CONTROL != 0 &&
             oldFuses | fuses != oldFuses
         ) {
             revert OperationProhibited(node);
         }
+
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, expiry);
     }
@@ -668,7 +670,7 @@ contract NameWrapper is
 
     /**
      * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
-     * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
+     * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burned
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
      *      replacing a subdomain. If either conditions are true, then it is possible to call
      *      setSubnodeOwner
