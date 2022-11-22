@@ -896,14 +896,12 @@ contract NameWrapper is
         uint32 fuses,
         uint32 parentFuses
     ) internal pure {
-        bool isBurningParentControlledFuses = fuses & PARENT_CONTROLLED_FUSES !=
-            0;
-
-        bool parentHasNotBurnedCU = parentFuses & CANNOT_UNWRAP == 0;
-
-        if (isBurningParentControlledFuses && parentHasNotBurnedCU) {
+        
+        //To burn parent controlled fuses in the node, the parent must have burned the cannot unwrap fuse.  
+        if (fuses & PARENT_CONTROLLED_FUSES != 0 && parentFuses & CANNOT_UNWRAP == 0) {
             revert OperationProhibited(node);
         }
+
     }
 
     function _normaliseExpiry(
