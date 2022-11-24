@@ -68,6 +68,7 @@ contract('DNSRegistrar', function(accounts) {
     ])
 
     registrar = await DNSRegistrarContract.new(
+      ZERO_ADDRESS,
       dnssec.address,
       suffixes.address,
       ens.address
@@ -203,6 +204,7 @@ contract('DNSRegistrar', function(accounts) {
       ZERO_ADDRESS,
       ZERO_ADDRESS
     )
+    await resolver.setApprovalForAll(registrar.address, true);
 
     const proof = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
