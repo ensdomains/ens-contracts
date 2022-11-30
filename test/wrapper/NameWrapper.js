@@ -5232,4 +5232,42 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(0)
     })
   })
+
+  describe('TLD recovery', () => {
+    it.only('Wraps a name which get stuck forever can be recovered by ROOT owner', async () => {
+      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
+
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account)
+
+      await NameWrapper.setChildFuses(
+        ROOT_NODE,
+        labelhash('xyz'),
+        PARENT_CANNOT_CONTROL,
+        0,
+      )
+      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
+      expect(await EnsRegistry.owner(namehash('xyz'))).to.equal(
+        NameWrapper.address,
+      )
+      await expect(
+        NameWrapper.setChildFuses(
+          ROOT_NODE,
+          labelhash('xyz'),
+          PARENT_CANNOT_CONTROL,
+          100000000000000,
+        ),
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
+
+      await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('xyz'), account2)
+      await EnsRegistry2.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper2.wrap(encodeName('xyz'), account2, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(account2)
+      expect(await EnsRegistry.owner(namehash('xyz'))).to.equal(
+        NameWrapper.address,
+      )
+    })
+  })
 })
