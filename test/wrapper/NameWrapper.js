@@ -2800,22 +2800,24 @@ describe('Name Wrapper', () => {
     it('Does not allow burning fuses if CANNOT_UNWRAP is not burnt', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
 
+      const timestamp = (await ethers.provider.getBlock('latest')).timestamp
+
       // set up child's PCC
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
         PARENT_CANNOT_CONTROL,
-        1000,
+        timestamp + 10000,
       )
 
-      // attempt to burn a fuse with CANNOT_UNWRAP
+      // attempt to burn a fuse without CANNOT_UNWRAP
       await expect(
         NameWrapper.setChildFuses(
           wrappedTokenId,
           labelhash('sub'),
           CANNOT_SET_RESOLVER,
-          500,
+          0,
         ),
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
@@ -2906,7 +2908,7 @@ describe('Name Wrapper', () => {
       expect(owner).to.equal(EMPTY_ADDRESS)
     })
 
-    it('Fuses and owner are set to 0 if expired and fuses can be reset after, but owner remains burnt', async () => {
+    it('Fuses and owner are set to 0 if expired and fuses cannot be burnt after expiry using setChildFuses()', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
 
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
@@ -2925,17 +2927,14 @@ describe('Name Wrapper', () => {
 
       const block = await ethers.provider.getBlock('latest')
 
-      await NameWrapper.setChildFuses(
-        wrappedTokenId,
-        labelhash('sub'),
-        PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
-        block.timestamp + 1 * DAY,
-      )
-      ;[owner2, fuses2, expiry2] = await NameWrapper.getData(subWrappedTokenId)
-
-      expect(owner2).to.equal(EMPTY_ADDRESS)
-      expect(fuses2).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
-      expect(expiry2).to.equal(block.timestamp + 1 * DAY)
+      await expect(
+        NameWrapper.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
+          block.timestamp + 1 * DAY,
+        ),
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
     })
   })
 
@@ -5081,11 +5080,13 @@ describe('Name Wrapper', () => {
       )
     })
 
-    it('When a .eth name is in grace period, unexpired subdomains can call setChildFuses', async () => {
+    it('When a .eth name is in grace period, unexpired subdomains can call setChildFuses if the subdomain exists', async () => {
+      await NameWrapper2.setSubnodeOwner(subTokenId, 'sub2', account2, 0, 0)
       await NameWrapper2.setChildFuses(subTokenId, labelhash('sub2'), 0, 100)
-      const [, fuses, expiry] = await NameWrapper.getData(
+      const [owner, fuses, expiry] = await NameWrapper.getData(
         namehash('sub2.sub.test.eth'),
       )
+      expect(owner).to.equal(account2)
       expect(expiry).to.equal(100)
       expect(fuses).to.equal(0)
     })
