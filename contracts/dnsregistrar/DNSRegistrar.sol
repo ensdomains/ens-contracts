@@ -26,7 +26,8 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     ENS public immutable ens;
     DNSSEC public immutable oracle;
     PublicSuffixList public suffixes;
-    address public previousRegistrar;
+    address public immutable previousRegistrar;
+    address public immutable resolver;
     // A mapping of the most recent signatures seen for each claimed domain.
     mapping(bytes32 => uint32) public inceptions;
 
@@ -53,11 +54,13 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
 
     constructor(
         address _previousRegistrar,
+        address _resolver,
         DNSSEC _dnssec,
         PublicSuffixList _suffixes,
         ENS _ens
     ) {
         previousRegistrar = _previousRegistrar;
+        resolver = _resolver;
         oracle = _dnssec;
         suffixes = _suffixes;
         emit NewPublicSuffixList(address(suffixes));
@@ -191,8 +194,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             if (parentNode == bytes32(0)) {
                 Root root = Root(ens.owner(bytes32(0)));
                 root.setSubnodeOwner(label, address(this));
+                ens.setResolver(node, resolver);
             } else {
-                ens.setSubnodeOwner(parentNode, label, address(this));
+                ens.setSubnodeRecord(parentNode, label, address(this), resolver, 0);
             }
         } else if(owner != address(this)) {
             revert PreconditionNotMet();

@@ -68,7 +68,8 @@ contract('DNSRegistrar', function(accounts) {
     ])
 
     registrar = await DNSRegistrarContract.new(
-      ZERO_ADDRESS,
+      ZERO_ADDRESS, // Previous registrar
+      ZERO_ADDRESS, // Resolver
       dnssec.address,
       suffixes.address,
       ens.address

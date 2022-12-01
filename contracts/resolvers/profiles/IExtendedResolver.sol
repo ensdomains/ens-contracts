@@ -5,5 +5,5 @@ interface IExtendedResolver {
     function resolve(bytes memory name, bytes memory data)
         external
         view
-        returns (bytes memory, address);
+        returns (bytes memory);
 }

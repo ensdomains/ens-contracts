@@ -408,4 +408,33 @@ library BytesUtils {
         }
         return type(uint256).max;
     }
+
+    /**
+     * @dev Attempts to parse an address from a hex string
+     * @param str The string to parse
+     * @param idx The offset to start parsing at
+     * @param lastIdx The (exclusive) last index in `str` to consider. Use `str.length` to scan the whole string.
+     */
+    function hexToAddress(bytes memory str, uint256 idx, uint256 lastIdx)
+        internal
+        pure
+        returns (address, bool)
+    {
+        if (lastIdx - idx < 40) return (address(0x0), false);
+        uint256 ret = 0;
+        for (uint256 i = idx; i < idx + 40; i++) {
+            ret <<= 4;
+            uint256 x = readUint8(str, i);
+            if (x >= 48 && x < 58) {
+                ret |= x - 48;
+            } else if (x >= 65 && x < 71) {
+                ret |= x - 55;
+            } else if (x >= 97 && x < 103) {
+                ret |= x - 87;
+            } else {
+                return (address(0x0), false);
+            }
+        }
+        return (address(uint160(ret)), true);
+    }
 }
