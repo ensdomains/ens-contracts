@@ -541,9 +541,12 @@ contract NameWrapper is
         node = _makeNode(parentNode, labelhash);
 
         (, , uint64 oldExpiry) = getData(uint256(node));
-        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+        (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
-        if (!canModifyName(parentNode, msg.sender)) {
+        // Make sure the caller is the parent owner or approved, and the parent name is not expired. 
+        if ((parentOwner != msg.sender && !isApprovedForAll(parentOwner, msg.sender)) || 
+            (parentFuses & IS_DOT_ETH != 0 && parentExpiry - GRACE_PERIOD < block.timestamp)
+            ) {
             revert Unauthorised(parentNode, msg.sender);
         }
 
@@ -553,7 +556,7 @@ contract NameWrapper is
         bytes memory _name = _saveLabel(parentNode, node, label);
 
         _checkParentFuses(node, fuses, parentFuses);
-        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+        expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
 
         if (!isWrapped(node)) {
