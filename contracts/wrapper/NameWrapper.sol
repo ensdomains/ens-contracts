@@ -540,15 +540,15 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
 
+        (, , uint64 oldExpiry) = getData(uint256(node));
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+
         onlyTokenOwnerFunc(parentNode);
 
         canCallSetSubnodeOwnerFunc(parentNode, labelhash);
 
         _checkFusesAreSettable(node, fuses);
         bytes memory _name = _saveLabel(parentNode, node, label);
-        
-        (, , uint64 oldExpiry) = getData(uint256(node));
-        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
 
         _checkParentFuses(node, fuses, parentFuses);
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
