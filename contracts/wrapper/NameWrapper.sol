@@ -518,9 +518,11 @@ contract NameWrapper is
     )
         public
         onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
+
+        canCallSetSubnodeOwnerFunc(parentNode, keccak256(bytes(label)));
+
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
@@ -693,6 +695,24 @@ contract NameWrapper is
         }
 
         _;
+    }
+
+    function canCallSetSubnodeOwnerFunc(bytes32 parentNode, bytes32 labelhash) private view {
+        bytes32 node = _makeNode(parentNode, labelhash);
+        address owner = ens.owner(node);
+
+        if (owner == address(0)) {
+            (, uint32 fuses, ) = getData(uint256(parentNode));
+            if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
+                revert OperationProhibited(node);
+            }
+        } else {
+            (, uint32 subnodeFuses, ) = getData(uint256(node));
+            if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
+                revert OperationProhibited(node);
+            }
+        }
+
     }
 
     /**
