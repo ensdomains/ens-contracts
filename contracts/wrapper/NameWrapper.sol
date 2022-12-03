@@ -545,12 +545,18 @@ contract NameWrapper is
         canCallSetSubnodeOwnerFunc(parentNode, labelhash);
 
         _checkFusesAreSettable(node, fuses);
-        bytes memory name = _saveLabel(parentNode, node, label);
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
+        bytes memory _name = _saveLabel(parentNode, node, label);
+        
+        (, , uint64 oldExpiry) = getData(uint256(node));
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
+
+        _checkParentFuses(node, fuses, parentFuses);
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+
 
         if (!isWrapped(node)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _wrap(node, name, owner, fuses, expiry);
+            _wrap(node, _name, owner, fuses, expiry);
         } else {
             _updateName(parentNode, node, label, owner, fuses, expiry);
         }
