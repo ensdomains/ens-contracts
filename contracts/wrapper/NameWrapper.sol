@@ -201,6 +201,13 @@ contract NameWrapper is
         _;
     }
 
+    function onlyTokenOwnerFunc(bytes32 node) private view{
+        if (!canModifyName(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+    }
+
     /**
      * @notice Checks if owner or approved by owner
      * @param node namehash of the name to check
@@ -517,14 +524,15 @@ contract NameWrapper is
         uint64 expiry
     )
         public
-        onlyTokenOwner(parentNode)
         returns (bytes32 node)
     {
-
-        canCallSetSubnodeOwnerFunc(parentNode, keccak256(bytes(label)));
-
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+
+        onlyTokenOwnerFunc(parentNode);
+
+        canCallSetSubnodeOwnerFunc(parentNode, labelhash);
+
         _checkFusesAreSettable(node, fuses);
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
