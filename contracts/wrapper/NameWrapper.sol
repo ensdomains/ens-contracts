@@ -956,12 +956,10 @@ contract NameWrapper is
         uint32 fuses,
         uint32 parentFuses
     ) internal pure {
-        bool isBurningParentControlledFuses = fuses & PARENT_CONTROLLED_FUSES !=
-            0;
 
-        bool parentHasNotBurnedCU = parentFuses & CANNOT_UNWRAP == 0;
-
-        if (isBurningParentControlledFuses && parentHasNotBurnedCU) {
+        // If parent controlled fuses in the node are being set, make sure 
+        // CANNOT_UNWRAP is burned in the fuses of the parent node. 
+        if (fuses & PARENT_CONTROLLED_FUSES != 0 && parentFuses & CANNOT_UNWRAP == 0) {
             revert OperationProhibited(node);
         }
     }
