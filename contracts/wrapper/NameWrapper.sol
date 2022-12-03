@@ -532,7 +532,8 @@ contract NameWrapper is
         // Make sure that only owner controlled fuses are being set. 
         _checkFusesAreSettable(node, fuses);
 
-        (, , uint64 oldExpiry) = getData(uint256(node));
+        // Get the node data and parentNode data.
+        (, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
         // Make sure the caller is the parent owner or approved, and the parent name is not expired. 
