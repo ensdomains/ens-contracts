@@ -543,7 +543,9 @@ contract NameWrapper is
         (, , uint64 oldExpiry) = getData(uint256(node));
         (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
 
-        onlyTokenOwnerFunc(parentNode);
+        if (!canModifyName(parentNode, msg.sender)) {
+            revert Unauthorised(parentNode, msg.sender);
+        }
 
         canCallSetSubnodeOwnerFunc(parentNode, labelhash);
 
