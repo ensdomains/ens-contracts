@@ -529,6 +529,9 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
 
+        // Make sure that only owner controlled fuses are being set. 
+        _checkFusesAreSettable(node, fuses);
+
         (, , uint64 oldExpiry) = getData(uint256(node));
         (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
@@ -541,7 +544,6 @@ contract NameWrapper is
 
         canCallSetSubnodeOwnerFunc(parentNode, labelhash);
 
-        _checkFusesAreSettable(node, fuses);
         bytes memory _name = _saveLabel(parentNode, node, label);
 
         _checkParentFuses(node, fuses, parentFuses);
