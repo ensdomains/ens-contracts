@@ -545,8 +545,6 @@ contract NameWrapper is
 
         canCallSetSubnodeOwnerFunc(node, nodeFuses, parentFuses);
 
-        bytes memory _name = _saveLabel(parentNode, node, label);
-
         // NTS: I don't think this function is necessary since only owner controled fuses 
         // are allowed to be set. 
         // If parent controlled fuses in the node are being set, make sure 
@@ -557,6 +555,7 @@ contract NameWrapper is
 
 
         if (ownerOf(uint256(node)) == address(0)) {
+            bytes memory _name = _saveLabel(parentNode, node, label);
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _wrap(node, _name, owner, fuses, expiry);
         } else {
