@@ -541,7 +541,7 @@ contract NameWrapper is
         // Get the node data and parentNode data.
         // Notice: in order to save stack space we call the parent owner baseOwner.
         // We will use baseOwner for another purpose later. 
-        (, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
+        (address nodeOwner, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
         // If parent controlled fuses in the node are being set, make sure 
@@ -587,17 +587,31 @@ contract NameWrapper is
                 revert OperationProhibited(node);
             }
 
+            //Notice: In order to limit the stack heigh we are temporaily using label as "name"
+            label = string(_saveLabel(parentNode, node, label));
+
             // If the name is not wrapped, then register the name and wrap it. 
             if (!isWrapped(node)) {
-                //Notice: In order to limit the stack heigh we are temporaily using label as "name"
-                //label = string(_addLabel(label, names[parentNode]));
-                label = string(_saveLabel(parentNode, node, label));
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
                 _wrap(node, bytes(label), owner, fuses, expiry);
             } else {
-
                 // If the name was wrapped, then just update the data.   
-                _updateName(parentNode, node, label, owner, fuses, expiry);
+
+                // If the name is not already set then set it.
+                if (names[node].length == 0) {
+                    names[node] = bytes(label);
+                }
+
+                // Set the fuses.
+                _setFuses(node, nodeOwner, fuses, expiry);
+
+                //If the owner is set to the 0 address then unwrap the name
+                // and if not then transfer the name to the new owner.
+                if (owner == address(0)) {
+                    _unwrap(node, address(0));
+                } else {
+                    _transfer(nodeOwner, owner, uint256(node), 1, "");
+                }
             }
         }
     }
