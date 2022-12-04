@@ -535,7 +535,7 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
 
-        // Make sure that only owner controlled fuses are being set. 
+        // Make sure that IS_DOT_ETH is not part of the fuses. 
         _checkFusesAreSettable(node, fuses);
 
         // Get the node data and parentNode data.
@@ -543,6 +543,12 @@ contract NameWrapper is
         // We will use baseOwner for another purpose later. 
         (, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
+
+        // If parent controlled fuses in the node are being set, make sure 
+        // CANNOT_UNWRAP is burned in the fuses of the parent node. 
+        if (fuses & PARENT_CONTROLLED_FUSES != 0 && parentFuses & CANNOT_UNWRAP == 0) {
+            revert OperationProhibited(node);
+        }
 
         // Set the expiry between the old expiry and the parentExpiry.
         expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
