@@ -554,7 +554,7 @@ contract NameWrapper is
             revert Unauthorised(parentNode, msg.sender);
         }
 
-        canCallSetSubnodeOwnerFunc(node, parentNode, parentFuses);
+        canCallSetSubnodeOwnerFunc(node, nodeFuses, parentNode, parentFuses);
 
         bytes memory _name = _saveLabel(parentNode, node, label);
 
@@ -735,7 +735,7 @@ contract NameWrapper is
         _;
     }
 
-    function canCallSetSubnodeOwnerFunc(bytes32 node, bytes32 parentNode, uint32 parentFuses) private view {
+    function canCallSetSubnodeOwnerFunc(bytes32 node, uint32 nodeFuses, bytes32 parentNode, uint32 parentFuses) private view {
         address owner = ens.owner(node);
 
         if (owner == address(0)) {
@@ -743,8 +743,7 @@ contract NameWrapper is
                 revert OperationProhibited(node);
             }
         } else {
-            (, uint32 subnodeFuses, ) = getData(uint256(node));
-            if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
+            if (nodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
         }
