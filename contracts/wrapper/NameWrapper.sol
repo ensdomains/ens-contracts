@@ -537,6 +537,8 @@ contract NameWrapper is
         public
         returns (bytes32 node)
     {
+
+        // Make the labelhash and node.
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
 
@@ -544,7 +546,7 @@ contract NameWrapper is
         _checkFusesAreSettable(node, fuses);
 
         // Get the node data and parentNode data.
-        // Note: in order to save stack space we call the parent owner baseOwner
+        // Notice: in order to save stack space we call the parent owner baseOwner.
         // We will use baseOwner for another purpose later. 
         (, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
@@ -559,9 +561,7 @@ contract NameWrapper is
             revert Unauthorised(parentNode, msg.sender);
         }
 
-        //canCallSetSubnodeOwnerFunc(node, nodeFuses, parentFuses);
-
-        // We are no longer using the parent owner 
+        // We are no longer using the parent owner (baseOwner)
         // so we now can set it to the registry owner to save stack space. 
         baseOwner = ens.owner(node);
 
@@ -569,26 +569,33 @@ contract NameWrapper is
         // if it can be created. If it does exist, then check to see
         // if it has been wrapped.   
         if (baseOwner == address(0)) {
-            
+
+            // Check to make sure CANNOT_CREATE_SUBDOMAIN is not set.
             if (parentFuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
 
+            // If we pass all the checks, register the subname and wrap it. 
             bytes memory _name = _saveLabel(parentNode, node, label);
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _wrap(node, _name, owner, fuses, expiry);
 
         } else {
 
+            // If the name does exist in the registry check to make sure that 
+            // PARENT_CANNOT_CONTROL has not been burned.  
             if (nodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
             }
-            
+
+            // If the name is not wrapped, then register the name and wrap it. 
             if (!isWrapped(node)) {
                 bytes memory _name = _saveLabel(parentNode, node, label);
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
                 _wrap(node, _name, owner, fuses, expiry);
             } else {
+
+                // If the name was wrapped, then just update the data.   
                 _updateName(parentNode, node, label, owner, fuses, expiry);
             }
         }
