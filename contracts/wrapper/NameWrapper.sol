@@ -522,7 +522,7 @@ contract NameWrapper is
 
     function setSubnodeOwner(
         bytes32 parentNode,
-        string calldata label,
+        string memory label,
         address owner,
         uint32 fuses,
         uint64 expiry
@@ -589,9 +589,11 @@ contract NameWrapper is
 
             // If the name is not wrapped, then register the name and wrap it. 
             if (!isWrapped(node)) {
-                bytes memory _name = _saveLabel(parentNode, node, label);
+                //Notice: In order to limit the stack heigh we are temporaily using label as "name"
+                //label = string(_addLabel(label, names[parentNode]));
+                label = string(_saveLabel(parentNode, node, label));
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
-                _wrap(node, _name, owner, fuses, expiry);
+                _wrap(node, bytes(label), owner, fuses, expiry);
             } else {
 
                 // If the name was wrapped, then just update the data.   

@@ -109,7 +109,7 @@ interface INameWrapper is IERC1155 {
 
     function setSubnodeOwner(
         bytes32 node,
-        string calldata label,
+        string memory label,
         address newOwner,
         uint32 fuses,
         uint64 expiry
