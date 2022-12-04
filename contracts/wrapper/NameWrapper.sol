@@ -201,13 +201,6 @@ contract NameWrapper is
         _;
     }
 
-    function onlyTokenOwnerFunc(bytes32 node) private view{
-        if (!canModifyName(node, msg.sender)) {
-            revert Unauthorised(node, msg.sender);
-        }
-
-    }
-
     /**
      * @notice Checks if owner or approved by owner
      * @param node namehash of the name to check
@@ -748,21 +741,6 @@ contract NameWrapper is
         }
 
         _;
-    }
-
-    function canCallSetSubnodeOwnerFunc(bytes32 node, uint32 nodeFuses, uint32 parentFuses) private view {
-        address owner = ens.owner(node);
-
-        if (owner == address(0)) {
-            if (parentFuses & CANNOT_CREATE_SUBDOMAIN != 0) {
-                revert OperationProhibited(node);
-            }
-        } else {
-            if (nodeFuses & PARENT_CANNOT_CONTROL != 0) {
-                revert OperationProhibited(node);
-            }
-        }
-
     }
 
     /**
