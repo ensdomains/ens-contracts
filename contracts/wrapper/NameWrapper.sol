@@ -547,7 +547,12 @@ contract NameWrapper is
 
         bytes memory _name = _saveLabel(parentNode, node, label);
 
-        _checkParentFuses(node, fuses, parentFuses);
+        // NTS: I don't think this function is necessary since only owner controled fuses 
+        // are allowed to be set. 
+        // If parent controlled fuses in the node are being set, make sure 
+        // CANNOT_UNWRAP is burned in the fuses of the parent node. 
+        //_checkParentFuses(node, fuses, parentFuses);
+
         expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
 
