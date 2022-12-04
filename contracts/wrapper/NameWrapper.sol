@@ -544,14 +544,16 @@ contract NameWrapper is
         _checkFusesAreSettable(node, fuses);
 
         // Get the node data and parentNode data.
+        // Note: in order to save stack space we call the parent owner baseOwner
+        // We will use baseOwner for another purpose later. 
         (, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
-        (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
+        (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
         // Set the expiry between the old expiry and the parentExpiry.
         expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
         // Make sure the caller is the parent owner or approved, and the parent name is not expired. 
-        if ((parentOwner != msg.sender && !isApprovedForAll(parentOwner, msg.sender)) || 
+        if ((baseOwner != msg.sender && !isApprovedForAll(baseOwner, msg.sender)) || 
             (parentFuses & IS_DOT_ETH != 0 && parentExpiry - GRACE_PERIOD < block.timestamp)
             ) {
             revert Unauthorised(parentNode, msg.sender);
@@ -559,18 +561,35 @@ contract NameWrapper is
 
         //canCallSetSubnodeOwnerFunc(node, nodeFuses, parentFuses);
 
-        //This is a hack!!!!!!
         // We are no longer using the parent owner 
-        // so we can set it to the registry owner to save a new stack row. 
-        parentOwner = ens.owner(node);
+        // so we now can set it to the registry owner to save stack space. 
+        baseOwner = ens.owner(node);
 
-        if (parentOwner == address(0)) {
+        // If the name does not exist in the registery, check to see
+        // if it can be created. If it does exist, then check to see
+        // if it has been wrapped.   
+        if (baseOwner == address(0)) {
+            
             if (parentFuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(node);
             }
+
+            bytes memory _name = _saveLabel(parentNode, node, label);
+            ens.setSubnodeOwner(parentNode, labelhash, address(this));
+            _wrap(node, _name, owner, fuses, expiry);
+
         } else {
+
             if (nodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(node);
+            }
+            
+            if (!isWrapped(node)) {
+                bytes memory _name = _saveLabel(parentNode, node, label);
+                ens.setSubnodeOwner(parentNode, labelhash, address(this));
+                _wrap(node, _name, owner, fuses, expiry);
+            } else {
+                _updateName(parentNode, node, label, owner, fuses, expiry);
             }
         }
 
@@ -580,15 +599,6 @@ contract NameWrapper is
         // CANNOT_UNWRAP is burned in the fuses of the parent node. 
         //_checkParentFuses(node, fuses, parentFuses);
 
-
-
-        if (!isWrapped(node)) {
-            bytes memory _name = _saveLabel(parentNode, node, label);
-            ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _wrap(node, _name, owner, fuses, expiry);
-        } else {
-            _updateName(parentNode, node, label, owner, fuses, expiry);
-        }
     }
 
     /**
