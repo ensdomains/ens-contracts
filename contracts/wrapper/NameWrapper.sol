@@ -533,8 +533,8 @@ contract NameWrapper is
         (address nodeOwner, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
-        // If parent controlled fuses in the node are being set, make sure 
-        // CANNOT_UNWRAP is burned in the fuses of the parent node. 
+        // If parent controlled fuses in the node are being set, make sure CANNOT_UNWRAP
+        // is burned in the fuses of the parent node. 
         if (fuses & PARENT_CONTROLLED_FUSES != 0 && parentFuses & CANNOT_UNWRAP == 0) {
             revert OperationProhibited(node);
         }
@@ -549,13 +549,12 @@ contract NameWrapper is
             revert Unauthorised(parentNode, msg.sender);
         }
 
-        // We are no longer using the parent owner (baseOwner)
-        // so we now can set it to the registry owner to save stack space. 
+        // We are no longer using the parent owner "baseOwner" so we now
+        // can set it to the registry owner to save stack space. 
         baseOwner = ens.owner(node);
 
-        // If the name does not exist in the registery, check to see
-        // if it can be created. If it does exist, then check to see
-        // if it has been wrapped.   
+        // If the name does not exist in the registery, check to see if it can be 
+        // created. If it does exist, then check to see if it has been wrapped.   
         if (baseOwner == address(0)) {
 
             // Check to make sure CANNOT_CREATE_SUBDOMAIN is not set.
@@ -566,7 +565,19 @@ contract NameWrapper is
             // If we pass all the checks, register the subname and wrap it. 
             bytes memory _name = _saveLabel(parentNode, node, label);
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _wrap(node, _name, owner, fuses, expiry);
+
+            // If a owner controlled fuse are being burned, check to make sure 
+            // PARENT_CANNOT_CONTROL and CANNOT_UNWRAP have been burned. 
+            _canFusesBeBurned(node, fuses);
+
+            // If the token was previously wrapped burn it before wrapping again.  
+            if (nodeOwner != address(0)) {
+                // burn and unwrap old token of old owner
+                _burn(uint256(node));
+                emit NameUnwrapped(node, address(0));
+            }
+            super._mint(node, owner, fuses, expiry);
+            emit NameWrapped(node, _name, owner, fuses, expiry);
 
         } else {
 
@@ -576,7 +587,7 @@ contract NameWrapper is
                 revert OperationProhibited(node);
             }
 
-            //Notice: In order to limit the stack heigh we are temporaily using label as "name"
+            //Notice: In order to limit the stack height we are temporaily using label as "name".
             label = string(_saveLabel(parentNode, node, label));
 
             // If the name is not wrapped, then register the name and wrap it. 
@@ -594,7 +605,7 @@ contract NameWrapper is
                 // Set the fuses.
                 _setFuses(node, nodeOwner, fuses, expiry);
 
-                //If the owner is set to the 0 address then unwrap the name
+                // If the owner is set to the 0 address then unwrap the name
                 // and if not then transfer the name to the new owner.
                 if (owner == address(0)) {
                     _unwrap(node, address(0));
@@ -857,6 +868,7 @@ contract NameWrapper is
         }
         return abi.encodePacked(uint8(bytes(label).length), label, name);
     }
+
 
     function _mint(
         bytes32 node,
