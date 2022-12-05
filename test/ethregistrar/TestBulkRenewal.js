@@ -12,8 +12,8 @@ const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
 const { exceptions } = require('../test-utils')
 
-const ETH_LABEL = sha3('eth')
-const ETH_NAMEHASH = namehash.hash('eth')
+const ETH_LABEL = sha3('arb')
+const ETH_NAMEHASH = namehash.hash('arb')
 
 contract('BulkRenewal', function (accounts) {
   let ens
@@ -32,7 +32,7 @@ contract('BulkRenewal', function (accounts) {
     // Create a registry
     ens = await ENS.new()
     // Create a base registrar
-    baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
+    baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('arb'), {
       from: ownerAccount,
     })
 
@@ -78,8 +78,8 @@ contract('BulkRenewal', function (accounts) {
     // Create the bulk registration contract
     bulkRenewal = await BulkRenewal.new(ens.address)
 
-    // Configure a resolver for .eth and register the controller interface
-    // then transfer the .eth node to the base registrar.
+    // Configure a resolver for .arb and register the controller interface
+    // then transfer the .arb node to the base registrar.
     await ens.setSubnodeRecord(
       '0x0',
       ETH_LABEL,

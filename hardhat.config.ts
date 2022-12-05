@@ -60,15 +60,15 @@ const config: HardhatUserConfig = {
       accounts: real_accounts,
     },
     goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://goerli.infura.io/v3/0722a322db3e472881be79bebc2e994c`,
       tags: ['test', 'legacy', 'use_root'],
       chainId: 5,
       accounts: real_accounts,
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://goerli-rollup.arbitrum.io/rpc`,
       tags: ['legacy', 'use_root'],
-      chainId: 1,
+      chainId: 421613,
       accounts: real_accounts,
     },
   },

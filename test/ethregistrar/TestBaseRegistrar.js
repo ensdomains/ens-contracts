@@ -23,15 +23,15 @@ contract('BaseRegistrar', function (accounts) {
 	before(async () => {
 		ens = await ENS.new();
 
-		registrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {from: ownerAccount});
+		registrar = await BaseRegistrar.new(ens.address, namehash.hash('arb'), {from: ownerAccount});
 		await registrar.addController(controllerAccount, {from: ownerAccount});
-		await ens.setSubnodeOwner('0x0', sha3('eth'), registrar.address);
+		await ens.setSubnodeOwner('0x0', sha3('arb'), registrar.address);
 	});
 
 	it('should allow new registrations', async () => {
 		var tx = await registrar.register(sha3("newname"), registrantAccount, 86400, {from: controllerAccount});
 		var block = await web3.eth.getBlock(tx.receipt.blockHash);
-		assert.equal(await ens.owner(namehash.hash("newname.eth")), registrantAccount);
+		assert.equal(await ens.owner(namehash.hash("newname.arb")), registrantAccount);
 		assert.equal(await registrar.ownerOf(sha3("newname")), registrantAccount);
 		assert.equal((await registrar.nameExpires(sha3("newname"))).toNumber(), block.timestamp + 86400);
 	});
@@ -39,7 +39,7 @@ contract('BaseRegistrar', function (accounts) {
 	it('should allow registrations without updating the registry', async () => {
 		var tx = await registrar.registerOnly(sha3("silentname"), registrantAccount, 86400, {from: controllerAccount});
 		var block = await web3.eth.getBlock(tx.receipt.blockHash);
-		assert.equal(await ens.owner(namehash.hash("silentname.eth")), ZERO_ADDRESS);
+		assert.equal(await ens.owner(namehash.hash("silentname.arb")), ZERO_ADDRESS);
 		assert.equal(await registrar.ownerOf(sha3("silentname")), registrantAccount);
 		assert.equal((await registrar.nameExpires(sha3("silentname"))).toNumber(), block.timestamp + 86400);
 	});
@@ -68,12 +68,12 @@ contract('BaseRegistrar', function (accounts) {
 	});
 
 	it('should permit the owner to reclaim a name', async () => {
-		await ens.setSubnodeOwner(ZERO_HASH, sha3("eth"), accounts[0]);
-		await ens.setSubnodeOwner(namehash.hash("eth"), sha3("newname"), ZERO_ADDRESS);
-		assert.equal(await ens.owner(namehash.hash("newname.eth")), ZERO_ADDRESS);
-		await ens.setSubnodeOwner(ZERO_HASH, sha3("eth"), registrar.address);
+		await ens.setSubnodeOwner(ZERO_HASH, sha3("arb"), accounts[0]);
+		await ens.setSubnodeOwner(namehash.hash("arb"), sha3("newname"), ZERO_ADDRESS);
+		assert.equal(await ens.owner(namehash.hash("newname.arb")), ZERO_ADDRESS);
+		await ens.setSubnodeOwner(ZERO_HASH, sha3("arb"), registrar.address);
 		await registrar.reclaim(sha3("newname"), registrantAccount, {from: registrantAccount});
-		assert.equal(await ens.owner(namehash.hash("newname.eth")), registrantAccount);
+		assert.equal(await ens.owner(namehash.hash("newname.arb")), registrantAccount);
 	});
 
 	it('should prohibit anyone else from reclaiming a name', async () => {
@@ -84,7 +84,7 @@ contract('BaseRegistrar', function (accounts) {
 		await registrar.transferFrom(registrantAccount, otherAccount, sha3("newname"), {from: registrantAccount});
 		assert.equal((await registrar.ownerOf(sha3("newname"))), otherAccount);
 		// Transfer does not update ENS without a call to reclaim.
-		assert.equal(await ens.owner(namehash.hash("newname.eth")), registrantAccount);
+		assert.equal(await ens.owner(namehash.hash("newname.arb")), registrantAccount);
 		await registrar.transferFrom(otherAccount, registrantAccount, sha3("newname"), {from: otherAccount});
 	});
 
@@ -122,6 +122,6 @@ contract('BaseRegistrar', function (accounts) {
 
 	it('should allow the owner to set a resolver address', async () => {
 		await registrar.setResolver(accounts[1], {from: ownerAccount});
-		assert.equal(await ens.resolver(namehash.hash('eth')), accounts[1]);
+		assert.equal(await ens.resolver(namehash.hash('arb')), accounts[1]);
 	});
 });

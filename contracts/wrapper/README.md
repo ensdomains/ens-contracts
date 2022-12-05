@@ -7,7 +7,7 @@ The NameWrapper wraps ENS names, adding new functionality to them:
  - Supports 'locking' names by allowing the owner of a name to revoke control over changes in resolver, creation of subdomains, and other parameters.
  - Wrapped names can expire; a name that is emancipated or locked has a built in expiration at which the name (and that status) expires.
  - UIs and Smart Contracts can check the status of a name with a single function call, allowing them to ensure security guarantees are upheld.
- - .eth names can be registered and renewed via the wrapper, removing any need to wrap names separately after registration.
+ - .arb names can be registered and renewed via the wrapper, removing any need to wrap names separately after registration.
  - Owners of names can create wrapped subdomains directly, without having to register-then-wrap.
 
 ## Glossary of terms
@@ -42,7 +42,7 @@ graph TD;
   locked-->|expire|unregistered;
 ```
 
-State transitions are facilitated by functions on the name wrapper and registrar controller contracts. One function can potentially move a name through multiple states - for example, calling `registerAndWrapETH2LD()` will register a .eth second-level name, wrap it, and emancipate it, moving it from `[Unregistered]` to `Emancipated` state in a single call.
+State transitions are facilitated by functions on the name wrapper and registrar controller contracts. One function can potentially move a name through multiple states - for example, calling `registerAndWrapETH2LD()` will register a .arb second-level name, wrap it, and emancipate it, moving it from `[Unregistered]` to `Emancipated` state in a single call.
 
 Some state transitions are irrevocable; once a name is Emancipated or Locked, it can only return to being Wrapped or Unwrapped after it expires.
 
@@ -58,7 +58,7 @@ To check if a name is Unregistered, verify that `NameWrapper.ownerOf` returns `a
 
 A name that is registered but not managed by the name wrapper is Unwrapped.
 
-Unwrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar.
+Unwrapped names do not expire, with the exception of .arb second-level names, which have behaviour enforced by the .arb registrar.
 
 To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` does not.
 
@@ -66,7 +66,7 @@ To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `addr
 
 Wrapping an Unwrapped name makes it Wrapped. Wrapped names are managed by the name wrapper, and have ERC1155 tokens, but can be unwrapped at any time, and have no special protections over and above an unwrapped name - for example, the owner of the parent name can still make changes to the name or take back ownership.
 
-Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar, and have a wrapper expiry equal to the end of the name's grace period.
+Wrapped names do not expire, with the exception of .arb second-level names, which have behaviour enforced by the .arb registrar, and have a wrapper expiry equal to the end of the name's grace period.
 
 To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return `address(0)`.
 
@@ -76,7 +76,7 @@ An Emancipated name provides the assurance that the owner of the parent name can
 
 A name is Emancipated when the owner of the parent domain gives up control over it. They do this by setting an expiration date - which can be extended at any time - and burning the `PARENT_CANNOT_CONTROL` fuse over the name. To do this, the parent name must already be in the `Locked` state.
 
-.eth second-level names are automatically Emancipated when wrapped, and their expiry is fixed at the end of the grace period in the .eth registrar.
+.arb second-level names are automatically Emancipated when wrapped, and their expiry is fixed at the end of the grace period in the .arb registrar.
 
 An Emancipated name can be unwrapped - but when it is wrapped again it will automatically return to the `Emancipated` state.
 
@@ -105,7 +105,7 @@ If the name is Emancipated or Locked, the following changes happen:
 
 Expiry can still be extended even if a name is in the Wrapped state, but does not have any practical effect on the name.
 
-.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .eth registrar, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
+.arb names do not have their own expiry in the NameWrapper and instead derive their expiry from the .arb registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .arb registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .arb registrar, the .arb name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
 
 Expiry can be extended using the following functions:
 
@@ -114,11 +114,11 @@ Expiry can be extended using the following functions:
 - `setSubnodeRecord()`
 - `renew()`
 
-`setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has expired (past grace period) on the .eth registrar and must be re-registered instead.
+`setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has expired (past grace period) on the .arb registrar and must be re-registered instead.
 
 `setSubnodeOwner()` and `setSubnodeRecord()` both revert when the subdomain is Emancipated or Locked.
 
-`renew()` indirectly extends the expiry of a .eth name by renewing the name inside the .eth registrar.
+`renew()` indirectly extends the expiry of a .arb name by renewing the name inside the .arb registrar.
 
 ## Fuses
 
@@ -170,7 +170,7 @@ If this fuse is burned, new subdomains cannot be created. Calls to setSubnodeOwn
 If this fuse is burned, existing subdomains cannot be replaced by the parent name and the parent can no longer burn other fuses on this child. Calls to setSubnodeOwner and setSubnodeRecord will fail if they reference a name that already exists. Attempting to burn fuses in setChildFuses will also fail. This fuse can only be burnt by the parent of a node.
 
 #### IS_DOT_ETH = 131072
-If this fuse is burned, it means that the name is a .eth name. This fuse cannot be burned manually and is burned when wrapETH2LD() or onERC721Received() is called.
+If this fuse is burned, it means that the name is a .arb name. This fuse cannot be burned manually and is burned when wrapETH2LD() or onERC721Received() is called.
 
 ### Checking Fuses using `allFusesBurned(node, fuseMask)`
 
@@ -178,7 +178,7 @@ To check whether or not a fuse is burnt you can use this function that takes a f
 
 ```js
 const areBurned = await allFusesBurned(
-  namehash('vitalik.eth'),
+  namehash('vitalik.arb'),
   CANNOT_TRANSFER | CANNOT_SET_RESOLVER
 )
 // if CANNOT_UNWRAP AND CANNOT_SET_RESOLVER are *both* burned this will return true
@@ -195,7 +195,7 @@ getData gets the owner, fuses and also the expiry of the name. The fuses it retu
 **Start State**: Unwrapped
 **End State**: Emancipated | Locked
 
-Wraps a .eth second-level name. The wrapped name's expiration will always be equal to the name's expiration in the .eth registrar plus the grace period (90 days).
+Wraps a .arb second-level name. The wrapped name's expiration will always be equal to the name's expiration in the .arb registrar plus the grace period (90 days).
 
 If fuses are provided, they will be burned at the same time as wrapping, moving the name directly to Locked status.
 
@@ -204,7 +204,7 @@ If fuses are provided, they will be burned at the same time as wrapping, moving 
 **Start State**: Unwrapped
 **End State**: Wrapped | Emancipated
 
-Wraps any name other than a .eth second-level name.
+Wraps any name other than a .arb second-level name.
 
 Parent-controlled fuses are retained on unwrap, so if the name was previously Emancipated and has not since expired, it will return directly to the Emancipated state.
 
@@ -212,7 +212,7 @@ Parent-controlled fuses are retained on unwrap, so if the name was previously Em
 **Start State**: Unwrapped
 **End State**: Emancipated | Locked
 
-Wraps a .eth second-level name by sending the ERC721 NFT to the wrapper contract. Transfers must contain additional data encoding information about the wrapped name such as fuses and expiration, or they will be rejected.
+Wraps a .arb second-level name by sending the ERC721 NFT to the wrapper contract. Transfers must contain additional data encoding information about the wrapped name such as fuses and expiration, or they will be rejected.
 
 Otherwise behaves identically to `wrapETH2LD`.
 
@@ -226,7 +226,7 @@ Allows a registrar controller to register and wrap a name in a single operation.
 **Start State**: Emancipated | Locked
 **End State**: Emancipated | Locked
 
-Allows a registrar controller to renew a .eth second-level name.
+Allows a registrar controller to renew a .arb second-level name.
 
 ### `setSubnodeOwner()`
 **Start State**: Unregistered | Unwrapped | Wrapped
@@ -256,13 +256,13 @@ Behaves identically to `setSubnodeOwner()`, additionally setting the resolver an
 **Start State**: Emancipated
 **End State**: Unwrapped
 
-Unwraps a .eth second-level name, provided that the name is not Locked.
+Unwraps a .arb second-level name, provided that the name is not Locked.
 
 ### `unwrap()`
 **Start State**: Wrapped | Emancipated
 **End State**: Unwrapped
 
-Unwraps any name other than a .eth second-level name, provided that the name is not Locked.
+Unwraps any name other than a .arb second-level name, provided that the name is not Locked.
 
 Parent-controlled fuses are retained on unwrap, so if the name was previously Emancipated and has not since expired, it will return directly to the Emancipated state if `wrap()` is called on it.
 
@@ -272,7 +272,7 @@ Parent-controlled fuses are retained on unwrap, so if the name was previously Em
 
 Mirrors the existing registry functionality, allowing you to set owner, resolver and ttl at the same time.
 
-When called with an owner of `address(0)`, unwraps the name provided it is not Locked and not a .eth second-level name.
+When called with an owner of `address(0)`, unwraps the name provided it is not Locked and not a .arb second-level name.
 
 ### `setFuses()`
 **Start State**: Emancipated | Locked
@@ -302,7 +302,7 @@ The NameWrapper mirrors most of the functionality from the original ENS registry
 
 `setResolver()` and `setTTL()` call the corresponding registry functions after checking that the caller is authorised.
 
-`setRecord()` acts differently depending if the name is .eth or not. If you set the owner to `address(0)`, it will automatically unwrap the name and set the registry owner to 0, deleting the subdomain. If you set the owner to `address(0)`, but the name is a .eth 2LD, the function will revert as the ERC721 token cannot be set to the zero address. If the owner is not 0, it will simply transfer the ERC1155 to the specified owner within NameWrapper and set the resolver and ttl on the registry.
+`setRecord()` acts differently depending if the name is .arb or not. If you set the owner to `address(0)`, it will automatically unwrap the name and set the registry owner to 0, deleting the subdomain. If you set the owner to `address(0)`, but the name is a .arb 2LD, the function will revert as the ERC721 token cannot be set to the zero address. If the owner is not 0, it will simply transfer the ERC1155 to the specified owner within NameWrapper and set the resolver and ttl on the registry.
 
 ### Getting Data
 
@@ -338,14 +338,14 @@ To check if a name has been wrapped, call `isWrapped()`. This checks that the ow
 
 If you transfer your subdomain to the NameWrapper using `registry.setSubnodeOwner()`, `registry.setSubnodeRecord` or `registry.setOwner()`, the NameWrapper will NOT recognise this as a wrap. There will be no `NameWrapped` event emitted, and there won't be an ERC1155 minted for that specific name. For this reason, if you want to check whether or not a name has been wrapped, you must check if the owner in the registry is the NameWrapper AND the owner in the NameWrapper is non-zero.
 
-Since the NameWrapper does have `onERC721Received` support, the NameWrapper WILL recognise a transfer of the .eth registrar ERC721 token to the NameWrapper as a wrap.
+Since the NameWrapper does have `onERC721Received` support, the NameWrapper WILL recognise a transfer of the .arb registrar ERC721 token to the NameWrapper as a wrap.
 
 
 ## Register wrapped names
 
-Names can be registered as normal using the current .eth registrar controller. However, the new .eth registrar controller will be a controller on the NameWrapper, and have NameWrapper will be a controller on the .eth base registrar. The NameWrapper exposes a `registerAndWrapETH2LD()` function that can be called by the new .eth registrar to directly register wrapped names. This new function removes the need to first transfer the owner to the contract itself before transferring it to the final owner, which saves gas.
+Names can be registered as normal using the current .arb registrar controller. However, the new .arb registrar controller will be a controller on the NameWrapper, and have NameWrapper will be a controller on the .arb base registrar. The NameWrapper exposes a `registerAndWrapETH2LD()` function that can be called by the new .arb registrar to directly register wrapped names. This new function removes the need to first transfer the owner to the contract itself before transferring it to the final owner, which saves gas.
 
-Both .eth registrar controllers will be active during a deprecation period, giving time for front-end clients to switch their code to point at the new and improved .eth registrar controller.
+Both .arb registrar controllers will be active during a deprecation period, giving time for front-end clients to switch their code to point at the new and improved .arb registrar controller.
 
 ## Ownership of the NameWrapper
 
@@ -431,7 +431,7 @@ After running the script it sets addresses to `.env`. If you want to redeploy so
 ## Seeding test data into Rinkeby
 
 1. Register a name using the account you used to deploy the contract
-2. Set the label (`matoken` for `matoken.eth`) to `SEED_NAME=` on `.env`
+2. Set the label (`matoken` for `matoken.arb`) to `SEED_NAME=` on `.env`
 3. Run `yarn seed:rinkeby`
 
 ```
@@ -447,8 +447,8 @@ Account balance: 1925134991223891632
   firstAddress: '0x97bA55F61345665cF08c4233b9D6E61051A43B18',
   name: 'wrappertest4'
 }
-Wrapped NFT for wrappertest4.eth is available at https://testnets.opensea.io/assets/0x88ce50eFeA21996B20838d5E71994191562758f9/42538507198368349158588132934279877358592939677496199760991827793914037599925
-Wrapped NFT for sub2.wrappertest4.eth is available at https://testnets.opensea.io/assets/0x88ce50eFeA21996B20838d5E71994191562758f9/22588238952906792220944282072078294622689934598844133294480594786812258911617
+Wrapped NFT for wrappertest4.arb is available at https://testnets.opensea.io/assets/0x88ce50eFeA21996B20838d5E71994191562758f9/42538507198368349158588132934279877358592939677496199760991827793914037599925
+Wrapped NFT for sub2.wrappertest4.arb is available at https://testnets.opensea.io/assets/0x88ce50eFeA21996B20838d5E71994191562758f9/22588238952906792220944282072078294622689934598844133294480594786812258911617
 ```
 
 ## Notes on upgrading the Name Wrapper

@@ -11,7 +11,7 @@ contract('TestRegistrar', function (accounts) {
     let registrar, ens;
 
     beforeEach(async () => {
-        node = namehash.hash('eth');
+        node = namehash.hash('arb');
 
         ens = await ENS.new();
         registrar = await TestRegistrar.new(ens.address, '0x0');
@@ -20,23 +20,23 @@ contract('TestRegistrar', function (accounts) {
     });
 
     it('registers names', async () => {
-        await registrar.register(sha3('eth'), accounts[0], {from: accounts[0]});
+        await registrar.register(sha3('arb'), accounts[0], {from: accounts[0]});
         assert.equal(await ens.owner('0x0'), registrar.address);
         assert.equal(await ens.owner(node), accounts[0]);
     });
 
     it('forbids transferring names within the test period', async () => {
-        await registrar.register(sha3('eth'), accounts[1], {from: accounts[0]});
-        await exceptions.expectFailure(registrar.register(sha3('eth'), accounts[0], {from: accounts[0]}));
+        await registrar.register(sha3('arb'), accounts[1], {from: accounts[0]});
+        await exceptions.expectFailure(registrar.register(sha3('arb'), accounts[0], {from: accounts[0]}));
     });
 
     it('allows claiming a name after the test period expires', async () => {
-        await registrar.register(sha3('eth'), accounts[1], {from: accounts[0]});
+        await registrar.register(sha3('arb'), accounts[1], {from: accounts[0]});
         assert.equal(await ens.owner(node), accounts[1]);
 
         await evm.advanceTime(28 * 24 * 60 * 60 + 1);
 
-        await registrar.register(sha3('eth'), accounts[0], {from: accounts[0]});
+        await registrar.register(sha3('arb'), accounts[0], {from: accounts[0]});
         assert.equal(await ens.owner(node), accounts[0]);
     });
 });

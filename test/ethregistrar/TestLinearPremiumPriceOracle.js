@@ -14,8 +14,8 @@ contract('LinearPremiumPriceOracle', function(accounts) {
 
   before(async () => {
     ens = await ENS.new()
-    registrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'))
-    await ens.setSubnodeOwner('0x0', sha3('eth'), registrar.address)
+    registrar = await BaseRegistrar.new(ens.address, namehash.hash('arb'))
+    await ens.setSubnodeOwner('0x0', sha3('arb'), registrar.address)
     await registrar.addController(accounts[0])
 
     // Dummy oracle with 1 ETH == 2 USD

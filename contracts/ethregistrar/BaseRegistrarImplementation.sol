@@ -10,7 +10,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     mapping(uint256 => uint256) expiries;
     // The ENS registry
     ENS public ens;
-    // The namehash of the TLD this registrar owns (eg, .eth)
+    // The namehash of the TLD this registrar owns (eg, .arb)
     bytes32 public baseNode;
     // A map of addresses that are authorised to register and renew names.
     mapping(address => bool) public controllers;

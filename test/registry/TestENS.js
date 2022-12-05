@@ -70,19 +70,19 @@ contracts.forEach(function ([ENS, lang]) {
         });
 
         it('should allow the creation of subnodes', async () => {
-            let result = await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[1], {from: accounts[0]});
+            let result = await ens.setSubnodeOwner('0x0', sha3('arb'), accounts[1], {from: accounts[0]});
 
-            assert.equal(await ens.owner(namehash.hash('eth')), accounts[1]);
+            assert.equal(await ens.owner(namehash.hash('arb')), accounts[1]);
 
             assert.equal(result.logs.length, 1);
             let args = result.logs[0].args;
             assert.equal(args.node, "0x0000000000000000000000000000000000000000000000000000000000000000");
-            assert.equal(args.label, sha3('eth'));
+            assert.equal(args.label, sha3('arb'));
             assert.equal(args.owner, accounts[1]);
         });
 
         it('should prohibit subnode creation by non-owners', async () => {
-            await exceptions.expectFailure(ens.setSubnodeOwner('0x0', sha3('eth'), accounts[1], {from: accounts[1]}));
+            await exceptions.expectFailure(ens.setSubnodeOwner('0x0', sha3('arb'), accounts[1], {from: accounts[1]}));
         });
     });
 });

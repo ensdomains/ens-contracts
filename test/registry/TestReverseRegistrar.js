@@ -256,7 +256,7 @@ contract('ReverseRegistrar', function(accounts) {
         dummyOwnable.address,
         accounts[0],
         resolver.address,
-        'dummyownable.eth',
+        'dummyownable.arb',
         {
           from: accounts[0],
         }
@@ -264,7 +264,7 @@ contract('ReverseRegistrar', function(accounts) {
       assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
       assert.equal(
         await resolver.name(dummyOwnableReverseNode),
-        'dummyownable.eth'
+        'dummyownable.arb'
       )
     })
   })

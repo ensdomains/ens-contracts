@@ -50,7 +50,7 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
             "Response data error"
         );
         if (bytes4(extraData) == bytes4(keccak256("name(bytes32)"))) {
-            return abi.encode("offchain.test.eth");
+            return abi.encode("offchain.test.arb");
         }
         return abi.encode(address(this));
     }

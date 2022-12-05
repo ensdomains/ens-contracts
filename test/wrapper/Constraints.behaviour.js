@@ -47,8 +47,8 @@ function shouldRespectConstraints(contracts, getSigners) {
 
   let parentLabel = 'test1'
   let parentLabelHash = labelhash(parentLabel)
-  let parentNode = namehash('test1.eth')
-  let childNode = namehash('sub.test1.eth')
+  let parentNode = namehash('test1.arb')
+  let childNode = namehash('sub.test1.arb')
   let childLabel = 'sub'
   let childLabelHash = labelhash(childLabel)
 
@@ -1290,7 +1290,7 @@ function shouldRespectConstraints(contracts, getSigners) {
       await NameWrapper2.unwrap(parentNode, childLabelHash, account2)
       await EnsRegistry2.setApprovalForAll(NameWrapper2.address, true)
       await NameWrapper2.wrap(
-        encodeName(`${childLabel}.${parentLabel}.eth`),
+        encodeName(`${childLabel}.${parentLabel}.arb`),
         account2,
         EMPTY_ADDRESS,
       )

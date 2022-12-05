@@ -11,9 +11,9 @@ contract('UniversalResolver', function () {
 
   describe('encodeName()', () => {
     it('should encode a name', async () => {
-      const result = await testNameEncoder.encodeName('foo.eth')
-      expect(result['0']).to.equal(dns.hexEncodeName('foo.eth'))
-      expect(result['1']).to.equal(namehash('foo.eth'))
+      const result = await testNameEncoder.encodeName('foo.arb')
+      expect(result['0']).to.equal(dns.hexEncodeName('foo.arb'))
+      expect(result['1']).to.equal(namehash('foo.arb'))
     })
 
     it('should encode an empty name', async () => {
@@ -23,9 +23,9 @@ contract('UniversalResolver', function () {
     })
 
     it('should encode a long name', async () => {
-      const result = await testNameEncoder.encodeName('something.else.test.eth')
-      expect(result['0']).to.equal(dns.hexEncodeName('something.else.test.eth'))
-      expect(result['1']).to.equal(namehash('something.else.test.eth'))
+      const result = await testNameEncoder.encodeName('something.else.test.arb')
+      expect(result['0']).to.equal(dns.hexEncodeName('something.else.test.arb'))
+      expect(result['1']).to.equal(namehash('something.else.test.arb'))
     })
   })
 })
