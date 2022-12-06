@@ -570,7 +570,7 @@ contract NameWrapper is
             // PARENT_CANNOT_CONTROL and CANNOT_UNWRAP have been burned. 
             _canFusesBeBurned(node, fuses);
 
-            super._mint(node, owner, fuses, expiry);
+            super._mintWithData(node, owner, fuses, expiry, nodeOwner, nodeFuses, oldExpiry);
             emit NameWrapped(node, _name, owner, fuses, expiry);
 
         } else {
@@ -587,7 +587,7 @@ contract NameWrapper is
             // If the name is not wrapped, then register the name and wrap it. 
             if (ownerOf(uint256(node)) == address(0)) {
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
-                _mint(node, owner, fuses, expiry);
+                _mintWithData(node, owner, fuses, expiry, nodeOwner, nodeFuses, oldExpiry);
                 emit NameWrapped(node, bytes(label), owner, fuses, expiry);
             } else {
                 // If the name was wrapped, then just update the data.   
