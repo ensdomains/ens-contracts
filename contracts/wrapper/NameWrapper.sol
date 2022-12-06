@@ -592,11 +592,6 @@ contract NameWrapper is
             } else {
                 // If the name was wrapped, then just update the data.   
 
-                // If the name is not already set then set it.
-                if (names[node].length == 0) {
-                    names[node] = bytes(label);
-                }
-
                 // Set the fuses.
                 _setFuses(node, nodeOwner, fuses, expiry);
 
