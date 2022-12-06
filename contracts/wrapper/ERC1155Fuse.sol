@@ -275,12 +275,12 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         bytes32 node,
         address owner,
         uint32 fuses,
-        uint64 expiry
+        uint64 expiry,
+        address oldOwner,
+        uint32 oldFuses,
+        uint64 oldExpiry
     ) internal virtual {
         uint256 tokenId = uint256(node);
-        (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
-            uint256(node)
-        );
 
         uint32 parentControlledFuses = (uint32(type(uint16).max) << 16) &
             oldFuses;
