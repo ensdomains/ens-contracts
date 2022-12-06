@@ -570,12 +570,6 @@ contract NameWrapper is
             // PARENT_CANNOT_CONTROL and CANNOT_UNWRAP have been burned. 
             _canFusesBeBurned(node, fuses);
 
-            // If the token was previously wrapped burn it before wrapping again.  
-            if (nodeOwner != address(0)) {
-                // burn and unwrap old token of old owner
-                _burn(uint256(node));
-                emit NameUnwrapped(node, address(0));
-            }
             super._mint(node, owner, fuses, expiry);
             emit NameWrapped(node, _name, owner, fuses, expiry);
 
