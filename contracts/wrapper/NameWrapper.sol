@@ -598,7 +598,8 @@ contract NameWrapper is
             // If the name is not wrapped, then register the name and wrap it. 
             if (!isWrapped(node)) {
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
-                _wrap(node, bytes(label), owner, fuses, expiry);
+                _mint(node, owner, fuses, expiry);
+                emit NameWrapped(node, bytes(label), owner, fuses, expiry);
             } else {
                 // If the name was wrapped, then just update the data.   
 
