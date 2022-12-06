@@ -129,7 +129,19 @@ contract NameWrapper is
 
         bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
         if (labelhash != bytes32(0)) {
-            expiry = uint64(registrar.nameExpires(uint256(labelhash))) + GRACE_PERIOD;
+            expiry =
+                uint64(registrar.nameExpires(uint256(labelhash))) +
+                GRACE_PERIOD;
+            // if owner in registrar is not the wrapper, zero out the owner
+            try registrar.ownerOf(uint256(labelhash)) returns (
+                address registrarOwner
+            ) {
+                if (registrarOwner != address(this)) {
+                    owner = address(0);
+                }
+            } catch {
+                // do nothing if name is unregistered
+            }
         }
 
         if (expiry < block.timestamp) {
@@ -215,7 +227,10 @@ contract NameWrapper is
         returns (bool)
     {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
-        return (owner == addr || isApprovedForAll(owner, addr)) && (fuses & IS_DOT_ETH == 0 || expiry - GRACE_PERIOD >= block.timestamp);
+        return
+            (owner == addr || isApprovedForAll(owner, addr)) &&
+            (fuses & IS_DOT_ETH == 0 ||
+                expiry - GRACE_PERIOD >= block.timestamp);
     }
 
     /**
@@ -285,10 +300,12 @@ contract NameWrapper is
      * @return expires The expiry date of the name on the .eth registrar, in seconds since the Unix epoch.
      */
 
-    function renew(
-        uint256 tokenId,
-        uint256 duration
-    ) external override onlyController returns (uint256 expires) {
+    function renew(uint256 tokenId, uint256 duration)
+        external
+        override
+        onlyController
+        returns (uint256 expires)
+    {
         return registrar.renew(tokenId, duration);
     }
 
@@ -469,11 +486,11 @@ contract NameWrapper is
     ) public {
         bytes32 node = _makeNode(parentNode, labelhash);
         _checkFusesAreSettable(node, fuses);
-        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(uint256(node));
-        // max expiry is set to the expiry of the parent
-        (, uint32 parentFuses, uint64 maxExpiry) = getData(
-            uint256(parentNode)
+        (address owner, uint32 oldFuses, uint64 oldExpiry) = getData(
+            uint256(node)
         );
+        // max expiry is set to the expiry of the parent
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
         if (parentNode == ROOT_NODE) {
             if (!canModifyName(node, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
@@ -747,20 +764,24 @@ contract NameWrapper is
 
     /***** Internal functions */
 
-    function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal view override returns (bool) {
+    function _preTransferCheck(
+        uint256 id,
+        uint32 fuses,
+        uint64 expiry
+    ) internal view override returns (bool) {
         // For this check, treat .eth 2LDs as expiring at the start of the grace period.
-        if(fuses & IS_DOT_ETH == IS_DOT_ETH) {
+        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             expiry -= GRACE_PERIOD;
         }
 
-        if(expiry < block.timestamp) {
+        if (expiry < block.timestamp) {
             // Transferable if the name was not emancipated
-            if(fuses & PARENT_CANNOT_CONTROL != 0) {
+            if (fuses & PARENT_CANNOT_CONTROL != 0) {
                 revert("ERC1155: insufficient balance for transfer");
             }
         } else {
             // Transferable if CANNOT_TRANSFER is unburned
-            if(fuses & CANNOT_TRANSFER != 0) {
+            if (fuses & CANNOT_TRANSFER != 0) {
                 revert OperationProhibited(bytes32(id));
             }
         }
@@ -883,9 +904,7 @@ contract NameWrapper is
         uint64 expiry
     ) internal view returns (uint64) {
         (, , uint64 oldExpiry) = getData(uint256(node));
-        (, uint32 parentFuses, uint64 maxExpiry) = getData(
-            uint256(parentNode)
-        );
+        (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
         _checkParentFuses(node, fuses, parentFuses);
         return _normaliseExpiry(expiry, oldExpiry, maxExpiry);
     }
@@ -935,7 +954,8 @@ contract NameWrapper is
         bytes memory name = _addLabel(label, "\x03eth\x00");
         names[node] = name;
 
-        uint64 expiry = uint64(registrar.nameExpires(uint256(labelhash))) + GRACE_PERIOD;
+        uint64 expiry = uint64(registrar.nameExpires(uint256(labelhash))) +
+            GRACE_PERIOD;
 
         _wrap(
             node,

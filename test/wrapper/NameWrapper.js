@@ -5091,6 +5091,46 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('Registrar tests', () => {
+    const label1 = 'sub1'
+    const labelHash1 = labelhash('sub1')
+    const wrappedTokenId1 = namehash('sub1.eth')
+
+    const label2 = 'sub2'
+    it('Reverts when attempting to call token owner protected function on an unwrapped name', async () => {
+      await registerSetupAndWrapName(label1, account, CANNOT_UNWRAP)
+
+      //wait the ETH2LD expired and re-register to the hacker himself
+      await evm.advanceTime(GRACE_PERIOD + 1 * DAY + 1)
+      await evm.mine()
+
+      // XXX: note that at this step, the hackler should use the current .eth
+      // registrar to directly register `sub1.eth` to himself, without wrapping
+      // the name.
+      await BaseRegistrar.register(labelHash1, hacker, 10 * DAY)
+      expect(await EnsRegistry.owner(wrappedTokenId1)).to.equal(hacker)
+      expect(await BaseRegistrar.ownerOf(labelHash1)).to.equal(hacker)
+
+      // set `EnsRegistry.owner` as NameWrapper. Note that this step is used to
+      // bypass the newly-introduced checks for [ZZ-001]
+      //
+      // XXX: corrently, `sub1.eth` becomes a normal node
+      await EnsRegistryH.setOwner(wrappedTokenId1, NameWrapper.address)
+
+      // create `sub2.sub1.eth` to the victim user with `PARENT_CANNOT_CONTROL`
+      // burnt.
+      await expect(
+        NameWrapperH.setSubnodeOwner(
+          wrappedTokenId1,
+          label2,
+          account2,
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
+          MAX_EXPIRY,
+        ),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId1}", "${hacker}")`)
+    })
+  })
+
   describe('ERC1155 additional tests', () => {
     const label = 'erc1155'
     const labelHash = labelhash
