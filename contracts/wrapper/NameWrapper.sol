@@ -562,15 +562,15 @@ contract NameWrapper is
                 revert OperationProhibited(node);
             }
 
-            // If we pass all the checks, register the subname and wrap it. 
-            bytes memory _name = _saveLabel(parentNode, node, label);
-            ens.setSubnodeOwner(parentNode, labelhash, address(this));
-
             // If a owner controlled fuse are being burned, check to make sure 
             // PARENT_CANNOT_CONTROL and CANNOT_UNWRAP have been burned. 
             _canFusesBeBurned(node, fuses);
 
-            super._mintWithData(node, owner, fuses, expiry, nodeOwner, nodeFuses, oldExpiry);
+            // If we pass all the checks, register the subname and wrap it. 
+            bytes memory _name = _saveLabel(parentNode, node, label);
+            ens.setSubnodeOwner(parentNode, labelhash, address(this));
+
+            _mintWithData(node, owner, fuses, expiry, nodeOwner, nodeFuses, oldExpiry);
             emit NameWrapped(node, _name, owner, fuses, expiry);
 
         } else {
