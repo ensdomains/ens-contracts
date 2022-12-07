@@ -524,23 +524,23 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
 
-        // Make sure that IS_DOT_ETH is not part of the fuses. 
-        _checkFusesAreSettable(node, fuses);
-
         // Get the node data and parentNode data.
         // Notice: in order to save stack space we call the parent owner baseOwner.
         // We will use baseOwner for another purpose later. 
         (address nodeOwner, uint32 nodeFuses, uint64 oldExpiry) = getData(uint256(node));
         (address baseOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
 
+        // Set the expiry between the old expiry and the parentExpiry.
+        expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
+
+        // Make sure that IS_DOT_ETH is not part of the fuses. 
+        _checkFusesAreSettable(node, fuses);
+
         // If parent controlled fuses in the node are being set, make sure CANNOT_UNWRAP
         // is burned in the fuses of the parent node. 
         if (fuses & PARENT_CONTROLLED_FUSES != 0 && parentFuses & CANNOT_UNWRAP == 0) {
             revert OperationProhibited(node);
         }
-
-        // Set the expiry between the old expiry and the parentExpiry.
-        expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
         // Make sure the caller is the parent owner or approved, and the parent name is not expired. 
         if ((baseOwner != msg.sender && !isApprovedForAll(baseOwner, msg.sender)) || 
