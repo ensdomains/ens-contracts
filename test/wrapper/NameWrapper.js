@@ -3343,6 +3343,52 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
+    it('Unwrapping a previously wrapped unexpired name retains parent controlled fuses', async () => {
+      const label = 'test'
+      const labelHash = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      const subLabel = 'sub'
+      const subLabelHash = labelhash(subLabel)
+      const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+      // Confirm that the name is wrapped
+
+      const parentExpiry = await BaseRegistrar.nameExpires(labelHash)
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      // NameWrapper.setSubnodeOwner to account2
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        IS_DOT_ETH*2,
+        MAX_EXPIRY,
+      )
+      // Confirm fuses are set
+      const [, fusesBefore] = await NameWrapper.getData(subWrappedTokenId)
+      expect(fusesBefore).to.equal(IS_DOT_ETH*2)
+
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        EMPTY_ADDRESS,
+        0,
+        0,
+      )
+      const [owner] = await NameWrapper.getData(subWrappedTokenId)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        0,
+        0,
+      )
+      let[newOwner, newFuses] = await NameWrapper.getData(subWrappedTokenId)
+      expect(newOwner).to.equal(account2)
+      expect(newFuses).to.equal(IS_DOT_ETH*2)
+    })
+
     it('Rewrapping a name that had PCC burned, but has now expired is possible and resets fuses', async () => {
       const label = 'test'
       const labelHash = labelhash(label)
