@@ -281,10 +281,6 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint64 oldExpiry
     ) internal virtual {
 
-        if (oldExpiry > expiry) {
-            expiry = oldExpiry;
-        }
-
         if (oldExpiry >= block.timestamp) {
             fuses = fuses | ((uint32(type(uint16).max) << 16) & oldFuses);
         }
