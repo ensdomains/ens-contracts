@@ -585,7 +585,7 @@ contract NameWrapper is
             label = string(_saveLabel(parentNode, node, label));
 
             // If the name is not wrapped, then register the name and wrap it. 
-            if (ownerOf(uint256(node)) == address(0)) {
+            if (nodeOwner == address(0)) {
                 ens.setSubnodeOwner(parentNode, labelhash, address(this));
                 _mintWithData(node, owner, fuses, expiry, nodeOwner, nodeFuses, oldExpiry);
                 emit NameWrapped(node, bytes(label), owner, fuses, expiry);
@@ -858,7 +858,6 @@ contract NameWrapper is
         }
         return abi.encodePacked(uint8(bytes(label).length), label, name);
     }
-
 
     function _mint(
         bytes32 node,
