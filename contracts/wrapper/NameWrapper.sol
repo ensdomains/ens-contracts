@@ -127,20 +127,18 @@ contract NameWrapper is
     {
         (owner, fuses, expiry) = super.getData(id);
 
-        bytes32 labelhash = _getEthLabelhash(bytes32(id), fuses);
-        if (labelhash != bytes32(0)) {
-            expiry =
-                uint64(registrar.nameExpires(uint256(labelhash))) +
-                GRACE_PERIOD;
+        bytes32 labelHash = _getEthLabelhash(bytes32(id), fuses);
+        if (labelHash != bytes32(0)) {
+            uint64 registrarExpiry = uint64(
+                registrar.nameExpires(uint256(labelHash))
+            );
+            expiry = registrarExpiry + GRACE_PERIOD;
             // if owner in registrar is not the wrapper, zero out the owner
-            try registrar.ownerOf(uint256(labelhash)) returns (
-                address registrarOwner
+            if (
+                registrarExpiry > block.timestamp &&
+                registrar.ownerOf(uint256(labelHash)) != address(this)
             ) {
-                if (registrarOwner != address(this)) {
-                    owner = address(0);
-                }
-            } catch {
-                // do nothing if name is unregistered
+                owner = address(0);
             }
         }
 
