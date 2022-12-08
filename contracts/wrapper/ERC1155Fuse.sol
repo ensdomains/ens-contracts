@@ -271,12 +271,11 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         );
     }
 
-    function _mintWithData(
+    function _mintWithDataForUnwrappedNames(
         bytes32 node,
         address owner,
         uint32 fuses,
         uint64 expiry,
-        address oldOwner,
         uint32 oldFuses,
         uint64 oldExpiry
     ) internal virtual {
@@ -285,7 +284,6 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             fuses = fuses | ((uint32(type(uint16).max) << 16) & oldFuses);
         }
 
-        require(oldOwner == address(0), "ERC1155: mint of existing token");
         require(owner != address(0), "ERC1155: mint to the zero address");
         require(
             owner != address(this),
