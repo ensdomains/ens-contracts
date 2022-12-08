@@ -3407,6 +3407,51 @@ describe('Name Wrapper', () => {
       expect(expiry2).to.be.below(block1.timestamp)
       expect(owner3).to.equal(account2)
     })
+
+    it.only('Expired subnames should still be protected by CANNOT_CREATE_SUBDOMAIN on the parent', async () => {
+      const label = 'test'
+      const labelHash = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      const subLabel = 'sub'
+      const subLabel2 = 'sub2'
+      const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
+      const subWrappedTokenId2 = namehash(`${subLabel2}.${label}.eth`)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      const parentExpiry = await BaseRegistrar.nameExpires(labelHash)
+      // Confirm that the name is wrapped
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+      // NameWrapper.setSubnodeOwner to account2
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        0,
+        parentExpiry - DAY,
+      )
+
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_CREATE_SUBDOMAIN)
+
+      await expect(
+        NameWrapper.setSubnodeOwner(
+          wrappedTokenId,
+          subLabel2,
+          account2,
+          0,
+          parentExpiry - DAY,
+        ),
+      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId2}")`)
+
+      await evm.advanceTime(parentExpiry + 1)
+      await evm.mine()
+
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        subLabel,
+        account2,
+        0,
+        parentExpiry - DAY,
+      )
+    })
   })
 
   describe('setSubnodeRecord()', async () => {
