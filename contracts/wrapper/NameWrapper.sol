@@ -691,10 +691,10 @@ contract NameWrapper is
         bool expired = subnodeExpiry < block.timestamp;
         if (
             expired &&
-            // protects a name that has been burnt and doesn't allow the parent to take control by recreating it if unexpired
-            (ens.owner(subnode) == address(0) ||
-                // protects a name that has been unwrapped with PCC and doesn't allow the parent to take control by recreating it if unexpired
-                subnodeOwner == address(0))
+            // protects a name that has been unwrapped with PCC and doesn't allow the parent to take control by recreating it if unexpired
+            (subnodeOwner == address(0) ||
+                // protects a name that has been burnt and doesn't allow the parent to take control by recreating it if unexpired
+                ens.owner(subnode) == address(0))
         ) {
             (, uint32 parentFuses, ) = getData(uint256(parentNode));
             if (parentFuses & CANNOT_CREATE_SUBDOMAIN != 0) {
