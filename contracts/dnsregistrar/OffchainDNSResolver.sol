@@ -1,6 +1,3 @@
-//SPDX-License-Identifier: MIT
-
-pragma solidity ^0.8.4;
 
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
