@@ -534,14 +534,10 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    )
-        public
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
-        returns (bytes32 node)
-    {
+    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _checkCanCallSetSubnodeOwner(parentNode, node);
         _checkFusesAreSettable(node, fuses);
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
@@ -574,14 +570,10 @@ contract NameWrapper is
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    )
-        public
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
-        returns (bytes32 node)
-    {
+    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
+        _checkCanCallSetSubnodeOwner(parentNode, node);
         _checkFusesAreSettable(node, fuses);
         _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
@@ -691,27 +683,40 @@ contract NameWrapper is
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
      *      replacing a subdomain. If either conditions are true, then it is possible to call
      *      setSubnodeOwner
-     * @param node Namehash of the name to check
-     * @param labelhash Labelhash of the name to check
+     * @param parentNode Namehash of the parent name to check
+     * @param subnode Namehash of the subname to check
      */
 
-    modifier canCallSetSubnodeOwner(bytes32 node, bytes32 labelhash) {
-        bytes32 subnode = _makeNode(node, labelhash);
-        address owner = ens.owner(subnode);
+    function _checkCanCallSetSubnodeOwner(bytes32 parentNode, bytes32 subnode)
+        internal
+        view
+    {
+        (
+            address subnodeOwner,
+            uint32 subnodeFuses,
+            uint64 subnodeExpiry
+        ) = getData(uint256(subnode));
 
-        if (owner == address(0)) {
-            (, uint32 fuses, ) = getData(uint256(node));
-            if (fuses & CANNOT_CREATE_SUBDOMAIN != 0) {
+        // check if the registry owner is 0 and expired
+        // check if the wrapper owner is 0 and expired
+        // If either, then check parent fuses for CANNOT_CREATE_SUBDOMAIN
+        bool expired = subnodeExpiry < block.timestamp;
+        if (
+            expired &&
+            // protects a name that has been unwrapped with PCC and doesn't allow the parent to take control by recreating it if unexpired
+            (subnodeOwner == address(0) ||
+                // protects a name that has been burnt and doesn't allow the parent to take control by recreating it if unexpired
+                ens.owner(subnode) == address(0))
+        ) {
+            (, uint32 parentFuses, ) = getData(uint256(parentNode));
+            if (parentFuses & CANNOT_CREATE_SUBDOMAIN != 0) {
                 revert OperationProhibited(subnode);
             }
         } else {
-            (, uint32 subnodeFuses, ) = getData(uint256(subnode));
             if (subnodeFuses & PARENT_CANNOT_CONTROL != 0) {
                 revert OperationProhibited(subnode);
             }
         }
-
-        _;
     }
 
     /**
