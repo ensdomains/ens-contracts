@@ -8,3 +8,7 @@ node_modules
 build
 forge-cache
 out
+#certora 
+.certora_internal*
+.certora*
+certora-logs/*
