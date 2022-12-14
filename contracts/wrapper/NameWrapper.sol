@@ -428,7 +428,13 @@ contract NameWrapper is
     ) public {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
-        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
+        (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
+            node
+        );
+
+        if (wrappedOwner != currentOwner) {
+            _preTransferCheck(uint256(node), fuses, expiry);
+        }
 
         upgradeContract.wrapETH2LD(
             label,
@@ -457,7 +463,14 @@ contract NameWrapper is
     ) public {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
+        (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
+            node
+        );
+
+        if (wrappedOwner != currentOwner) {
+            _preTransferCheck(uint256(node), fuses, expiry);
+        }
+
         upgradeContract.setSubnodeRecord(
             parentNode,
             label,
@@ -873,7 +886,11 @@ contract NameWrapper is
 
     function _prepareUpgrade(bytes32 node)
         private
-        returns (uint32 fuses, uint64 expiry)
+        returns (
+            address owner,
+            uint32 fuses,
+            uint64 expiry
+        )
     {
         if (address(upgradeContract) == address(0)) {
             revert CannotUpgrade();
@@ -883,7 +900,7 @@ contract NameWrapper is
             revert Unauthorised(node, msg.sender);
         }
 
-        (, fuses, expiry) = getData(uint256(node));
+        (owner, fuses, expiry) = getData(uint256(node));
 
         _burn(uint256(node));
     }
