@@ -12,3 +12,6 @@ out
 .certora_internal*
 .certora*
 certora-logs/*
+certora_debug_log.txt
+resource_errors.json
+.last_confs 
