@@ -1,0 +1,48 @@
+--- ../contracts/wrapper/NameWrapper.sol	2022-12-18 18:29:31.919567200 +0200
++++ 	2022-12-18 18:35:07.655324200 +0200
+@@ -1,17 +1,17 @@
+ //SPDX-License-Identifier: MIT
+ pragma solidity ~0.8.17;
+ 
+-import {ERC1155Fuse, IERC165} from "./ERC1155Fuse.sol";
+-import {Controllable} from "./Controllable.sol";
+-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+-import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
+-import {IMetadataService} from "./IMetadataService.sol";
+-import {ENS} from "../registry/ENS.sol";
+-import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
++import {ERC1155Fuse, IERC165} from "../../contracts/wrapper/ERC1155Fuse.sol";
++import {Controllable} from "../../contracts/wrapper/Controllable.sol";
++import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "../../contracts/wrapper/INameWrapper.sol";
++import {INameWrapperUpgrade} from "../../contracts/wrapper/INameWrapperUpgrade.sol";
++import {IMetadataService} from "../../contracts/wrapper/IMetadataService.sol";
++import {ENS} from "../../contracts/registry/ENS.sol";
++import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
+ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+-import {BytesUtils} from "./BytesUtils.sol";
+-import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
++import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
++import {ERC20Recoverable} from "../../contracts/utils/ERC20Recoverable.sol";
+ 
+ error Unauthorised(bytes32 node, address addr);
+ error IncompatibleParent();
+@@ -33,8 +33,8 @@
+ {
+     using BytesUtils for bytes;
+ 
+-    ENS public immutable override ens;
+-    IBaseRegistrar public immutable override registrar;
++    ENS public override ens; // Certora: removed 'immutable'
++    IBaseRegistrar public override registrar; // Certora: removed 'immutable'
+     IMetadataService public override metadataService;
+     mapping(bytes32 => bytes) public override names;
+     string public constant name = "NameWrapper";
+@@ -764,6 +764,7 @@
+                 revert OperationProhibited(bytes32(id));
+             }
+         }
++        return true;    // Certora: Added return statement
+     }
+ 
+     function _makeNode(bytes32 node, bytes32 labelhash)
