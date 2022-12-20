@@ -29,3 +29,10 @@ f.selector == upgradeETH2LD(string,address,address).selector} {
     f(e,args);
     assert false; 
 }
+
+rule checkMyFunc() {
+    env e;
+    calldataarg args;
+    getData(e, args);
+    assert false;
+}

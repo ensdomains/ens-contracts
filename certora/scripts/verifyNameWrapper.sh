@@ -15,19 +15,16 @@ certoraRun ./certora/munged/NameWrapper.sol \
         NameWrapper:ens=ENSRegistry \
         NameWrapper:upgradeContract=UpgradedNameWrapperMock \
         BaseRegistrarImplementation:ens=ENSRegistry \
-        UpgradedNameWrapperMock:oldNameWrapper=NameWrapper \
-        UpgradedNameWrapperMock:ens=ENSRegistry \
-        UpgradedNameWrapperMock:registrar=BaseRegistrarImplementation \
 \
 \
 --solc solc8.17 \
---optimistic_loop \
---loop_iter 2 \
+--loop_iter 5 \
 --staging \
---rule customSanity \
+--optimistic_loop \
+--rule sanity \
 --send_only \
---settings -contractRecursionLimit=1 \
---msg "ENS 15 : upgradeContract dispatch"
+--settings -contractRecursionLimit=1,-copyLoopUnroll=6 \
+--msg "ENS NameWrapper : Sanity no upgradeContract linking"
 
 ##
 #if [[ "$1" ]]

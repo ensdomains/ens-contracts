@@ -37,7 +37,7 @@ contract NameWrapper is
     IBaseRegistrar public override registrar; // Certora: removed 'immutable'
     IMetadataService public override metadataService;
     mapping(bytes32 => bytes) public override names;
-    string public constant name = "NameWrapper";
+    //string public constant name = "NameWrapper"; // Certora: removed variable
 
     uint64 private constant GRACE_PERIOD = 90 days;
     bytes32 private constant ETH_NODE =
@@ -46,7 +46,6 @@ contract NameWrapper is
         0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0;
     bytes32 private constant ROOT_NODE =
         0x0000000000000000000000000000000000000000000000000000000000000000;
-
     INameWrapperUpgrade public upgradeContract;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
@@ -516,7 +515,7 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     )
-        public
+        public virtual
         onlyTokenOwner(parentNode)
         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
@@ -556,7 +555,7 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     )
-        public
+        public virtual
         onlyTokenOwner(parentNode)
         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
@@ -768,7 +767,7 @@ contract NameWrapper is
     }
 
     function _makeNode(bytes32 node, bytes32 labelhash)
-        private
+        internal
         pure
         returns (bytes32)
     {
