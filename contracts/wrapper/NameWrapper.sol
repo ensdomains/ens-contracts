@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -395,6 +395,46 @@ contract NameWrapper is
         );
         _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry);
         return ownerControlledFuses;
+    }
+
+    /**
+     * @notice Sets expiry for a name
+     * @param parentNode Parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
+     * @param labelhash Labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
+     * @param expiry When the name will expire in seconds since the Unix epoch
+     * @return New expiry
+     */
+
+    function setExpiry(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint64 expiry
+    )
+        public
+        returns (uint64)
+    {
+        bytes32 node = _makeNode(parentNode, labelhash);
+        if (!canModifyName(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
+
+        // revert if CAN_EXTEND_EXPIRY parent-controlled fuse has not been burned
+        if (fuses & CAN_EXTEND_EXPIRY == 0) {
+            revert OperationProhibited(node);
+        }
+
+        // max expiry is set to the expiry of the parent
+        (, , uint64 maxExpiry) = getData(
+            uint256(parentNode)
+        );
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+
+        _setFuses(node, owner, fuses, expiry);
+        return expiry;
     }
 
     /**
