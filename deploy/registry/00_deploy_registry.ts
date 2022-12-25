@@ -60,7 +60,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       case deployer:
         const tx = await registry.setOwner(ZERO_HASH, owner, { from: deployer })
         console.log(
-          'Setting final owner of root node on registry (tx:${tx.hash})...',
+          `Setting final owner of root node on registry (tx:${tx.hash})...`,
         )
         await tx.wait()
         break
