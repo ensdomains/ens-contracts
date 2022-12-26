@@ -1,5 +1,5 @@
 certoraRun ./certora/harness/NameWrapper1.sol:NameWrapperHarness \
-./certora/harness/UpgradedNameWrapperMock.sol \
+./certora/munged/UpgradedNameWrapperMock.sol \
 ./contracts/wrapper/StaticMetadataService.sol \
 ./contracts/ethregistrar/BaseRegistrarImplementation.sol \
 ./contracts/registry/ENSRegistry.sol \
@@ -22,12 +22,12 @@ certoraRun ./certora/harness/NameWrapper1.sol:NameWrapperHarness \
 \
 --solc solc8.17 \
 --loop_iter 3 \
---staging \
 --optimistic_loop \
---rule sanity \
+--rule_sanity \
 --send_only \
---settings -contractRecursionLimit=1,-copyLoopUnroll=3 \
---msg "ENS NameWrapper : Sanity NameWrapper harness 1 move upgrade contract up"
+--staging master \
+--settings -copyLoopUnroll=3 \
+--msg "ENS NameWrapper : NameWrapper harness 1"
 
 ##
 #if [[ "$1" ]]

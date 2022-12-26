@@ -5,9 +5,9 @@ import "../../contracts/registry/ENS.sol";
 import "../../contracts/ethregistrar/IBaseRegistrar.sol";
 
 contract UpgradedNameWrapperMock is INameWrapperUpgrade {
-    address public immutable oldNameWrapper;
-    ENS public immutable ens;
-    IBaseRegistrar public immutable registrar;
+    address public oldNameWrapper;
+    ENS public ens;
+    IBaseRegistrar public registrar;
 
     constructor(
         address _oldNameWrapper,

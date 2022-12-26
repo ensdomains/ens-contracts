@@ -4,7 +4,9 @@ PATCH         = applyHarness.patch
 CONTRACTS_DIR = ../contracts
 MUNGED_DIR    = munged
 NameWrapper_Origin = ../contracts/wrapper/NameWrapper.sol
+UpgradeMock_Origin = ../contracts/wrapper/mocks/UpgradedNameWrapperMock.sol
 NameWrapper_munged = ./munged/NameWrapper.sol
+UpgradeMock_munged = ./munged/UpgradedNameWrapperMock.sol
 
 help:
 	@echo "usage:"
@@ -18,7 +20,8 @@ munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
 	patch -p0 -d $@ < $(PATCH)
 
 record:
-	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' > $(PATCH)
+	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
+	diff -ruN $(UpgradeMock_Origin) $(UpgradeMock_munged) | sed 's+\$(UpgradeMock_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
 
 clean:
 	git clean -fdX

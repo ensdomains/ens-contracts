@@ -1,5 +1,4 @@
-certoraRun ./certora/munged/NameWrapper.sol \
-./certora/munged/UpgradedNameWrapperMock.sol \
+certoraRun ./certora/munged/NameWrapperNoUpgrade.sol:NameWrapper \
 ./contracts/wrapper/StaticMetadataService.sol \
 ./contracts/ethregistrar/BaseRegistrarImplementation.sol \
 ./contracts/registry/ENSRegistry.sol \
@@ -13,11 +12,7 @@ certoraRun ./certora/munged/NameWrapper.sol \
 --link  NameWrapper:registrar=BaseRegistrarImplementation \
         NameWrapper:metadataService=StaticMetadataService \
         NameWrapper:ens=ENSRegistry \
-        NameWrapper:upgradeContract=UpgradedNameWrapperMock \
         BaseRegistrarImplementation:ens=ENSRegistry \
-        UpgradedNameWrapperMock:ens=ENSRegistry \
-        UpgradedNameWrapperMock:registrar=BaseRegistrarImplementation \
-        UpgradedNameWrapperMock:oldNameWrapper=NameWrapper \
 \
 \
 --solc solc8.17 \
@@ -26,7 +21,7 @@ certoraRun ./certora/munged/NameWrapper.sol \
 --optimistic_loop \
 --rule cannotWrapTwice \
 --send_only \
---settings -contractRecursionLimit=2,-copyLoopUnroll=7 \
+--settings -recursionErrorAsAssert=false,-copyLoopUnroll=7 \
 --msg "ENS NameWrapper : cannotWrapTwice"
 
 ##
