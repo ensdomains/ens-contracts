@@ -16,11 +16,10 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 \
 \
 --solc solc8.17 \
---loop_iter 3 \
---cloud \
+--loop_iter 4 \
+--staging master \
 --optimistic_loop \
---rule wrapUnwrap \
 --send_only \
---settings -mediumTimeout=100,-copyLoopUnroll=3 \
+--settings -mediumTimeout=200,-copyLoopUnroll=5 \
 --settings -recursionEntryLimit=1,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper : wrapUnwrap"
+--msg "ENS NameWrapper"
