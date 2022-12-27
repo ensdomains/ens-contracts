@@ -26,7 +26,8 @@ certoraRun ./certora/harness/NameWrapper1.sol:NameWrapperHarness \
 --rule_sanity \
 --send_only \
 --staging master \
---settings -copyLoopUnroll=3 \
+--settings -mediumTimeout=100,-copyLoopUnroll=3 \
+--settings -recursionEntryLimit=1,-recursionErrorAsAssert=false \
 --msg "ENS NameWrapper : NameWrapper harness 1"
 
 ##

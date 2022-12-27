@@ -408,10 +408,10 @@ contract NameWrapper is
         string calldata label,
         address wrappedOwner,
         address resolver
-    ) public {
+    ) public virtual {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
-        (uint32 fuses, uint64 expiry) = (0,0);//_prepareUpgrade(node);
+        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
 
         upgradeContract.wrapETH2LD(
             label,
@@ -437,11 +437,10 @@ contract NameWrapper is
         string calldata label,
         address wrappedOwner,
         address resolver
-    ) public {
+    ) public virtual {
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
-        (uint32 fuses, uint64 expiry) = (0,0);//_prepareUpgrade(node);
-
+        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
         upgradeContract.setSubnodeRecord(
             parentNode,
             label,

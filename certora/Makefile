@@ -20,7 +20,7 @@ munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
 	patch -p0 -d $@ < $(PATCH)
 
 record:
-	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
+	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' > $(PATCH)
 	diff -ruN $(UpgradeMock_Origin) $(UpgradeMock_munged) | sed 's+\$(UpgradeMock_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
 
 clean:

@@ -1,5 +1,5 @@
 --- ../contracts/wrapper/NameWrapper.sol	2022-12-18 18:29:31.919567200 +0200
-+++ 	2022-12-26 17:10:24.082098300 +0200
++++ 	2022-12-27 09:57:13.240769600 +0200
 @@ -1,17 +1,17 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
@@ -50,26 +50,7 @@
      INameWrapperUpgrade public upgradeContract;
      uint64 private constant MAX_EXPIRY = type(uint64).max;
  
-@@ -412,7 +411,7 @@
-     ) public {
-         bytes32 labelhash = keccak256(bytes(label));
-         bytes32 node = _makeNode(ETH_NODE, labelhash);
--        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
-+        (uint32 fuses, uint64 expiry) = (0,0);//_prepareUpgrade(node);
- 
-         upgradeContract.wrapETH2LD(
-             label,
-@@ -441,7 +440,8 @@
-     ) public {
-         bytes32 labelhash = keccak256(bytes(label));
-         bytes32 node = _makeNode(parentNode, labelhash);
--        (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
-+        (uint32 fuses, uint64 expiry) = (0,0);//_prepareUpgrade(node);
-+
-         upgradeContract.setSubnodeRecord(
-             parentNode,
-             label,
-@@ -516,7 +516,7 @@
+@@ -516,7 +515,7 @@
          uint32 fuses,
          uint64 expiry
      )
@@ -78,7 +59,7 @@
          onlyTokenOwner(parentNode)
          canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
          returns (bytes32 node)
-@@ -556,7 +556,7 @@
+@@ -556,7 +555,7 @@
          uint32 fuses,
          uint64 expiry
      )
@@ -87,7 +68,7 @@
          onlyTokenOwner(parentNode)
          canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
          returns (bytes32 node)
-@@ -764,10 +764,11 @@
+@@ -764,10 +763,11 @@
                  revert OperationProhibited(bytes32(id));
              }
          }
