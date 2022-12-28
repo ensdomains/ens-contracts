@@ -44,6 +44,14 @@ contract PublicResolver is
      */
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
+    /**
+     * A mapping of delegates. A delegate that is authorised by an owner
+     * for a name may make changes to the name's resolver, but may not update
+     * the set of token approvals.
+     * (owner, name, delegate) => approved
+     */
+    mapping(address => mapping(bytes32 => mapping(address => bool))) private _tokenApprovals;
+
     // Logged when an operator is added or removed.
     event ApprovalForAll(
         address indexed owner,
