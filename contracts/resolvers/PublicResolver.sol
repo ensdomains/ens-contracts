@@ -117,6 +117,16 @@ contract PublicResolver is
         emit Approved(msg.sender, node, delegate, approved);
     }
 
+    /**
+     * @dev Check to see if the delegate has been approved by the owner for the node.
+     */
+    function isApprovedFor(address owner, bytes32 node, address delegate)
+        public
+        view
+        returns (bool)
+    {
+        return _tokenApprovals[owner][node][delegate];
+    }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
         if (
