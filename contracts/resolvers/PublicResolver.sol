@@ -139,7 +139,8 @@ contract PublicResolver is
         if (owner == address(nameWrapper)) {
             owner = nameWrapper.ownerOf(uint256(node));
         }
-        return owner == msg.sender || isApprovedForAll(owner, msg.sender);
+        return owner == msg.sender || isApprovedForAll(owner, msg.sender) || 
+            isApprovedFor(owner, node, msg.sender);
     }
 
     function supportsInterface(bytes4 interfaceID)
