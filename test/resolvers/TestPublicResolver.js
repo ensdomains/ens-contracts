@@ -1169,6 +1169,88 @@ contract('PublicResolver', function(accounts) {
     })
   })
 
+  describe('token approvals', async () => {
+    it('permits delegate to be approved', async () => {
+      await resolver.approve(node, accounts[1], true, {
+        from: accounts[0],
+      })
+      assert.equal(
+        await resolver.isApprovedFor(accounts[0], node, accounts[1]),
+        true
+      )
+    })
+
+    it('permits delegated users to make changes', async () => {
+      await resolver.approve(node, accounts[1], true, {
+        from: accounts[0],
+      })
+      assert.equal(
+        await resolver.isApprovedFor(await ens.owner(node), node, accounts[1]),
+        true
+      )
+      await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+        from: accounts[1],
+      })
+      assert.equal(await resolver.addr(node), accounts[1])
+    })
+
+    it('permits delegations to be cleared', async () => {
+      await resolver.approve(node, accounts[1], false, {
+        from: accounts[0],
+      })
+      await exceptions.expectFailure(
+        resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+          from: accounts[1],
+        })
+      )
+    })
+
+    it('permits non-owners to set delegations', async () => {
+      await resolver.approve(node, accounts[2], true, {
+        from: accounts[1],
+      })
+
+      // The delegation should have no effect, because accounts[1] is not the owner.
+      await exceptions.expectFailure(
+        resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+          from: accounts[2],
+        })
+      )
+    })
+
+    it('checks the delegation for the current owner', async () => {
+      await resolver.approve(node, accounts[2], true, {
+        from: accounts[1],
+      })
+      await ens.setOwner(node, accounts[1], { from: accounts[0] })
+
+      await resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+        from: accounts[2],
+      })
+      assert.equal(await resolver.addr(node), accounts[0])
+    })
+
+    it('emits a Approved log', async () => {
+      var owner = accounts[0]
+      var delegate = accounts[1]
+      var tx = await resolver.approve(node, delegate, true, {
+        from: owner,
+      })
+      assert.equal(tx.logs.length, 1)
+      assert.equal(tx.logs[0].event, 'Approved')
+      assert.equal(tx.logs[0].args.owner, owner)
+      assert.equal(tx.logs[0].args.node, node)
+      assert.equal(tx.logs[0].args.delegate, delegate)
+      assert.equal(tx.logs[0].args.approved, true)
+    })
+
+    it('reverts if attempting to delegate self as an delegate', async () => {
+      await expect(
+        resolver.approve(node, accounts[1], true, { from: accounts[1] })
+      ).to.be.revertedWith('Setting delegate status for self')
+    })
+  })
+
   describe('multicall', async () => {
     it('allows setting multiple fields', async () => {
       var addrSet = resolver.contract.methods['setAddr(bytes32,address)'](
