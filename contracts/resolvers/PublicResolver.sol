@@ -59,6 +59,14 @@ contract PublicResolver is
         bool approved
     );
 
+    // Logged when a delegate is approved or  an approval is revoked.
+    event Approved(
+        address owner,
+        bytes32 indexed node,
+        address indexed delegate,
+        bool indexed approved
+    );
+
     constructor(
         ENS _ens,
         INameWrapper wrapperAddress,
