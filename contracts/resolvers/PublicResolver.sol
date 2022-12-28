@@ -103,6 +103,21 @@ contract PublicResolver is
         return _operatorApprovals[account][operator];
     }
 
+
+    /**
+     * @dev Approve a delegate to be able to updated records on a node.
+     */
+    function approve(bytes32 node, address delegate, bool approved) external {
+        require(
+            msg.sender != delegate,
+            "Setting delegate status for self"
+        );
+
+        _tokenApprovals[msg.sender][node][delegate] = approved;
+        emit Approved(msg.sender, node, delegate, approved);
+    }
+
+
     function isAuthorised(bytes32 node) internal view override returns (bool) {
         if (
             msg.sender == trustedETHController ||
