@@ -1,5 +1,5 @@
 --- ../contracts/wrapper/NameWrapper.sol	2022-12-18 18:29:31.919567200 +0200
-+++ 	2022-12-27 09:57:13.240769600 +0200
++++ 	2022-12-29 10:04:19.140957400 +0200
 @@ -1,17 +1,17 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
@@ -50,6 +50,24 @@
      INameWrapperUpgrade public upgradeContract;
      uint64 private constant MAX_EXPIRY = type(uint64).max;
  
+@@ -409,7 +408,7 @@
+         string calldata label,
+         address wrappedOwner,
+         address resolver
+-    ) public {
++    ) public virtual {
+         bytes32 labelhash = keccak256(bytes(label));
+         bytes32 node = _makeNode(ETH_NODE, labelhash);
+         (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
+@@ -438,7 +437,7 @@
+         string calldata label,
+         address wrappedOwner,
+         address resolver
+-    ) public {
++    ) public virtual {
+         bytes32 labelhash = keccak256(bytes(label));
+         bytes32 node = _makeNode(parentNode, labelhash);
+         (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
 @@ -516,7 +515,7 @@
          uint32 fuses,
          uint64 expiry
@@ -82,7 +100,7 @@
          returns (bytes32)
      {
 --- ../contracts/wrapper/mocks/UpgradedNameWrapperMock.sol	2022-12-19 10:33:11.665301400 +0200
-+++ ./munged/UpgradedNameWrapperMock.sol	2022-12-26 15:28:11.276555500 +0200
++++ ./munged/UpgradedNameWrapperMock.sol	2022-12-29 10:04:19.140957400 +0200
 @@ -1,13 +1,13 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ^0.8.4;
