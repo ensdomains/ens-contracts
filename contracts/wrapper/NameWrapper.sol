@@ -128,20 +128,20 @@ contract NameWrapper is
     {
         (owner, fuses, expiry) = super.getData(id);
 
-        bytes32 labelHash = _getEthLabelhash(bytes32(id), fuses);
-        if (labelHash != bytes32(0)) {
-            uint64 registrarExpiry = uint64(
-                registrar.nameExpires(uint256(labelHash))
-            );
-            expiry = registrarExpiry + GRACE_PERIOD;
-            // if owner in registrar is not the wrapper, zero out the owner
-            if (
-                registrarExpiry > block.timestamp &&
-                registrar.ownerOf(uint256(labelHash)) != address(this)
-            ) {
-                owner = address(0);
-            }
-        }
+        // bytes32 labelHash = _getEthLabelhash(bytes32(id), fuses);
+        // if (labelHash != bytes32(0)) {
+        //     uint64 registrarExpiry = uint64(
+        //         registrar.nameExpires(uint256(labelHash))
+        //     );
+        //     expiry = registrarExpiry + GRACE_PERIOD;
+        //     // if owner in registrar is not the wrapper, zero out the owner
+        //     if (
+        //         registrarExpiry > block.timestamp &&
+        //         registrar.ownerOf(uint256(labelHash)) != address(this)
+        //     ) {
+        //         owner = address(0);
+        //     }
+        // }
 
         if (expiry < block.timestamp) {
             if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
@@ -305,7 +305,25 @@ contract NameWrapper is
         onlyController
         returns (uint256 expires)
     {
-        return registrar.renew(tokenId, duration);
+        bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
+
+        // revert if name is not wrapped
+        if (
+            ens.owner(node) != address(this) ||
+            registrar.ownerOf(tokenId) != address(this) ||
+            ownerOf(uint256(node)) == address(0)
+        ) {
+            revert NameIsNotWrapped();
+        }
+
+        uint256 registrarExpiry = registrar.renew(tokenId, duration);
+        // set expiry in Wrapper
+        uint64 expiry = uint64(registrarExpiry) + GRACE_PERIOD;
+
+        (address owner, uint32 fuses, ) = getData(uint256(node));
+        _setData(node, owner, fuses, expiry);
+
+        return registrarExpiry;
     }
 
     /**
