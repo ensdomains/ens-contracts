@@ -414,7 +414,11 @@ contract NameWrapper is
         returns (uint64)
     {
         bytes32 node = _makeNode(parentNode, labelhash);
-        if (!canModifyName(node, msg.sender)) {
+
+        // this flag is used later, when checking fuses
+        bool canModifyParentName = canModifyName(parentNode, msg.sender);
+        // only allow the owner of the name or owner of the parent name
+        if (!canModifyParentName && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -422,9 +426,12 @@ contract NameWrapper is
             uint256(node)
         );
 
-        // revert if CAN_EXTEND_EXPIRY parent-controlled fuse has not been burned
-        if (fuses & CAN_EXTEND_EXPIRY == 0) {
-            revert OperationProhibited(node);
+        // the parent owner can always set expiry, so no need to check fuses
+        if (!canModifyParentName) {
+            // revert if CAN_EXTEND_EXPIRY parent-controlled fuse has not been burned
+            if (fuses & CAN_EXTEND_EXPIRY == 0) {
+                revert OperationProhibited(node);
+            }
         }
 
         // max expiry is set to the expiry of the parent

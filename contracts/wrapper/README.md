@@ -124,7 +124,7 @@ Expiry can be extended using the following functions:
 
 `renew()` indirectly extends the expiry of a .eth name by renewing the name inside the .eth registrar.
 
-`setExpiry()` extends the expiry of any name. It can only be called by the owner of the name, and only if `CAN_EXTEND_EXPIRY` has been burned by the parent.
+`setExpiry()` extends the expiry of any name. It can only be called by the owner of the name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
 
 ## Fuses
 
@@ -297,7 +297,7 @@ Cannot be called if `CANNOT_BURN_FUSES` has been burned.
 **Start State**: Wrapped | Emancipated | Locked
 **End State**: Wrapped | Emancipated | Locked
 
-`setExpiry()` can only be called by the owner of a name, and only if the `CAN_EXTEND_EXPIRY` fuse has been burned by the parent.
+`setExpiry()` can only be called by the owner of a name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
 
 The expiry can only be extended, not reduced. And the max expiry is automatically set to the expiry of the parent node.
 
