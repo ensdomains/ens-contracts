@@ -788,10 +788,18 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS,
       )
 
-      // Check for the Wrap and TransferSingle events
+      // Check the 4 events
+      // UnwrapETH2LD of the original owner
+      // TransferSingle burn of the original token
       // WrapETH2LD to the new owner with fuses
       // TransferSingle to mint the new token
 
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
+      await expect(tx)
+        .to.emit(NameWrapper, 'TransferSingle')
+        .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(
@@ -836,6 +844,12 @@ describe('Name Wrapper', () => {
         EMPTY_ADDRESS,
       )
 
+      await expect(tx)
+        .to.emit(NameWrapper, 'NameUnwrapped')
+        .withArgs(namehash('wrapped2.eth'), EMPTY_ADDRESS)
+      await expect(tx)
+        .to.emit(NameWrapper, 'TransferSingle')
+        .withArgs(account2, account, EMPTY_ADDRESS, nameHash, 1)
       await expect(tx)
         .to.emit(NameWrapper, 'NameWrapped')
         .withArgs(

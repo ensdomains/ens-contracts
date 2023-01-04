@@ -307,6 +307,8 @@ contract NameWrapper is
     {
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
+        uint256 registrarExpiry = registrar.renew(tokenId, duration);
+
         // revert if name is not wrapped
         if (
             ens.owner(node) != address(this) ||
@@ -316,7 +318,6 @@ contract NameWrapper is
             revert NameIsNotWrapped();
         }
 
-        uint256 registrarExpiry = registrar.renew(tokenId, duration);
         // set expiry in Wrapper
         uint64 expiry = uint64(registrarExpiry) + GRACE_PERIOD;
 
@@ -860,7 +861,7 @@ contract NameWrapper is
         uint64 expiry
     ) internal override {
         _canFusesBeBurned(node, fuses);
-        address oldOwner = ownerOf(uint256(node));
+        (address oldOwner, , ) = super.getData(uint256(node));
         if (oldOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
