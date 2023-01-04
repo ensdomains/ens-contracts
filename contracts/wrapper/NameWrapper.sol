@@ -290,17 +290,17 @@ contract NameWrapper is
 
         uint256 registrarExpiry = registrar.renew(tokenId, duration);
 
-        // revert if name is not wrapped
+        // Do not set anything in wrapper if name is not wrapped
         try registrar.ownerOf(tokenId) returns (address registrarOwner) {
             if (
                 registrarOwner != address(this) ||
                 ens.owner(node) != address(this) ||
                 ownerOf(uint256(node)) == address(0)
             ) {
-                revert NameIsNotWrapped();
+                return registrarExpiry;
             }
         } catch {
-            revert NameIsStillExpired();
+            return registrarExpiry;
         }
 
         // set expiry in Wrapper
