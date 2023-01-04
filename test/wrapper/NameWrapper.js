@@ -5033,7 +5033,7 @@ describe('Name Wrapper', () => {
       expect(owner).to.equal(account)
     })
 
-    it('Renewing name less than required to unexpire it still has original owner/fuses', async () => {
+    it('cannot renew a name to an expired state', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label,
         account,
@@ -5052,21 +5052,9 @@ describe('Name Wrapper', () => {
       expect(expiryBefore).to.be.at.most(block1.timestamp + GRACE_PERIOD)
 
       //renew for less than the grace period
-      await NameWrapper.renew(labelHash, 1 * DAY)
-
-      const [ownerAfter, fusesAfter, expiryAfter] = await NameWrapper.getData(
-        wrappedTokenId,
+      await expect(NameWrapper.renew(labelHash, 1 * DAY)).to.be.revertedWith(
+        `NameIsStillExpired()`,
       )
-      expect(ownerAfter).to.equal(account)
-      // fuses remain the same
-      expect(fusesAfter).to.equal(
-        CANNOT_UNWRAP |
-          CANNOT_SET_RESOLVER |
-          IS_DOT_ETH |
-          PARENT_CANNOT_CONTROL,
-      )
-      // still expired
-      expect(expiryAfter).to.be.at.most(block1.timestamp + GRACE_PERIOD)
     })
   })
 
