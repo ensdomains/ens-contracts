@@ -5566,7 +5566,7 @@ describe('Name Wrapper', () => {
       await BaseRegistrar.addController(NameWrapper.address)
       await NameWrapper.setController(account, true)
     })
-    it('Attack happens within the deprecation period where both .eth registrar controllers are active - Hack 1', async () => {
+    it('Trying to burn child fuses when re-registering a name on the old controller reverts', async () => {
       await NameWrapper.registerAndWrapETH2LD(
         label1,
         hacker,
