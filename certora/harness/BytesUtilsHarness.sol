@@ -49,8 +49,8 @@ library BytesUtils {
         pure
         returns (bytes32 labelhash, uint256 newIdx) {
             bytes32 word = _firstWord(self);
-            uint256 len = uint256(uint8(self[0]));
-            return (_readLabelHash(word, idx, len), _readLabelNewIdx(word, idx, len));
+            uint256 len = uint256(uint8(self[idx]));
+            return (_readLabelHash(word, idx, len), idx + len + 1);
         }
 
     /*
@@ -59,17 +59,13 @@ library BytesUtils {
     */ 
     function _firstWord(bytes memory self) internal pure returns(bytes32 word) {
         assembly {
-            word := mload(add(self, 32))
+            word := mload(add(add(self, 32),1))
         }
     }
 
     // Functions to be summarized by ghost summaries:
 
     function _readLabelHash(bytes32, uint256, uint256) internal pure returns (bytes32) {
-        return 0;
-    }
-
-    function _readLabelNewIdx(bytes32, uint256, uint256) internal pure returns (uint256) {
         return 0;
     }
 }

@@ -17,10 +17,12 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 \
 --solc solc8.17 \
 --loop_iter 4 \
---cloud \
+--staging master \
 --optimistic_loop \
 --send_only \
---rule wrapUnwrap \
---settings -mediumTimeout=200,-copyLoopUnroll=5,-useBitVectorTheory \
---settings -showInternalFunctions,-recursionEntryLimit=1,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: wrapUnwrap"
+--rule fusesAfterWrapETHL2D \
+--rule fusesAfterWrap \
+--rule_sanity \
+--settings -t=500,-mediumTimeout=40,-copyLoopUnroll=4,-useBitVectorTheory \
+--settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
+--msg "ENS NameWrapper: fusesAfterWrap 2 rules"

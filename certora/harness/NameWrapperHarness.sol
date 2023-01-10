@@ -6,6 +6,7 @@ import {ENS} from "../../contracts/registry/ENS.sol";
 import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
 import {NameWrapper} from "../munged/NameWrapper.sol";
 import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
+//import {BytesUtils} from "./BytesUtilsHarness.sol";
 
 contract NameWrapperHarness is NameWrapper {
 
@@ -16,6 +17,8 @@ contract NameWrapperHarness is NameWrapper {
         IBaseRegistrar _registrar,
         IMetadataService _metadataService
     ) NameWrapper (_ens, _registrar, _metadataService) {}
+
+    // Certora implementations
 
     function upgradeETH2LD(
         string calldata label,
@@ -30,12 +33,62 @@ contract NameWrapperHarness is NameWrapper {
         address resolver
     ) public override {}
 
+    function setSubnodeOwner(
+        bytes32 parentNode,
+        string calldata label,
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    )
+        public override
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        returns (bytes32 node)
+    {
+        return super.setSubnodeOwner(parentNode, label, owner, fuses, expiry);
+    }
+
+    function setSubnodeRecord(
+        bytes32 parentNode,
+        string memory label,
+        address owner,
+        address resolver,
+        uint64 ttl,
+        uint32 fuses,
+        uint64 expiry
+    )
+        public override
+        onlyTokenOwner(parentNode)
+        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        returns (bytes32 node)
+    {
+        return super.setSubnodeRecord(parentNode, label, owner, resolver, ttl,
+            fuses, expiry);
+    }
+
     function setData(uint256 tokenId, address owner, uint32 fuses, uint64 expiry) public {
         super._setData(tokenId, owner, fuses, expiry);
     }
 
+    // Getters and view functions
+
+    function getDataSuper(uint256 tokenId) external view returns (address, uint32, uint64) {
+        uint256 t = _tokens[tokenId];
+        address owner = address(uint160(t));
+        uint64 expiry = uint64(t >> 192);
+        uint32 fuses = uint32(t >> 160);
+        return (owner, fuses, expiry);
+    }
+
     function getExpiry(bytes32 node) external view returns (uint64 expiry) {
         ( , , expiry) = getData(uint256(node));
+    }
+
+    function makeNodeFromName(bytes calldata name) external pure 
+    returns(bytes32 node) {
+        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
+        node = _makeNode(parentNode, labelhash);
     }
 
     function getLabelHashAndOffset(bytes calldata name) external pure 

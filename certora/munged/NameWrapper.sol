@@ -299,7 +299,6 @@ contract NameWrapper is
      * @param wrappedOwner Owner of the name in this contract
      * @param resolver Resolver contract
      */
-
     function wrap(
         bytes calldata name,
         address wrappedOwner,
@@ -517,8 +516,9 @@ contract NameWrapper is
         uint64 expiry
     )
         public virtual
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        // Certora: remove modifiers (move to harness)
+        //onlyTokenOwner(parentNode)
+        //canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
         bytes32 labelhash = keccak256(bytes(label));
@@ -557,8 +557,9 @@ contract NameWrapper is
         uint64 expiry
     )
         public virtual
-        onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        // Certora: remove modifiers (move to harness)
+        //onlyTokenOwner(parentNode)
+        //canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
         bytes32 labelhash = keccak256(bytes(label));
@@ -667,7 +668,7 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
+     * @notice Check whether a canCallSetSubnodeOwnername can call setSubnodeOwner/setSubnodeRecord
      * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
      *      replacing a subdomain. If either conditions are true, then it is possible to call
