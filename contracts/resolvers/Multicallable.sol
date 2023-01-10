@@ -2,9 +2,13 @@
 pragma solidity ^0.8.4;
 
 import "./IMulticallable.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 
-abstract contract Multicallable is IMulticallable, ERC165 {
+abstract contract Multicallable is IMulticallable, ERC165Storage  {
+    constructor() {
+        _registerInterface(type(IMulticallable).interfaceId);
+    }
+
     function _multicall(bytes32 nodehash, bytes[] calldata data)
         internal
         returns (bytes[] memory results)
@@ -43,17 +47,5 @@ abstract contract Multicallable is IMulticallable, ERC165 {
         returns (bytes[] memory results)
     {
         return _multicall(bytes32(0), data);
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IMulticallable).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

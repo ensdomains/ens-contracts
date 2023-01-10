@@ -7,6 +7,10 @@ import "../ResolverBase.sol";
 abstract contract ABIResolver is IABIResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_abis;
 
+    constructor() {
+        _registerInterface(type(IABIResolver).interfaceId);
+    }
+
     /**
      * Sets the ABI associated with an ENS node.
      * Nodes may have one ABI of each content type. To remove an ABI, set it to
@@ -60,17 +64,5 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         }
 
         return (0, bytes(""));
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IABIResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Storage.sol";
 import "./profiles/IVersionableResolver.sol";
 
-abstract contract ResolverBase is ERC165, IVersionableResolver {
+abstract contract ResolverBase is ERC165Storage, IVersionableResolver {
     mapping(bytes32 => uint64) public recordVersions;
 
     function isAuthorised(bytes32 node) internal view virtual returns (bool);
@@ -12,6 +12,10 @@ abstract contract ResolverBase is ERC165, IVersionableResolver {
     modifier authorised(bytes32 node) {
         require(isAuthorised(node));
         _;
+    }
+
+    constructor() {
+        _registerInterface(type(IVersionableResolver).interfaceId);
     }
 
     /**
@@ -22,17 +26,5 @@ abstract contract ResolverBase is ERC165, IVersionableResolver {
     function clearRecords(bytes32 node) public virtual authorised(node) {
         recordVersions[node]++;
         emit VersionChanged(node, recordVersions[node]);
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IVersionableResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

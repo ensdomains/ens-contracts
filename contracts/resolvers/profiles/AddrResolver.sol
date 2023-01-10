@@ -14,6 +14,11 @@ abstract contract AddrResolver is
 
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
 
+    constructor() {
+        _registerInterface(type(IAddrResolver).interfaceId);
+        _registerInterface(type(IAddressResolver).interfaceId);
+    }
+
     /**
      * Sets the address associated with an ENS node.
      * May only be called by the owner of that node in the ENS registry.
@@ -67,19 +72,6 @@ abstract contract AddrResolver is
         returns (bytes memory)
     {
         return versionable_addresses[recordVersions[node]][node][coinType];
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IAddrResolver).interfaceId ||
-            interfaceID == type(IAddressResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 
     function bytesToAddress(bytes memory b)

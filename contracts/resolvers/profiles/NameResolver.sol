@@ -7,6 +7,10 @@ import "./INameResolver.sol";
 abstract contract NameResolver is INameResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
+    constructor() {
+        _registerInterface(type(INameResolver).interfaceId);
+    }
+
     /**
      * Sets the name associated with an ENS node, for reverse records.
      * May only be called by the owner of that node in the ENS registry.
@@ -35,17 +39,5 @@ abstract contract NameResolver is INameResolver, ResolverBase {
         returns (string memory)
     {
         return versionable_names[recordVersions[node]][node];
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(INameResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

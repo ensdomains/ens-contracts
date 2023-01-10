@@ -7,6 +7,10 @@ import "./ITextResolver.sol";
 abstract contract TextResolver is ITextResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
 
+    constructor() {
+        _registerInterface(type(ITextResolver).interfaceId);
+    }
+
     /**
      * Sets the text data associated with an ENS node and key.
      * May only be called by the owner of that node in the ENS registry.
@@ -37,17 +41,5 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
         returns (string memory)
     {
         return versionable_texts[recordVersions[node]][node][key];
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(ITextResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

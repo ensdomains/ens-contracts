@@ -10,6 +10,10 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
         bytes32 y;
     }
 
+    constructor() {
+        _registerInterface(type(IPubkeyResolver).interfaceId);
+    }
+
     mapping(uint64 => mapping(bytes32 => PublicKey)) versionable_pubkeys;
 
     /**
@@ -46,17 +50,5 @@ abstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {
             versionable_pubkeys[currentRecordVersion][node].x,
             versionable_pubkeys[currentRecordVersion][node].y
         );
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IPubkeyResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

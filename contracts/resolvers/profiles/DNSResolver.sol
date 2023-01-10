@@ -31,6 +31,11 @@ abstract contract DNSResolver is
     mapping(uint64 => mapping(bytes32 => mapping(bytes32 => uint16)))
         private versionable_nameEntriesCount;
 
+    constructor() {
+        _registerInterface(type(IDNSRecordResolver).interfaceId);
+        _registerInterface(type(IDNSZoneResolver).interfaceId);
+    }
+
     /**
      * Set one or more DNS records.  Records are supplied in wire-format.
      * Records with the same node/name/resource must be supplied one after the
@@ -170,19 +175,6 @@ abstract contract DNSResolver is
         returns (bytes memory)
     {
         return versionable_zonehashes[recordVersions[node]][node];
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IDNSRecordResolver).interfaceId ||
-            interfaceID == type(IDNSZoneResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 
     function setDNSRRSet(

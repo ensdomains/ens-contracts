@@ -9,6 +9,9 @@ import "./IInterfaceResolver.sol";
 abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
     mapping(uint64 => mapping(bytes32 => mapping(bytes4 => address))) versionable_interfaces;
 
+    constructor() {
+        _registerInterface(type(IInterfaceResolver).interfaceId);
+    }
     /**
      * Sets an interface associated with a name.
      * Setting the address to 0 restores the default behaviour of querying the contract at `addr()` for interface support.
@@ -72,17 +75,5 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         }
 
         return a;
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IInterfaceResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

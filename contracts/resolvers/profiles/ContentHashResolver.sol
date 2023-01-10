@@ -7,6 +7,10 @@ import "./IContentHashResolver.sol";
 abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => bytes)) versionable_hashes;
 
+    constructor() {
+        _registerInterface(type(IContentHashResolver).interfaceId);
+    }
+
     /**
      * Sets the contenthash associated with an ENS node.
      * May only be called by the owner of that node in the ENS registry.
@@ -35,17 +39,5 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         returns (bytes memory)
     {
         return versionable_hashes[recordVersions[node]][node];
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
-        return
-            interfaceID == type(IContentHashResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
     }
 }

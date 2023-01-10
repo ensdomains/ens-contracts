@@ -11,6 +11,7 @@ import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./Multicallable.sol";
+import "./ResolverBase.sol";
 
 interface INameWrapper {
     function ownerOf(uint256 id) external view returns (address);
@@ -21,6 +22,7 @@ interface INameWrapper {
  * address.
  */
 contract PublicResolver is
+    ResolverBase,
     Multicallable,
     ABIResolver,
     AddrResolver,
@@ -99,24 +101,5 @@ contract PublicResolver is
             owner = nameWrapper.ownerOf(uint256(node));
         }
         return owner == msg.sender || isApprovedForAll(owner, msg.sender);
-    }
-
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        override(
-            Multicallable,
-            ABIResolver,
-            AddrResolver,
-            ContentHashResolver,
-            DNSResolver,
-            InterfaceResolver,
-            NameResolver,
-            PubkeyResolver,
-            TextResolver
-        )
-        returns (bool)
-    {
-        return super.supportsInterface(interfaceID);
     }
 }
