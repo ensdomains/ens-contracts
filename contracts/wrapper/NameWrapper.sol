@@ -1068,16 +1068,4 @@ contract NameWrapper is
             revert OperationProhibited(node);
         }
     }
-
-    function _getEthLabelhash(bytes32 node, uint32 fuses)
-        internal
-        view
-        returns (bytes32 labelhash)
-    {
-        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
-            bytes memory name = names[node];
-            (labelhash, ) = name.readLabel(0);
-        }
-        return labelhash;
-    }
 }
