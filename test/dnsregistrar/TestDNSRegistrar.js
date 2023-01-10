@@ -237,4 +237,13 @@ contract('DNSRegistrar', function(accounts) {
       )
     )
   })
+
+  it('does not allow setting the owner to 0 with an empty record', async () => {
+    await exceptions.expectFailure(
+      registrar.proveAndClaim(
+        utils.hexEncodeName('foo.test'),
+        []
+      )
+    )
+  })
 })
