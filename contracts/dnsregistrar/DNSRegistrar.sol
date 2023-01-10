@@ -161,7 +161,11 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         }
         inceptions[node] = inception;
 
-        (addr, ) = DNSClaimChecker.getOwnerAddress(name, data);
+        bool found;
+        (addr, found) = DNSClaimChecker.getOwnerAddress(name, data);
+        if(!found) {
+            revert NoOwnerRecordFound();
+        }
 
         emit Claim(node, addr, name, inception);
     }
