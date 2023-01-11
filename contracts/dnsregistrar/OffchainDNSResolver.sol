@@ -1,11 +1,11 @@
 
+import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
-import "./IDNSRecordDecoder.sol";
 
 error OffchainLookup(
     address sender,
@@ -75,9 +75,9 @@ contract OffchainDNSResolver is IExtendedResolver {
             }
 
             // Look for a valid ENS-DNS TXT record
-            (address dnsresolver, bytes memory config) = parseRR(iter.data, iter.rdataOffset, iter.nextOffset);
+            (address dnsresolver, ) = parseRR(iter.data, iter.rdataOffset, iter.nextOffset);
             if(dnsresolver != address(0)) {
-                return IDNSRecordDecoder(dnsresolver).resolve(name, config, query);
+                return IExtendedResolver(dnsresolver).resolve(name, query);
             }
         }
         
@@ -89,7 +89,7 @@ contract OffchainDNSResolver is IExtendedResolver {
         bytes memory txt = readTXT(data, idx, lastIdx);
         
         // Must start with the magic word
-        if(txt.equals(0, "ENS1 ", 0, 5)) {
+        if(!txt.equals(0, "ENS1 ", 0, 5)) {
             return (address(0), "");
         }
 
@@ -125,6 +125,7 @@ contract OffchainDNSResolver is IExtendedResolver {
         if(resolver == address(0)) {
             return address(0);
         }
+        return IAddrResolver(resolver).addr(node);
     }
 
     /**
@@ -133,14 +134,14 @@ contract OffchainDNSResolver is IExtendedResolver {
      * @param idx Index to start at
      * @param lastIdx Index to end at
      */
-    function textNamehash(bytes memory name, uint256 idx, uint256 lastIdx) internal pure returns(bytes32) {
-        uint256 separator = name.find(idx, lastIdx, ' ');
-        if(separator >= lastIdx - 1) {
-            // Base case: no more dots, or dot is last character
-            return bytes32(0);
+    function textNamehash(bytes memory name, uint256 idx, uint256 lastIdx) internal view returns(bytes32) {
+        uint256 separator = name.find(idx, name.length - idx, bytes1('.'));
+        bytes32 parentNode = bytes32(0);
+        if(separator < lastIdx) {
+            parentNode = textNamehash(name, separator + 1, lastIdx);
+        } else {
+            separator = lastIdx;
         }
-
-        bytes32 parentNode = textNamehash(name, separator + 1, lastIdx);
         return keccak256(abi.encodePacked(parentNode, name.keccak(idx, separator - idx)));
     }
 }
