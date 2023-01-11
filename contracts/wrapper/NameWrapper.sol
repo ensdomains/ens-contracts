@@ -442,6 +442,9 @@ contract NameWrapper is
         (address owner, uint32 fuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
+        if (owner == address(0) || ens.owner(node) != address(this)) {
+            revert NameIsNotWrapped();
+        }
 
         // the parent owner can always set expiry, so no need to check fuses
         if (!canModifyParentName) {
