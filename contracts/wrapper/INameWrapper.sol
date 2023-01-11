@@ -62,10 +62,9 @@ interface INameWrapper is IERC1155 {
         uint16 ownerControlledFuses
     ) external returns (uint256 registrarExpiry);
 
-    function renew(
-        uint256 labelHash,
-        uint256 duration
-    ) external returns (uint256 expires);
+    function renew(uint256 labelHash, uint256 duration)
+        external
+        returns (uint256 expires);
 
     function unwrap(
         bytes32 node,
@@ -115,9 +114,7 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (bytes32);
 
-    function canModifyName(bytes32 node, address addr)
-        external
-        returns (bool);
+    function canModifyName(bytes32 node, address addr) external returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
 
