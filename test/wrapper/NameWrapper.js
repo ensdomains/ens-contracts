@@ -5553,6 +5553,74 @@ describe('Name Wrapper', () => {
     })
   })
 
+  describe('Implicit Unwrap tests', () => {
+    const label1 = 'sub1'
+    const labelHash1 = labelhash('sub1')
+    const wrappedTokenId1 = namehash('sub1.eth')
+
+    const label2 = 'sub2'
+    const labelHash2 = labelhash('sub2')
+    const wrappedTokenId2 = namehash('sub2.sub1.eth')
+
+    before(async () => {
+      await BaseRegistrar.addController(NameWrapper.address)
+      await NameWrapper.setController(account, true)
+    })
+    it('Trying to burn child fuses when re-registering a name on the old controller reverts', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label1,
+        hacker,
+        1 * DAY,
+        EMPTY_ADDRESS,
+        CANNOT_UNWRAP,
+      )
+
+      // create `sub2.sub1.eth` w/o fuses burnt
+      await NameWrapperH.setSubnodeOwner(
+        wrappedTokenId1,
+        label2,
+        hacker,
+        CAN_DO_EVERYTHING,
+        MAX_EXPIRY,
+      )
+      expect(await NameWrapper.ownerOf(wrappedTokenId2)).to.equal(hacker)
+
+      // wait the ETH2LD expired and re-register to the hacker himself
+      await evm.advanceTime(GRACE_PERIOD + 1 * DAY + 1)
+      await evm.mine()
+
+      // XXX: note that at this step, the hackler should use the current .eth
+      // registrar to directly register `sub1.eth` to himself, without wrapping
+      // the name.
+      await BaseRegistrar.register(labelHash1, hacker, 10 * DAY)
+      expect(await EnsRegistry.owner(wrappedTokenId1)).to.equal(hacker)
+      expect(await BaseRegistrar.ownerOf(labelHash1)).to.equal(hacker)
+
+      // XXX: PREPARE HACK!
+      // set `EnsRegistry.owner` of `sub1.eth` as the hacker himself.
+      await EnsRegistryH.setOwner(wrappedTokenId1, hacker)
+
+      // XXX: PREPARE HACK!
+      // set controller owner as the NameWrapper contract, to bypass the check
+      await BaseRegistrarH.transferFrom(hacker, NameWrapper.address, labelHash1)
+      expect(await BaseRegistrar.ownerOf(labelHash1)).to.equal(
+        NameWrapper.address,
+      )
+
+      // set `sub2.sub1.eth` to the victim user w fuses burnt
+      // XXX: do this via `setChildFuses`
+      // Cannot setChildFuses as the owner has not been updated in the wrapper when reregistering
+      await expect(
+        NameWrapperH.setChildFuses(
+          wrappedTokenId1,
+          labelHash2,
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_CREATE_SUBDOMAIN,
+          MAX_EXPIRY,
+        ),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId2}", "${hacker}")`)
+    })
+  })
+
   describe('TLD recovery', () => {
     it('Wraps a name which get stuck forever can be recovered by ROOT owner', async () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)

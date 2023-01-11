@@ -23,6 +23,7 @@ error IncorrectTargetOwner(address owner);
 error CannotUpgrade();
 error OperationProhibited(bytes32 node);
 error NameIsNotWrapped();
+error NameIsStillExpired();
 
 contract NameWrapper is
     Ownable,
@@ -128,27 +129,7 @@ contract NameWrapper is
     {
         (owner, fuses, expiry) = super.getData(id);
 
-        bytes32 labelHash = _getEthLabelhash(bytes32(id), fuses);
-        if (labelHash != bytes32(0)) {
-            uint64 registrarExpiry = uint64(
-                registrar.nameExpires(uint256(labelHash))
-            );
-            expiry = registrarExpiry + GRACE_PERIOD;
-            // if owner in registrar is not the wrapper, zero out the owner
-            if (
-                registrarExpiry > block.timestamp &&
-                registrar.ownerOf(uint256(labelHash)) != address(this)
-            ) {
-                owner = address(0);
-            }
-        }
-
-        if (expiry < block.timestamp) {
-            if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
-                owner = address(0);
-            }
-            fuses = 0;
-        }
+        (owner, fuses) = _clearOwnerAndFuses(owner, fuses, expiry);
     }
 
     /* Metadata service */
@@ -305,7 +286,30 @@ contract NameWrapper is
         onlyController
         returns (uint256 expires)
     {
-        return registrar.renew(tokenId, duration);
+        bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
+
+        uint256 registrarExpiry = registrar.renew(tokenId, duration);
+
+        // Do not set anything in wrapper if name is not wrapped
+        try registrar.ownerOf(tokenId) returns (address registrarOwner) {
+            if (
+                registrarOwner != address(this) ||
+                ens.owner(node) != address(this) ||
+                ownerOf(uint256(node)) == address(0)
+            ) {
+                return registrarExpiry;
+            }
+        } catch {
+            return registrarExpiry;
+        }
+
+        // set expiry in Wrapper
+        uint64 expiry = uint64(registrarExpiry) + GRACE_PERIOD;
+
+        (address owner, uint32 fuses, ) = getData(uint256(node));
+        _setData(node, owner, fuses, expiry);
+
+        return registrarExpiry;
     }
 
     /**
@@ -813,6 +817,21 @@ contract NameWrapper is
         }
     }
 
+    function _clearOwnerAndFuses(
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    ) internal view override returns (address, uint32) {
+        if (expiry < block.timestamp) {
+            if (fuses & PARENT_CANNOT_CONTROL == PARENT_CANNOT_CONTROL) {
+                owner = address(0);
+            }
+            fuses = 0;
+        }
+
+        return (owner, fuses);
+    }
+
     function _makeNode(bytes32 node, bytes32 labelhash)
         private
         pure
@@ -842,7 +861,7 @@ contract NameWrapper is
         uint64 expiry
     ) internal override {
         _canFusesBeBurned(node, fuses);
-        address oldOwner = ownerOf(uint256(node));
+        (address oldOwner, , ) = super.getData(uint256(node));
         if (oldOwner != address(0)) {
             // burn and unwrap old token of old owner
             _burn(uint256(node));
@@ -1048,17 +1067,5 @@ contract NameWrapper is
             // Cannot directly burn other non-user settable fuses
             revert OperationProhibited(node);
         }
-    }
-
-    function _getEthLabelhash(bytes32 node, uint32 fuses)
-        internal
-        view
-        returns (bytes32 labelhash)
-    {
-        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
-            bytes memory name = names[node];
-            (labelhash, ) = name.readLabel(0);
-        }
-        return labelhash;
     }
 }
