@@ -52,7 +52,7 @@ Some state transitions are irrevocable; once a name is Emancipated or Locked, it
 
 Names start out in the unregistered state before they are registered, and return to it after they expire.
 
-To check if a name is Unregistered, verify that `NameWrapper.ownerOf` returns `address(0)` and so does `Registry.owner`.
+To check if a name is Unregistered, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` returns either `address(0)` or the address of the NameWrapper contract.
 
 #### Unwrapped
 
@@ -60,7 +60,7 @@ A name that is registered but not managed by the name wrapper is Unwrapped.
 
 Unwrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar.
 
-To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` does not.
+To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` returns any address except for `address(0)` or the address of the NameWrapper contract.
 
 #### Wrapped
 
@@ -96,14 +96,17 @@ To check if a name is Locked, verify that the `CANNOT_UNWRAP` fuse is burned.
 
 ## Expiry
 
-The NameWrapper tracks an expiration time for each name. Expiry of names is not enabled by default. This means you can leave expiry at 0 or a number less than `block.timestamp` and the name will have an owner and be able to set records. Expiry is only applicable to names in the Emancipated and Locked states.
+The NameWrapper tracks an expiration time for each name. Expiry of names is not enabled by default. This means you can leave expiry at 0 or a number less than `block.timestamp` and the name will have an owner and be able to set records. Expiry causes fuses to reset for any wrapped name. However the name itself will only expire if it is in the Emancipated or Locked state.
 
-If the name is Emancipated or Locked, the following changes happen:
+For all wrapped names, the following change happens when the expiry has been reached:
 
-- The NameWrapper returns `address(0)` as the name owner from `ownerOf()` or `getData()` if the name is expired.
-- The NameWrapper treats all fuses as unset and returns uint32(0) from `getData()` for fuses if the name is expired.
+- The NameWrapper treats all fuses as unset and returns uint32(0) from `getData()` for fuses.
 
-Expiry can still be extended even if a name is in the Wrapped state, but does not have any practical effect on the name.
+In addition, if the name is Emancipated or Locked, the following change happens when the expiry has been reached:
+
+- The NameWrapper returns `address(0)` as the name owner from `ownerOf()` or `getData()`.
+
+If a name is Wrapped (but not Emancipated or Locked), then the expiry will only cause parent-controlled fuses to reset, and otherwise has no practical effect on the name.
 
 .eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .eth registrar, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
 

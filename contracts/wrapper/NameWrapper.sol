@@ -932,12 +932,12 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
-        address oldOwner = ownerOf(uint256(node));
+        (address oldOwner, uint32 oldFuses, ) = getData(uint256(node));
         bytes memory name = _addLabel(label, names[parentNode]);
         if (names[node].length == 0) {
             names[node] = name;
         }
-        _setFuses(node, oldOwner, fuses, expiry);
+        _setFuses(node, oldOwner, oldFuses | fuses, expiry);
         if (owner == address(0)) {
             _unwrap(node, address(0));
         } else {
