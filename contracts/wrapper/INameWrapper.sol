@@ -32,7 +32,8 @@ interface INameWrapper is IERC1155 {
 
     event NameUnwrapped(bytes32 indexed node, address owner);
 
-    event FusesSet(bytes32 indexed node, uint32 fuses, uint64 expiry);
+    event FusesSet(bytes32 indexed node, uint32 fuses);
+    event ExpiryExtended(bytes32 indexed node, uint64 expiry);
 
     function ens() external view returns (ENS);
 
@@ -114,6 +115,12 @@ interface INameWrapper is IERC1155 {
         uint32 fuses,
         uint64 expiry
     ) external returns (bytes32);
+
+    function extendExpiry(
+        bytes32 node,
+        bytes32 labelhash,
+        uint64 expiry
+    ) external returns (uint64);
 
     function canModifyName(bytes32 node, address addr) external returns (bool);
 

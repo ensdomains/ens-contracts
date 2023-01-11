@@ -413,26 +413,23 @@ contract NameWrapper is
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
         );
-        _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry);
+        _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry, expiry);
         return ownerControlledFuses;
     }
 
     /**
-     * @notice Sets expiry for a name
+     * @notice Extends expiry for a name
      * @param parentNode Parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
      * @param labelhash Labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
      * @param expiry When the name will expire in seconds since the Unix epoch
      * @return New expiry
      */
 
-    function setExpiry(
+    function extendExpiry(
         bytes32 parentNode,
         bytes32 labelhash,
         uint64 expiry
-    )
-        public
-        returns (uint64)
-    {
+    ) public returns (uint64) {
         bytes32 node = _makeNode(parentNode, labelhash);
 
         // this flag is used later, when checking fuses
@@ -455,12 +452,11 @@ contract NameWrapper is
         }
 
         // max expiry is set to the expiry of the parent
-        (, , uint64 maxExpiry) = getData(
-            uint256(parentNode)
-        );
+        (, , uint64 maxExpiry) = getData(uint256(parentNode));
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
-        _setFuses(node, owner, fuses, expiry);
+        _setData(node, owner, fuses, expiry);
+        emit ExpiryExtended(node, expiry);
         return expiry;
     }
 
@@ -579,7 +575,7 @@ contract NameWrapper is
             revert OperationProhibited(node);
         }
         fuses |= oldFuses;
-        _setFuses(node, owner, fuses, expiry);
+        _setFuses(node, owner, fuses, oldExpiry, expiry);
     }
 
     /**
@@ -979,12 +975,14 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
-        (address oldOwner, uint32 oldFuses, ) = getData(uint256(node));
+        (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
         bytes memory name = _addLabel(label, names[parentNode]);
         if (names[node].length == 0) {
             names[node] = name;
         }
-        _setFuses(node, oldOwner, oldFuses | fuses, expiry);
+        _setFuses(node, oldOwner, oldFuses | fuses, oldExpiry, expiry);
         if (owner == address(0)) {
             _unwrap(node, address(0));
         } else {
@@ -1082,10 +1080,14 @@ contract NameWrapper is
         bytes32 node,
         address owner,
         uint32 fuses,
+        uint64 oldExpiry,
         uint64 expiry
     ) internal {
         _setData(node, owner, fuses, expiry);
-        emit FusesSet(node, fuses, expiry);
+        emit FusesSet(node, fuses);
+        if (expiry > oldExpiry) {
+            emit ExpiryExtended(node, expiry);
+        }
     }
 
     function _setData(
