@@ -1,5 +1,6 @@
 import "./erc20.spec"
 using ENSRegistry as ens
+using BaseRegistrarImplementation as registrar
 
 /**************************************************
 *                  Methods                       *
@@ -10,6 +11,7 @@ methods {
     ownerOf(uint256) returns (address)
     allFusesBurned(bytes32, uint32) returns (bool)
     _tokens(uint256) returns (uint256) envfree
+    isApprovedForAll(address, address) returns (bool) envfree
     controllers(address) returns (bool) envfree
 
     // IERC1155
@@ -20,7 +22,7 @@ methods {
     _getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
 
     // NameWrapper harness
-    getLabelHashAndOffset(bytes) returns (bytes32,uint256) envfree
+    getLabelHashAndOffset(bytes32) returns (bytes32,uint256) envfree
     getParentNodeByNode(bytes32) returns (bytes32) envfree
     getParentNodeByName(bytes) returns (bytes32) envfree
     makeNode(bytes32, bytes32) returns (bytes32) envfree
@@ -37,9 +39,16 @@ methods {
 
     // ens
     ens.owner(bytes32) returns (address) envfree
+    ens.isApprovedForAll(address, address) returns (bool) envfree
+
+    // Registrar
+    registrar.nameExpires(uint256) returns (uint256) envfree
+    registrar.isApprovedForAll(address, address) returns (bool) envfree
+    registrar.ownerOf(uint256) returns (address) envfree
+    
 
     // BytesUtils munged
-    _readLabelHash(bytes32, uint256, uint256) returns (bytes32) => NONDET
+    //_readLabelHash(bytes32, uint256, uint256) returns (bytes32) => NONDET
 }
 /**************************************************
 *                 Hashes Definitions              *
@@ -53,6 +62,7 @@ definition CANNOT_UNWRAP() returns uint32 = 1;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
 
+definition maxUint32() returns uint32 = 0xffffffff;
 /**************************************************
 *                 Ghosts & Hooks                 *
 **************************************************/
@@ -60,7 +70,8 @@ definition IS_DOT_ETH() returns uint32 = 2^17;
 ghost mapping(bytes32 => mapping(uint32 => bytes32)) labelHashMap;
 
 function ghostLabelHash(bytes32 labelHash, uint32 fuses) returns bytes32 {
-    return labelHashMap[labelHash][fuses];
+    uint32 fusesFix = fuses & maxUint32();
+    return labelHashMap[labelHash][fusesFix];
 }
 
 /**************************************************
@@ -98,11 +109,21 @@ function expired(env e, bytes32 node) returns bool {
 }
 
 /**************************************************
+*             Setup & Helper functions            *
+**************************************************/
+
+function ethLabelSetup(bytes32 labelHash, uint256 tokenID, bytes32 node) {
+    uint32 fuses; address owner; uint64 expiry;
+    owner, fuses, expiry = getDataSuper(tokenID);
+
+    require tokenID == tokenIDFromNode(labelHash);
+    require labelHashMap[labelHash][fuses] == labelHash;
+    require node == makeNode(ETH_NODE(), labelHash);
+}
+
+/**************************************************
 *              Invariants                        *
 **************************************************/
-// https://vaas-stg.certora.com/output/41958/7cfd5e1c4a0a48b88ec49a590a3f4402/?anonymousKey=53297c6d94e2f9f2abd9f103c92cf4636d035f8a
-//invariant nameNodeConsistency(bytes32 node, bytes32 word)
-//    getNamesFirstWord(node) == word <=> node == makeNodeFromWord(word)
 
 // "Expiry can only be less than or equal to the parent's expiry"
 invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 labelhash)
@@ -117,46 +138,61 @@ invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 la
 *              Wrapping Rules                     *
 **************************************************/
 
+// Fails:
+// When isApprovedForAll is activated.
 rule cannotWrapTwice(bool isEth) {
     env e1;
     env e2;
+    require e1.msg.sender != e2.msg.sender;
+    require e2.block.timestamp >= e1.block.timestamp;
+    address wrappedOwner;
+    address wrappedOtherOwner; 
+    require wrappedOwner != wrappedOtherOwner;
     
     if(isEth) {
         string label; require label.length == 32;
-        address wrappedOwner;
+        bytes32 node = makeNode(ETH_NODE(), getLabelHash(label));
         uint16 ownerControlledFuses;
         address resolver;
         wrapETH2LD(e1, label, wrappedOwner, ownerControlledFuses, resolver);
-        wrapETH2LD@withrevert(e2, label, wrappedOwner, ownerControlledFuses, resolver);
+        
+        bool expired = expired(e2, node);
+        wrapETH2LD@withrevert(e2, label, wrappedOtherOwner, ownerControlledFuses, resolver);
+        bool reverted = lastReverted;
+        
+        assert !expired => reverted;
     }
     else {
         bytes name; require name.length == 32;
-        address wrappedOwner;
         address resolver;
+        bytes32 node = makeNodeFromName(name);
         wrap(e1, name, wrappedOwner, resolver);
-        wrap@withrevert(e2, name, wrappedOwner, resolver);
+        
+        bool expired = expired(e2, node);
+        wrap@withrevert(e2, name, wrappedOtherOwner, resolver);
+        bool reverted = lastReverted;
+
+        assert !expired => reverted;
     }
-    assert lastReverted;
+    assert true;
 }
 
-rule wrapUnwrap(bytes32 node) {
+rule wrapUnwrap(bytes name) {
     env e;
     address controller; address resolver;
-    bytes32 labelhash; uint256 offset;
-    address wrappedOwner;
-    bytes name; 
+    bytes32 labelhash;
+    address wrappedOwner = e.msg.sender;
+    bytes32 node = makeNodeFromName(name);
     bytes32 parentNode = getParentNodeByNode(node);
-    require getParentNodeByName(name) == parentNode;
+    require node == makeNode(parentNode, labelhash);
 
     storage initStorage = lastStorage;
 
     unwrap(e, parentNode, labelhash, controller);
-    bytes32 node1 = makeNode(parentNode, labelhash);
-    bool canModify1 = canModifyName(e, node1, e.msg.sender);
+    bool canModify1 = canModifyName(e, node, e.msg.sender);
 
     wrap(e, name, wrappedOwner, resolver) at initStorage;
-    bytes32 node2 = makeNode(parentNode, labelhash);
-    bool canModify2 = canModifyName(e, node2, e.msg.sender);
+    bool canModify2 = canModifyName(e, node, e.msg.sender);
 
     unwrap@withrevert(e, parentNode, labelhash, controller);
     assert !lastReverted;
@@ -183,7 +219,7 @@ rule fusesAfterWrap(bytes name) {
     assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
 }
 
-// Verified
+// Violated
 rule fusesAfterWrapETHL2D(string label) {
     env e;
     require label.length == 32;
@@ -202,6 +238,12 @@ rule fusesAfterWrapETHL2D(string label) {
     uint32 fuses; address owner; uint64 expiry;
     owner, fuses, expiry = getDataSuper(tokenID);
 
+    bytes32 labelHash; uint256 offset;
+    labelHash, offset = getLabelHashAndOffset(node);
+
+    // This condition guarantees consistency (violated)
+    assert labelHash ==  getLabelHash(label);
+    // verified
     assert (fuses & IS_DOT_ETH() == IS_DOT_ETH());
 }
 
@@ -233,6 +275,7 @@ filtered {f -> !f.isView} {
     assert !wrapped(e, node);
 }
 
+// Violated
 rule setSubnodeRecordStateTransition(string label, bytes32 node) {
     env e;
     bytes32 labelhash = getLabelHash(label);
@@ -242,14 +285,21 @@ rule setSubnodeRecordStateTransition(string label, bytes32 node) {
     uint64 ttl;
     uint32 fuses;
     uint64 expiry;
-    
-    bool preState = unRegistered(e, node) || wrapped(e, node) || unWrapped(e, node);
+
+    bool _unRegistered = unRegistered(e, node);
+    bool _unWrapped = unWrapped(e, node);
+    bool _wrapped = wrapped(e, node);
+        bool preState = _unRegistered || _unWrapped || _wrapped;
 
     require node == makeNode(parentNode, labelhash);
+
     setSubnodeRecord(e, parentNode, label, owner,
         resolver, ttl, fuses, expiry);
 
-    bool postState = wrapped(e, node) || emancipated(e, node) || locked(e, node);
+    bool wrapped_ = wrapped(e, node);
+    bool emancipated_ = emancipated(e, node);
+    bool locked_ = locked(e, node);
+        bool postState = wrapped_ || emancipated_ || locked_;
 
     assert preState && postState;
 }
@@ -258,17 +308,25 @@ rule setSubnodeRecordStateTransition(string label, bytes32 node) {
 *              REVERT Rules                       *
 **************************************************/
 
-rule cannotRenewExpiredName(bytes32 node) {
-    env e;
-    uint256 duration;
-    uint32 fuses; address owner; uint64 expiry;
-    uint256 tokenID = tokenIDFromNode(node);
-    owner, fuses, expiry = getData(e, tokenID);
+// Verified
+rule cannotRenewExpiredName(bytes32 labelHash) {
+    env e1;
+    env e2;
+    require e2.block.timestamp >= e1.block.timestamp;
+    require e2.block.timestamp < 2^64;
 
-    require expired(e, node);
-    renew@withrevert(e, tokenID, duration);
+    uint256 duration;
+    bytes32 node;
+    uint256 tokenID;
+
+    ethLabelSetup(labelHash, tokenID, node);
+    require registrar.nameExpires(tokenID) < 2^64;
+    require labelHash != 0;
     
-    assert lastReverted;
+    bool expired_ = expired(e1, labelHash);
+    renew@withrevert(e2, tokenID, duration);
+    
+    assert expired_ => lastReverted;
 }
 
 // setSubnodeOwner() and setSubnodeRecord() both revert when the subdomain is Emancipated or Locked.
@@ -315,11 +373,12 @@ rule fusesNotBurntAfterExpiration(bytes32 node, uint32 fuseMask)
     assert !allFusesBurned(e, node, fuseMask);
 }
 
-// https://vaas-stg.certora.com/output/41958/fe2a0dff3df412962288/?anonymousKey=f58c495410ed0d94180b622e0304409a673b103b
-rule whoBurnsETHFuse(bytes32 node, method f) filtered{f-> !f.isView} {
+// Result:
+// https://vaas-stg.certora.com/output/41958/d0e2a402f6a5028a8b8e/?anonymousKey=fcf2840a357096d7416cea8dd9b7a787e21bf599
+rule whoBurnsETHFuse(method f) filtered{f- > !f.isView} {
     env e;
     calldataarg args;
-
+    bytes32 node = 0x40000;
     require !allFusesBurned(e, node, IS_DOT_ETH());
         f(e, args);
     assert !allFusesBurned(e, node, IS_DOT_ETH());
@@ -334,6 +393,15 @@ rule sanity(method f) {
     f(e,args);
     assert false; 
 }
+
+/*
+rule checkAddlabel(string label) {
+    require label.length == 32;
+    bytes32 labelHash_ = addGetLabel(label);
+    bytes32 _labelHash = getLabelHash(label);
+    assert labelHash_ == _labelHash;
+}
+*/
 
 rule makeNodeIsInjective(bytes32 labelHash1, bytes32 labelHash2) {
     bytes32 parentNode;

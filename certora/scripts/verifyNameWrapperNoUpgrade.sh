@@ -16,13 +16,11 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 \
 \
 --solc solc8.17 \
---loop_iter 4 \
+--loop_iter 2 \
 --staging master \
 --optimistic_loop \
 --send_only \
---rule fusesAfterWrapETHL2D \
---rule fusesAfterWrap \
---rule_sanity \
---settings -t=500,-mediumTimeout=40,-copyLoopUnroll=4,-useBitVectorTheory \
+--rule expiryOfParentName \
+--settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-useBitVectorTheory \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: fusesAfterWrap 2 rules"
+--msg "ENS NameWrapper: expiryOfParentName"

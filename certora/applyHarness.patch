@@ -1,6 +1,6 @@
 --- ../contracts/wrapper/NameWrapper.sol	2022-12-18 18:29:31.919567200 +0200
-+++ 	2022-12-29 10:04:19.140957400 +0200
-@@ -1,17 +1,17 @@
++++ 	2023-01-12 13:30:42.894959600 +0200
+@@ -1,17 +1,18 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
  
@@ -23,11 +23,12 @@
 -import {BytesUtils} from "./BytesUtils.sol";
 -import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 +import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
++//import {BytesUtils} from "../harness/BytesUtilsHarness.sol";
 +import {ERC20Recoverable} from "../../contracts/utils/ERC20Recoverable.sol";
  
  error Unauthorised(bytes32 node, address addr);
  error IncompatibleParent();
-@@ -33,11 +33,11 @@
+@@ -33,11 +34,11 @@
  {
      using BytesUtils for bytes;
  
@@ -42,7 +43,7 @@
  
      uint64 private constant GRACE_PERIOD = 90 days;
      bytes32 private constant ETH_NODE =
-@@ -46,7 +46,6 @@
+@@ -46,7 +47,6 @@
          0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0;
      bytes32 private constant ROOT_NODE =
          0x0000000000000000000000000000000000000000000000000000000000000000;
@@ -50,6 +51,14 @@
      INameWrapperUpgrade public upgradeContract;
      uint64 private constant MAX_EXPIRY = type(uint64).max;
  
+@@ -299,7 +299,6 @@
+      * @param wrappedOwner Owner of the name in this contract
+      * @param resolver Resolver contract
+      */
+-
+     function wrap(
+         bytes calldata name,
+         address wrappedOwner,
 @@ -409,7 +408,7 @@
          string calldata label,
          address wrappedOwner,
@@ -68,25 +77,46 @@
          bytes32 labelhash = keccak256(bytes(label));
          bytes32 node = _makeNode(parentNode, labelhash);
          (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
-@@ -516,7 +515,7 @@
+@@ -516,9 +515,10 @@
          uint32 fuses,
          uint64 expiry
      )
 -        public
+-        onlyTokenOwner(parentNode)
+-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
 +        public virtual
-         onlyTokenOwner(parentNode)
-         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
++        // Certora: remove modifiers (move to harness)
++        //onlyTokenOwner(parentNode)
++        //canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
          returns (bytes32 node)
-@@ -556,7 +555,7 @@
+     {
+         bytes32 labelhash = keccak256(bytes(label));
+@@ -556,9 +556,12 @@
          uint32 fuses,
          uint64 expiry
      )
 -        public
+-        onlyTokenOwner(parentNode)
+-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
 +        public virtual
-         onlyTokenOwner(parentNode)
-         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
++        /*
++         Certora: remove modifiers (move to harness)
++         onlyTokenOwner(parentNode)
++         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
++        */
          returns (bytes32 node)
-@@ -764,10 +763,11 @@
+     {
+         bytes32 labelhash = keccak256(bytes(label));
+@@ -667,7 +670,7 @@
+     }
+ 
+     /**
+-     * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
++     * @notice Check whether a canCallSetSubnodeOwnername can call setSubnodeOwner/setSubnodeRecord
+      * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
+      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
+      *      replacing a subdomain. If either conditions are true, then it is possible to call
+@@ -764,10 +767,11 @@
                  revert OperationProhibited(bytes32(id));
              }
          }

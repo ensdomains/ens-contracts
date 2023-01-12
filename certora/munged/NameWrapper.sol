@@ -557,9 +557,11 @@ contract NameWrapper is
         uint64 expiry
     )
         public virtual
-        // Certora: remove modifiers (move to harness)
-        //onlyTokenOwner(parentNode)
-        //canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        /*
+         Certora: remove modifiers (move to harness)
+         onlyTokenOwner(parentNode)
+         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+        */
         returns (bytes32 node)
     {
         bytes32 labelhash = keccak256(bytes(label));

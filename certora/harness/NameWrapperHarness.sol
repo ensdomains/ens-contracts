@@ -72,6 +72,12 @@ contract NameWrapperHarness is NameWrapper {
 
     // Getters and view functions
 
+    //function addGetLabel(string memory label) public pure returns (bytes32) {
+    //    bytes memory name = _addLabel(label, "\x03eth\x00");
+    //    (bytes32 labelHash, ) = name.readLabel(0);
+    //    return labelHash;
+    //}
+
     function getDataSuper(uint256 tokenId) external view returns (address, uint32, uint64) {
         uint256 t = _tokens[tokenId];
         address owner = address(uint160(t));
@@ -91,8 +97,9 @@ contract NameWrapperHarness is NameWrapper {
         node = _makeNode(parentNode, labelhash);
     }
 
-    function getLabelHashAndOffset(bytes calldata name) external pure 
+    function getLabelHashAndOffset(bytes32 node) external view 
     returns (bytes32 labelHash, uint256 offset) {
+        bytes memory name = names[node];
         (labelHash, offset) = name.readLabel(0);
     }
 
