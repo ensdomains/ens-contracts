@@ -443,12 +443,9 @@ contract NameWrapper is
             uint256(node)
         );
 
-        // the parent owner can always set expiry, so no need to check fuses
-        if (!canModifyParentName) {
-            // revert if CAN_EXTEND_EXPIRY parent-controlled fuse has not been burned
-            if (fuses & CAN_EXTEND_EXPIRY == 0) {
-                revert OperationProhibited(node);
-            }
+        // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
+        if (!canModifyParentName && fuses & CAN_EXTEND_EXPIRY == 0) {
+            revert OperationProhibited(node);
         }
 
         // max expiry is set to the expiry of the parent
