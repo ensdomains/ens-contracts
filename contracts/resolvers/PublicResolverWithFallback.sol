@@ -2,6 +2,7 @@
 pragma solidity >=0.8.17 <0.9.0;
 
 import "./PublicResolver.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PublicResolverWithFallback is PublicResolver, Ownable {
@@ -43,15 +44,15 @@ contract PublicResolverWithFallback is PublicResolver, Ownable {
     function text(
         bytes32 node,
         string calldata key
-    ) external view virtual override returns (string memory record) {
-        record = versionable_texts[recordVersions[node]][node][key];
+    ) public view virtual override returns (string memory record) {
+        record = super.text(node, key);
         if (
             bytes(record).length == 0 &&
             bytes(fallback_text_uris[key]).length > 0
         ) {
             record = string.concat(
                 fallback_text_uris[key],
-                string(abi.encodePacked(node))
+                Strings.toHexString(uint256(node), 32)
             );
         }
     }

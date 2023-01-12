@@ -30,7 +30,7 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
      * @return The associated text data.
      */
     function text(bytes32 node, string calldata key)
-        external
+        public
         view
         virtual
         override
