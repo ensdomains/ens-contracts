@@ -28,7 +28,7 @@ contract('OffchainDNSResolver', function(accounts) {
   const validityPeriod = 2419200
   const expiration = Date.now() / 1000 - 15 * 60 + validityPeriod
   const inception = Date.now() / 1000 - 15 * 60
-  const testRrset = (name, value) => ({
+  const testRrset = (name, values) => ({
     name,
     sig: {
       name: name,
@@ -48,15 +48,13 @@ contract('OffchainDNSResolver', function(accounts) {
         signature: new Buffer([]),
       },
     },
-    rrs: [
-      {
-        name,
-        type: 'TXT',
-        class: 'IN',
-        ttl: 3600,
-        data: Buffer.from(value, 'ascii'),
-      },
-    ],
+    rrs: values.map(value => ({
+      name,
+      type: 'TXT',
+      class: 'IN',
+      ttl: 3600,
+      data: Buffer.from(value, 'ascii'),
+    })),
   });
   
   beforeEach(async function() {
@@ -105,10 +103,10 @@ contract('OffchainDNSResolver', function(accounts) {
     );
   })
 
-  function doResolveCallback(name, text, callData) {
+  function doResolveCallback(name, texts, callData) {
     const proof = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
-      hexEncodeSignedSet(testRrset(name, text)),
+      hexEncodeSignedSet(testRrset(name, texts)),
     ];
     const response = ethers.utils.defaultAbiCoder.encode(
       ["tuple(bytes, bytes)[]"],
@@ -128,7 +126,7 @@ contract('OffchainDNSResolver', function(accounts) {
     await ownedResolver.setAddr(namehash.hash(name), testAddress);
     const pr = await PublicResolver.at(offchainResolver.address);
     const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
-    const result = await doResolveCallback(name, `ENS1 ${ownedResolver.address}`, callData);
+    const result = await doResolveCallback(name, [`ENS1 ${ownedResolver.address}`], callData);
     expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
   })
 
@@ -144,7 +142,36 @@ contract('OffchainDNSResolver', function(accounts) {
     await ownedResolver.setAddr(namehash.hash('test.test'), testAddress);
     const pr = await PublicResolver.at(offchainResolver.address);
     const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
-    const result = await doResolveCallback(name, `ENS1 dnsresolver.eth`, callData);
+    const result = await doResolveCallback(name, [`ENS1 dnsresolver.eth`], callData);
+    expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
+  })
+
+  it('rejects calls to resolveCallback() with an invalid TXT record', async function() { 
+    const name = "test.test";
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe';
+    await ownedResolver.setAddr(namehash.hash(name), testAddress);
+    const pr = await PublicResolver.at(offchainResolver.address);
+    const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
+    await expect(doResolveCallback(name, ['nonsense'], callData)).to.be.revertedWith('CouldNotResolve');
+  })
+
+  it('handles calls to resolveCallback() where the valid TXT record is not the first', async function() {
+    const name = "test.test";
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe';
+    await ownedResolver.setAddr(namehash.hash(name), testAddress);
+    const pr = await PublicResolver.at(offchainResolver.address);
+    const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
+    const result = await doResolveCallback(name, ['foo', `ENS1 ${ownedResolver.address}`], callData);
+    expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
+  })
+
+  it('respects the first record with a valid resolver', async function() {
+    const name = "test.test";
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe';
+    await ownedResolver.setAddr(namehash.hash(name), testAddress);
+    const pr = await PublicResolver.at(offchainResolver.address);
+    const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
+    const result = await doResolveCallback(name, ['ENS1 nonexistent.eth', 'ENS1 0x1234', `ENS1 ${ownedResolver.address}`], callData);
     expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
   })
 });

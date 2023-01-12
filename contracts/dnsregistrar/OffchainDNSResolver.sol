@@ -89,7 +89,7 @@ contract OffchainDNSResolver is IExtendedResolver {
         bytes memory txt = readTXT(data, idx, lastIdx);
         
         // Must start with the magic word
-        if(!txt.equals(0, "ENS1 ", 0, 5)) {
+        if(txt.length < 5 || !txt.equals(0, "ENS1 ", 0, 5)) {
             return (address(0), "");
         }
 
