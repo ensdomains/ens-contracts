@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -413,8 +413,48 @@ contract NameWrapper is
         (address owner, uint32 oldFuses, uint64 expiry) = getData(
             uint256(node)
         );
-        _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry);
+        _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry, expiry);
         return ownerControlledFuses;
+    }
+
+    /**
+     * @notice Extends expiry for a name
+     * @param parentNode Parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
+     * @param labelhash Labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
+     * @param expiry When the name will expire in seconds since the Unix epoch
+     * @return New expiry
+     */
+
+    function extendExpiry(
+        bytes32 parentNode,
+        bytes32 labelhash,
+        uint64 expiry
+    ) public returns (uint64) {
+        bytes32 node = _makeNode(parentNode, labelhash);
+
+        // this flag is used later, when checking fuses
+        bool canModifyParentName = canModifyName(parentNode, msg.sender);
+        // only allow the owner of the name or owner of the parent name
+        if (!canModifyParentName && !canModifyName(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
+
+        // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
+        if (!canModifyParentName && fuses & CAN_EXTEND_EXPIRY == 0) {
+            revert OperationProhibited(node);
+        }
+
+        // max expiry is set to the expiry of the parent
+        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+
+        _setData(node, owner, fuses, expiry);
+        emit ExpiryExtended(node, expiry);
+        return expiry;
     }
 
     /**
@@ -532,7 +572,7 @@ contract NameWrapper is
             revert OperationProhibited(node);
         }
         fuses |= oldFuses;
-        _setFuses(node, owner, fuses, expiry);
+        _setFuses(node, owner, fuses, oldExpiry, expiry);
     }
 
     /**
@@ -932,12 +972,14 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) internal {
-        (address oldOwner, uint32 oldFuses, ) = getData(uint256(node));
+        (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
         bytes memory name = _addLabel(label, names[parentNode]);
         if (names[node].length == 0) {
             names[node] = name;
         }
-        _setFuses(node, oldOwner, oldFuses | fuses, expiry);
+        _setFuses(node, oldOwner, oldFuses | fuses, oldExpiry, expiry);
         if (owner == address(0)) {
             _unwrap(node, address(0));
         } else {
@@ -1035,10 +1077,14 @@ contract NameWrapper is
         bytes32 node,
         address owner,
         uint32 fuses,
+        uint64 oldExpiry,
         uint64 expiry
     ) internal {
         _setData(node, owner, fuses, expiry);
-        emit FusesSet(node, fuses, expiry);
+        emit FusesSet(node, fuses);
+        if (expiry > oldExpiry) {
+            emit ExpiryExtended(node, expiry);
+        }
     }
 
     function _setData(

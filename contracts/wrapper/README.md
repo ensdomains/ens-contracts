@@ -116,12 +116,15 @@ Expiry can be extended using the following functions:
 - `setSubnodeOwner()`
 - `setSubnodeRecord()`
 - `renew()`
+- `extendExpiry()`
 
 `setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has expired (past grace period) on the .eth registrar and must be re-registered instead.
 
 `setSubnodeOwner()` and `setSubnodeRecord()` both revert when the subdomain is Emancipated or Locked.
 
 `renew()` indirectly extends the expiry of a .eth name by renewing the name inside the .eth registrar.
+
+`extendExpiry()` extends the expiry of any name. It can only be called by the owner of the name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
 
 ## Fuses
 
@@ -174,6 +177,9 @@ If this fuse is burned, existing subdomains cannot be replaced by the parent nam
 
 #### IS_DOT_ETH = 131072
 If this fuse is burned, it means that the name is a .eth name. This fuse cannot be burned manually and is burned when wrapETH2LD() or onERC721Received() is called.
+
+#### CAN_EXTEND_EXPIRY = 262144
+If this fuse is burned, a name will be able to extend its own expiry in the NameWrapper. Does not apply to .eth 2LDs, as the expiry will inherit from the registrar in that case, and this fuse will not be burned when wrapping/registering .eth 2LDs.
 
 ### Checking Fuses using `allFusesBurned(node, fuseMask)`
 
@@ -286,6 +292,14 @@ When called with an owner of `address(0)`, unwraps the name provided it is not L
 In order to burn any other fuse, `CANNOT_UNWRAP` must be burned as well, moving the name to the Locked state.
 
 Cannot be called if `CANNOT_BURN_FUSES` has been burned.
+
+### `extendExpiry()`
+**Start State**: Wrapped | Emancipated | Locked
+**End State**: Wrapped | Emancipated | Locked
+
+`extendExpiry()` can only be called by the owner of a name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
+
+The expiry can only be extended, not reduced. And the max expiry is automatically set to the expiry of the parent node.
 
 ### `setChildFuses()`
 **Start State**: Wrapped
