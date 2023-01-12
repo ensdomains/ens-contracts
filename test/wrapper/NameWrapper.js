@@ -3190,7 +3190,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it('Does not allow parent owner to set expiry if Emancipated child name has expired', async () => {
+    it('Allow parent owner to set expiry if Emancipated child name has expired', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
       const parentExpiry = await BaseRegistrar.nameExpires(tokenId)
       await NameWrapper.setSubnodeOwner(
@@ -3201,20 +3201,37 @@ describe('Name Wrapper', () => {
         parentExpiry - DAY + 3600,
       )
 
-      let [, fuses, expiry] = await NameWrapper.getData(
+      let [owner, fuses, expiry] = await NameWrapper.getData(
         namehash('sub.fuses.eth'),
       )
 
+      expect(owner).to.equal(account2)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
       expect(expiry).to.equal(parentExpiry - DAY + 3600)
 
       // Fast forward until the child name expires
       await increaseTime(3601)
       await mine()
+      ;[owner, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.fuses.eth'),
+      )
 
-      await expect(
-        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`NameIsNotWrapped()`)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(parentExpiry - DAY + 3600)
+
+      await NameWrapper.extendExpiry(
+        wrappedTokenId,
+        labelhash('sub'),
+        MAX_EXPIRY,
+      )
+      ;[owner, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.fuses.eth'),
+      )
+
+      expect(owner).to.equal(EMPTY_ADDRESS)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
     })
 
     it('Allows parent owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
@@ -3253,7 +3270,7 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
     })
 
-    it('Does not allow extendExpiry() to be called on unregistered names', async () => {
+    it('Allow extendExpiry() to be called on unregistered names', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
       const parentExpiry = await BaseRegistrar.nameExpires(tokenId)
 
@@ -3265,12 +3282,21 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
 
-      await expect(
-        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`NameIsNotWrapped()`)
+      await NameWrapper.extendExpiry(
+        wrappedTokenId,
+        labelhash('sub'),
+        MAX_EXPIRY,
+      )
+      ;[owner, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.fuses.eth'),
+      )
+
+      expect(owner).to.equal(EMPTY_ADDRESS)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
     })
 
-    it('Does not allow extendExpiry() to be called on unwrapped names', async () => {
+    it('Allows extendExpiry() to be called on unwrapped names', async () => {
       await registerSetupAndWrapName('fuses', account, 0)
       const parentExpiry = await BaseRegistrar.nameExpires(tokenId)
       await NameWrapper.setSubnodeOwner(
@@ -3309,9 +3335,18 @@ describe('Name Wrapper', () => {
       let registryOwner = await EnsRegistry.owner(namehash('sub.fuses.eth'))
       expect(registryOwner).to.equal(account)
 
-      await expect(
-        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`NameIsNotWrapped()`)
+      await NameWrapper.extendExpiry(
+        wrappedTokenId,
+        labelhash('sub'),
+        MAX_EXPIRY,
+      )
+      ;[owner, fuses, expiry] = await NameWrapper.getData(
+        namehash('sub.fuses.eth'),
+      )
+
+      expect(owner).to.equal(account)
+      expect(fuses).to.equal(0)
+      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
     })
 
     it('Emits Expiry Extended event', async () => {
