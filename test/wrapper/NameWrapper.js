@@ -5251,7 +5251,7 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
     })
 
-    it('Allows specifiying resolver address', async () => {
+    it('Allows specifying resolver address', async () => {
       await BaseRegistrar.register(tokenId, account, 1 * DAY)
 
       await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
@@ -6210,7 +6210,7 @@ describe('Name Wrapper', () => {
       // set `EnsRegistry.owner` as NameWrapper. Note that this step is used to
       // bypass the newly-introduced checks for [ZZ-001]
       //
-      // XXX: corrently, `sub1.eth` becomes a normal node
+      // XXX: currently, `sub1.eth` becomes a normal node
       await EnsRegistryH.setOwner(wrappedTokenId1, NameWrapper.address)
 
       // create `sub2.sub1.eth` to the victim user with `PARENT_CANNOT_CONTROL`
