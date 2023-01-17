@@ -105,7 +105,7 @@ If the name is Emancipated or Locked, the following changes happen:
 
 Expiry can still be extended even if a name is in the Wrapped state, but does not have any practical effect on the name.
 
-.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .eth registrar, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
+.eth names derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended using the Name Wrapper aware .eth registrar controller calling `renew()` or wrapped using `wrapETH2LD()`, the name's expiry will **sync** the wrapper expiry to the .eth registrar expiry. At the expiry date, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains. If the name is renewed by a wrapper unaware .eth registrar controller, the wrapper expiry of the name will remain in the same expired state and will not sync.
 
 Expiry can be extended using the following functions:
 
