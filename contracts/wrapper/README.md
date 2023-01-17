@@ -68,7 +68,7 @@ Wrapping an Unwrapped name makes it Wrapped. Wrapped names are managed by the na
 
 Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar, and have a wrapper expiry equal to the end of the name's grace period.
 
-To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return `address(0)`.
+To check if a name is Wrapped, verify that `NameWrapper.ownerOf(node)` does not return `address(0)`, `ens.registry(node)` equals `NameWrapper.address` and if it's a .eth name `registrar.ownerOf(labelhash)` equals `NameWrapper.address`. If any of these are false, the name should be consider unwrapped.
 
 #### Emancipated
 
