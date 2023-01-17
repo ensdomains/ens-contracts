@@ -1,5 +1,5 @@
---- ../contracts/wrapper/NameWrapper.sol	2022-12-18 18:29:31.919567200 +0200
-+++ 	2023-01-12 13:30:42.894959600 +0200
+--- ../contracts/wrapper/NameWrapper.sol	2023-01-16 09:39:00.249678600 +0200
++++ 	2023-01-16 10:25:04.667972900 +0200
 @@ -1,17 +1,18 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
@@ -51,7 +51,40 @@
      INameWrapperUpgrade public upgradeContract;
      uint64 private constant MAX_EXPIRY = type(uint64).max;
  
-@@ -299,7 +299,6 @@
+@@ -228,11 +228,12 @@
+      */
+ 
+     function wrapETH2LD(
+-        string calldata label,
++        string memory label,
+         address wrappedOwner,
+         uint16 ownerControlledFuses,
+         address resolver
+-    ) public override {
++    ) public override virtual {
++        /*
+         uint256 tokenId = uint256(keccak256(bytes(label)));
+         address registrant = registrar.ownerOf(tokenId);
+         if (
+@@ -250,7 +251,7 @@
+ 
+         // transfer the ens record back to the new owner (this contract)
+         registrar.reclaim(tokenId, address(this));
+-
++        */
+         _wrapETH2LD(label, wrappedOwner, ownerControlledFuses, resolver);
+     }
+ 
+@@ -266,7 +267,7 @@
+      */
+ 
+     function registerAndWrapETH2LD(
+-        string calldata label,
++        string memory label,
+         address wrappedOwner,
+         uint256 duration,
+         address resolver,
+@@ -299,7 +300,6 @@
       * @param wrappedOwner Owner of the name in this contract
       * @param resolver Resolver contract
       */
@@ -59,8 +92,12 @@
      function wrap(
          bytes calldata name,
          address wrappedOwner,
-@@ -409,7 +408,7 @@
-         string calldata label,
+@@ -406,10 +406,10 @@
+      */
+ 
+     function upgradeETH2LD(
+-        string calldata label,
++        string memory label,
          address wrappedOwner,
          address resolver
 -    ) public {
@@ -68,8 +105,12 @@
          bytes32 labelhash = keccak256(bytes(label));
          bytes32 node = _makeNode(ETH_NODE, labelhash);
          (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
-@@ -438,7 +437,7 @@
-         string calldata label,
+@@ -435,10 +435,10 @@
+ 
+     function upgrade(
+         bytes32 parentNode,
+-        string calldata label,
++        string memory label,
          address wrappedOwner,
          address resolver
 -    ) public {
@@ -77,7 +118,13 @@
          bytes32 labelhash = keccak256(bytes(label));
          bytes32 node = _makeNode(parentNode, labelhash);
          (uint32 fuses, uint64 expiry) = _prepareUpgrade(node);
-@@ -516,9 +515,10 @@
+@@ -511,14 +511,15 @@
+ 
+     function setSubnodeOwner(
+         bytes32 parentNode,
+-        string calldata label,
++        string memory label,
+         address owner,
          uint32 fuses,
          uint64 expiry
      )
@@ -91,7 +138,7 @@
          returns (bytes32 node)
      {
          bytes32 labelhash = keccak256(bytes(label));
-@@ -556,9 +556,12 @@
+@@ -556,9 +557,12 @@
          uint32 fuses,
          uint64 expiry
      )
@@ -107,7 +154,7 @@
          returns (bytes32 node)
      {
          bytes32 labelhash = keccak256(bytes(label));
-@@ -667,7 +670,7 @@
+@@ -667,7 +671,7 @@
      }
  
      /**
@@ -116,7 +163,7 @@
       * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
       *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
       *      replacing a subdomain. If either conditions are true, then it is possible to call
-@@ -764,10 +767,11 @@
+@@ -764,10 +768,11 @@
                  revert OperationProhibited(bytes32(id));
              }
          }

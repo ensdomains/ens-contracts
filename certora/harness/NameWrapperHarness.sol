@@ -6,7 +6,6 @@ import {ENS} from "../../contracts/registry/ENS.sol";
 import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
 import {NameWrapper} from "../munged/NameWrapper.sol";
 import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
-//import {BytesUtils} from "./BytesUtilsHarness.sol";
 
 contract NameWrapperHarness is NameWrapper {
 
@@ -45,6 +44,7 @@ contract NameWrapperHarness is NameWrapper {
         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
+        require (bytes(label).length == 32);
         return super.setSubnodeOwner(parentNode, label, owner, fuses, expiry);
     }
 
@@ -62,23 +62,22 @@ contract NameWrapperHarness is NameWrapper {
         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
+        require (bytes(label).length == 32);
         return super.setSubnodeRecord(parentNode, label, owner, resolver, ttl,
             fuses, expiry);
     }
 
-    function setData(uint256 tokenId, address owner, uint32 fuses, uint64 expiry) public {
-        super._setData(tokenId, owner, fuses, expiry);
+    function wrapETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        uint16 ownerControlledFuses,
+        address resolver
+    ) public override {
+        require (bytes(label).length == 32);
+        super.wrapETH2LD(label, wrappedOwner, ownerControlledFuses, resolver);
     }
 
-    // Getters and view functions
-
-    //function addGetLabel(string memory label) public pure returns (bytes32) {
-    //    bytes memory name = _addLabel(label, "\x03eth\x00");
-    //    (bytes32 labelHash, ) = name.readLabel(0);
-    //    return labelHash;
-    //}
-
-    function getDataSuper(uint256 tokenId) external view returns (address, uint32, uint64) {
+    function getDataSuper(uint256 tokenId) public view returns (address, uint32, uint64) {
         uint256 t = _tokens[tokenId];
         address owner = address(uint160(t));
         uint64 expiry = uint64(t >> 192);
@@ -86,14 +85,26 @@ contract NameWrapperHarness is NameWrapper {
         return (owner, fuses, expiry);
     }
 
+    function getFusesSuper(uint256 tokenId) external view returns (uint32 fuses) {
+        uint256 t = _tokens[tokenId];
+        fuses = uint32(t >> 160);
+    }
+
     function getExpiry(bytes32 node) external view returns (uint64 expiry) {
         ( , , expiry) = getData(uint256(node));
     }
 
-    function makeNodeFromName(bytes calldata name) external pure 
-    returns(bytes32 node) {
+    function getEthLabelhash(bytes32 node) external view 
+    returns (bytes32 labelhash) 
+    {
+        (, uint32 fuses, ) = getDataSuper(uint256(node));
+        return _getEthLabelhash(node, fuses);
+    }
+
+    function makeNodeFromName(bytes memory name) external pure 
+    returns(bytes32 node, bytes32 parentNode) {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
+        parentNode = name.namehash(offset);
         node = _makeNode(parentNode, labelhash);
     }
 
@@ -103,12 +114,6 @@ contract NameWrapperHarness is NameWrapper {
         (labelHash, offset) = name.readLabel(0);
     }
 
-    function getParentNodeByName(bytes calldata name) external pure returns (bytes32 parentNode) {
-        require(0 < name.length, "Error: empty bytes");
-        uint256 len = uint256(uint8(name[0]));
-        parentNode = name.namehash(len + 1);
-    }
-
     function getParentNodeByNode(bytes32 node) external view returns (bytes32 parentNode) {
         bytes memory name = names[node];
         require(0 < name.length, "Error: empty bytes");
@@ -116,7 +121,7 @@ contract NameWrapperHarness is NameWrapper {
         parentNode = name.namehash(len + 1);
     }
 
-    function getLabelHash(string calldata label) external pure returns (bytes32 labelHash) {
+    function getLabelHash(string memory label) external pure returns (bytes32 labelHash) {
         labelHash = keccak256(bytes(label));
     }
 
@@ -124,7 +129,7 @@ contract NameWrapperHarness is NameWrapper {
     function makeNode(bytes32 parentNode, bytes32 labelhash) external pure returns (bytes32 node) {
         node = _makeNode(parentNode, labelhash);
     }
-
+  
     // Converts node to tokenId (bytes32 -> uint256)
     function tokenIDFromNode(bytes32 node) external pure returns (uint256 tokenID) {
         tokenID = uint256(node);

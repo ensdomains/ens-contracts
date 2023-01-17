@@ -20,7 +20,7 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --staging master \
 --optimistic_loop \
 --send_only \
---rule expiryOfParentName \
---settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-useBitVectorTheory \
+--rule onlyEmancipatedCanBeLocked \
+--settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: expiryOfParentName"
+--msg "ENS NameWrapper: onlyEmancipatedCanBeLocked setFuses with havoc"
