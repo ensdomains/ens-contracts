@@ -68,7 +68,7 @@ Wrapping an Unwrapped name makes it Wrapped. Wrapped names are managed by the na
 
 Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar, and have a wrapper expiry equal to the end of the name's grace period.
 
-To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return `address(0)`.
+To check if a name is Wrapped, verify that `NameWrapper.ownerOf(node)` does not return `address(0)`, `Registry.owner` is the NameWrapper contract and if it's a .eth name `registrar.ownerOf(labelhash)` must be the NameWrapper contract. If any of these are false, the name should be consider unwrapped.
 
 #### Emancipated
 
@@ -108,7 +108,7 @@ In addition, if the name is Emancipated or Locked, the following change happens 
 
 If a name is Wrapped (but not Emancipated or Locked), then the expiry will only cause parent-controlled fuses to reset, and otherwise has no practical effect on the name.
 
-.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .eth registrar, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
+.eth names derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended using the Name Wrapper aware .eth registrar controller calling `renew()` or wrapped using `wrapETH2LD()`, the name's expiry will **sync** the wrapper expiry to the .eth registrar expiry. At the expiry date, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains. If the name is renewed by a wrapper unaware .eth registrar controller, the wrapper expiry of the name will remain in the same expired state and will not sync.
 
 Expiry can be extended using the following functions:
 
