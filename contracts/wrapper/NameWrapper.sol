@@ -613,7 +613,7 @@ contract NameWrapper is
      * @param label label of the subdomain as a string
      * @param owner new owner in the wrapper
      * @param resolver resolver contract in the registry
-     * @param ttl ttl in the regsitry
+     * @param ttl ttl in the registry
      * @param fuses initial fuses for the wrapped subdomain
      * @param expiry When the name will expire in seconds since the Unix epoch
      * @return node Namehash of the subdomain
