@@ -20,7 +20,7 @@ methods {
     onERC1155BatchReceived(address, address, uint256[], uint256[], bytes) returns (bytes4) => DISPATCHER(true)
     
     // NameWrapper internal
-    _getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
+    //_getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
 
     // NameWrapper harness
     getLabelHashAndOffset(bytes32) returns (bytes32,uint256) envfree
@@ -33,9 +33,6 @@ methods {
     getFusesSuper(uint256) returns (uint32) envfree
     getLabelHash(string) returns (bytes32) envfree
     getEthLabelhash(bytes32) returns (bytes32) envfree
-
-    // BytesUtils Harness
-    keccakWord(bytes32 word, uint256 len) returns(bytes32) => ghostKeccak(word, len)
 
     // upgraded contract
     //setSubnodeRecord(bytes32, string, address, address, uint64, uint32, uint64) => DISPATCHER(true)
@@ -73,14 +70,9 @@ definition maxUint32() returns uint32 = 0xffffffff;
 **************************************************/
 
 ghost mapping(bytes32 => mapping(uint32 => bytes32)) labelHashMap;
-ghost mapping(bytes32 => mapping(uint32 => bytes32)) keccakWordMap;
 
 function ghostLabelHash(bytes32 node, uint32 fuses) returns bytes32 {
     return labelHashMap[node][fuses];
-}
-
-function ghostKeccak(bytes32 word, uint256 len) returns bytes32 {
-    return keccakWordMap[word][len];
 }
 /**************************************************
 *              Name States Definitions            *
@@ -118,6 +110,7 @@ function expired(env e, bytes32 node) returns bool {
 
 /**************************************************
 *             Setup & Helper functions            *
+*             (Currently unused)
 **************************************************/
 
 function ethLabelSetup(bytes32 node) {
@@ -160,8 +153,6 @@ function requireReadLabelIntegrity_name(bytes _name, bytes32 _parentNode, bytes3
 // "Expiry can only be less than or equal to the parent's expiry"
 invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 labelhash)
     node == makeNode(parentNode, labelhash) => getExpiry(e, node) <= getExpiry(e, parentNode)
-    filtered{f->f.selector == 
-    registerAndWrapETH2LD(string, address, uint256, address, uint16).selector}
     {
         preserved with (env ep) {
             require ep.msg.sender == e.msg.sender;
@@ -169,17 +160,6 @@ invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 la
             require registrar.nameExpires(tokenIDFromNode(parentNode)) < 2^64;
         }
     }
-
-/*
-// https://vaas-stg.certora.com/output/41958/48bd520f6361487f1ca9/?anonymousKey=a17e7240a24066b62490308e62cbb99ab8925368
-invariant ghostLabelHashConsistency(bytes32 node, uint32 fuses)
-    getEthLabelhash(node) == ghostLabelHash(node, fuses)
-    {
-        preserved{
-            ethLabelSetup(node);
-        }
-    }
-*/
 /**************************************************
 *              Wrapping Rules                     *
 **************************************************/
@@ -374,7 +354,7 @@ filtered {f -> !f.isView} {
 // Violated
 rule setSubnodeRecordStateTransition(bytes32 node) {
     env e;
-    string label;
+    string label; require label.length == 32;
     bytes32 labelhash = getLabelHash(label);
     bytes32 parentNode;
     address owner;
@@ -383,20 +363,14 @@ rule setSubnodeRecordStateTransition(bytes32 node) {
     uint32 fuses;
     uint64 expiry;
 
-    ethLabelSetup(node);
     bool _unRegistered = unRegistered(e, node);
     bool _unWrapped = unWrapped(e, node);
     bool _wrapped = wrapped(e, node);
         bool preState = _unRegistered || _unWrapped || _wrapped;
 
-    requireReadLabelIntegrity_node(node, parentNode, labelhash);
-
     setSubnodeRecord(e, parentNode, label, owner,
         resolver, ttl, fuses, expiry);
 
-    requireReadLabelIntegrity_node(node, parentNode, labelhash);
-
-    ethLabelSetup(node);
     bool wrapped_ = wrapped(e, node);
     bool emancipated_ = emancipated(e, node);
     bool locked_ = locked(e, node);
@@ -418,13 +392,11 @@ rule onlyEmancipatedCanBeLocked(method f, bytes32 node) {
     env e;
     calldataarg args;
 
-    ethLabelSetup(node);
     bool emancipatedBefore = emancipated(e, node);
     bool lockedBefore = locked(e, node);
         
         f(e, args);
 
-    ethLabelSetup(node);
     bool lockedAfter = locked(e, node);
     bool emancipatedAfter = emancipated(e, node);
 
@@ -439,20 +411,22 @@ rule onlyEmancipatedCanBeLocked(method f, bytes32 node) {
 *              REVERT Rules                       *
 **************************************************/
 
-// Verified
-rule cannotRenewExpiredName(bytes32 labelHash) {
+// Violated
+rule cannotRenewExpiredName(string label) {
     env e1;
     env e2;
     require e2.block.timestamp >= e1.block.timestamp;
     require e2.block.timestamp < 2^64;
 
+    require label.length == 32;
+    bytes32 labelHash = getLabelHash(label);
+    require labelHash != 0;
+
     uint256 duration;
     bytes32 node = makeNode(ETH_NODE(), labelHash);
     uint256 tokenID = tokenIDFromNode(labelHash);
 
-    ethLabelSetup(node);
     require registrar.nameExpires(tokenID) < 2^64;
-    require labelHash != 0;
     
     bool expired_ = expired(e1, node);
     renew@withrevert(e2, tokenID, duration);
@@ -496,7 +470,6 @@ rule setSubnodeOwnerRevertsIfEmancipatedOrLocked(bytes32 parentNode) {
     owner1, fuses1, expiry1 = getData(e, tokenIDFromNode(subnode));
 
     require emancipated(e, subnode) || locked(e, subnode);
-    ethLabelSetup(subnode);
     
     setSubnodeOwner@withrevert(e, parentNode, label, owner, fuses, expiry);
 

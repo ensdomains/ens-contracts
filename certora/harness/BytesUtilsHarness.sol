@@ -2,12 +2,14 @@
 pragma solidity ~0.8.17;
 
 library BytesUtils {
-    /*
+    
+    /**
+     * @notice : Certora-modified
      * @dev Returns the keccak-256 hash of a byte range.
      * @param self The byte string to hash.
      * @param offset The position to start hashing at.
-     * @param len The number of bytes to hash.
-     * @return The hash of the byte range.
+     * @param len length of the next label.
+     * @return ret hash of the byte word.
      */
     function keccak(
         bytes memory self,
@@ -15,10 +17,7 @@ library BytesUtils {
         uint256 len
     ) internal pure returns (bytes32 ret) {
         require(offset + len <= self.length);
-        ret = keccakWord(_firstWord(self), len);
-        //assembly {
-        //    ret := keccak256(add(add(self, 32), offset), len)
-        //}
+        ret = keccak256(abi.encodePacked(_OffsetWord(self, offset)));
     }
 
     /**
@@ -63,24 +62,16 @@ library BytesUtils {
         newIdx = idx + len + 1;
     }
 
-    /*
-    * @notice Certora helper: get the first word of bytes.   
+    /**
+    * @notice Certora helper: get a single word out of bytes at some offset.   
     * @param self The byte string to read a word from.
+    * @param offset the offset to read the word at.
+    * @return word The bytes32 word at the offset.
     */ 
-    function _firstWord(bytes memory self) internal pure returns(bytes32 word) {
+    function _OffsetWord(bytes memory self, uint256 offset) internal pure returns(bytes32 word) {
         assembly {
-            word := mload(add(add(self, 32), 1))
+            word := mload(add(add(self, 32), offset))
         }
-    }
-
-    /* 
-    function to be summarized
-    */
-    function keccakWord(bytes32 x, uint256 y) internal pure returns(bytes32) {
-        if(y>0) {
-            return x;
-        }
-        return bytes32(0);
     }
 }
     
