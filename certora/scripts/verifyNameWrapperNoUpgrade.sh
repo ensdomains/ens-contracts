@@ -20,7 +20,7 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --staging master \
 --optimistic_loop \
 --send_only \
---rule onlyEmancipatedCanBeLocked \
+--rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned \
 --settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: onlyEmancipatedCanBeLocked setFuses with havoc"
+--msg "ENS NameWrapper: cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned setFuses with havoc"

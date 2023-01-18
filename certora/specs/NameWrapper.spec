@@ -549,3 +549,19 @@ rule whichChildFuseBlocksFunction(method f, bytes32 node, uint32 fuses) {
 
     assert !lastReverted;
 }
+
+rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(method f) {
+    calldataarg args; env e; bytes32 node;
+
+    bool PARENT_CANNOT_CONTROL_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CANNOT_UNWRAP_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
+    require CANNOT_UNWRAP_Before == false;  // the CANNOT_UNWRAP fuse is off
+
+    f(e,args);  // call any function
+
+    bool PARENT_CANNOT_CONTROL_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CANNOT_UNWRAP_After = allFusesBurned(e, node, CANNOT_UNWRAP());
+
+    // if the CANNOT_UNWRAP fuse is burned, then PARENT_CANNOT_CONTROL must have been burned before
+    assert (CANNOT_UNWRAP_After == true) => (PARENT_CANNOT_CONTROL_Before == true);
+}
