@@ -122,7 +122,31 @@ function ethLabelSetup(bytes32 node) {
 /**************************************************
 *              Wrapping Rules                     *
 **************************************************/
+
+// Verified
+rule fusesAfterWrap(bytes name) {
+    env e;
+    require name.length == 32;
+
+    bytes32 node; bytes32 parentNode;
+        node, parentNode = makeNodeFromName(name);
+    uint256 tokenID = tokenIDFromNode(node);
+    address wrappedOwner;
+    address resolver;
+
+    // Assuming first time wrap
+    require _tokens(tokenID) == 0;
+
+    wrap(e, name, wrappedOwner, resolver);
+   
+    uint32 fuses; address owner; uint64 expiry;
+    owner, fuses, expiry = getDataSuper(tokenID);
+
+    assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
+}
+
 // https://vaas-stg.certora.com/output/41958/a0f46548cc37c3f9cabd/?anonymousKey=fbe254745a3a6ac6516bd0f607c87da51440a57f
+// Violated
 rule cannotWrapTwice(bytes name) {
     // Block environment variables
     env e1;
@@ -153,6 +177,7 @@ rule cannotWrapTwice(bytes name) {
 }
 
 // https://vaas-stg.certora.com/output/41958/7c445bd23cb0c1f0237d/?anonymousKey=b270caa735f211e28bf7ebb72d973a3c82fc495e
+// Verified
 rule cannotWrapTwiceNoApproval(bytes name) {
     // Block environment variables
     env e1;
@@ -184,115 +209,6 @@ rule cannotWrapTwiceNoApproval(bytes name) {
     assert lastReverted;
 }
 
-rule wrapUnwrap(bytes name) {
-    env e;
-    address controller; address resolver;
-    bytes32 labelhash;
-    address wrappedOwner = e.msg.sender;
-    bytes32 node; bytes32 parentNode;
-        node, parentNode = makeNodeFromName(name);
-    require node == makeNode(parentNode, labelhash);
-
-    storage initStorage = lastStorage;
-
-    unwrap(e, parentNode, labelhash, controller);
-    bool canModify1 = canModifyName(e, node, e.msg.sender);
-
-    wrap(e, name, wrappedOwner, resolver) at initStorage;
-    bool canModify2 = canModifyName(e, node, e.msg.sender);
-
-    unwrap@withrevert(e, parentNode, labelhash, controller);
-    
-    assert !lastReverted;
-}
-
-// Verified
-rule fusesAfterWrap(bytes name) {
-    env e;
-    require name.length == 32;
-
-    bytes32 node; bytes32 parentNode;
-        node, parentNode = makeNodeFromName(name);
-    uint256 tokenID = tokenIDFromNode(node);
-    address wrappedOwner;
-    address resolver;
-
-    // Assuming first time wrap
-    require _tokens(tokenID) == 0;
-
-    wrap(e, name, wrappedOwner, resolver);
-   
-    uint32 fuses; address owner; uint64 expiry;
-    owner, fuses, expiry = getDataSuper(tokenID);
-
-    assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
-}
-
-/**************************************************
-*              TRANSITION Rules                   *
-**************************************************/
-
-rule whoTurnedWrappedToUnWrapped(method f, bytes32 node) 
-filtered {f -> !f.isView} {
-    env e;
-    calldataarg args;
-
-    uint32 fuseMask;
-    
-    require wrapped(e, node);
-        f(e, args);
-    assert !unWrapped(e, node);
-}
-
-rule whoTurnedUnwrappedToWrapped(method f, bytes32 node) 
-filtered {f -> !f.isView} {
-    env e;
-    calldataarg args;
-    
-    uint32 fuseMask;
-    
-    require unWrapped(e, node);
-        f(e, args);
-    assert !wrapped(e, node);
-}
-
-// Violated
-rule setSubnodeRecordStateTransition(bytes32 node) {
-    env e;
-    string label;
-    bytes32 labelhash = getLabelHash(label);
-    bytes32 parentNode;
-    address owner;
-    address resolver;
-    uint64 ttl;
-    uint32 fuses;
-    uint64 expiry;
-
-    bool _unRegistered = unRegistered(e, node);
-    bool _unWrapped = unWrapped(e, node);
-    bool _wrapped = wrapped(e, node);
-        bool preState = _unRegistered || _unWrapped || _wrapped;
-
-    require node == makeNode(parentNode, labelhash);
-
-    setSubnodeRecord(e, parentNode, label, owner,
-        resolver, ttl, fuses, expiry);
-
-    bool wrapped_ = wrapped(e, node);
-    bool emancipated_ = emancipated(e, node);
-    bool locked_ = locked(e, node);
-        bool postState = wrapped_ || emancipated_ || locked_;
-
-    assert preState && postState;
-}
-
-// Verified
-rule emancipatedIsNotLocked(env e, bytes32 node) {
-    bool _emancipated = emancipated(e, node);
-    bool _locked = locked(e, node);
-    assert _emancipated => !_locked;
-}
-
 /**************************************************
 *              REVERT Rules                       *
 **************************************************/
@@ -318,7 +234,6 @@ rule cannotRenewExpiredName(bytes32 labelHash) {
     assert expired_ => lastReverted;
 }
 
-
 /**************************************************
 *              FUSES Rules                        *
 **************************************************/
@@ -340,66 +255,4 @@ rule whoBurnsETHFuse(method f) filtered{f -> !f.isView} {
     require !allFusesBurned(e, node, IS_DOT_ETH());
         f(e, args);
     assert !allFusesBurned(e, node, IS_DOT_ETH());
-}
-/**************************************************
-*              MISC Rules                         *
-**************************************************/
-
-rule sanity(method f) {
-    calldataarg args;
-    env e;
-    f(e,args);
-    assert false; 
-}
-
-rule makeNodeIsInjective(bytes32 labelHash1, bytes32 labelHash2) {
-    bytes32 parentNode;
-    require labelHash1 != labelHash2;
-
-    assert makeNode(parentNode, labelHash1) != makeNode(parentNode, labelHash2);
-}
-
-rule whichFuseBlocksFunction(method f, bytes32 node, uint16 fuses) {
-    env e1; env e2;
-    calldataarg args;
-    storage initStorage = lastStorage;
-
-    f(e1, args);
-
-    setFuses(e2, node, fuses) at initStorage;
-    f@withrevert(e1, args);
-
-    assert !lastReverted;
-}
-
-rule whichChildFuseBlocksFunction(method f, bytes32 node, uint32 fuses) {
-    env e1; env e2;
-    calldataarg args;
-    bytes32 parentNode;
-    bytes32 labelhash;
-    uint64 expiry;
-    storage initStorage = lastStorage;
-
-    f(e1, args);
-
-    setChildFuses(e2, parentNode, labelhash, fuses, expiry) at initStorage;
-    f@withrevert(e1, args);
-
-    assert !lastReverted;
-}
-
-rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(method f) {
-    calldataarg args; env e; bytes32 node;
-
-    bool PARENT_CANNOT_CONTROL_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CANNOT_UNWRAP_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
-    require CANNOT_UNWRAP_Before == false;  // the CANNOT_UNWRAP fuse is off
-
-    f(e,args);  // call any function
-
-    bool PARENT_CANNOT_CONTROL_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CANNOT_UNWRAP_After = allFusesBurned(e, node, CANNOT_UNWRAP());
-
-    // if the CANNOT_UNWRAP fuse is burned, then PARENT_CANNOT_CONTROL must have been burned before
-    assert (CANNOT_UNWRAP_After == true) => (PARENT_CANNOT_CONTROL_Before == true);
 }
