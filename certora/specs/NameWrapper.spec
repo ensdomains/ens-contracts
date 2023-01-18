@@ -1,6 +1,7 @@
 import "./erc20.spec"
 using ENSRegistry as ens
 using BaseRegistrarImplementation as registrar
+using NameWrapperHarness as nameWrapperContract
 
 /**************************************************
 *                  Methods                       *
@@ -59,6 +60,11 @@ definition ETH_NODE() returns bytes32 = 0x93cdeb708b7545dc668eb9280176169d1c33cf
 *                 Fuses Definitions               *
 **************************************************/
 definition CANNOT_UNWRAP() returns uint32 = 1;
+definition CANNOT_BURN_FUSES() returns uint32 = 2;
+definition CANNOT_TRANSFER() returns uint32 = 4;
+definition CANNOT_SET_RESOLVER() returns uint32 = 8;
+definition CANNOT_SET_TTL() returns uint32 = 16;
+definition CANNOT_CREATE_SUBDOMAIN() returns uint32 = 32;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
 
