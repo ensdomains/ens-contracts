@@ -14,7 +14,11 @@ library BytesUtils {
         uint256 offset,
         uint256 len
     ) internal pure returns (bytes32 ret) {
-        return 0;
+        require(offset + len <= self.length);
+        ret = keccakWord(_firstWord(self), len);
+        //assembly {
+        //    ret := keccak256(add(add(self, 32), offset), len)
+        //}
     }
 
     /**
@@ -47,11 +51,17 @@ library BytesUtils {
     function readLabel(bytes memory self, uint256 idx)
         internal
         pure
-        returns (bytes32 labelhash, uint256 newIdx) {
-            bytes32 word = _firstWord(self);
-            uint256 len = uint256(uint8(self[idx]));
-            return (_readLabelHash(word, idx, len), idx + len + 1);
+        returns (bytes32 labelhash, uint256 newIdx)
+    {
+        require(idx < self.length, "readLabel: Index out of bounds");
+        uint256 len = uint256(uint8(self[idx]));
+        if (len > 0) {
+            labelhash = keccak(self, idx + 1, len);
+        } else {
+            labelhash = bytes32(0);
         }
+        newIdx = idx + len + 1;
+    }
 
     /*
     * @notice Certora helper: get the first word of bytes.   
@@ -59,13 +69,18 @@ library BytesUtils {
     */ 
     function _firstWord(bytes memory self) internal pure returns(bytes32 word) {
         assembly {
-            word := mload(add(add(self, 32),1))
+            word := mload(add(add(self, 32), 1))
         }
     }
 
-    // Functions to be summarized by ghost summaries:
-
-    function _readLabelHash(bytes32, uint256, uint256) internal pure returns (bytes32) {
-        return 0;
+    /* 
+    function to be summarized
+    */
+    function keccakWord(bytes32 x, uint256 y) internal pure returns(bytes32) {
+        if(y>0) {
+            return x;
+        }
+        return bytes32(0);
     }
 }
+    

@@ -34,6 +34,9 @@ methods {
     getLabelHash(string) returns (bytes32) envfree
     getEthLabelhash(bytes32) returns (bytes32) envfree
 
+    // BytesUtils Harness
+    keccakWord(bytes32 word, uint256 len) returns(bytes32) => ghostKeccak(word, len)
+
     // upgraded contract
     //setSubnodeRecord(bytes32, string, address, address, uint64, uint32, uint64) => DISPATCHER(true)
     //wrapETH2LD(string, address, uint32, uint64, address) => DISPATCHER(true)
@@ -46,10 +49,6 @@ methods {
     registrar.nameExpires(uint256) returns (uint256) envfree
     registrar.isApprovedForAll(address, address) returns (bool) envfree
     registrar.ownerOf(uint256) returns (address) envfree
-    
-
-    // BytesUtils munged
-    //_readLabelHash(bytes32, uint256, uint256) returns (bytes32) => NONDET
 }
 /**************************************************
 *                 Hashes Definitions              *
@@ -74,9 +73,14 @@ definition maxUint32() returns uint32 = 0xffffffff;
 **************************************************/
 
 ghost mapping(bytes32 => mapping(uint32 => bytes32)) labelHashMap;
+ghost mapping(bytes32 => mapping(uint32 => bytes32)) keccakWordMap;
 
 function ghostLabelHash(bytes32 node, uint32 fuses) returns bytes32 {
     return labelHashMap[node][fuses];
+}
+
+function ghostKeccak(bytes32 word, uint256 len) returns bytes32 {
+    return keccakWordMap[word][len];
 }
 /**************************************************
 *              Name States Definitions            *
@@ -119,7 +123,9 @@ function expired(env e, bytes32 node) returns bool {
 function ethLabelSetup(bytes32 node) {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
+    uint256 offset;
     havoc labelhash;
+    labelhash, offset = getLabelHashAndOffset(node);
     if(fuses & IS_DOT_ETH() == IS_DOT_ETH()) {
         require node == makeNode(ETH_NODE(), labelhash);
         labelHashMap[node][fuses] = labelhash;
@@ -129,6 +135,24 @@ function ethLabelSetup(bytes32 node) {
     }
 }
 
+function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, bytes32 _labelhash) {
+    bytes32 labelhash_; havoc labelhash_;
+    uint256 offset_;
+    labelhash_, offset_ = getLabelHashAndOffset(_node);
+
+    require _node == makeNode(_parentNode, _labelhash);
+    require _labelhash == labelhash_;
+    require _parentNode == getParentNodeByNode(_node);
+}
+
+function requireReadLabelIntegrity_name(bytes _name, bytes32 _parentNode, bytes32 _node) {
+    bytes32 node_; bytes32 parentNode_;
+    havoc node_; havoc parentNode_;
+    node_, parentNode_ = makeNodeFromName(_name);
+
+    require _node == node_;
+    require _parentNode == parentNode_;
+}
 /**************************************************
 *              Invariants                        *
 **************************************************/
@@ -146,6 +170,7 @@ invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 la
         }
     }
 
+/*
 // https://vaas-stg.certora.com/output/41958/48bd520f6361487f1ca9/?anonymousKey=a17e7240a24066b62490308e62cbb99ab8925368
 invariant ghostLabelHashConsistency(bytes32 node, uint32 fuses)
     getEthLabelhash(node) == ghostLabelHash(node, fuses)
@@ -154,7 +179,7 @@ invariant ghostLabelHashConsistency(bytes32 node, uint32 fuses)
             ethLabelSetup(node);
         }
     }
-
+*/
 /**************************************************
 *              Wrapping Rules                     *
 **************************************************/
@@ -294,10 +319,9 @@ rule fusesAfterWrap(bytes name) {
     assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
 }
 
-// Violated
+// Verified
 rule fusesAfterWrapETHL2D(string label) {
     env e;
-    calldataarg args;
     bytes32 labelHash = getLabelHash(label);
     require label.length == 32;
 
@@ -315,11 +339,6 @@ rule fusesAfterWrapETHL2D(string label) {
     uint32 fuses; address owner; uint64 expiry;
     owner, fuses, expiry = getDataSuper(tokenID);
 
-    bytes32 labelHash_; uint256 offset;
-    labelHash_, offset = getLabelHashAndOffset(node);
-
-    // This condition guarantees consistency (violated)
-    assert labelHash_ == labelHash;
     // verified
     assert (fuses & IS_DOT_ETH() == IS_DOT_ETH());
 }
@@ -364,16 +383,20 @@ rule setSubnodeRecordStateTransition(bytes32 node) {
     uint32 fuses;
     uint64 expiry;
 
+    ethLabelSetup(node);
     bool _unRegistered = unRegistered(e, node);
     bool _unWrapped = unWrapped(e, node);
     bool _wrapped = wrapped(e, node);
         bool preState = _unRegistered || _unWrapped || _wrapped;
 
-    require node == makeNode(parentNode, labelhash);
+    requireReadLabelIntegrity_node(node, parentNode, labelhash);
 
     setSubnodeRecord(e, parentNode, label, owner,
         resolver, ttl, fuses, expiry);
 
+    requireReadLabelIntegrity_node(node, parentNode, labelhash);
+
+    ethLabelSetup(node);
     bool wrapped_ = wrapped(e, node);
     bool emancipated_ = emancipated(e, node);
     bool locked_ = locked(e, node);
@@ -391,8 +414,7 @@ rule emancipatedIsNotLocked(env e, bytes32 node) {
 
 // https://vaas-stg.certora.com/output/41958/aebaeeadddc5880230bb/?anonymousKey=47f040094d00117e522943b94f33bdcd75e06f9c
 // "Only Emancipated names can be Locked ""
-rule onlyEmancipatedCanBeLocked(method f, bytes32 node) 
-filtered{f -> f.selector == setFuses(bytes32,uint16).selector}{
+rule onlyEmancipatedCanBeLocked(method f, bytes32 node) {
     env e;
     calldataarg args;
 

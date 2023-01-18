@@ -5,7 +5,8 @@ import {IMetadataService} from "../../contracts/wrapper/IMetadataService.sol";
 import {ENS} from "../../contracts/registry/ENS.sol";
 import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
 import {NameWrapper} from "../munged/NameWrapper.sol";
-import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
+//import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
+import {BytesUtils} from "./BytesUtilsHarness.sol";
 
 contract NameWrapperHarness is NameWrapper {
 
