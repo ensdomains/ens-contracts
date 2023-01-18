@@ -213,20 +213,27 @@ rule cannotWrapTwiceNoApproval(bytes name) {
 *              REVERT Rules                       *
 **************************************************/
 
-// Verified
-rule cannotRenewExpiredName(bytes32 labelHash) {
+// Violated
+// https://vaas-stg.certora.com/output/41958/f28f8d2f1abb26625b9b/?anonymousKey=9fd4551cad296a15b936083c3fdedc376c3d48cb
+// Verified (with require)
+// https://vaas-stg.certora.com/output/41958/b4d4147a3d8fa2216190/?anonymousKey=36dfa1ba90c7fe2b9ac627f82c02cccc476935b5
+rule cannotRenewExpiredName(string label) {
     env e1;
     env e2;
     require e2.block.timestamp >= e1.block.timestamp;
     require e2.block.timestamp < 2^64;
 
+    require label.length == 32;
+    bytes32 labelHash = getLabelHash(label);
+    require labelHash != 0;
+
     uint256 duration;
     bytes32 node = makeNode(ETH_NODE(), labelHash);
     uint256 tokenID = tokenIDFromNode(labelHash);
+    require getEthLabelhash(node) == labelHash;
 
-    ethLabelSetup(node);
-    require registrar.nameExpires(tokenID) < 2^64;
-    require labelHash != 0;
+    // Verified when this is applied.
+    //require registrar.nameExpires(tokenID) < 2^64;
     
     bool expired_ = expired(e1, node);
     renew@withrevert(e2, tokenID, duration);

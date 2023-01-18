@@ -20,8 +20,8 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --optimistic_loop \
 --send_only \
 --staging master \
---rule setSubnodeRecordStateTransition \
+--rule cannotRenewExpiredName \
 --rule_sanity \
 --settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: setSubnodeRecordStateTransition"
+--msg "ENS NameWrapper: cannotRenewExpiredName"
