@@ -1,10 +1,27 @@
+// Import of other specs
 import "./erc20.spec"
+
+// Alias for contracts in the verification scope:
+// using [name of contract] as [alias]
+// note: currentContract is an alias for the main verified contract (NameWrapper)
 using ENSRegistry as ens
 using BaseRegistrarImplementation as registrar
 
 /**************************************************
+ *      Top Level Properties / Rule Ideas         *
+ **************************************************/
+ // Write here your ideas for rules for tracking progress:
+ // 1. Valid states
+ // 2. State transitions 
+ // 3. Invariants
+ // 4. Unit testing
+
+/**************************************************
 *                  Methods                       *
 **************************************************/
+// Declaration of methods to be used in the spec.
+// envfree is an attribute for a method which doesn't require 
+// an 'env' variable to be invoked in the spec.
 methods {
     // NameWrapper
     ownerOf(uint256) returns (address)
@@ -17,9 +34,6 @@ methods {
     onERC1155Received(address, address, uint256, uint256, bytes) returns (bytes4) => DISPATCHER(true)
     onERC1155BatchReceived(address, address, uint256[], uint256[], bytes) returns (bytes4) => DISPATCHER(true)
     
-    // NameWrapper internal
-    //_getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
-
     // NameWrapper harness
     getLabelHashAndOffset(bytes32) returns (bytes32,uint256) envfree
     getParentNodeByNode(bytes32) returns (bytes32) envfree
@@ -62,15 +76,14 @@ definition IS_DOT_ETH() returns uint32 = 2^17;
 /**************************************************
 *                 Ghosts & Hooks                 *
 **************************************************/
-ghost mapping(bytes32 => mapping(uint32 => bytes32)) labelHashMap;
-
-function ghostLabelHash(bytes32 node, uint32 fuses) returns bytes32 {
-    return labelHashMap[node][fuses];
-}
 
 /**************************************************
 *              Name States Definitions            *
 **************************************************/
+// Definitions for states of a node, according to the NameWrapper docs.
+// Note that each definition requires a first 'env' argument, as the
+// definition depends on the block.timestamp.
+
 function unRegistered(env e, bytes32 node) returns bool {
     address ownerOf = ownerOf(e, tokenIDFromNode(node));
     address ensOwner = ens.owner(node);
@@ -104,16 +117,18 @@ function expired(env e, bytes32 node) returns bool {
 /**************************************************
 *             Setup & Helper functions            *
 **************************************************/
-function ethLabelSetup(bytes32 node) {
+// A CVL implementation of _getEthLabelhash_CVL:
+// Can be used to get the labelHash of a node whose parent domain is ETH.
+function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
     havoc labelhash;
     if(fuses & IS_DOT_ETH() == IS_DOT_ETH()) {
         require node == makeNode(ETH_NODE(), labelhash);
-        labelHashMap[node][fuses] = labelhash;
+        return labelhash;
     }
     else {
-        labelHashMap[node][fuses] = 0;
+        return 0;
     }
 }
 
@@ -121,13 +136,7 @@ function ethLabelSetup(bytes32 node) {
 *              Wrapping Rules                     *
 **************************************************/
 
-// Verified
-
 // Violated if removing 'first time wrap' assumption
-// https://vaas-stg.certora.com/output/41958/f982f67c5ff77fbe9b7c/?anonymousKey=718ca92f953e02944cd3e20a6a1eeab672b52a07
-
-
-
 rule fusesAfterWrap(bytes name) {
     env e;
     require name.length == 32;
@@ -143,72 +152,42 @@ rule fusesAfterWrap(bytes name) {
 
     wrap(e, name, wrappedOwner, resolver);
    
-    uint32 fuses; address owner; uint64 expiry;
-    owner, fuses, expiry = getDataSuper(tokenID);
+    uint32 fuses = getFusesSuper(tokenID);
 
     assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
 }
 
-// https://vaas-stg.certora.com/output/41958/a0f46548cc37c3f9cabd/?anonymousKey=fbe254745a3a6ac6516bd0f607c87da51440a57f
 // Violated
 rule cannotWrapTwice(bytes name) {
     // Block environment variables
     env e1;
     env e2;
+
     // Different msg.senders
     require e1.msg.sender != e2.msg.sender;
+    // Assuming that the contract is not the msg.sender [SAFE]
     require e2.msg.sender != currentContract;
 
     // Chronological order
     require e2.block.timestamp >= e1.block.timestamp;
 
-    address wrappedOwner;
-    address wrappedOtherOwner; 
-    require wrappedOwner != wrappedOtherOwner;
+    address wrappedOwner1;
+    address wrappedOwner2; 
     
     require name.length == 32;
     address resolver;
     bytes32 node; bytes32 parentNode;
         node, parentNode = makeNodeFromName(name);
 
+    // Assuming no approval for the e2.msg.sender:
+    // Verified if this require is applied.
+    // require !ens.isApprovedForAll(currentContract, e2.msg.sender);
+
     // Call wrap by e1.msg.sender at e1.block.timestamp
-    wrap(e1, name, wrappedOwner, resolver);
+    wrap(e1, name, wrappedOwner1, resolver);
     
     // Call wrap again by e2.msg.sender at later e2.block.timestamp
-    wrap@withrevert(e2, name, wrappedOtherOwner, resolver);
-
-    assert lastReverted;
-}
-
-// https://vaas-stg.certora.com/output/41958/7c445bd23cb0c1f0237d/?anonymousKey=b270caa735f211e28bf7ebb72d973a3c82fc495e
-// Verified
-rule cannotWrapTwiceNoApproval(bytes name) {
-    // Block environment variables
-    env e1;
-    env e2;
-    // Different msg.senders
-    require e1.msg.sender != e2.msg.sender;
-    require e2.msg.sender != currentContract;
-
-    // Chronological order
-    require e2.block.timestamp >= e1.block.timestamp;
-
-    address wrappedOwner;
-    address wrappedOtherOwner; 
-    require wrappedOwner != wrappedOtherOwner;
-
-    require name.length == 32;
-    address resolver;
-    bytes32 node; bytes32 parentNode;
-        node, parentNode = makeNodeFromName(name);
-
-    // Call wrap by e1.msg.sender at e1.block.timestamp
-    wrap(e1, name, wrappedOwner, resolver);
-    // Deny approval
-    require !ens.isApprovedForAll(currentContract, e2.msg.sender);
-
-    // Call wrap again by e2.msg.sender at later e2.block.timestamp
-    wrap@withrevert(e2, name, wrappedOtherOwner, resolver);
+    wrap@withrevert(e2, name, wrappedOwner2, resolver);
 
     assert lastReverted;
 }
@@ -218,13 +197,12 @@ rule cannotWrapTwiceNoApproval(bytes name) {
 **************************************************/
 
 // Violated
-// https://vaas-stg.certora.com/output/41958/f28f8d2f1abb26625b9b/?anonymousKey=9fd4551cad296a15b936083c3fdedc376c3d48cb
-// Verified (with require)
-// https://vaas-stg.certora.com/output/41958/b4d4147a3d8fa2216190/?anonymousKey=36dfa1ba90c7fe2b9ac627f82c02cccc476935b5
 rule cannotRenewExpiredName(string label) {
     env e1;
     env e2;
+    // Chronological order
     require e2.block.timestamp >= e1.block.timestamp;
+    // Reasonable time stamp [SAFE]
     require e2.block.timestamp < 2^64;
 
     require label.length == 32;
@@ -237,7 +215,7 @@ rule cannotRenewExpiredName(string label) {
     require getEthLabelhash(node) == labelHash;
 
     // Verified when this is applied.
-    //require registrar.nameExpires(tokenID) < 2^64;
+    // require registrar.nameExpires(tokenID) < 2^64;
     
     bool expired_ = expired(e1, node);
     renew@withrevert(e2, tokenID, duration);
@@ -257,13 +235,9 @@ rule fusesNotBurntAfterExpiration(bytes32 node, uint32 fuseMask)
     assert !allFusesBurned(e, node, fuseMask);
 }
 
-// Result:
-// https://vaas-stg.certora.com/output/41958/d0e2a402f6a5028a8b8e/?anonymousKey=fcf2840a357096d7416cea8dd9b7a787e21bf599
-rule whoBurnsETHFuse(method f) filtered{f -> !f.isView} {
-    env e;
-    calldataarg args;
-    bytes32 node = 0x40000; // arbitrary number, but isn't significant.
-    require !allFusesBurned(e, node, IS_DOT_ETH());
-        f(e, args);
-    assert !allFusesBurned(e, node, IS_DOT_ETH());
+// Verified
+rule emancipatedIsNotLocked(env e, bytes32 node) {
+    bool _emancipated = emancipated(e, node);
+    bool _locked = locked(e, node);
+    assert _emancipated => !_locked;
 }

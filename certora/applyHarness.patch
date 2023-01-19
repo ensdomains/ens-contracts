@@ -1,5 +1,5 @@
 --- ../contracts/wrapper/NameWrapper.sol	2023-01-16 09:39:00.249678600 +0200
-+++ 	2023-01-18 19:25:26.121884100 +0200
++++ 	2023-01-19 16:28:35.634717200 +0200
 @@ -1,17 +1,18 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
@@ -28,7 +28,7 @@
  
  error Unauthorised(bytes32 node, address addr);
  error IncompatibleParent();
-@@ -33,11 +34,11 @@
+@@ -33,8 +34,8 @@
  {
      using BytesUtils for bytes;
  
@@ -38,11 +38,7 @@
 +    IBaseRegistrar public override registrar; // Certora: removed 'immutable'
      IMetadataService public override metadataService;
      mapping(bytes32 => bytes) public override names;
--    string public constant name = "NameWrapper";
-+    //string public constant name = "NameWrapper"; // Certora: removed variable
- 
-     uint64 private constant GRACE_PERIOD = 90 days;
-     bytes32 private constant ETH_NODE =
+     string public constant name = "NameWrapper";
 @@ -46,7 +47,6 @@
          0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0;
      bytes32 private constant ROOT_NODE =

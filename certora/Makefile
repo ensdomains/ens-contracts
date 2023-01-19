@@ -2,7 +2,7 @@ default: help
 
 PATCH         = applyHarness.patch
 CONTRACTS_DIR = ../contracts
-MUNGED_DIR    = munged
+MUNGED_DIR    = ./munged
 NameWrapper_Origin = ../contracts/wrapper/NameWrapper.sol
 UpgradeMock_Origin = ../contracts/wrapper/mocks/UpgradedNameWrapperMock.sol
 NameWrapper_munged = ./munged/NameWrapper.sol
@@ -16,7 +16,8 @@ help:
 
 munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
 	rm -rf $@
-	cp -r $(CONTRACTS_DIR) $@
+	cp -r $(NameWrapper_Origin) $@
+	cp -r $(UpgradeMock_Origin) $@
 	patch -p0 -d $@ < $(PATCH)
 
 record:

@@ -5,7 +5,7 @@ library BytesUtils {
     
     /**
      * @notice : Certora-modified
-     * @dev Returns the keccak-256 hash of a byte range.
+     * @dev Returns the keccak-256 hash of a byte word (bytes32).
      * @param self The byte string to hash.
      * @param offset The position to start hashing at.
      * @param len length of the next label.

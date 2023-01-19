@@ -113,21 +113,22 @@ function expired(env e, bytes32 node) returns bool {
 *             (Currently unused)
 **************************************************/
 
-function ethLabelSetup(bytes32 node) {
+// A CVL implementation of _getEthLabelhash_CVL:
+// Can be used to get the labelHash of a node whose parent domain is ETH.
+function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
-    uint256 offset;
     havoc labelhash;
-    labelhash, offset = getLabelHashAndOffset(node);
     if(fuses & IS_DOT_ETH() == IS_DOT_ETH()) {
         require node == makeNode(ETH_NODE(), labelhash);
-        labelHashMap[node][fuses] = labelhash;
+        return labelhash;
     }
     else {
-        labelHashMap[node][fuses] = 0;
+        return 0;
     }
 }
 
+// Integrity of the readLabel function.
 function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, bytes32 _labelhash) {
     bytes32 labelhash_; havoc labelhash_;
     uint256 offset_;
@@ -138,6 +139,7 @@ function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, byte
     require _parentNode == getParentNodeByNode(_node);
 }
 
+// Integrity of the readLabel function.
 function requireReadLabelIntegrity_name(bytes _name, bytes32 _parentNode, bytes32 _node) {
     bytes32 node_; bytes32 parentNode_;
     havoc node_; havoc parentNode_;
@@ -149,7 +151,7 @@ function requireReadLabelIntegrity_name(bytes _name, bytes32 _parentNode, bytes3
 /**************************************************
 *              Invariants                        *
 **************************************************/
-// https://vaas-stg.certora.com/output/41958/1638682c45a302391190/?anonymousKey=6b5b505f88b1c62263fc8380e1fd1089d52fd004
+
 // "Expiry can only be less than or equal to the parent's expiry"
 invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 labelhash)
     node == makeNode(parentNode, labelhash) => getExpiry(e, node) <= getExpiry(e, parentNode)
@@ -164,7 +166,6 @@ invariant expiryOfParentName(env e, bytes32 node, bytes32 parentNode, bytes32 la
 *              Wrapping Rules                     *
 **************************************************/
 
-//https://vaas-stg.certora.com/output/41958/cb2647f179963f0cfd2b/?anonymousKey=82556bf0f0342f3dc55d78c531d65763e6a7ed8f
 rule cannotWrapEthTwice(string label) {
     // Block environment variables
     env e1;
@@ -193,7 +194,6 @@ rule cannotWrapEthTwice(string label) {
     assert lastReverted;
 }
 
-// https://vaas-stg.certora.com/output/41958/a0f46548cc37c3f9cabd/?anonymousKey=fbe254745a3a6ac6516bd0f607c87da51440a57f
 rule cannotWrapTwice(bytes name) {
     // Block environment variables
     env e1;
@@ -223,7 +223,6 @@ rule cannotWrapTwice(bytes name) {
     assert lastReverted;
 }
 
-// https://vaas-stg.certora.com/output/41958/7c445bd23cb0c1f0237d/?anonymousKey=b270caa735f211e28bf7ebb72d973a3c82fc495e
 rule cannotWrapTwiceNoApproval(bytes name) {
     // Block environment variables
     env e1;
@@ -293,8 +292,7 @@ rule fusesAfterWrap(bytes name) {
 
     wrap(e, name, wrappedOwner, resolver);
    
-    uint32 fuses; address owner; uint64 expiry;
-    owner, fuses, expiry = getDataSuper(tokenID);
+    uint32 fuses = getFusesSuper(tokenID);
 
     assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
 }
@@ -316,8 +314,7 @@ rule fusesAfterWrapETHL2D(string label) {
 
     wrapETH2LD(e, label, wrappedOwner, ownerControlledFuses, resolver);
    
-    uint32 fuses; address owner; uint64 expiry;
-    owner, fuses, expiry = getDataSuper(tokenID);
+    uint32 fuses = getFusesSuper(tokenID);
 
     // verified
     assert (fuses & IS_DOT_ETH() == IS_DOT_ETH());
@@ -439,9 +436,8 @@ rule cannotRenewExpiredName(string label) {
 }
 
 // setSubnodeOwner() and setSubnodeRecord() both revert when the subdomain is Emancipated or Locked.
-rule setSubnodeRecordRevertsIfEmancipatedOrLocked(bytes32 parentNode) {
+rule setSubnodeRecordRevertsIfEmancipatedOrLocked(bytes32 parentNode, string label) {
     env e;
-    string label;
     bytes32 labelhash = getLabelHash(label);
     bytes32 subnode = makeNode(parentNode, labelhash);
     address owner;
@@ -458,20 +454,14 @@ rule setSubnodeRecordRevertsIfEmancipatedOrLocked(bytes32 parentNode) {
 }
 
 // "setSubnodeOwner() and setSubnodeRecord() both revert when the subdomain is Emancipated or Locked."
-rule setSubnodeOwnerRevertsIfEmancipatedOrLocked(bytes32 parentNode) {
+rule setSubnodeOwnerRevertsIfEmancipatedOrLocked(bytes32 parentNode, string label) {
     env e;
-    string label;
     require label.length == 32;
     bytes32 labelhash = getLabelHash(label);
     bytes32 subnode = makeNode(parentNode, labelhash);
     address owner;
     uint32 fuses;
     uint64 expiry;
-
-    address owner1;
-    uint32 fuses1;
-    uint64 expiry1;
-    owner1, fuses1, expiry1 = getData(e, tokenIDFromNode(subnode));
 
     require emancipated(e, subnode) || locked(e, subnode);
     
@@ -492,8 +482,6 @@ rule fusesNotBurntAfterExpiration(bytes32 node, uint32 fuseMask)
     assert !allFusesBurned(e, node, fuseMask);
 }
 
-// Result:
-// https://vaas-stg.certora.com/output/41958/d0e2a402f6a5028a8b8e/?anonymousKey=fcf2840a357096d7416cea8dd9b7a787e21bf599
 rule whoBurnsETHFuse(method f) filtered{f -> !f.isView} {
     env e;
     calldataarg args;
@@ -501,6 +489,26 @@ rule whoBurnsETHFuse(method f) filtered{f -> !f.isView} {
     require !allFusesBurned(e, node, IS_DOT_ETH());
         f(e, args);
     assert !allFusesBurned(e, node, IS_DOT_ETH());
+}
+
+// PCC - PARENT_CANNOT_CONTROL
+// CUW - CANNOT_UNWRAP
+rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(bytes32 node, method f) 
+filtered{f -> !f.isView} {
+    env e; 
+    calldataarg args;;
+
+    bool PCC_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CUW_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
+    require CUW_Before == false;  // the CANNOT_UNWRAP fuse is off
+
+        f(e,args);  // call any function
+
+    bool PCC_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CUW_After = allFusesBurned(e, node, CANNOT_UNWRAP());
+
+    // if the CANNOT_UNWRAP fuse is burned, then PARENT_CANNOT_CONTROL must have been burned before.
+    assert (CUW_After == true) => (PCC_Before == true);
 }
 /**************************************************
 *              MISC Rules                         *
@@ -546,24 +554,4 @@ rule whichChildFuseBlocksFunction(method f, bytes32 node, uint32 fuses) {
     f@withrevert(e1, args);
 
     assert !lastReverted;
-}
-
-// PCC - PARENT_CANNOT_CONTROL
-// CUW - CANNOT_UNWRAP
-rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(bytes32 node, method f) 
-filtered{f -> !f.isView} {
-    env e; 
-    calldataarg args;;
-
-    bool PCC_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CUW_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
-    require CUW_Before == false;  // the CANNOT_UNWRAP fuse is off
-
-        f(e,args);  // call any function
-
-    bool PCC_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CUW_After = allFusesBurned(e, node, CANNOT_UNWRAP());
-
-    // if the CANNOT_UNWRAP fuse is burned, then PARENT_CANNOT_CONTROL must have been burned before
-    assert (CUW_After == true) => (PCC_Before == true);
 }
