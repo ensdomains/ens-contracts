@@ -720,6 +720,21 @@ contract NameWrapper is
         ens.setTTL(node, ttl);
     }
 
+    function syncETH2LD(bytes32 labelhash) public {
+        uint64 expiry = uint64(registrar.nameExpires(uint256(labelhash)));
+        address owner = registrar.ownerOf(uint256(labelhash));
+        bytes32 node = _makeNode(ETH_NODE, labelhash);
+        address registryOwner = ens.owner(node);
+        if (owner != address(this) || registryOwner != address(this)) {
+            revert NameIsNotWrapped();
+        }
+
+        (address wrapperOwner, uint32 fuses, uint64 wrapperExpiry) = super
+            .getData(uint256(node));
+
+        _setData(node, wrapperOwner, fuses, expiry);
+    }
+
     /**
      * @dev Allows an operation only if none of the specified fuses are burned.
      * @param node The namehash of the name to check fuses on.
