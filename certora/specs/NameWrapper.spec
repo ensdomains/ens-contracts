@@ -351,18 +351,17 @@ filtered {f -> !f.isView} {
     assert !wrapped(e, node);
 }
 
-// Violated
-rule setSubnodeRecordStateTransition(bytes32 node) {
+rule setSubnodeRecordStateTransition(bytes32 parentNode, string label) {
     env e;
-    string label; require label.length == 32;
+    require label.length == 32;
     bytes32 labelhash = getLabelHash(label);
-    bytes32 parentNode;
+    bytes32 node = makeNode(parentNode, labelhash);
     address owner;
     address resolver;
     uint64 ttl;
     uint32 fuses;
     uint64 expiry;
-
+    
     bool _unRegistered = unRegistered(e, node);
     bool _unWrapped = unWrapped(e, node);
     bool _wrapped = wrapped(e, node);
@@ -386,7 +385,6 @@ rule emancipatedIsNotLocked(env e, bytes32 node) {
     assert _emancipated => !_locked;
 }
 
-// https://vaas-stg.certora.com/output/41958/aebaeeadddc5880230bb/?anonymousKey=47f040094d00117e522943b94f33bdcd75e06f9c
 // "Only Emancipated names can be Locked ""
 rule onlyEmancipatedCanBeLocked(method f, bytes32 node) {
     env e;
@@ -413,7 +411,8 @@ rule onlyEmancipatedCanBeLocked(method f, bytes32 node) {
 
 // Violated
 // https://vaas-stg.certora.com/output/41958/f28f8d2f1abb26625b9b/?anonymousKey=9fd4551cad296a15b936083c3fdedc376c3d48cb
-// Verified (with require)
+
+// Verified (with nameExpires require)
 // https://vaas-stg.certora.com/output/41958/b4d4147a3d8fa2216190/?anonymousKey=36dfa1ba90c7fe2b9ac627f82c02cccc476935b5
 rule cannotRenewExpiredName(string label) {
     env e1;
@@ -514,8 +513,7 @@ rule sanity(method f) {
     assert false; 
 }
 
-rule makeNodeIsInjective(bytes32 labelHash1, bytes32 labelHash2) {
-    bytes32 parentNode;
+rule makeNodeIsInjective(bytes32 parentNode, bytes32 labelHash1, bytes32 labelHash2) {
     require labelHash1 != labelHash2;
 
     assert makeNode(parentNode, labelHash1) != makeNode(parentNode, labelHash2);
@@ -550,18 +548,22 @@ rule whichChildFuseBlocksFunction(method f, bytes32 node, uint32 fuses) {
     assert !lastReverted;
 }
 
-rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(method f) {
-    calldataarg args; env e; bytes32 node;
+// PCC - PARENT_CANNOT_CONTROL
+// CUW - CANNOT_UNWRAP
+rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(bytes32 node, method f) 
+filtered{f -> !f.isView} {
+    env e; 
+    calldataarg args;;
 
-    bool PARENT_CANNOT_CONTROL_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CANNOT_UNWRAP_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
-    require CANNOT_UNWRAP_Before == false;  // the CANNOT_UNWRAP fuse is off
+    bool PCC_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CUW_Before = allFusesBurned(e, node, CANNOT_UNWRAP());
+    require CUW_Before == false;  // the CANNOT_UNWRAP fuse is off
 
-    f(e,args);  // call any function
+        f(e,args);  // call any function
 
-    bool PARENT_CANNOT_CONTROL_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
-    bool CANNOT_UNWRAP_After = allFusesBurned(e, node, CANNOT_UNWRAP());
+    bool PCC_After = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
+    bool CUW_After = allFusesBurned(e, node, CANNOT_UNWRAP());
 
     // if the CANNOT_UNWRAP fuse is burned, then PARENT_CANNOT_CONTROL must have been burned before
-    assert (CANNOT_UNWRAP_After == true) => (PARENT_CANNOT_CONTROL_Before == true);
+    assert (CUW_After == true) => (PCC_Before == true);
 }

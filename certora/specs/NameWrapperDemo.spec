@@ -18,7 +18,7 @@ methods {
     onERC1155BatchReceived(address, address, uint256[], uint256[], bytes) returns (bytes4) => DISPATCHER(true)
     
     // NameWrapper internal
-    _getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
+    //_getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
 
     // NameWrapper harness
     getLabelHashAndOffset(bytes32) returns (bytes32,uint256) envfree
@@ -58,8 +58,6 @@ definition CANNOT_SET_TTL() returns uint32 = 16;
 definition CANNOT_CREATE_SUBDOMAIN() returns uint32 = 32;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
-
-definition maxUint32() returns uint32 = 0xffffffff;
 
 /**************************************************
 *                 Ghosts & Hooks                 *
@@ -124,6 +122,12 @@ function ethLabelSetup(bytes32 node) {
 **************************************************/
 
 // Verified
+
+// Violated if removing 'first time wrap' assumption
+// https://vaas-stg.certora.com/output/41958/f982f67c5ff77fbe9b7c/?anonymousKey=718ca92f953e02944cd3e20a6a1eeab672b52a07
+
+
+
 rule fusesAfterWrap(bytes name) {
     env e;
     require name.length == 32;

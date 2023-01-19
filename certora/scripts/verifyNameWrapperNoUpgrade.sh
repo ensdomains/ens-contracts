@@ -20,8 +20,8 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --optimistic_loop \
 --send_only \
 --staging master \
---rule cannotRenewExpiredName \
+--rule fusesAfterWrap \
 --rule_sanity \
 --settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: cannotRenewExpiredName"
+--msg "ENS NameWrapper: fusesAfterWrap tokens map is not set to zero"
