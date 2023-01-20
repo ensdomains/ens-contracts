@@ -6434,6 +6434,44 @@ describe('Name Wrapper', () => {
         ),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId2}", "${hacker}")`)
     })
+    it('Renewing a wrapped, but expired name .eth in the wrapper, but unexpired on the registrar resyncs expiry', async () => {
+      await NameWrapper.registerAndWrapETH2LD(
+        label1,
+        account,
+        1 * DAY,
+        EMPTY_ADDRESS,
+        CANNOT_UNWRAP,
+      )
+
+      await BaseRegistrar.renew(labelHash1, 365 * DAY)
+
+      let owner = await NameWrapper.ownerOf(wrappedTokenId1)
+      expect(owner).to.equal(account)
+
+      // expired but in grace period
+      await evm.advanceTime(GRACE_PERIOD + 1 * DAY + 1)
+      await evm.mine()
+
+      owner = await NameWrapper.ownerOf(wrappedTokenId1)
+      expect(owner).to.equal(EMPTY_ADDRESS)
+
+      expect(await BaseRegistrar.ownerOf(labelHash1)).to.equal(
+        NameWrapper.address,
+      )
+      expect(await EnsRegistry.owner(wrappedTokenId1)).to.equal(
+        NameWrapper.address,
+      )
+
+      await NameWrapper.renew(labelHash1, 1)
+
+      owner = await NameWrapper.ownerOf(wrappedTokenId1)
+      let [, , expiry] = await NameWrapper.getData(wrappedTokenId1)
+      let registrarExpiry = await BaseRegistrar.nameExpires(labelHash1)
+      expect(owner).to.equal(account)
+      expect(parseInt(expiry)).to.equal(
+        parseInt(registrarExpiry) + GRACE_PERIOD,
+      )
+    })
   })
 
   describe('TLD recovery', () => {
