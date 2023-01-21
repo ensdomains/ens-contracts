@@ -29,7 +29,7 @@ interface IBaseRegistrar is IERC721 {
     // Returns the expiration timestamp of the specified label hash.
     function nameExpires(uint256 id) external view returns (uint256);
 
-    // Returns true iff the specified name is available for registration.
+    // Returns true if the specified name is available for registration.
     function available(uint256 id) external view returns (bool);
 
     /**
