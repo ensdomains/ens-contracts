@@ -294,8 +294,7 @@ contract NameWrapper is
         try registrar.ownerOf(tokenId) returns (address registrarOwner) {
             if (
                 registrarOwner != address(this) ||
-                ens.owner(node) != address(this) ||
-                ownerOf(uint256(node)) == address(0)
+                ens.owner(node) != address(this)
             ) {
                 return registrarExpiry;
             }
@@ -306,7 +305,8 @@ contract NameWrapper is
         // set expiry in Wrapper
         uint64 expiry = uint64(registrarExpiry) + GRACE_PERIOD;
 
-        (address owner, uint32 fuses, ) = getData(uint256(node));
+        //use super to allow names expired on the wrapper, but not expired on the registrar to renew()
+        (address owner, uint32 fuses, ) = super.getData(uint256(node));
         _setData(node, owner, fuses, expiry);
 
         return registrarExpiry;
