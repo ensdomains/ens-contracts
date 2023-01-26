@@ -2338,6 +2338,31 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(expectedExpiry)
     })
 
+    it('Emits FusesSet event', async () => {
+      await BaseRegistrar.register(tokenId, account, 1 * DAY)
+
+      const expectedExpiry =
+        (await BaseRegistrar.nameExpires(tokenId)).toNumber() + GRACE_PERIOD
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+
+      await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
+
+      const tx = await NameWrapper.setFuses(wrappedTokenId, CANNOT_TRANSFER)
+
+      await expect(tx)
+        .to.emit(NameWrapper, 'FusesSet')
+        .withArgs(
+          wrappedTokenId,
+          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+        )
+
+      const [, fuses, expiry] = await NameWrapper.getData(wrappedTokenId)
+      expect(fuses).to.equal(
+        CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+      )
+      expect(expiry).to.equal(expectedExpiry)
+    })
+
     it('Can be called by an account authorised by the owner', async () => {
       await BaseRegistrar.register(tokenId, account, 1 * DAY)
 
