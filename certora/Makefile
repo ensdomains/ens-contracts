@@ -14,11 +14,10 @@ help:
 	@echo "  make $(MUNGED_DIR): create $(MUNGED_DIR) directory by applying the patch file to $(CONTRACTS_DIR)"
 	@echo "  make record: record a new patch file capturing the differences between $(CONTRACTS_DIR) and $(MUNGED_DIR)"
 
-munged:  $(wildcard $(CONTRACTS_DIR)/*.sol) $(PATCH)
-	rm -rf $@
-	cp -r $(NameWrapper_Origin) $@
-	cp -r $(UpgradeMock_Origin) $@
-	patch -p0 -d $@ < $(PATCH)
+munge:
+	cp $(NameWrapper_Origin) $(MUNGED_DIR)
+	cp $(UpgradeMock_Origin) $(MUNGED_DIR)
+	patch -d $(MUNGED_DIR) < $(PATCH)
 
 record:
 	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' > $(PATCH)

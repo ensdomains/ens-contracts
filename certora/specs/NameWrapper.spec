@@ -45,7 +45,7 @@ methods {
     // Registrar
     registrar.nameExpires(uint256) returns (uint256) envfree
     registrar.isApprovedForAll(address, address) returns (bool) envfree
-    registrar.ownerOf(uint256) returns (address) envfree
+    registrar.ownerOf(uint256) returns (address)
 }
 /**************************************************
 *                 Hashes Definitions              *
@@ -64,6 +64,7 @@ definition CANNOT_CREATE_SUBDOMAIN() returns uint32 = 32;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
 
+definition GRACE_PERIOD() returns uint64 = 7776000;
 definition maxUint32() returns uint32 = 0xffffffff;
 /**************************************************
 *                 Ghosts & Hooks                 *
@@ -72,7 +73,8 @@ definition maxUint32() returns uint32 = 0xffffffff;
 ghost mapping(bytes32 => mapping(uint32 => bytes32)) labelHashMap;
 
 function ghostLabelHash(bytes32 node, uint32 fuses) returns bytes32 {
-    return labelHashMap[node][fuses];
+    uint32 fuses_prime = 0xffffffff & fuses;
+    return labelHashMap[node][fuses_prime];
 }
 /**************************************************
 *              Name States Definitions            *
@@ -113,12 +115,11 @@ function expired(env e, bytes32 node) returns bool {
 *             (Currently unused)
 **************************************************/
 
-// A CVL implementation of _getEthLabelhash_CVL:
+// A CVL implementation of _getEthLabelhash:
 // Can be used to get the labelHash of a node whose parent domain is ETH.
 function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
-    havoc labelhash;
     if(fuses & IS_DOT_ETH() == IS_DOT_ETH()) {
         require node == makeNode(ETH_NODE(), labelhash);
         return labelhash;
@@ -130,7 +131,7 @@ function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
 
 // Integrity of the readLabel function.
 function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, bytes32 _labelhash) {
-    bytes32 labelhash_; havoc labelhash_;
+    bytes32 labelhash_;
     uint256 offset_;
     labelhash_, offset_ = getLabelHashAndOffset(_node);
 
@@ -142,7 +143,6 @@ function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, byte
 // Integrity of the readLabel function.
 function requireReadLabelIntegrity_name(bytes _name, bytes32 _parentNode, bytes32 _node) {
     bytes32 node_; bytes32 parentNode_;
-    havoc node_; havoc parentNode_;
     node_, parentNode_ = makeNodeFromName(_name);
 
     require _node == node_;
@@ -216,38 +216,10 @@ rule cannotWrapTwice(bytes name) {
 
     // Call wrap by e1.msg.sender at e1.block.timestamp
     wrap(e1, name, wrappedOwner, resolver);
-    
-    // Call wrap again by e2.msg.sender at later e2.block.timestamp
-    wrap@withrevert(e2, name, wrappedOtherOwner, resolver);
 
-    assert lastReverted;
-}
-
-rule cannotWrapTwiceNoApproval(bytes name) {
-    // Block environment variables
-    env e1;
-    env e2;
-    // Different msg.senders
-    require e1.msg.sender != e2.msg.sender;
-    require e2.msg.sender != currentContract;
-
-    // Chronological order
-    require e2.block.timestamp >= e1.block.timestamp;
-
-    address wrappedOwner;
-    address wrappedOtherOwner; 
-    require wrappedOwner != wrappedOtherOwner;
-
-    require name.length == 32;
-    address resolver;
-    bytes32 node; bytes32 parentNode;
-        node, parentNode = makeNodeFromName(name);
-
-    // Call wrap by e1.msg.sender at e1.block.timestamp
-    wrap(e1, name, wrappedOwner, resolver);
     // Deny approval
-    require !ens.isApprovedForAll(currentContract, e2.msg.sender);
-
+    //require !ens.isApprovedForAll(currentContract, e2.msg.sender);
+    
     // Call wrap again by e2.msg.sender at later e2.block.timestamp
     wrap@withrevert(e2, name, wrappedOtherOwner, resolver);
 
@@ -496,7 +468,7 @@ rule whoBurnsETHFuse(method f) filtered{f -> !f.isView} {
 rule cannotBurn_CANNOT_UNWRAP_Unless_PARENT_CANNOT_CONTROL_IsBurned(bytes32 node, method f) 
 filtered{f -> !f.isView} {
     env e; 
-    calldataarg args;;
+    calldataarg args;
 
     bool PCC_Before = allFusesBurned(e, node, PARENT_CANNOT_CONTROL());
     bool CUW_Before = allFusesBurned(e, node, CANNOT_UNWRAP());

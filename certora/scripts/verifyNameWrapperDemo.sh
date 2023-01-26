@@ -20,8 +20,7 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --staging master \
 --optimistic_loop \
 --send_only \
---rule cannotRenewExpiredName \
---rule cannotWrapTwice \
+--rule fusesAfterWrap \
 --settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapperDemo"
+--msg "ENS NameWrapperDemo master fusesAfterWrap"

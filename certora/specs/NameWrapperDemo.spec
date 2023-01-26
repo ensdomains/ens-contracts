@@ -53,7 +53,7 @@ methods {
     // Registrar
     registrar.nameExpires(uint256) returns (uint256) envfree
     registrar.isApprovedForAll(address, address) returns (bool) envfree
-    registrar.ownerOf(uint256) returns (address) envfree
+    registrar.ownerOf(uint256) returns (address)
 }
 
 /**************************************************
@@ -72,6 +72,11 @@ definition CANNOT_SET_TTL() returns uint32 = 16;
 definition CANNOT_CREATE_SUBDOMAIN() returns uint32 = 32;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
+
+/**************************************************
+*                 MISC Definitions              *
+**************************************************/
+definition GRACE_PERIOD() returns uint64 = 7776000;
 
 /**************************************************
 *                 Ghosts & Hooks                 *
@@ -117,12 +122,11 @@ function expired(env e, bytes32 node) returns bool {
 /**************************************************
 *             Setup & Helper functions            *
 **************************************************/
-// A CVL implementation of _getEthLabelhash_CVL:
+// A CVL implementation of _getEthLabelhash:
 // Can be used to get the labelHash of a node whose parent domain is ETH.
 function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
-    havoc labelhash;
     if(fuses & IS_DOT_ETH() == IS_DOT_ETH()) {
         require node == makeNode(ETH_NODE(), labelhash);
         return labelhash;
@@ -147,14 +151,15 @@ rule fusesAfterWrap(bytes name) {
     address wrappedOwner;
     address resolver;
 
-    // Assuming first time wrap
-    require _tokens(tokenID) == 0;
+    // Assuming IS_DOT_ETH isn't burned before.
+    uint32 fuses1 = getFusesSuper(tokenID);
+    require (fuses1 & IS_DOT_ETH() != IS_DOT_ETH());
 
     wrap(e, name, wrappedOwner, resolver);
    
-    uint32 fuses = getFusesSuper(tokenID);
+    uint32 fuses2 = getFusesSuper(tokenID);
 
-    assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
+    assert (fuses2 & IS_DOT_ETH() != IS_DOT_ETH());
 }
 
 // Violated
@@ -215,6 +220,8 @@ rule cannotRenewExpiredName(string label) {
     require getEthLabelhash(node) == labelHash;
 
     // Verified when this is applied.
+    // The uint64 casting of nameExpires can lead to earlier expiry than expected.
+    // In general nameExpires is uint256 and can be set by anyone.
     // require registrar.nameExpires(tokenID) < 2^64;
     
     bool expired_ = expired(e1, node);
