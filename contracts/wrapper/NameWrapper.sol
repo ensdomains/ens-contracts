@@ -414,7 +414,7 @@ contract NameWrapper is
             uint256(node)
         );
         _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry, expiry);
-        return ownerControlledFuses;
+        return ownerControlledFuses | oldFuses;
     }
 
     /**
