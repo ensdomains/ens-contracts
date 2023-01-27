@@ -486,24 +486,25 @@ contract NameWrapper is
         // max expiry is set to the expiry of the parent
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
 
+        // Set the expiry between the old expiry and the max expiry. 
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
-        // this flag is used later, when checking fuses
-        bool canModifyParentName = canModifyName(parentNode, msg.sender);
-        // only allow the owner of the name or owner of the parent name
-        if (!canModifyParentName && !canModifyName(node, msg.sender)) {
+        // Allow the owner of the parent name to extend the expiry.
+        if (canModifyName(parentNode, msg.sender)){
+
+            super._setData(uint256(node), owner, fuses, expiry);
+            emit ExpiryExtended(node, expiry);
+
+        } else if (canModifyName(node, msg.sender) && fuses & CAN_EXTEND_EXPIRY > 0){
+            // Allow the owner of the name as long as the fuse CAN_EXTEND_EXPIRY is burned to extend the name.
+
+            super._setData(uint256(node), owner, fuses, expiry);
+            emit ExpiryExtended(node, expiry);
+
+        } else {
             revert Unauthorised(node, msg.sender);
         }
 
-        // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
-        if (!canModifyParentName && fuses & CAN_EXTEND_EXPIRY == 0) {
-            revert OperationProhibited(node);
-        }
-
-
-
-        _setData(node, owner, fuses, expiry);
-        emit ExpiryExtended(node, expiry);
         return expiry;
     }
 

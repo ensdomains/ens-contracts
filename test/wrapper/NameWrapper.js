@@ -2957,8 +2957,9 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(parentExpiry - 3600)
 
       await expect(
-        NameWrapper2.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+        NameWrapper2.extendExpiry(namehash('fuses.eth'), labelhash('sub'), MAX_EXPIRY)
+      ).to.be.revertedWith(`Unauthorised("${namehash('sub.fuses.eth')}", "${account2}")`)
+
     })
 
     it('Allows child owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
@@ -3017,7 +3018,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapperH.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+      ).to.be.revertedWith(`Unauthorised("${subWrappedTokenId}", "${hacker}")`)
     })
 
     it('Allows approved operator of child owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
@@ -3084,13 +3085,14 @@ describe('Name Wrapper', () => {
     it('Does not allow owner of .eth 2LD to set expiry', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
 
-      let [, fuses, expiry] = await NameWrapper.getData(namehash('fuses.eth'))
+      const node = namehash('fuses.eth')
+      let [, fuses, expiry] = await NameWrapper.getData(node)
 
       expect(fuses).to.equal(IS_DOT_ETH | PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
 
       await expect(
         NameWrapper.extendExpiry(namehash('eth'), tokenId, expiry),
-      ).to.be.revertedWith(`OperationProhibited("${wrappedTokenId}")`)
+      ).to.be.revertedWith(`Unauthorised("${node}", "${account}")`)
     })
 
     it('Allows parent owner of non-Emancipated name to set expiry', async () => {
@@ -3367,7 +3369,8 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
+      ).to.be.revertedWith(`Unauthorised("${namehash('sub.fuses.eth')}", "${account2}")`)
+
     })
 
     it('Allow parent owner to set expiry if Emancipated child name has expired', async () => {
