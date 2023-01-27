@@ -481,6 +481,7 @@ contract NameWrapper is
         uint64 expiry
     ) public returns (uint64) {
         bytes32 node = _makeNode(parentNode, labelhash);
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData( uint256(node));
 
         // this flag is used later, when checking fuses
         bool canModifyParentName = canModifyName(parentNode, msg.sender);
@@ -488,10 +489,6 @@ contract NameWrapper is
         if (!canModifyParentName && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
-
-        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
-            uint256(node)
-        );
 
         // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
         if (!canModifyParentName && fuses & CAN_EXTEND_EXPIRY == 0) {
