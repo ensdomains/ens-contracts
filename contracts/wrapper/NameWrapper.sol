@@ -483,6 +483,9 @@ contract NameWrapper is
         bytes32 node = _makeNode(parentNode, labelhash);
         (address owner, uint32 fuses, uint64 oldExpiry) = getData( uint256(node));
 
+        // max expiry is set to the expiry of the parent
+        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+
         // this flag is used later, when checking fuses
         bool canModifyParentName = canModifyName(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
@@ -495,8 +498,7 @@ contract NameWrapper is
             revert OperationProhibited(node);
         }
 
-        // max expiry is set to the expiry of the parent
-        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
         _setData(node, owner, fuses, expiry);
