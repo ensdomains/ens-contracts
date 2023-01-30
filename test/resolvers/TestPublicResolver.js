@@ -1171,7 +1171,7 @@ contract('PublicResolver', function(accounts) {
 
   describe('token approvals', async () => {
     it('permits delegate to be approved', async () => {
-      await resolver.approve(node, accounts[1], true, {
+      await resolver.approve(node, accounts[1], {
         from: accounts[0],
       })
       assert.equal(
@@ -1181,7 +1181,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits delegated users to make changes', async () => {
-      await resolver.approve(node, accounts[1], true, {
+      await resolver.approve(node, accounts[1], {
         from: accounts[0],
       })
       assert.equal(
@@ -1195,7 +1195,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits delegations to be cleared', async () => {
-      await resolver.approve(node, accounts[1], false, {
+      await resolver.approve(node, EMPTY_ADDRESS, {
         from: accounts[0],
       })
       await exceptions.expectFailure(
@@ -1206,7 +1206,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits non-owners to set delegations', async () => {
-      await resolver.approve(node, accounts[2], true, {
+      await resolver.approve(node, accounts[2], {
         from: accounts[1],
       })
 
@@ -1219,7 +1219,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('checks the delegation for the current owner', async () => {
-      await resolver.approve(node, accounts[2], true, {
+      await resolver.approve(node, accounts[2], {
         from: accounts[1],
       })
       await ens.setOwner(node, accounts[1], { from: accounts[0] })
@@ -1233,7 +1233,7 @@ contract('PublicResolver', function(accounts) {
     it('emits a Approved log', async () => {
       var owner = accounts[0]
       var delegate = accounts[1]
-      var tx = await resolver.approve(node, delegate, true, {
+      var tx = await resolver.approve(node, delegate, {
         from: owner,
       })
       assert.equal(tx.logs.length, 1)
@@ -1241,12 +1241,11 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[0].args.owner, owner)
       assert.equal(tx.logs[0].args.node, node)
       assert.equal(tx.logs[0].args.delegate, delegate)
-      assert.equal(tx.logs[0].args.approved, true)
     })
 
     it('reverts if attempting to delegate self as an delegate', async () => {
       await expect(
-        resolver.approve(node, accounts[1], true, { from: accounts[1] })
+        resolver.approve(node, accounts[1], { from: accounts[1] })
       ).to.be.revertedWith('Setting delegate status for self')
     })
   })

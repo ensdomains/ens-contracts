@@ -45,12 +45,12 @@ contract PublicResolver is
     mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     /**
-     * A mapping of delegates. A delegate that is authorised by an owner
+     * A mapping of delegates. The delegate that is set by an owner
      * for a name may make changes to the name's resolver, but may not update
      * the set of token approvals.
      * (owner, name, delegate) => approved
      */
-    mapping(address => mapping(bytes32 => mapping(address => bool))) private _tokenApprovals;
+    mapping(address => mapping(bytes32 => address)) private _tokenApprovals;
 
     // Logged when an operator is added or removed.
     event ApprovalForAll(
@@ -63,8 +63,7 @@ contract PublicResolver is
     event Approved(
         address owner,
         bytes32 indexed node,
-        address indexed delegate,
-        bool indexed approved
+        address indexed delegate
     );
 
     constructor(
@@ -107,14 +106,14 @@ contract PublicResolver is
     /**
      * @dev Approve a delegate to be able to updated records on a node.
      */
-    function approve(bytes32 node, address delegate, bool approved) external {
+    function approve(bytes32 node, address delegate) external {
         require(
             msg.sender != delegate,
             "Setting delegate status for self"
         );
 
-        _tokenApprovals[msg.sender][node][delegate] = approved;
-        emit Approved(msg.sender, node, delegate, approved);
+        _tokenApprovals[msg.sender][node] = delegate;
+        emit Approved(msg.sender, node, delegate);
     }
 
     /**
@@ -125,7 +124,7 @@ contract PublicResolver is
         view
         returns (bool)
     {
-        return _tokenApprovals[owner][node][delegate];
+        return _tokenApprovals[owner][node] == delegate;
     }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
