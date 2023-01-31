@@ -20,8 +20,8 @@ munge:
 	patch -d $(MUNGED_DIR) < $(PATCH)
 
 record:
-	diff -ruN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' > $(PATCH)
-	diff -ruN $(UpgradeMock_Origin) $(UpgradeMock_munged) | sed 's+\$(UpgradeMock_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
+	diff -burN $(NameWrapper_Origin) $(NameWrapper_munged) | sed 's+\$(NameWrapper_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' > $(PATCH)
+	diff -burN $(UpgradeMock_Origin) $(UpgradeMock_munged) | sed 's+\$(UpgradeMock_Origin)/++g' | sed 's+$(NameWrapper_munged)++g' >> $(PATCH)
 
 clean:
 	git clean -fdX

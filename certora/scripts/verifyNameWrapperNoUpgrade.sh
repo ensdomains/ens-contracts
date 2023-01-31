@@ -19,9 +19,9 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --loop_iter 2 \
 --optimistic_loop \
 --send_only \
---staging jtoman/cert-589-pt2 \
---rule setSubnodeRecordStateTransition \
+--staging master \
+--rule cannotWrapEthTwice \
 --rule_sanity \
 --settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapper: setSubnodeRecordStateTransition"
+--msg "ENS NameWrapper: cannotWrapEthTwice"

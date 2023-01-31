@@ -1,5 +1,5 @@
 --- ../contracts/wrapper/NameWrapper.sol	2023-01-16 09:39:00.249678600 +0200
-+++ 	2023-01-19 16:53:10.035289800 +0200
++++ 	2023-01-26 10:36:29.472562000 +0200
 @@ -1,17 +1,18 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ~0.8.17;
@@ -101,13 +101,11 @@
          uint64 expiry
      )
 -        public
--        onlyTokenOwner(parentNode)
--        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
 +        public virtual
 +        /*
 +         Certora: remove modifiers (move to harness)
-+         onlyTokenOwner(parentNode)
-+         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
+         onlyTokenOwner(parentNode)
+         canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
 +        */
          returns (bytes32 node)
      {
@@ -135,21 +133,22 @@
          returns (bytes32)
      {
 --- ../contracts/wrapper/mocks/UpgradedNameWrapperMock.sol	2022-12-19 10:33:11.665301400 +0200
-+++ ./munged/UpgradedNameWrapperMock.sol	2023-01-19 16:53:10.035289800 +0200
++++ ./munged/UpgradedNameWrapperMock.sol	2023-01-26 10:36:29.491008800 +0200
 @@ -1,13 +1,13 @@
  //SPDX-License-Identifier: MIT
  pragma solidity ^0.8.4;
 -import "../INameWrapper.sol";
 -import "../../registry/ENS.sol";
 -import "../../ethregistrar/IBaseRegistrar.sol";
-+import "../../contracts/wrapper/INameWrapperUpgrade.sol";
-+import "../../contracts/registry/ENS.sol";
-+import "../../contracts/ethregistrar/IBaseRegistrar.sol";
- 
+-
 -contract UpgradedNameWrapperMock {
 -    address public immutable oldNameWrapper;
 -    ENS public immutable ens;
 -    IBaseRegistrar public immutable registrar;
++import "../../contracts/wrapper/INameWrapperUpgrade.sol";
++import "../../contracts/registry/ENS.sol";
++import "../../contracts/ethregistrar/IBaseRegistrar.sol";
++
 +contract UpgradedNameWrapperMock is INameWrapperUpgrade {
 +    address public oldNameWrapper;
 +    ENS public ens;

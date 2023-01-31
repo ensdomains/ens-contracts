@@ -259,14 +259,15 @@ rule fusesAfterWrap(bytes name) {
     address wrappedOwner;
     address resolver;
 
-    // Assuming first time wrap
-    require _tokens(tokenID) == 0;
+    // Assuming IS_DOT_ETH isn't burned before.
+    uint32 fuses1 = getFusesSuper(tokenID);
+    require (fuses1 & IS_DOT_ETH() != IS_DOT_ETH());
 
     wrap(e, name, wrappedOwner, resolver);
    
-    uint32 fuses = getFusesSuper(tokenID);
+    uint32 fuses2 = getFusesSuper(tokenID);
 
-    assert (fuses & IS_DOT_ETH() != IS_DOT_ETH());
+    assert (fuses2 & IS_DOT_ETH() != IS_DOT_ETH());
 }
 
 // Verified

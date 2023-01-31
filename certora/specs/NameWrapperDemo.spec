@@ -140,7 +140,7 @@ function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
 *              Wrapping Rules                     *
 **************************************************/
 
-// Violated if removing 'first time wrap' assumption
+// Verified
 rule fusesAfterWrap(bytes name) {
     env e;
     require name.length == 32;
@@ -235,8 +235,7 @@ rule cannotRenewExpiredName(string label) {
 **************************************************/
 
 // Verified
-rule fusesNotBurntAfterExpiration(bytes32 node, uint32 fuseMask)
-{
+rule fusesNotBurntAfterExpiration(bytes32 node, uint32 fuseMask) {
     env e;
     require expired(e, node) && fuseMask != 0;
     assert !allFusesBurned(e, node, fuseMask);

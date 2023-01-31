@@ -22,7 +22,7 @@ contract NameWrapperHarness is NameWrapper {
 
     /**
     * @notice : leaving empty, scope ignores upgrade contract
-    */
+     */ 
     function upgradeETH2LD(
         string calldata label,
         address wrappedOwner,
@@ -38,6 +38,7 @@ contract NameWrapperHarness is NameWrapper {
         address wrappedOwner,
         address resolver
     ) public override {}
+    
 
     /**
     * @notice : Modifiers have been moved here to avoid stack too deep errors
