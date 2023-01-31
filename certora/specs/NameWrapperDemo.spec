@@ -76,7 +76,7 @@ definition IS_DOT_ETH() returns uint32 = 2^17;
 /**************************************************
 *                 MISC Definitions              *
 **************************************************/
-definition GRACE_PERIOD() returns uint64 = 7776000;
+definition GRACE_PERIOD() returns uint64 = 7776000; // 90 * 24 * 60 * 60 sec
 
 /**************************************************
 *                 Ghosts & Hooks                 *

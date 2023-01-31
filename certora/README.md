@@ -2,7 +2,7 @@
 The current directory contains Certora's formal verification of ENS NameWrapper contract.
 In this directory you will find five sub-directories:
 
-1. specs - Contains all the specification files that were written by Certora for the asserter contract verification.
+1. specs - Contains all the specification files that were written by Certora for the NameWrapper contract verification.
 
 - `NameWrapperDemo.spec`  - The main specification file for the NameWrapper contract.
 Contains everything needed for the verification of the contract. Includes methods block, definitions, CVL functions, rules etc.
@@ -14,6 +14,7 @@ Contains everything needed for the verification of the contract. Includes method
 - `verifyNameWrapperNoUpgrade.sh` is a script for running of the `NameWrapper.spec` on the  `NameWrapperHarness.sol` contract. 
 
 The run scripts include more contracts like the ENSRegistry or the BaseRegistrarImplementation so that they will be considered into the scope and their implementations would be used. Currently the scope of both scripts omits the upgraded NameWrapper contract and its relevant functions inside `NameWrapper.sol`.
+To run a specific rule rather than the entire spec, add `--rule [name of rule]` to the script file. One can add several lines this way.
 
 3. harness - Contains all the inheriting contracts that add/simplify functionalities to the original contract, together with our own Mock contracts
 

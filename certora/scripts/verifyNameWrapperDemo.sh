@@ -21,8 +21,6 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --optimistic_loop \
 --send_only \
 --rule_sanity \
---rule fusesAfterWrap \
---typecheck_only \
---settings -t=1600,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
+--settings -t=1000,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapperDemo master fusesAfterWrap"
+--msg "ENS NameWrapperDemo"

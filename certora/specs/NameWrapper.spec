@@ -64,8 +64,7 @@ definition CANNOT_CREATE_SUBDOMAIN() returns uint32 = 32;
 definition PARENT_CANNOT_CONTROL() returns uint32 = 2^16;
 definition IS_DOT_ETH() returns uint32 = 2^17;
 
-definition GRACE_PERIOD() returns uint64 = 7776000;
-definition maxUint32() returns uint32 = 0xffffffff;
+definition GRACE_PERIOD() returns uint64 = 7776000; // 90 * 24 * 60 * 60 sec
 /**************************************************
 *                 Ghosts & Hooks                 *
 **************************************************/
