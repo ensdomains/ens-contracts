@@ -5,7 +5,7 @@ import "../ResolverBase.sol";
 import "./IContentHashResolver.sol";
 
 abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
-    mapping(bytes32 => bytes) hashes;
+    mapping(uint64 => mapping(bytes32 => bytes)) versionable_hashes;
 
     /**
      * Sets the contenthash associated with an ENS node.
@@ -18,7 +18,7 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         virtual
         authorised(node)
     {
-        hashes[node] = hash;
+        versionable_hashes[recordVersions[node]][node] = hash;
         emit ContenthashChanged(node, hash);
     }
 
@@ -34,7 +34,7 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         override
         returns (bytes memory)
     {
-        return hashes[node];
+        return versionable_hashes[recordVersions[node]][node];
     }
 
     function supportsInterface(bytes4 interfaceID)

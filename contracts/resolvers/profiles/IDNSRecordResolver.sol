@@ -11,8 +11,6 @@ interface IDNSRecordResolver {
     );
     // DNSRecordDeleted is emitted whenever a given node/name/resource's RRSET is deleted.
     event DNSRecordDeleted(bytes32 indexed node, bytes name, uint16 resource);
-    // DNSZoneCleared is emitted whenever a given node's zone information is cleared.
-    event DNSZoneCleared(bytes32 indexed node);
 
     /**
      * Obtain a DNS record.

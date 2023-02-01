@@ -5,8 +5,8 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { keccak256 } from 'js-sha3'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy, fetchIfDifferent } = deployments
+  const { getNamedAccounts, deployments, network } = hre
+  const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   const registry = await ethers.getContract('ENSRegistry')
@@ -15,11 +15,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [registry.address],
     log: true,
-  };
-  const { differences } = await fetchIfDifferent('ReverseRegistrar', deployArgs);
-  if(!differences) return;
+  }
+  const reverseRegistrar = await deploy('ReverseRegistrar', deployArgs)
+  if (!reverseRegistrar.newlyDeployed) return
 
-  const reverseRegistrar = await deploy('ReverseRegistrar', deployArgs);
+  if (owner !== deployer) {
+    const r = await ethers.getContract('ReverseRegistrar', deployer)
+    const tx = await r.transferOwnership(owner)
+    console.log(
+      `Transferring ownership of ReverseRegistrar to ${owner} (tx: ${tx.hash})...`,
+    )
+    await tx.wait()
+  }
+
+  // Only attempt to make controller etc changes directly on testnets
+  if (network.name === 'mainnet') return
 
   const root = await ethers.getContract('Root')
 
@@ -43,7 +53,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.id = 'reverse-registrar'
-func.tags = ['registry', 'ReverseRegistrar']
+func.tags = ['ReverseRegistrar']
 func.dependencies = ['root']
 
 export default func

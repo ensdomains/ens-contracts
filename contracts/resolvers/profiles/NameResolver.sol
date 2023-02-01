@@ -5,7 +5,7 @@ import "../ResolverBase.sol";
 import "./INameResolver.sol";
 
 abstract contract NameResolver is INameResolver, ResolverBase {
-    mapping(bytes32 => string) names;
+    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
     /**
      * Sets the name associated with an ENS node, for reverse records.
@@ -17,7 +17,7 @@ abstract contract NameResolver is INameResolver, ResolverBase {
         virtual
         authorised(node)
     {
-        names[node] = newName;
+        versionable_names[recordVersions[node]][node] = newName;
         emit NameChanged(node, newName);
     }
 
@@ -34,7 +34,7 @@ abstract contract NameResolver is INameResolver, ResolverBase {
         override
         returns (string memory)
     {
-        return names[node];
+        return versionable_names[recordVersions[node]][node];
     }
 
     function supportsInterface(bytes4 interfaceID)

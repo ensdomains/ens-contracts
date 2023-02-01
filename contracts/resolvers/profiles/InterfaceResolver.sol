@@ -7,7 +7,7 @@ import "./AddrResolver.sol";
 import "./IInterfaceResolver.sol";
 
 abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
-    mapping(bytes32 => mapping(bytes4 => address)) interfaces;
+    mapping(uint64 => mapping(bytes32 => mapping(bytes4 => address))) versionable_interfaces;
 
     /**
      * Sets an interface associated with a name.
@@ -21,7 +21,7 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         bytes4 interfaceID,
         address implementer
     ) external virtual authorised(node) {
-        interfaces[node][interfaceID] = implementer;
+        versionable_interfaces[recordVersions[node]][node][interfaceID] = implementer;
         emit InterfaceChanged(node, interfaceID, implementer);
     }
 
@@ -42,7 +42,7 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         override
         returns (address)
     {
-        address implementer = interfaces[node][interfaceID];
+        address implementer = versionable_interfaces[recordVersions[node]][node][interfaceID];
         if (implementer != address(0)) {
             return implementer;
         }

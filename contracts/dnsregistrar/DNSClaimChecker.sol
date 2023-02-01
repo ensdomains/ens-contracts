@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
 import "../dnssec-oracle/DNSSEC.sol";
@@ -13,41 +14,25 @@ library DNSClaimChecker {
     uint16 constant CLASS_INET = 1;
     uint16 constant TYPE_TXT = 16;
 
-    function getOwnerAddress(
-        DNSSEC oracle,
-        bytes memory name,
-        bytes memory proof
-    ) internal view returns (address, bool) {
+    function getOwnerAddress(bytes memory name, bytes memory data)
+        internal
+        pure
+        returns (address, bool)
+    {
         // Add "_ens." to the front of the name.
         Buffer.buffer memory buf;
         buf.init(name.length + 5);
         buf.append("\x04_ens");
         buf.append(name);
-        bytes20 hash;
-        uint32 expiration;
-        // Check the provided TXT record has been validated by the oracle
-        (, expiration, hash) = oracle.rrdata(TYPE_TXT, buf.buf);
-        if (hash == bytes20(0) && proof.length == 0)
-            return (address(0x0), false);
-
-        require(hash == bytes20(keccak256(proof)));
 
         for (
-            RRUtils.RRIterator memory iter = proof.iterateRRs(0);
+            RRUtils.RRIterator memory iter = data.iterateRRs(0);
             !iter.done();
             iter.next()
         ) {
-            require(
-                RRUtils.serialNumberGte(
-                    expiration + iter.ttl,
-                    uint32(block.timestamp)
-                ),
-                "DNS record is stale; refresh or delete it before proceeding."
-            );
-
             bool found;
             address addr;
-            (addr, found) = parseRR(proof, iter.rdataOffset);
+            (addr, found) = parseRR(data, iter.rdataOffset);
             if (found) {
                 return (addr, true);
             }

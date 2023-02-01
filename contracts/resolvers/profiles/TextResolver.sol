@@ -5,7 +5,7 @@ import "../ResolverBase.sol";
 import "./ITextResolver.sol";
 
 abstract contract TextResolver is ITextResolver, ResolverBase {
-    mapping(bytes32 => mapping(string => string)) texts;
+    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
 
     /**
      * Sets the text data associated with an ENS node and key.
@@ -19,7 +19,7 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
         string calldata key,
         string calldata value
     ) external virtual authorised(node) {
-        texts[node][key] = value;
+        versionable_texts[recordVersions[node]][node][key] = value;
         emit TextChanged(node, key, key, value);
     }
 
@@ -36,7 +36,7 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
         override
         returns (string memory)
     {
-        return texts[node][key];
+        return versionable_texts[recordVersions[node]][node][key];
     }
 
     function supportsInterface(bytes4 interfaceID)
