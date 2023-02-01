@@ -228,7 +228,17 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             (uint256(expiry) << 192);
     }
 
-    function _preTransferCheck(uint256 id, uint32 fuses, uint64 expiry) internal virtual returns (bool);
+    function _preTransferCheck(
+        uint256 id,
+        uint32 fuses,
+        uint64 expiry
+    ) internal virtual returns (bool);
+
+    function _clearOwnerAndFuses(
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    ) internal virtual returns (address, uint32);
 
     function _mint(
         bytes32 node,
@@ -272,10 +282,13 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     }
 
     function _burn(uint256 tokenId) internal virtual {
-        (address owner, uint32 fuses, uint64 expiry) = getData(tokenId);
+        (address oldOwner, uint32 fuses, uint64 expiry) = ERC1155Fuse.getData(
+            tokenId
+        );
+        (, fuses) = _clearOwnerAndFuses(oldOwner, fuses, expiry);
         // Fuses and expiry are kept on burn
         _setData(tokenId, address(0x0), fuses, expiry);
-        emit TransferSingle(msg.sender, owner, address(0x0), tokenId, 1);
+        emit TransferSingle(msg.sender, oldOwner, address(0x0), tokenId, 1);
     }
 
     function _transfer(
