@@ -1,3 +1,4 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib"
+    "solidity.defaultCompiler": "localFile",
+    "solidity.compileUsingLocalVersion": "C:\\Users\\Roy\\Documents\\GitHub\\Certora\\ens-contracts\\soljson-v0.8.17+commit.8df45f5f.js"
 }
