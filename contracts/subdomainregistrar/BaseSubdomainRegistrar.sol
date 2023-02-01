@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
+import {INameWrapper, PARENT_CANNOT_CONTROL, IS_DOT_ETH} from "../wrapper/INameWrapper.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -19,13 +19,14 @@ abstract contract BaseSubdomainRegistrar {
 
     event NameRegistered(bytes32 node, uint256 expiry);
     event NameRenewed(bytes32 node, uint256 expiry);
+    uint64 private GRACE_PERIOD = 90 days;
 
     constructor(address _wrapper) {
         wrapper = INameWrapper(_wrapper);
     }
 
     modifier onlyOwner(bytes32 node) {
-        if (!wrapper.isTokenOwnerOrApproved(node, msg.sender)) {
+        if (!wrapper.canModifyName(node, msg.sender)) {
             revert Unauthorised(node);
         }
         _;
@@ -40,9 +41,13 @@ abstract contract BaseSubdomainRegistrar {
     function _checkParent(bytes32 node, uint256 duration) internal {
         try wrapper.getData(uint256(node)) returns (
             address,
-            uint32,
+            uint32 fuses,
             uint64 expiry
         ) {
+            if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+                expiry = expiry - GRACE_PERIOD;
+            }
+
             if (block.timestamp > expiry) {
                 revert ParentExpired(node);
             }

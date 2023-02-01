@@ -130,7 +130,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -163,13 +162,7 @@ describe('Subdomain registrar', () => {
     it('should not allow subdomains to be created on unapproved parents', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        0,
-        MAX_EXPIRY,
-        EMPTY_ADDRESS,
-      )
+      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await Erc20.approve(
@@ -201,7 +194,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -224,13 +216,7 @@ describe('Subdomain registrar', () => {
       const node = namehash('test.eth')
       await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        0,
-        MAX_EXPIRY,
-        EMPTY_ADDRESS,
-      )
+      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
@@ -260,7 +246,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -300,7 +285,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -333,13 +317,7 @@ describe('Subdomain registrar', () => {
     it('should revert if parent is expired', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        0,
-        MAX_EXPIRY,
-        EMPTY_ADDRESS,
-      )
+      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
@@ -375,7 +353,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -412,7 +389,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -456,7 +432,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
@@ -512,7 +487,6 @@ describe('Subdomain registrar', () => {
         'test',
         account,
         CANNOT_UNWRAP,
-        MAX_EXPIRY,
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
