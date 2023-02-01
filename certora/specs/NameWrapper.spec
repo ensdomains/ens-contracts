@@ -19,9 +19,6 @@ methods {
     onERC1155Received(address, address, uint256, uint256, bytes) returns (bytes4) => DISPATCHER(true)
     onERC1155BatchReceived(address, address, uint256[], uint256[], bytes) returns (bytes4) => DISPATCHER(true)
     
-    // NameWrapper internal
-    //_getEthLabelhash(bytes32 node, uint32 fuses) returns(bytes32) => ghostLabelHash(node, fuses)
-
     // NameWrapper harness
     getLabelHashAndOffset(bytes32) returns (bytes32,uint256) envfree
     getParentNodeByNode(bytes32) returns (bytes32) envfree
@@ -32,7 +29,6 @@ methods {
     getDataSuper(uint256) returns (address, uint32, uint64) envfree
     getFusesSuper(uint256) returns (uint32) envfree
     getLabelHash(string) returns (bytes32) envfree
-    getEthLabelhash(bytes32) returns (bytes32) envfree
 
     // upgraded contract
     //setSubnodeRecord(bytes32, string, address, address, uint64, uint32, uint64) => DISPATCHER(true)
@@ -113,9 +109,9 @@ function expired(env e, bytes32 node) returns bool {
 *             Setup & Helper functions            *
 *             (Currently unused)
 **************************************************/
-
 // A CVL implementation of _getEthLabelhash:
 // Can be used to get the labelHash of a node whose parent domain is ETH.
+/*
 function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
@@ -127,6 +123,7 @@ function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
         return 0;
     }
 }
+*/
 
 // Integrity of the readLabel function.
 function requireReadLabelIntegrity_node(bytes32 _node, bytes32 _parentNode, bytes32 _labelhash) {
@@ -396,7 +393,6 @@ rule cannotRenewExpiredName(string label) {
     uint256 duration;
     bytes32 node = makeNode(ETH_NODE(), labelHash);
     uint256 tokenID = tokenIDFromNode(labelHash);
-    require getEthLabelhash(node) == labelHash;
 
     // Verified when this is applied.
     //require registrar.nameExpires(tokenID) < 2^64;

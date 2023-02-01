@@ -5,7 +5,6 @@ import {IMetadataService} from "../../contracts/wrapper/IMetadataService.sol";
 import {ENS} from "../../contracts/registry/ENS.sol";
 import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
 import {NameWrapper} from "../munged/NameWrapper.sol";
-//import {BytesUtils} from "../../contracts/wrapper/BytesUtils.sol";
 import {BytesUtils} from "./BytesUtilsHarness.sol";
 
 contract NameWrapperHarness is NameWrapper {
@@ -54,7 +53,6 @@ contract NameWrapperHarness is NameWrapper {
     )
         public override
         onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
         require (bytes(label).length == 32);
@@ -77,7 +75,6 @@ contract NameWrapperHarness is NameWrapper {
     )
         public override
         onlyTokenOwner(parentNode)
-        canCallSetSubnodeOwner(parentNode, keccak256(bytes(label)))
         returns (bytes32 node)
     {
         require (bytes(label).length == 32);
@@ -124,16 +121,6 @@ contract NameWrapperHarness is NameWrapper {
      */
     function getExpiry(bytes32 node) external view returns (uint64 expiry) {
         ( , , expiry) = getData(uint256(node));
-    }
-
-    /**
-    * calls _getEthLabelhash(node, fuses) and returns the labelhash.
-     */
-    function getEthLabelhash(bytes32 node) external view 
-    returns (bytes32 labelhash) 
-    {
-        (, uint32 fuses, ) = getDataSuper(uint256(node));
-        return _getEthLabelhash(node, fuses);
     }
 
     /**

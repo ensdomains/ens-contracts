@@ -23,4 +23,4 @@ certoraRun ./certora/harness/NameWrapperHarness.sol \
 --rule_sanity \
 --settings -t=1000,-mediumTimeout=40,-copyLoopUnroll=3,-optimisticUnboundedHashing=true \
 --settings -recursionEntryLimit=2,-recursionErrorAsAssert=false \
---msg "ENS NameWrapperDemo"
+--msg "ENS NameWrapper Demo"

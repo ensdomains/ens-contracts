@@ -44,7 +44,6 @@ methods {
     getDataSuper(uint256) returns (address, uint32, uint64) envfree
     getFusesSuper(uint256) returns (uint32) envfree
     getLabelHash(string) returns (bytes32) envfree
-    getEthLabelhash(bytes32) returns (bytes32) envfree
 
     // ENSRegistry
     ens.owner(bytes32) returns (address) envfree
@@ -122,8 +121,10 @@ function expired(env e, bytes32 node) returns bool {
 /**************************************************
 *             Setup & Helper functions            *
 **************************************************/
+
 // A CVL implementation of _getEthLabelhash:
 // Can be used to get the labelHash of a node whose parent domain is ETH.
+/*
 function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
     uint32 fuses = getFusesSuper(tokenIDFromNode(node));
     bytes32 labelhash;
@@ -135,6 +136,7 @@ function getEthLabelhash_CVL(bytes32 node) returns bytes32 {
         return 0;
     }
 }
+*/
 
 /**************************************************
 *              Wrapping Rules                     *
@@ -217,9 +219,7 @@ rule cannotRenewExpiredName(string label) {
     uint256 duration;
     bytes32 node = makeNode(ETH_NODE(), labelHash);
     uint256 tokenID = tokenIDFromNode(labelHash);
-    require getEthLabelhash(node) == labelHash;
 
-    // Verified when this is applied.
     // The uint64 casting of nameExpires can lead to earlier expiry than expected.
     // In general nameExpires is uint256 and can be set by anyone.
     // require registrar.nameExpires(tokenID) < 2^64;
