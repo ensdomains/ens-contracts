@@ -868,7 +868,7 @@ contract('ETHRegistrarController', function () {
       { value: BUFFERED_REGISTRATION_COST },
     )
 
-    await resolver2.setApprovalForAll(controller.address, true)
+    await resolver2.setApprovalForAll(controller.address)
 
     const gasB = await controller2.estimateGas.register(
       label,
