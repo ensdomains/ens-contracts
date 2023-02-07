@@ -34,7 +34,7 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
         string calldata label,
         address newOwner,
         address resolver,
-        uint32 fuses,
+        uint16 fuses,
         bytes[] calldata records
     ) public payable {
         uint256 fee = names[parentNode].registrationFee;

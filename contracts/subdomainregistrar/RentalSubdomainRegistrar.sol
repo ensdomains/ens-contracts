@@ -35,7 +35,7 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
         string calldata label,
         address newOwner,
         address resolver,
-        uint32 fuses,
+        uint16 fuses,
         uint64 duration,
         bytes[] calldata records
     ) public payable {

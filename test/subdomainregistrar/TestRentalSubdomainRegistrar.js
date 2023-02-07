@@ -7,7 +7,7 @@ const namehash = n.hash
 const { FUSES } = require('../test-utils/ens')
 const { deploy } = require('../test-utils/contracts')
 
-const { CANNOT_UNWRAP } = FUSES
+const { CANNOT_UNWRAP, PARENT_CANNOT_CONTROL } = FUSES
 
 use(solidity)
 
@@ -28,7 +28,7 @@ function mine() {
   return ethers.provider.send('evm_mine')
 }
 
-describe('Subdomain registrar', () => {
+describe('Rental Subdomain registrar', () => {
   let EnsRegistry
   let BaseRegistrar
   let NameWrapper
@@ -154,10 +154,13 @@ describe('Subdomain registrar', () => {
         duration,
         [],
       )
+      const block = await ethers.provider.getBlock('latest')
       const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
       expect(balanceBefore.sub(balanceAfter)).to.equal(fee)
-
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
+      expect(owner).to.equal(account2)
+      expect(expiry).to.equal(block.timestamp + duration)
+      expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
     })
     it('should not allow subdomains to be created on unapproved parents', async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
@@ -197,6 +200,7 @@ describe('Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      const duration = 86400
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(node, EMPTY_ADDRESS, 0, account)
       await SubdomainRegistrar2.register(
@@ -205,11 +209,14 @@ describe('Subdomain registrar', () => {
         account2,
         EMPTY_ADDRESS,
         0,
-        86400,
+        duration,
         [],
       )
-
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      const block = await ethers.provider.getBlock('latest')
+      const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
+      expect(owner).to.equal(account2)
+      expect(expiry).to.equal(block.timestamp + duration)
+      expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
     })
 
     it('should revert if user has insufficient balance of the token', async () => {
@@ -271,11 +278,11 @@ describe('Subdomain registrar', () => {
 
       expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
 
-      await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
+      await SubdomainRegistrar2.renew(node, labelhash('subname'), 500)
       const [, , expiry2] = await NameWrapper.getData(
         namehash('subname.test.eth'),
       )
-      expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
+      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 500)
     })
 
     it('should allow subdomains to be renewed even with 0 registration fee', async () => {
@@ -311,7 +318,7 @@ describe('Subdomain registrar', () => {
         namehash('subname.test.eth'),
       )
 
-      expect(expiry2.toNumber()).to.be.greaterThan(expiry.toNumber())
+      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 86400)
     })
 
     it('should revert if parent is expired', async () => {
