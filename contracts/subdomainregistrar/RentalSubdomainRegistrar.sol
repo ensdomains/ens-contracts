@@ -2,7 +2,6 @@
 pragma solidity ^0.8.15;
 
 import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
@@ -13,11 +12,10 @@ struct Name {
     address beneficiary;
 }
 
-contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
-    using Address for address;
+error ParentWillHaveExpired(bytes32 node);
 
+contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
     mapping(bytes32 => Name) public names;
-    mapping(bytes32 => uint256) public expiries;
 
     constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}
 
@@ -30,18 +28,6 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
         names[node].registrationFee = fee;
         names[node].token = token;
         names[node].beneficiary = beneficiary;
-    }
-
-    function available(bytes32 node) public returns (bool) {
-        try wrapper.getData(uint256(node)) returns (
-            address,
-            uint32,
-            uint64 expiry
-        ) {
-            return expiry < block.timestamp;
-        } catch {
-            return true;
-        }
     }
 
     function register(
@@ -181,47 +167,6 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
 
     /* Internal Functions */
 
-    function _register(
-        bytes32 parentNode,
-        string calldata label,
-        address newOwner,
-        address resolver,
-        uint32 fuses,
-        uint64 duration,
-        bytes[] calldata records
-    ) internal {
-        bytes32 node = keccak256(
-            abi.encodePacked(parentNode, keccak256(bytes(label)))
-        );
-
-        if (!available(node)) {
-            revert Unavailable();
-        }
-
-        if (records.length > 0) {
-            wrapper.setSubnodeOwner(
-                parentNode,
-                label,
-                address(this),
-                0,
-                uint64(block.timestamp + duration)
-            );
-            _setRecords(node, resolver, records);
-        }
-
-        wrapper.setSubnodeRecord(
-            parentNode,
-            label,
-            newOwner,
-            resolver,
-            0,
-            fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
-            uint64(block.timestamp + duration)
-        );
-
-        emit NameRegistered(node, uint64(block.timestamp + duration));
-    }
-
     function _renew(
         bytes32 parentNode,
         bytes32 labelhash,
@@ -240,22 +185,11 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
         emit NameRenewed(node, newExpiry);
     }
 
-    function _setRecords(
-        bytes32 node,
-        address resolver,
-        bytes[] calldata records
-    ) internal {
-        for (uint256 i = 0; i < records.length; i++) {
-            // check first few bytes are namehash
-            bytes32 txNamehash = bytes32(records[i][4:36]);
-            require(
-                txNamehash == node,
-                "SubdomainRegistrar: Namehash on record do not match the name being registered"
-            );
-            resolver.functionCall(
-                records[i],
-                "SubdomainRegistrar: Failed to set Record"
-            );
+    function _checkParent(bytes32 parentNode, uint64 duration) internal {
+        (, uint64 parentExpiry) = super._checkParent(parentNode);
+
+        if (duration + block.timestamp > parentExpiry) {
+            revert ParentWillHaveExpired(parentNode);
         }
     }
 
