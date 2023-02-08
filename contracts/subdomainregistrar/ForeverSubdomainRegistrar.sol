@@ -1,11 +1,12 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
+import {INameWrapper, PARENT_CANNOT_CONTROL, CAN_EXTEND_EXPIRY} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
+import "hardhat/console.sol";
 
 struct Name {
     uint256 registrationFee; // per registration
@@ -50,14 +51,17 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
                 fee
             );
         }
+        console.log(newOwner);
+
+        (, , uint64 parentExpiry) = wrapper.getData(uint256(parentNode));
 
         _register(
             parentNode,
             label,
             newOwner,
             resolver,
-            fuses,
-            type(uint64).max,
+            uint32(fuses) | CAN_EXTEND_EXPIRY,
+            parentExpiry,
             records
         );
     }

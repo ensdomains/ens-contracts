@@ -57,7 +57,7 @@ abstract contract BaseSubdomainRegistrar {
         address newOwner,
         address resolver,
         uint32 fuses,
-        uint64 duration,
+        uint64 expiry,
         bytes[] calldata records
     ) internal {
         bytes32 node = keccak256(
@@ -74,7 +74,7 @@ abstract contract BaseSubdomainRegistrar {
                 label,
                 address(this),
                 0,
-                uint64(block.timestamp + duration)
+                expiry
             );
             _setRecords(node, resolver, records);
         }
@@ -86,10 +86,10 @@ abstract contract BaseSubdomainRegistrar {
             resolver,
             0,
             fuses | PARENT_CANNOT_CONTROL, // burn the ability for the parent to control
-            uint64(block.timestamp + duration)
+            expiry
         );
 
-        emit NameRegistered(node, uint64(block.timestamp + duration));
+        emit NameRegistered(node, expiry);
     }
 
     function _setRecords(

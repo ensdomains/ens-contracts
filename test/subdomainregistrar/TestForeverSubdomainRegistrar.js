@@ -7,7 +7,7 @@ const namehash = n.hash
 const { FUSES } = require('../test-utils/ens')
 const { deploy } = require('../test-utils/contracts')
 
-const { CANNOT_UNWRAP } = FUSES
+const { CANNOT_UNWRAP, CAN_EXTEND_EXPIRY, PARENT_CANNOT_CONTROL } = FUSES
 
 use(solidity)
 
@@ -28,7 +28,7 @@ function mine() {
   return ethers.provider.send('evm_mine')
 }
 
-describe('Subdomain registrar', () => {
+describe('Forever Subdomain registrar', () => {
   let EnsRegistry
   let BaseRegistrar
   let NameWrapper
@@ -124,7 +124,8 @@ describe('Subdomain registrar', () => {
 
   describe('register', () => {
     it('should allow subdomains to be created', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
+      const parentDuration = 86400 * 2
+      await BaseRegistrar.register(labelhash('test'), account, parentDuration)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD(
         'test',
@@ -132,14 +133,13 @@ describe('Subdomain registrar', () => {
         CANNOT_UNWRAP,
         EMPTY_ADDRESS,
       )
+      const [, , parentExpiry] = await NameWrapper.getData(node)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
-      const duration = 86400
-      const fee =
-        (await SubdomainRegistrar.names(namehash('test.eth'))).registrationFee *
-        duration
+      const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
+        .registrationFee
 
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
@@ -155,8 +155,11 @@ describe('Subdomain registrar', () => {
       )
       const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
       expect(balanceBefore.sub(balanceAfter)).to.equal(fee)
+      const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
 
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+      expect(owner).to.equal(account2)
+      expect(expiry).to.equal(parentExpiry)
+      expect(fuses).to.equal(CAN_EXTEND_EXPIRY | PARENT_CANNOT_CONTROL)
     })
   })
 })

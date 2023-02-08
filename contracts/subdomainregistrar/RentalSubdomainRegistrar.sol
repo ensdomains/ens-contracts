@@ -61,7 +61,7 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
             newOwner,
             resolver,
             fuses,
-            duration,
+            uint64(block.timestamp) + duration,
             records
         );
     }
@@ -126,7 +126,7 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
                 addresses[i],
                 resolver,
                 fuses,
-                duration,
+                uint64(block.timestamp) + duration,
                 records[i]
             );
         }
