@@ -7,6 +7,7 @@ const OwnedResolver = artifacts.require('./OwnedResolver.sol')
 const OffchainDNSResolver = artifacts.require('./OffchainDNSResolver.sol')
 const PublicResolver = artifacts.require('./PublicResolver.sol')
 const DummyExtendedDNSSECResolver = artifacts.require('./DummyExtendedDNSSECResolver.sol')
+const DummyLegacyTextResolver = artifacts.require('./DummyLegacyTextResolver.sol')
 const DNSSECImpl = artifacts.require('./DNSSECImpl')
 const namehash = require('eth-ens-namehash')
 const utils = require('./Helpers/Utils')
@@ -131,6 +132,16 @@ contract('OffchainDNSResolver', function(accounts) {
     expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
   })
 
+  it('handles calls to resolveCallback() with extra data and a legacy resolver', async function() {
+    const name = "test.test";
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe';
+    await ownedResolver.setAddr(namehash.hash(name), testAddress);
+    const pr = await PublicResolver.at(offchainResolver.address);
+    const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
+    const result = await doResolveCallback(name, [`ENS1 ${ownedResolver.address} blah`], callData);
+    expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
+  })
+
   it('handles calls to resolveCallback() with valid DNS TXT records containing a name', async function() {
     // Configure dnsresolver.eth to resolve to the ownedResolver so we can use it in the test
     await root.setSubnodeOwner(ethers.utils.id('eth'), accounts[0]);
@@ -183,5 +194,13 @@ contract('OffchainDNSResolver', function(accounts) {
     const callData = pr.contract.methods['text'](namehash.hash(name), 'test').encodeABI();
     const result = await doResolveCallback(name, [`ENS1 ${resolver.address} foobie bletch`], callData);
     expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal('foobie bletch');
+  })
+
+  it('correctly resolves using legacy resolvers without resolve() support', async function() {
+    const name = "test.test";
+    const resolver = await DummyLegacyTextResolver.new();
+    const callData = resolver.contract.methods['text'](namehash.hash(name), 'test').encodeABI();
+    const result = await doResolveCallback(name, [`ENS1 ${resolver.address} foobie bletch`], callData);
+    expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal('test');
   })
 });
