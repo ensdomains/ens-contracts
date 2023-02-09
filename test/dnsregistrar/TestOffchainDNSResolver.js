@@ -6,6 +6,7 @@ const DNSRegistrarContract = artifacts.require('./DNSRegistrar.sol')
 const OwnedResolver = artifacts.require('./OwnedResolver.sol')
 const OffchainDNSResolver = artifacts.require('./OffchainDNSResolver.sol')
 const PublicResolver = artifacts.require('./PublicResolver.sol')
+const DummyExtendedDNSSECResolver = artifacts.require('./DummyExtendedDNSSECResolver.sol')
 const DNSSECImpl = artifacts.require('./DNSSECImpl')
 const namehash = require('eth-ens-namehash')
 const utils = require('./Helpers/Utils')
@@ -173,5 +174,14 @@ contract('OffchainDNSResolver', function(accounts) {
     const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
     const result = await doResolveCallback(name, ['ENS1 nonexistent.eth', 'ENS1 0x1234', `ENS1 ${ownedResolver.address}`], callData);
     expect(ethers.utils.defaultAbiCoder.decode(['address'], result)[0]).to.equal(testAddress);
+  })
+
+  it('correctly handles extra data in the TXT record when calling a resolver that supports it', async function() {
+    const name = "test.test";
+    const resolver = await DummyExtendedDNSSECResolver.new();
+    const pr = await PublicResolver.at(resolver.address);
+    const callData = pr.contract.methods['text'](namehash.hash(name), 'test').encodeABI();
+    const result = await doResolveCallback(name, [`ENS1 ${resolver.address} foobie bletch`], callData);
+    expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal('foobie bletch');
   })
 });

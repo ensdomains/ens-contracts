@@ -1,6 +1,7 @@
 
 import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
+import "../../contracts/resolvers/profiles/IExtendedDNSResolver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
@@ -75,9 +76,22 @@ contract OffchainDNSResolver is IExtendedResolver {
             }
 
             // Look for a valid ENS-DNS TXT record
-            (address dnsresolver, ) = parseRR(iter.data, iter.rdataOffset, iter.nextOffset);
+            (address dnsresolver, bytes memory context) = parseRR(iter.data, iter.rdataOffset, iter.nextOffset);
+
+            // If we found a valid record, try to resolve it
             if(dnsresolver != address(0)) {
-                return IExtendedResolver(dnsresolver).resolve(name, query);
+                if(IERC165(dnsresolver).supportsInterface(IExtendedDNSResolver.resolve.selector)) {
+                    return IExtendedDNSResolver(dnsresolver).resolve(name, query, context);
+                } else if(IERC165(dnsresolver).supportsInterface(IExtendedResolver.resolve.selector)) {
+                    return IExtendedResolver(dnsresolver).resolve(name, query);
+                } else {
+                    (bool ok, bytes memory ret) = address(dnsresolver).staticcall(query);
+                    if(ok) {
+                        return ret;
+                    } else {
+                        revert CouldNotResolve(name);
+                    }
+                }
             }
         }
         
@@ -96,10 +110,12 @@ contract OffchainDNSResolver is IExtendedResolver {
         // Parse the name or address
         uint256 lastTxtIdx = txt.find(5, txt.length - 5, " ");
         if(lastTxtIdx > txt.length) {
-            lastTxtIdx = txt.length;
+            address dnsResolver = parseAndResolve(txt, 5, txt.length);
+            return (dnsResolver, "");
+        } else {
+            address dnsResolver = parseAndResolve(txt, 5, lastTxtIdx);
+            return (dnsResolver, txt.substring(lastTxtIdx + 1, txt.length - lastTxtIdx - 1));
         }
-        address dnsResolver = parseAndResolve(txt, 5, lastTxtIdx);
-        return (dnsResolver, txt.substring(lastTxtIdx, txt.length - lastTxtIdx));
     }
 
     function readTXT(bytes memory data, uint256 startIdx, uint256 lastIdx) internal pure returns(bytes memory) {
