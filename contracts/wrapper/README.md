@@ -479,4 +479,6 @@ The upgraded namewrapper must include the interface `INameWrapperUpgrade.sol`, w
 require(isTokenOwnerOrApproved(parentNode) || msg.sender == oldWrapperAddress && registrar.ownerOf(parentLabelHash) == address(this))
 ```
 
-It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts)
+It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts).
+
+If the function signature of the new NameWrapper changes, there must be an extra function added to the new NameWrapper, that takes the old function signature of `wrap()` and `wrapETH2LD()` and then translates them into the new function signatures to avoid a situation where the old NameWrapper cannot call the new NameWrapper.
