@@ -50,7 +50,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await tx2.wait()
 
-  const artifact = await deployments.getArtifact('NameWrapper')
+  const artifact = await deployments.getArtifact('INameWrapper')
   const interfaceId = computeInterfaceId(new Interface(artifact.abi))
   const providerWithEns = new ethers.providers.StaticJsonRpcProvider(
     ethers.provider.connection.url,
