@@ -1067,7 +1067,7 @@ contract('PublicResolver', function(accounts) {
 
   describe('authorisations', async () => {
     it('permits authorisations to be set', async () => {
-      await resolver.setApprovalForAll(accounts[1], {
+      await resolver.setApprovalForAll(accounts[1], true, {
         from: accounts[0],
       })
       assert.equal(
@@ -1077,7 +1077,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits authorised users to make changes', async () => {
-      await resolver.setApprovalForAll(accounts[1], {
+      await resolver.setApprovalForAll(accounts[1], true, {
         from: accounts[0],
       })
       assert.equal(
@@ -1091,7 +1091,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits authorisations to be cleared', async () => {
-      await resolver.setApprovalForAll(EMPTY_ADDRESS, {
+      await resolver.setApprovalForAll(accounts[1], false, {
         from: accounts[0],
       })
       await exceptions.expectFailure(
@@ -1102,7 +1102,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('permits non-owners to set authorisations', async () => {
-      await resolver.setApprovalForAll(accounts[2], {
+      await resolver.setApprovalForAll(accounts[2], true, {
         from: accounts[1],
       })
 
@@ -1115,7 +1115,7 @@ contract('PublicResolver', function(accounts) {
     })
 
     it('checks the authorisation for the current owner', async () => {
-      await resolver.setApprovalForAll(accounts[2], {
+      await resolver.setApprovalForAll(accounts[2], true, {
         from: accounts[1],
       })
       await ens.setOwner(node, accounts[1], { from: accounts[0] })
@@ -1136,19 +1136,20 @@ contract('PublicResolver', function(accounts) {
     it('emits an ApprovalForAll log', async () => {
       var owner = accounts[0]
       var operator = accounts[1]
-      var tx = await resolver.setApprovalForAll(operator, {
+      var tx = await resolver.setApprovalForAll(operator, true, {
         from: owner,
       })
       assert.equal(tx.logs.length, 1)
       assert.equal(tx.logs[0].event, 'ApprovalForAll')
       assert.equal(tx.logs[0].args.owner, owner)
       assert.equal(tx.logs[0].args.operator, operator)
+      assert.equal(tx.logs[0].args.approved, true)
     })
 
     it('reverts if attempting to approve self as an operator', async () => {
       await expect(
-        resolver.setApprovalForAll(accounts[1], { from: accounts[1] })
-      ).to.be.revertedWith('Setting approval status for self')
+        resolver.setApprovalForAll(accounts[1], true, { from: accounts[1] })
+      ).to.be.revertedWith('ERC1155: setting approval status for self')
     })
 
     it('permits name wrapper owner to make changes if owner is set to name wrapper address', async () => {

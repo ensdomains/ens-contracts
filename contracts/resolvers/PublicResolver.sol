@@ -40,22 +40,23 @@ contract PublicResolver is
      * A mapping of operators. An address that is authorised for an address
      * may make any changes to the name that the owner could, but may not update
      * the set of authorisations.
-     * owner => operator
+     * (owner, operator) => approved
      */
-    mapping(address => address) private _operatorApprovals;
+    mapping(address => mapping(address => bool)) private _operatorApprovals;
 
     /**
      * A mapping of delegates. The delegate that is set by an owner
      * for a name may make changes to the name's resolver, but may not update
      * the set of token approvals.
-     * (owner, name) => delegate
+     * (owner, name, delegate) => approved
      */
     mapping(address => mapping(bytes32 => address)) private _tokenApprovals;
 
     // Logged when an operator is added or removed.
     event ApprovalForAll(
         address indexed owner,
-        address indexed operator
+        address indexed operator,
+        bool approved
     );
 
     // Logged when a delegate is approved or  an approval is revoked.
@@ -78,27 +79,27 @@ contract PublicResolver is
     }
 
     /**
-     * @dev Allows for approving a single operator.
+     * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator) external {
+    function setApprovalForAll(address operator, bool approved) external {
         require(
             msg.sender != operator,
-            "Setting approval status for self"
+            "ERC1155: setting approval status for self"
         );
 
-        _operatorApprovals[msg.sender] = operator;
-        emit ApprovalForAll(msg.sender, operator);
+        _operatorApprovals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
     }
 
     /**
-     * @dev Check to see if the operator is approved for all.
+     * @dev See {IERC1155-isApprovedForAll}.
      */
     function isApprovedForAll(address account, address operator)
         public
         view
         returns (bool)
     {
-        return _operatorApprovals[account] == operator;
+        return _operatorApprovals[account][operator];
     }
 
 
