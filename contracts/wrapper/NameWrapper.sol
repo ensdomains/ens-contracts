@@ -563,7 +563,7 @@ contract NameWrapper is
             _preTransferCheck(uint256(node), fuses, expiry);
         }
 
-        upgradeContract.setSubnodeRecord(
+        upgradeContract.setSubnodeRecordFromUpgrade(
             parentNode,
             label,
             wrappedOwner,
@@ -713,6 +713,14 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
         _saveLabel(parentNode, node, label);
+
+        if (!upgradeContractApprovals[msg.sender]) {
+            revert Unauthorised(
+                _makeNode(ETH_NODE, labelhash),
+                msg.sender
+            );
+        }
+
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
         ens.setSubnodeRecord(parentNode, labelhash, address(this), resolver, 0);
         _storeNameAndWrap(parentNode, node, label, owner, fuses, expiry);
