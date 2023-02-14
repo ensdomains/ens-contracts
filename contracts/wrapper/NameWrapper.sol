@@ -50,7 +50,6 @@ contract NameWrapper is
         0x0000000000000000000000000000000000000000000000000000000000000000;
 
     INameWrapperUpgrade public upgradeContract;
-    mapping(address => bool) public upgradeContractApprovals;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
     constructor(
@@ -181,13 +180,6 @@ contract NameWrapper is
         }
     }
 
-    function setUpgradeContractApproval(
-        address _upgradeContractApproval,
-        bool approved
-    ) public onlyOwner {
-        upgradeContractApprovals[_upgradeContractApproval] = approved;
-    }
-
     /**
      * @notice Checks if msg.sender is the owner or approved by the owner of a name
      * @param node namehash of the name to check
@@ -263,32 +255,6 @@ contract NameWrapper is
             expiry,
             resolver
         );
-    }
-
-    function wrapETH2LDFromUpgrade(
-        string calldata label,
-        address wrappedOwner,
-        uint32 fuses,
-        uint64 expiry,
-        address resolver
-    ) public override {
-        uint256 tokenId = uint256(keccak256(bytes(label)));
-        address registrant = registrar.ownerOf(tokenId);
-
-        if (msg.sender != registrant || !upgradeContractApprovals[registrant]) {
-            revert Unauthorised(
-                _makeNode(ETH_NODE, bytes32(tokenId)),
-                msg.sender
-            );
-        }
-
-        // transfer the token from the user to this contract
-        registrar.transferFrom(registrant, address(this), tokenId);
-
-        // transfer the ens record back to the new owner (this contract)
-        registrar.reclaim(tokenId, address(this));
-
-        _wrapETH2LD(label, wrappedOwner, fuses, expiry, resolver);
     }
 
     /**
@@ -506,71 +472,39 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Upgrades a .eth wrapped domain by calling the wrapETH2LD function of the upgradeContract
-     *     and burning the token of this contract
-     * @dev Can be called by the owner of the name in this contract
-     * @param label Label as a string of the .eth name to upgrade
-     * @param wrappedOwner The owner of the wrapped name
-     */
-
-    function upgradeETH2LD(
-        string calldata label,
-        address wrappedOwner,
-        address resolver
-    ) public {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(ETH_NODE, labelhash);
-        (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
-            node
-        );
-
-        if (wrappedOwner != currentOwner) {
-            _preTransferCheck(uint256(node), fuses, expiry);
-        }
-
-        upgradeContract.wrapETH2LDFromUpgrade(
-            label,
-            wrappedOwner,
-            fuses,
-            expiry,
-            resolver
-        );
-    }
-
-    /**
-     * @notice Upgrades a non .eth domain of any kind. Could be a DNSSEC name vitalik.xyz or a subdomain
+     * @notice Upgrades a domain of any kind. Could be a .eth name vitalik.eth, a DNSSEC name vitalik.xyz, or a subdomain
      * @dev Can be called by the owner or an authorised caller
-     * Requires upgraded Namewrapper to permit old Namewrapper to call `setSubnodeRecord` for all names
-     * @param parentNode Namehash of the parent name
-     * @param label Label as a string of the name to upgrade
+     * @param name The name to upgrade, in DNS format
      * @param wrappedOwner Owner of the name in this contract
      * @param resolver Resolver contract for this name
      */
 
     function upgrade(
-        bytes32 parentNode,
-        string calldata label,
+        bytes calldata name,
         address wrappedOwner,
         address resolver
     ) public {
-        bytes32 labelhash = keccak256(bytes(label));
+        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
         bytes32 node = _makeNode(parentNode, labelhash);
-        (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
-            node
-        );
+
+        if (address(upgradeContract) == address(0)) {
+            revert CannotUpgrade();
+        }
+
+        if (!canModifyName(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+        (address currentOwner, uint32 fuses, uint64 expiry) = getData(uint256(node));
+
+        _burn(uint256(node));
 
         if (wrappedOwner != currentOwner) {
             _preTransferCheck(uint256(node), fuses, expiry);
         }
 
-        upgradeContract.setSubnodeRecordFromUpgrade(
-            parentNode,
-            label,
-            wrappedOwner,
-            resolver,
-            fuses,
-            expiry
-        );
+        upgradeContract.wrapFromUpgrade(name, wrappedOwner, resolver, fuses, expiry);
     }
 
     /** 
@@ -700,30 +634,6 @@ contract NameWrapper is
             );
             _updateName(parentNode, node, label, owner, fuses, expiry);
         }
-    }
-
-    function setSubnodeRecordFromUpgrade(
-        bytes32 parentNode,
-        string memory label,
-        address owner,
-        address resolver,
-        uint32 fuses,
-        uint64 expiry
-    ) public {
-        bytes32 labelhash = keccak256(bytes(label));
-        bytes32 node = _makeNode(parentNode, labelhash);
-        _saveLabel(parentNode, node, label);
-
-        if (!upgradeContractApprovals[msg.sender]) {
-            revert Unauthorised(
-                _makeNode(ETH_NODE, labelhash),
-                msg.sender
-            );
-        }
-
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
-        ens.setSubnodeRecord(parentNode, labelhash, address(this), resolver, 0);
-        _storeNameAndWrap(parentNode, node, label, owner, fuses, expiry);
     }
 
     /**
@@ -1014,27 +924,6 @@ contract NameWrapper is
         bytes memory name = _addLabel(label, names[parentNode]);
         names[node] = name;
         return name;
-    }
-
-    function _prepareUpgrade(bytes32 node)
-        private
-        returns (
-            address owner,
-            uint32 fuses,
-            uint64 expiry
-        )
-    {
-        if (address(upgradeContract) == address(0)) {
-            revert CannotUpgrade();
-        }
-
-        if (!canModifyName(node, msg.sender)) {
-            revert Unauthorised(node, msg.sender);
-        }
-
-        (owner, fuses, expiry) = getData(uint256(node));
-
-        _burn(uint256(node));
     }
 
     function _updateName(

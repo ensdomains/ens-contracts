@@ -2,20 +2,11 @@
 pragma solidity ~0.8.17;
 
 interface INameWrapperUpgrade {
-    function setSubnodeRecordFromUpgrade(
-        bytes32 parentNode,
-        string calldata label,
-        address owner,
+    function wrapFromUpgrade(
+        bytes calldata name,
+        address wrappedOwner,
         address resolver,
         uint32 fuses,
         uint64 expiry
-    ) external;
-
-    function wrapETH2LDFromUpgrade(
-        string calldata label,
-        address wrappedOwner,
-        uint32 fuses,
-        uint64 expiry,
-        address resolver
     ) external;
 }
