@@ -43,6 +43,11 @@ interface INameWrapper is IERC1155 {
 
     function names(bytes32) external view returns (bytes memory);
 
+    function setUpgradeContractApproval(
+        address _upgradeContract,
+        bool approved
+    ) external;
+
     function wrap(
         bytes calldata name,
         address wrappedOwner,
@@ -53,6 +58,14 @@ interface INameWrapper is IERC1155 {
         string calldata label,
         address wrappedOwner,
         uint16 ownerControlledFuses,
+        address resolver
+    ) external;
+
+    function wrapETH2LDFromUpgrade(
+        string calldata label,
+        address wrappedOwner,
+        uint32 fuses,
+        uint64 expiry,
         address resolver
     ) external;
 
