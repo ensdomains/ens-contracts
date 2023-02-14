@@ -5,8 +5,8 @@ interface INameWrapperUpgrade {
     function wrapFromUpgrade(
         bytes calldata name,
         address wrappedOwner,
-        address resolver,
         uint32 fuses,
-        uint64 expiry
+        uint64 expiry,
+        bytes calldata extraData
     ) external;
 }

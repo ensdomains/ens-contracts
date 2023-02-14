@@ -475,18 +475,14 @@ contract NameWrapper is
      * @notice Upgrades a domain of any kind. Could be a .eth name vitalik.eth, a DNSSEC name vitalik.xyz, or a subdomain
      * @dev Can be called by the owner or an authorised caller
      * @param name The name to upgrade, in DNS format
-     * @param wrappedOwner Owner of the name in this contract
-     * @param resolver Resolver contract for this name
+     * @param extraData Extra data to pass to the upgrade contract
      */
 
     function upgrade(
         bytes calldata name,
-        address wrappedOwner,
-        address resolver
-    ) public {
-        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
-        bytes32 node = _makeNode(parentNode, labelhash);
+        bytes calldata extraData
+    ) public  {
+        bytes32 node = name.namehash(0);
 
         if (address(upgradeContract) == address(0)) {
             revert CannotUpgrade();
@@ -500,11 +496,7 @@ contract NameWrapper is
 
         _burn(uint256(node));
 
-        if (wrappedOwner != currentOwner) {
-            _preTransferCheck(uint256(node), fuses, expiry);
-        }
-
-        upgradeContract.wrapFromUpgrade(name, wrappedOwner, resolver, fuses, expiry);
+        upgradeContract.wrapFromUpgrade(name, currentOwner, fuses, expiry, extraData);
     }
 
     /** 

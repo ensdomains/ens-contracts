@@ -82,8 +82,7 @@ interface INameWrapper is IERC1155 {
 
     function upgrade(
         bytes calldata name,
-        address wrappedOwner,
-        address resolver
+        bytes calldata extraData
     ) external;
 
     function setFuses(bytes32 node, uint16 ownerControlledFuses)

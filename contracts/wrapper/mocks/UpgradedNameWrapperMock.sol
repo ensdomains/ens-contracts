@@ -22,17 +22,17 @@ contract UpgradedNameWrapperMock is INameWrapperUpgrade {
     event NameUpgraded(
         bytes name,
         address wrappedOwner,
-        address resolver,
         uint32 fuses,
-        uint64 expiry
+        uint64 expiry,
+        bytes extraData
     );
 
     function wrapFromUpgrade(
         bytes calldata name,
         address wrappedOwner,
-        address resolver,
         uint32 fuses,
-        uint64 expiry
+        uint64 expiry,
+        bytes calldata extraData
     ) public {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
@@ -53,7 +53,7 @@ contract UpgradedNameWrapperMock is INameWrapperUpgrade {
                 "No approval for registry"
             );
         }
-        emit NameUpgraded(name, wrappedOwner, resolver, fuses, expiry);
+        emit NameUpgraded(name, wrappedOwner, fuses, expiry, extraData);
     }
 
     function _makeNode(
