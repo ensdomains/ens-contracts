@@ -36,7 +36,7 @@ contract TestUnwrap is Ownable {
         uint64 expiry,
         address resolver
     ) public {
-        _unwrapETH2LD(label, wrappedOwner, msg.sender);
+        _unwrapETH2LD(keccak256(bytes(label)), wrappedOwner, msg.sender);
     }
 
     function setSubnodeRecord(
@@ -62,21 +62,20 @@ contract TestUnwrap is Ownable {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
         bytes32 node = _makeNode(parentNode, labelhash);
-        string memory label = string(name.substring(0, offset));
 
         if (parentNode == ETH_NODE) {
-            _unwrapETH2LD(label, wrappedOwner, msg.sender);
+            _unwrapETH2LD(labelhash, wrappedOwner, msg.sender);
         } else {
             _unwrapSubnode(node, wrappedOwner, msg.sender);
         }
     }
 
     function _unwrapETH2LD(
-        string memory label,
+        bytes32 labelhash,
         address wrappedOwner,
         address sender
     ) private {
-        uint256 tokenId = uint256(keccak256(bytes(label)));
+        uint256 tokenId = uint256(labelhash);
         address registrant = registrar.ownerOf(tokenId);
 
         require(
@@ -86,8 +85,8 @@ contract TestUnwrap is Ownable {
             "Unauthorised"
         );
 
-        registrar.transferFrom(registrant, wrappedOwner, tokenId);
         registrar.reclaim(tokenId, wrappedOwner);
+        registrar.transferFrom(registrant, wrappedOwner, tokenId);
     }
 
     function _unwrapSubnode(
