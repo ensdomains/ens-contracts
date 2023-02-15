@@ -19,7 +19,7 @@ The NameWrapper wraps ENS names, adding new functionality to them:
 - Locking - The process of the owner of a name revoking some level of control over its own name.
 - Owner-controlled fuses - Fuses that can be burned by the owner of a name or the owner of the parent name if the name is not emancipated.
 - Parent-controlled fuses - Fuses that can be burned by the owner of the parent name.
-- Expiry - Expiry is the date when the name expires and is no longer able to be owned. Expiry only comes into effect when a name is emancipated or locked. Expiry can ONLY be extended and can only be less than or equal to the parent's expiry.  Only the parent or an approved address of the parent can extend expiry.
+- Expiry - Expiry is the date when the name expires and is no longer able to be owned. Expiry only comes into effect when a name is emancipated or locked. Expiry can be extended by parent or approved addresses, and if the parent burnt the parent controlled fuses(PCF), then the subnames can extend their expiry by themselves. However, the PCF can be unburnt later if the parent name expires. For the latest update, refer to: https://discuss.ens.domains/t/namewrapper-updates-including-testnet-deployment-addresses/14505/48
 
 ## Lifecycle of a name
 
@@ -479,4 +479,6 @@ The upgraded namewrapper must include the interface `INameWrapperUpgrade.sol`, w
 require(isTokenOwnerOrApproved(parentNode) || msg.sender == oldWrapperAddress && registrar.ownerOf(parentLabelHash) == address(this))
 ```
 
-It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts)
+It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts).
+
+If the function signature of the new NameWrapper changes, there must be an extra function added to the new NameWrapper, that takes the old function signature of `wrap()` and `wrapETH2LD()` and then translates them into the new function signatures to avoid a situation where the old NameWrapper cannot call the new NameWrapper.

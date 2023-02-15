@@ -122,16 +122,17 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (uint64);
 
-    function canModifyName(bytes32 node, address addr) external returns (bool);
+    function canModifyName(bytes32 node, address addr) external view returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
 
     function setTTL(bytes32 node, uint64 ttl) external;
 
-    function ownerOf(uint256 id) external returns (address owner);
+    function ownerOf(uint256 id) external view returns (address owner);
 
     function getData(uint256 id)
         external
+        view
         returns (
             address,
             uint32,
