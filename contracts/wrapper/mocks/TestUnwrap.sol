@@ -4,11 +4,9 @@ import "../../registry/ENS.sol";
 import "../../ethregistrar/IBaseRegistrar.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "../BytesUtils.sol";
-import {TestBytesUtils} from "./TestBytesUtils.sol";
 
 contract TestUnwrap is Ownable {
     using BytesUtils for bytes;
-    using TestBytesUtils for bytes;
 
     bytes32 private constant ETH_NODE =
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
