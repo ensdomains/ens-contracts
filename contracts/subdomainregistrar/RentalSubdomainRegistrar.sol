@@ -5,6 +5,7 @@ import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
+import {IRentalSubdomainRegistrar} from "./IRentalSubdomainRegistrar.sol";
 
 struct Name {
     uint256 registrationFee; // per second
@@ -14,7 +15,11 @@ struct Name {
 
 error ParentWillHaveExpired(bytes32 node);
 
-contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
+contract RentalSubdomainRegistrar is
+    BaseSubdomainRegistrar,
+    ERC1155Holder,
+    IRentalSubdomainRegistrar
+{
     mapping(bytes32 => Name) public names;
 
     constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}
@@ -91,7 +96,7 @@ contract RentalSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
         string[] calldata labels,
         address[] calldata addresses,
         address resolver,
-        uint32 fuses,
+        uint16 fuses,
         uint64 duration,
         bytes[][] calldata records
     ) public {

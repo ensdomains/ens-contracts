@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
 
-interface ISubdomainRegistrar {
+interface IRentalSubdomainRegistrar {
     function setupDomain(
         bytes32 node,
         address token,
@@ -14,10 +14,10 @@ interface ISubdomainRegistrar {
         string calldata label,
         address newOwner,
         address resolver,
-        uint32 fuses,
+        uint16 ownerControlledfuses,
         uint64 duration,
         bytes[] calldata records
-    ) external;
+    ) external payable;
 
     function renew(
         bytes32 parentNode,
@@ -30,7 +30,7 @@ interface ISubdomainRegistrar {
         string[] calldata labels,
         address[] calldata addresses,
         address resolver,
-        uint32 fuses,
+        uint16 fuses,
         uint64 duration,
         bytes[][] calldata records
     ) external;

@@ -6,7 +6,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
-import "hardhat/console.sol";
 
 struct Name {
     uint256 registrationFee; // per registration
@@ -51,7 +50,6 @@ contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
                 fee
             );
         }
-        console.log(newOwner);
 
         (, , uint64 parentExpiry) = wrapper.getData(uint256(parentNode));
 
