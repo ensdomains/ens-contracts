@@ -492,13 +492,13 @@ contract NameWrapper is
         // Allow the owner of the parent name to extend the expiry.
         if (canModifyName(parentNode, msg.sender)){
 
-            super._setData(uint256(node), owner, fuses, expiry);
+            _setData(uint256(node), owner, fuses, expiry);
             emit ExpiryExtended(node, expiry);
 
         } else if (canModifyName(node, msg.sender) && fuses & CAN_EXTEND_EXPIRY > 0){
             // Allow the owner of the name as long as the fuse CAN_EXTEND_EXPIRY is burned to extend the name.
 
-            super._setData(uint256(node), owner, fuses, expiry);
+            _setData(uint256(node), owner, fuses, expiry);
             emit ExpiryExtended(node, expiry);
 
         } else {
