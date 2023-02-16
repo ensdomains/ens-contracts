@@ -2338,7 +2338,7 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(expectedExpiry)
     })
 
-    it('Returns the correct state of fuses', async () => {
+    it('Returns the correct fuses', async () => {
       await BaseRegistrar.register(tokenId, account, 1 * DAY)
 
       const expectedExpiry =
@@ -2350,7 +2350,7 @@ describe('Name Wrapper', () => {
       // The function callStatic is called to get the return value of the function. 
       // Note: callStatic does not modify the state of the contract. 
       const fusesReturned = await NameWrapper.callStatic.setFuses(wrappedTokenId, CANNOT_TRANSFER)
-      expect(fusesReturned).to.equal(CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL | IS_DOT_ETH)
+      expect(fusesReturned).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH)
     })
 
     it('Can be called by an account authorised by the owner', async () => {

@@ -400,7 +400,7 @@ contract NameWrapper is
      * @notice Sets fuses of a name
      * @param node Namehash of the name
      * @param ownerControlledFuses Owner-controlled fuses to burn
-     * @return New fuses
+     * @return Old fuses
      */
 
     function setFuses(bytes32 node, uint16 ownerControlledFuses)
@@ -414,7 +414,7 @@ contract NameWrapper is
             uint256(node)
         );
         _setFuses(node, owner, ownerControlledFuses | oldFuses, expiry, expiry);
-        return ownerControlledFuses | oldFuses;
+        return oldFuses;
     }
 
     /**
