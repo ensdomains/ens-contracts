@@ -151,7 +151,7 @@ contract('OffchainDNSResolver', function(accounts) {
 
     const name = "test.test";
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe';
-    await ownedResolver.setAddr(namehash.hash('test.test'), testAddress);
+    await ownedResolver.setAddr(namehash.hash(name), testAddress);
     const pr = await PublicResolver.at(offchainResolver.address);
     const callData = pr.contract.methods['addr(bytes32)'](namehash.hash(name)).encodeABI();
     const result = await doResolveCallback(name, [`ENS1 dnsresolver.eth`], callData);

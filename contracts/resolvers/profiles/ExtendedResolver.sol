@@ -11,6 +11,7 @@ contract ExtendedResolver {
         if(success) {
             return result;
         } else {
+            // Revert with the reason provided by the call
             assembly {
                 revert(add(result, 0x20), mload(result))
             }
