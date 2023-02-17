@@ -247,6 +247,28 @@ contract NameWrapper is
             (fuses & IS_DOT_ETH == 0 ||
                 expiry - GRACE_PERIOD >= block.timestamp);
     }
+    
+    /**
+     * @notice Check if the address is the owner or approved by owner.
+     * @param owner The owner of the name.
+     * @param fuses The fuses of the name.
+     * @param expiry The expiry of the name.
+     * @param addr The address address to check permissions for.
+     * @return whether or not is owner or approved.
+     */
+
+    function canModifyNameWithData(address owner, uint32 fuses, uint64 expiry, address addr)
+        internal
+        view
+        returns (bool)
+    {
+        return
+            (owner == addr || isApprovedForAll(owner, addr)) &&
+            (fuses & IS_DOT_ETH == 0 ||
+                expiry - GRACE_PERIOD >= block.timestamp);
+    }
+
+
 
     /**
      * @notice Wraps a .eth domain, creating a new token and sending the original ERC721 token to this contract
@@ -481,31 +503,38 @@ contract NameWrapper is
         uint64 expiry
     ) public returns (uint64) {
         bytes32 node = _makeNode(parentNode, labelhash);
-        (address owner, uint32 fuses, uint64 oldExpiry) = getData( uint256(node));
 
-        // max expiry is set to the expiry of the parent
-        (, , uint64 maxExpiry) = getData(uint256(parentNode));
+        (address owner, uint32 fuses, uint64 oldExpiry) = getData(
+            uint256(node)
+        );
 
-        // Set the expiry between the old expiry and the max expiry. 
-        expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
+        (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
+
+        // Set the expiry between the old expiry and the parent expiry (max expiry). 
+        expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
         // Allow the owner of the parent name to extend the expiry.
-        if (canModifyName(parentNode, msg.sender)){
-
-            _setData(uint256(node), owner, fuses, expiry);
+        if(canModifyNameWithData(parentOwner, parentFuses, parentExpiry, msg.sender)){
+            _setData(node, owner, fuses, expiry);
             emit ExpiryExtended(node, expiry);
+            return expiry;
+        } 
 
-        } else if (canModifyName(node, msg.sender) && fuses & CAN_EXTEND_EXPIRY > 0){
-            // Allow the owner of the name as long as the fuse CAN_EXTEND_EXPIRY is burned to extend the name.
-
-            _setData(uint256(node), owner, fuses, expiry);
-            emit ExpiryExtended(node, expiry);
-
-        } else {
+        // If the caller is not the parent then check to make sure the caller is the owner of the name.
+        if (!canModifyNameWithData(owner, fuses, oldExpiry, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
+        // Check to make sure that CAN_EXTEND_EXPIRY is burned.
+        if (fuses & CAN_EXTEND_EXPIRY == 0) {
+            revert OperationProhibited(node);
+        }
+
+        // Allow the owner of the name as long as the fuse CAN_EXTEND_EXPIRY is burned to extend the name.
+        _setData(node, owner, fuses, expiry);
+        emit ExpiryExtended(node, expiry);
         return expiry;
+
     }
 
     /**

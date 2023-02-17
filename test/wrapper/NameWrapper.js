@@ -2958,7 +2958,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.extendExpiry(namehash('fuses.eth'), labelhash('sub'), MAX_EXPIRY)
-      ).to.be.revertedWith(`Unauthorised("${namehash('sub.fuses.eth')}", "${account2}")`)
+      ).to.be.revertedWith(`OperationProhibited("${namehash('sub.fuses.eth')}")`)
 
     })
 
@@ -3018,7 +3018,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapperH.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`Unauthorised("${subWrappedTokenId}", "${hacker}")`)
+      ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
     it('Allows approved operator of child owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
@@ -3092,7 +3092,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper.extendExpiry(namehash('eth'), tokenId, expiry),
-      ).to.be.revertedWith(`Unauthorised("${node}", "${account}")`)
+      ).to.be.revertedWith(`OperationProhibited("${node}")`)
     })
 
     it('Allows parent owner of non-Emancipated name to set expiry', async () => {
@@ -3369,7 +3369,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(`Unauthorised("${namehash('sub.fuses.eth')}", "${account2}")`)
+      ).to.be.revertedWith(`OperationProhibited("${namehash('sub.fuses.eth')}")`)
 
     })
 
