@@ -34,6 +34,14 @@ interface Resolver is
     /* Deprecated events */
     event ContentChanged(bytes32 indexed node, bytes32 hash);
 
+    function setApprovalForAll(address, bool) external; 
+
+    function approve(bytes32 node, address delegate, bool approved) external; 
+
+    function isApprovedForAll(address account, address operator) external;
+
+    function isApprovedFor(address owner, bytes32 node, address delegate) external;
+
     function setABI(
         bytes32 node,
         uint256 contentType,
