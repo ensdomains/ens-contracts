@@ -5,6 +5,7 @@ import "../registry/ENS.sol";
 import "../ethregistrar/IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "./IMetadataService.sol";
+import "./INameWrapperUpgrade.sol";
 
 uint32 constant CANNOT_UNWRAP = 1;
 uint32 constant CANNOT_BURN_FUSES = 2;
@@ -42,6 +43,15 @@ interface INameWrapper is IERC1155 {
     function metadataService() external view returns (IMetadataService);
 
     function names(bytes32) external view returns (bytes memory);
+
+    function name() external view returns (string memory);
+
+    function upgradeContract() external view returns (INameWrapperUpgrade);
+
+    function supportsInterface(bytes4 interfaceID)
+        external
+        view
+        returns (bool);
 
     function wrap(
         bytes calldata name,
@@ -144,8 +154,29 @@ interface INameWrapper is IERC1155 {
             uint64
         );
 
+    function setMetadataService(IMetadataService _metadataService) external;
+
+    function uri(uint256 tokenId) external view returns (string memory);
+
+    function setUpgradeContract(INameWrapperUpgrade _upgradeAddress) external;
+
+    function upgrade(
+        bytes32 parentNode,
+        string calldata label,
+        address wrappedOwner,
+        address resolver
+    ) external; 
+
+    function upgradeETH2LD(
+        string calldata label,
+        address wrappedOwner,
+        address resolver
+    ) external;
+
     function allFusesBurned(bytes32 node, uint32 fuseMask)
         external
         view
         returns (bool);
+
+    function isWrapped(bytes32 node) external view returns (bool);
 }

@@ -50,9 +50,12 @@ const INTERFACES = {
   ],
   INameWrapper: [
     'ens()',
+    'supportsInterface(bytes4)',
     'registrar()',
     'metadataService()',
     'names(bytes32)',
+    'name()',
+    'upgradeContract()',
     'wrap(bytes,address,address)',
     'wrapETH2LD(string,address,uint16,address)',
     'registerAndWrapETH2LD(string,address,uint256,address,uint16)',
@@ -70,8 +73,14 @@ const INTERFACES = {
     'setResolver(bytes32,address)',
     'setTTL(bytes32,uint64)',
     'getData(uint256)',
+    'setMetadataService(address)',
+    'uri(uint256)',
+    'setUpgradeContract(address)',
+    'upgrade(bytes32,string,address,address)',
+    'upgradeETH2LD(string,address,address)',
     'ownerOf(uint256)',
     'allFusesBurned(bytes32,uint32)',
+    'isWrapped(bytes32)',
   ],
 }
 
