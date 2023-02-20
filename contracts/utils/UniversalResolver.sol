@@ -406,6 +406,7 @@ contract UniversalResolver is ERC165, Ownable {
      * @return offchain Whether the call reverted with an `OffchainLookup` error.
      * @return returnData If `target` did not revert, contains the return data from the call to `target`. Otherwise, contains a `OffchainLookupCallData` struct.
      * @return extraData If `target` did not revert, is empty. Otherwise, contains a `OffchainLookupExtraData` struct.
+     * @return result Whether the call succeeded.
      */
     function callWithOffchainLookupPropagation(
         address target,
