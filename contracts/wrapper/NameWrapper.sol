@@ -765,7 +765,8 @@ contract NameWrapper is
         return fuses & fuseMask == fuseMask;
     }
 
-    function isWrapped(bytes32 node) public view returns (bool) {
+    // Note: This function only works for non .eth 2LDs. 
+    function isWrapped(bytes32 node) internal view returns (bool) {
         return
             ownerOf(uint256(node)) != address(0) &&
             ens.owner(node) == address(this);

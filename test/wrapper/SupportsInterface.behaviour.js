@@ -76,11 +76,8 @@ const INTERFACES = {
     'setMetadataService(address)',
     'uri(uint256)',
     'setUpgradeContract(address)',
-    'upgrade(bytes32,string,address,address)',
-    'upgradeETH2LD(string,address,address)',
     'ownerOf(uint256)',
     'allFusesBurned(bytes32,uint32)',
-    'isWrapped(bytes32)',
   ],
 }
 

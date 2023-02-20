@@ -160,23 +160,8 @@ interface INameWrapper is IERC1155 {
 
     function setUpgradeContract(INameWrapperUpgrade _upgradeAddress) external;
 
-    function upgrade(
-        bytes32 parentNode,
-        string calldata label,
-        address wrappedOwner,
-        address resolver
-    ) external; 
-
-    function upgradeETH2LD(
-        string calldata label,
-        address wrappedOwner,
-        address resolver
-    ) external;
-
     function allFusesBurned(bytes32 node, uint32 fuseMask)
         external
         view
         returns (bool);
-
-    function isWrapped(bytes32 node) external view returns (bool);
 }
