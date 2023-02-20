@@ -80,6 +80,11 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
+    function upgrade(
+        bytes calldata name,
+        bytes calldata extraData
+    ) external;
+
     function setFuses(bytes32 node, uint16 ownerControlledFuses)
         external
         returns (uint32 newFuses);
