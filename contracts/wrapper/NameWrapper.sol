@@ -521,6 +521,7 @@ contract NameWrapper is
         } 
 
         // If the caller is not the parent then check to make sure the caller is the owner of the name.
+        // _canModifyNameWithData explicitly takes oldExpiry, not the new expiry passed to this function
         if (!canModifyNameWithData(owner, fuses, oldExpiry, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
