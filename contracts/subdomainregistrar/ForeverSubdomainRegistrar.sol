@@ -6,6 +6,7 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
+import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
 
 struct Name {
     uint256 registrationFee; // per registration
@@ -13,7 +14,11 @@ struct Name {
     address beneficiary;
 }
 
-contract ForeverSubdomainRegistrar is BaseSubdomainRegistrar, ERC1155Holder {
+contract ForeverSubdomainRegistrar is
+    BaseSubdomainRegistrar,
+    ERC1155Holder,
+    IForeverSubdomainRegistrar
+{
     mapping(bytes32 => Name) public names;
 
     constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}

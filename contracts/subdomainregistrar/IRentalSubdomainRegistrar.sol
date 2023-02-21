@@ -40,4 +40,6 @@ interface IRentalSubdomainRegistrar {
         bytes32[] calldata labelhashes,
         uint64 duration
     ) external payable;
+
+    function available(bytes32 node) external view;
 }

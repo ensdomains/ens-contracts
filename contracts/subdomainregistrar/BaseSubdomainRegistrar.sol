@@ -111,7 +111,7 @@ abstract contract BaseSubdomainRegistrar {
         }
     }
 
-    function _checkParent(bytes32 node) internal returns (uint32, uint64) {
+    function _checkParent(bytes32 node) internal view returns (uint32, uint64) {
         try wrapper.getData(uint256(node)) returns (
             address,
             uint32 fuses,
