@@ -40,6 +40,10 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
         );
     }
 
+    function addr(bytes32) external pure returns (bytes memory) {
+        return abi.encode("onchain");
+    }
+
     function resolveCallback(bytes calldata response, bytes calldata extraData)
         external
         view
