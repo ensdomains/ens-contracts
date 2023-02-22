@@ -8,7 +8,6 @@
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "format": "prettier --write ./contracts/**/*",
-    "precommit": "yarn format",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public",
     "prepare": "husky install"

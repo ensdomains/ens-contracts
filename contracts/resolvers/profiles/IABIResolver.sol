@@ -12,8 +12,8 @@ interface IABIResolver {
      * @return contentType The content type of the return value
      * @return data The ABI data
      */
-    function ABI(bytes32 node, uint256 contentTypes)
-        external
-        view
-        returns (uint256, bytes memory);
+    function ABI(
+        bytes32 node,
+        uint256 contentTypes
+    ) external view returns (uint256, bytes memory);
 }

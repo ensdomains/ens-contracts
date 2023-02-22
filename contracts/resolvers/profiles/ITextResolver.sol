@@ -15,8 +15,8 @@ interface ITextResolver {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string calldata key)
-        external
-        view
-        returns (string memory);
+    function text(
+        bytes32 node,
+        string calldata key
+    ) external view returns (string memory);
 }

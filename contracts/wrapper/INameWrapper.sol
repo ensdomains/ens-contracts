@@ -71,15 +71,12 @@ interface INameWrapper is IERC1155 {
         uint16 ownerControlledFuses
     ) external returns (uint256 registrarExpiry);
 
-    function renew(uint256 labelHash, uint256 duration)
-        external
-        returns (uint256 expires);
+    function renew(
+        uint256 labelHash,
+        uint256 duration
+    ) external returns (uint256 expires);
 
-    function unwrap(
-        bytes32 node,
-        bytes32 label,
-        address owner
-    ) external;
+    function unwrap(bytes32 node, bytes32 label, address owner) external;
 
     function unwrapETH2LD(
         bytes32 label,
@@ -89,9 +86,10 @@ interface INameWrapper is IERC1155 {
 
     function upgrade(bytes calldata name, bytes calldata extraData) external;
 
-    function setFuses(bytes32 node, uint16 ownerControlledFuses)
-        external
-        returns (uint32 newFuses);
+    function setFuses(
+        bytes32 node,
+        uint16 ownerControlledFuses
+    ) external returns (uint32 newFuses);
 
     function setChildFuses(
         bytes32 parentNode,
@@ -131,10 +129,10 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (uint64);
 
-    function canModifyName(bytes32 node, address addr)
-        external
-        view
-        returns (bool);
+    function canModifyName(
+        bytes32 node,
+        address addr
+    ) external view returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
 
@@ -142,14 +140,9 @@ interface INameWrapper is IERC1155 {
 
     function ownerOf(uint256 id) external view returns (address owner);
 
-    function getData(uint256 id)
-        external
-        view
-        returns (
-            address,
-            uint32,
-            uint64
-        );
+    function getData(
+        uint256 id
+    ) external view returns (address, uint32, uint64);
 
     function setMetadataService(IMetadataService _metadataService) external;
 
@@ -157,11 +150,12 @@ interface INameWrapper is IERC1155 {
 
     function setUpgradeContract(INameWrapperUpgrade _upgradeAddress) external;
 
-    function allFusesBurned(bytes32 node, uint32 fuseMask)
-        external
-        view
-        returns (bool);
+    function allFusesBurned(
+        bytes32 node,
+        uint32 fuseMask
+    ) external view returns (bool);
 
     function isWrapped(bytes32) external view returns (bool);
+
     function isWrapped(bytes32, bytes32) external view returns (bool);
 }

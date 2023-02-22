@@ -41,12 +41,10 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
      * @return bool whether the msg.sender is approved for the given token ID,
      *    is an operator of the owner, or is the owner of the token
      */
-    function _isApprovedOrOwner(address spender, uint256 tokenId)
-        internal
-        view
-        override
-        returns (bool)
-    {
+    function _isApprovedOrOwner(
+        address spender,
+        uint256 tokenId
+    ) internal view override returns (bool) {
         address owner = ownerOf(tokenId);
         return (spender == owner ||
             getApproved(tokenId) == spender ||
@@ -74,12 +72,9 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
      * @param tokenId uint256 ID of the token to query the owner of
      * @return address currently marked as the owner of the given token ID
      */
-    function ownerOf(uint256 tokenId)
-        public
-        view
-        override(IERC721, ERC721)
-        returns (address)
-    {
+    function ownerOf(
+        uint256 tokenId
+    ) public view override(IERC721, ERC721) returns (address) {
         require(expiries[tokenId] > block.timestamp);
         return super.ownerOf(tokenId);
     }
@@ -167,13 +162,10 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         return block.timestamp + duration;
     }
 
-    function renew(uint256 id, uint256 duration)
-        external
-        override
-        live
-        onlyController
-        returns (uint256)
-    {
+    function renew(
+        uint256 id,
+        uint256 duration
+    ) external override live onlyController returns (uint256) {
         require(expiries[id] + GRACE_PERIOD >= block.timestamp); // Name must be registered here or in grace period
         require(
             expiries[id] + duration + GRACE_PERIOD > duration + GRACE_PERIOD
@@ -192,12 +184,9 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         ens.setSubnodeOwner(baseNode, bytes32(id), owner);
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        override(ERC721, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view override(ERC721, IERC165) returns (bool) {
         return
             interfaceID == INTERFACE_META_ID ||
             interfaceID == ERC721_ID ||
