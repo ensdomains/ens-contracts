@@ -7,6 +7,8 @@
     "test:local": "hardhat --network localhost test",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "format": "prettier --write .",
+    "precommit": "yarn format",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public"
   },
@@ -40,6 +42,7 @@
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.10",
     "hardhat-gas-reporter": "^1.0.4",
+    "husky": "^8.0.3",
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
     "rfc4648": "^1.5.0",
