@@ -783,16 +783,9 @@ contract NameWrapper is
         }
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
-        bool wrapped = _isWrapped(node);
-        if (parentNode != ETH_NODE) {
-            return wrapped;
-        }
-        try registrar.ownerOf(uint256(labelhash)) returns (address owner) {
-            return owner == address(this);
-        } catch {
-            return false;
-        }
+        return isWrapped(parentNode, labelhash);
     }
+    
     /**
      * @notice Checks if a name is wrapped in a more gas efficient way
      * @param parentNode Namehash of the name
