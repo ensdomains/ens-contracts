@@ -5786,10 +5786,13 @@ describe('Name Wrapper', () => {
     const label = 'something'
     const wrappedTokenId = namehash(label + '.eth')
     let result
+    let parentExpiry
 
     before(async () => {
       result = await ethers.provider.send('evm_snapshot')
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+      let [, , expiry] = await NameWrapper.getData(wrappedTokenId)
+      parentExpiry = expiry
     })
 
     after(async () => {
@@ -5838,17 +5841,19 @@ describe('Name Wrapper', () => {
       expect(await NameWrapper['isWrapped(bytes32)'](subTokenId)).to.equal(true)
     })
 
-    it('identifies an expired wrapped subname as unwrapped', async () => {
+    it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account,
         PARENT_CANNOT_CONTROL,
-        100,
+        parentExpiry + 100,
       )
-      await evm.advanceTime(101)
-      await evm.mine()
       const subTokenId = namehash('sub.something.eth')
+      expect(await NameWrapper.ownerOf(subTokenId)).to.equal(account)
+      await evm.advanceTime(DAY + GRACE_PERIOD + 101)
+      await evm.mine()
+      expect(await NameWrapper.ownerOf(subTokenId)).to.equal(EMPTY_ADDRESS)
       expect(await NameWrapper['isWrapped(bytes32)'](subTokenId)).to.equal(
         false,
       )
@@ -5858,9 +5863,14 @@ describe('Name Wrapper', () => {
   describe('isWrapped(bytes32 parentNode, bytes32 labelhash)', () => {
     const label = 'something'
     const wrappedTokenId = namehash(label + '.eth')
+    let result
+    let parentExpiry
 
     before(async () => {
+      result = await ethers.provider.send('evm_snapshot')
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+      let [, , expiry] = await NameWrapper.getData(wrappedTokenId)
+      parentExpiry = expiry
     })
 
     after(async () => {
@@ -5931,17 +5941,19 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
     })
 
-    it('identifies an expired wrapped subname as unwrapped', async () => {
-      const label = 'sub'
+    it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
       await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
-        label,
+        'sub',
         account,
         PARENT_CANNOT_CONTROL,
-        100,
+        parentExpiry + 100,
       )
-      await evm.advanceTime(101)
+      const subTokenId = namehash('sub.something.eth')
+      expect(await NameWrapper.ownerOf(subTokenId)).to.equal(account)
+      await evm.advanceTime(DAY + GRACE_PERIOD + 101)
       await evm.mine()
+      expect(await NameWrapper.ownerOf(subTokenId)).to.equal(EMPTY_ADDRESS)
       expect(
         await NameWrapper['isWrapped(bytes32,bytes32)'](
           wrappedTokenId,
