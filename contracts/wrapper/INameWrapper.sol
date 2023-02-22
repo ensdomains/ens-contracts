@@ -48,10 +48,7 @@ interface INameWrapper is IERC1155 {
 
     function upgradeContract() external view returns (INameWrapperUpgrade);
 
-    function supportsInterface(bytes4 interfaceID)
-        external
-        view
-        returns (bool);
+    function supportsInterface(bytes4 interfaceID) external view returns (bool);
 
     function wrap(
         bytes calldata name,
@@ -90,10 +87,7 @@ interface INameWrapper is IERC1155 {
         address newController
     ) external;
 
-    function upgrade(
-        bytes calldata name,
-        bytes calldata extraData
-    ) external;
+    function upgrade(bytes calldata name, bytes calldata extraData) external;
 
     function setFuses(bytes32 node, uint16 ownerControlledFuses)
         external
@@ -137,7 +131,10 @@ interface INameWrapper is IERC1155 {
         uint64 expiry
     ) external returns (uint64);
 
-    function canModifyName(bytes32 node, address addr) external view returns (bool);
+    function canModifyName(bytes32 node, address addr)
+        external
+        view
+        returns (bool);
 
     function setResolver(bytes32 node, address resolver) external;
 
@@ -164,4 +161,7 @@ interface INameWrapper is IERC1155 {
         external
         view
         returns (bool);
+
+    function isWrapped(bytes32) external view returns (bool);
+    function isWrapped(bytes32, bytes32) external view returns (bool);
 }
