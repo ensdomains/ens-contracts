@@ -63,10 +63,15 @@ describe('Name Wrapper', () => {
 
   /* Utility funcs */
 
-  async function registerSetupAndWrapName(label, account, fuses) {
+  async function registerSetupAndWrapName(
+    label,
+    account,
+    fuses,
+    duration = 1 * DAY,
+  ) {
     const tokenId = labelhash(label)
 
-    await BaseRegistrar.register(tokenId, account, 1 * DAY)
+    await BaseRegistrar.register(tokenId, account, duration)
 
     await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
@@ -1552,9 +1557,9 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
         )
 
-        await expect(
-          NameWrapper.upgrade(encodedName, 0),
-        ).to.be.revertedWith(`CannotUpgrade()`)
+        await expect(NameWrapper.upgrade(encodedName, 0)).to.be.revertedWith(
+          `CannotUpgrade()`,
+        )
       })
 
       it('Cannot upgrade a name if the upgradeContract has been set and then set back to the 0 address.', async () => {
@@ -1573,9 +1578,9 @@ describe('Name Wrapper', () => {
         )
 
         await NameWrapper.setUpgradeContract(EMPTY_ADDRESS)
-        await expect(
-          NameWrapper.upgrade(encodedName, 0),
-        ).to.be.revertedWith(`CannotUpgrade()`)
+        await expect(NameWrapper.upgrade(encodedName, 0)).to.be.revertedWith(
+          `CannotUpgrade()`,
+        )
       })
 
       it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
@@ -1657,9 +1662,9 @@ describe('Name Wrapper', () => {
 
         expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
 
-        await expect(
-          NameWrapper.upgrade(encodedName, 0),
-        ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account}")`)
+        await expect(NameWrapper.upgrade(encodedName, 0)).to.be.revertedWith(
+          `Unauthorised("${nameHash}", "${account}")`,
+        )
       })
 
       it('Will allow you to pass through extra data on upgrade', async () => {
@@ -1710,9 +1715,9 @@ describe('Name Wrapper', () => {
         //set the upgradeContract of the NameWrapper contract
         await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
-        await expect(
-          NameWrapper2.upgrade(encodedName, 0),
-        ).to.be.revertedWith(`Unauthorised("${nameHash}", "${account2}")`)
+        await expect(NameWrapper2.upgrade(encodedName, 0)).to.be.revertedWith(
+          `Unauthorised("${nameHash}", "${account2}")`,
+        )
       })
     })
 
@@ -1798,10 +1803,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrappedXYZ).to.equal(account)
 
         await expect(
-          NameWrapper.upgrade(
-            encodeName('to-upgrade.xyz'),
-            0,
-          ),
+          NameWrapper.upgrade(encodeName('to-upgrade.xyz'), 0),
         ).to.be.revertedWith(`CannotUpgrade()`)
       })
 
@@ -1815,7 +1817,8 @@ describe('Name Wrapper', () => {
           CANNOT_UNWRAP,
           EMPTY_ADDRESS,
         )
-        const expectedFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
+        const expectedFuses =
+          PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
         await NameWrapper.setSubnodeOwner(
           parentHash,
           label,
@@ -1829,10 +1832,7 @@ describe('Name Wrapper', () => {
         //set the upgradeContract of the NameWrapper contract
         await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
-        const tx = await NameWrapper.upgrade(
-          encodeName(name),
-          0,
-        )
+        const tx = await NameWrapper.upgrade(encodeName(name), 0)
 
         const expectedExpiry = await BaseRegistrar.nameExpires(parentLabelHash)
 
@@ -1872,14 +1872,9 @@ describe('Name Wrapper', () => {
         //set the upgradeContract of the NameWrapper contract
         await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
-        await NameWrapper.upgrade(
-          encodedName,
-          0,
-        )
+        await NameWrapper.upgrade(encodedName, 0)
 
-        expect(
-          await NameWrapper.ownerOf(nameHash),
-        ).to.equal(EMPTY_ADDRESS)
+        expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
 
         const [, fuses, expiry] = await NameWrapper.getData(nameHash)
 
@@ -1910,17 +1905,9 @@ describe('Name Wrapper', () => {
         //set the upgradeContract of the NameWrapper contract
         await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
-        await NameWrapper.upgrade(
-          encodedName,
-          0,
-        )
+        await NameWrapper.upgrade(encodedName, 0)
 
-        await expect(
-          NameWrapper.upgrade(
-            encodedName,
-            0,
-          ),
-        ).to.be.revertedWith(
+        await expect(NameWrapper.upgrade(encodedName, 0)).to.be.revertedWith(
           `Unauthorised("${namehash(
             'to-upgrade.wrapped2.eth',
           )}", "${account}")`,
@@ -1956,13 +1943,7 @@ describe('Name Wrapper', () => {
 
         expect(tx)
           .to.emit(NameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            encodeName('to-upgrade.xyz'),
-            account,
-            0, 
-            0,
-            '0x01',
-          )
+          .withArgs(encodeName('to-upgrade.xyz'), account, 0, 0, '0x01')
       })
 
       it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -1987,10 +1968,7 @@ describe('Name Wrapper', () => {
         await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
 
         await expect(
-          NameWrapper2.upgrade(
-            encodeName('to-upgrade.xyz'),
-            0,
-          ),
+          NameWrapper2.upgrade(encodeName('to-upgrade.xyz'), 0),
         ).to.be.revertedWith(
           `Unauthorised("${namehash('to-upgrade.xyz')}", "${account2}")`,
         )
@@ -2230,10 +2208,15 @@ describe('Name Wrapper', () => {
 
       await NameWrapper.wrapETH2LD(label, account, CANNOT_UNWRAP, EMPTY_ADDRESS)
 
-      // The function callStatic is called to get the return value of the function. 
-      // Note: callStatic does not modify the state of the contract. 
-      const fusesReturned = await NameWrapper.callStatic.setFuses(wrappedTokenId, CANNOT_TRANSFER)
-      expect(fusesReturned).to.equal(CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH)
+      // The function callStatic is called to get the return value of the function.
+      // Note: callStatic does not modify the state of the contract.
+      const fusesReturned = await NameWrapper.callStatic.setFuses(
+        wrappedTokenId,
+        CANNOT_TRANSFER,
+      )
+      expect(fusesReturned).to.equal(
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+      )
     })
 
     it('Can be called by an account authorised by the owner', async () => {
@@ -4003,7 +3986,7 @@ describe('Name Wrapper', () => {
       const wrappedTokenId = namehash(label + '.eth')
       const subLabel = 'sub'
       const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       // Confirm that the name is wrapped
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       // NameWrapper.setSubnodeOwner to account2
@@ -4184,7 +4167,7 @@ describe('Name Wrapper', () => {
       const subLabel2 = 'sub2'
       const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
       const subWrappedTokenId2 = namehash(`${subLabel2}.${label}.eth`)
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       const parentExpiry = await BaseRegistrar.nameExpires(labelHash)
       // Confirm that the name is wrapped
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
@@ -4424,12 +4407,7 @@ describe('Name Wrapper', () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(
-        label,
-        account,
-        CAN_DO_EVERYTHING,
-        MAX_EXPIRY,
-      )
+      await registerSetupAndWrapName(label, account, CAN_DO_EVERYTHING)
       await expect(
         NameWrapper.setSubnodeRecord(
           wrappedTokenId,
@@ -4467,7 +4445,7 @@ describe('Name Wrapper', () => {
       const label = 'subdomain3'
       const tokenId = labelhash(label)
       const wrappedTokenId = namehash(label + '.eth')
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       NameWrapper.setSubnodeRecord(
         wrappedTokenId,
         'sub',
@@ -4610,7 +4588,7 @@ describe('Name Wrapper', () => {
       const wrappedTokenId = namehash(label + '.eth')
       const subLabel = 'sub'
       const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       // Confirm that the name is wrapped
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
       // NameWrapper.setSubnodeOwner to account2
@@ -4801,7 +4779,7 @@ describe('Name Wrapper', () => {
       const subLabel2 = 'sub2'
       const subWrappedTokenId = namehash(`${subLabel}.${label}.eth`)
       const subWrappedTokenId2 = namehash(`${subLabel2}.${label}.eth`)
-      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, MAX_EXPIRY)
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       const parentExpiry = await BaseRegistrar.nameExpires(labelHash)
       // Confirm that the name is wrapped
       expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
@@ -5801,6 +5779,67 @@ describe('Name Wrapper', () => {
 
       await expect(NameWrapper2.setController(account2, true)).to.be.reverted
       await expect(NameWrapper2.setController(account, false)).to.be.reverted
+    })
+  })
+
+  describe('isWrapped()', () => {
+    const label = 'something'
+    const wrappedTokenId = namehash(label + '.eth')
+
+    before(async () => {
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+    })
+
+    it('identifies a wrapped .eth name', async () => {
+      expect(await NameWrapper.isWrapped(wrappedTokenId)).to.equal(true)
+    })
+
+    it('identifies an expired .eth name as unwrapped', async () => {
+      const label = 'expired'
+      const wrappedTokenId = namehash(label + '.eth')
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, 1 * DAY)
+      await evm.advanceTime(1 * DAY + 1)
+      await evm.mine()
+      expect(await NameWrapper.isWrapped(wrappedTokenId)).to.equal(false)
+    })
+
+    it('identifies an eth name registered on old controller as unwrapped', async () => {
+      const label = 'oldcontroller'
+      const labelHash = labelhash(label)
+      const tokenId = namehash('oldcontroller.eth')
+      await BaseRegistrar.register(labelHash, account, 1 * DAY)
+      expect(await BaseRegistrar.ownerOf(labelHash)).equal(account)
+      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+    })
+
+    it('identifies an unregistered .eth name as unwrapped', async () => {
+      const tokenId = namehash('abcdefghijklmnop.eth')
+      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+    })
+
+    it('identifies an unregistered tld as unwrapped', async () => {
+      const tokenId = namehash('abc')
+      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+    })
+
+    it('identifies a wrapped subname', async () => {
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
+      const subTokenId = namehash('sub.something.eth')
+      expect(await NameWrapper.isWrapped(subTokenId)).to.equal(true)
+    })
+
+    it('identifies an expired wrapped subname as unwrapped', async () => {
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'sub',
+        account,
+        PARENT_CANNOT_CONTROL,
+        100,
+      )
+      await evm.advanceTime(101)
+      await evm.mine()
+      const subTokenId = namehash('sub.something.eth')
+      expect(await NameWrapper.isWrapped(subTokenId)).to.equal(false)
     })
   })
 

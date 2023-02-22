@@ -152,11 +152,11 @@ contract NameWrapper is
      * @return string uri of the metadata service
      */
 
-    function uri(uint256 tokenId) 
-        public 
-        view 
-        override (INameWrapper, IERC1155MetadataURI) 
-        returns (string memory) 
+    function uri(uint256 tokenId)
+        public
+        view
+        override(INameWrapper, IERC1155MetadataURI)
+        returns (string memory)
     {
         return metadataService.uri(tokenId);
     }
@@ -481,10 +481,7 @@ contract NameWrapper is
      * @param extraData Extra data to pass to the upgrade contract
      */
 
-    function upgrade(
-        bytes calldata name,
-        bytes calldata extraData
-    ) public  {
+    function upgrade(bytes calldata name, bytes calldata extraData) public {
         bytes32 node = name.namehash(0);
 
         if (address(upgradeContract) == address(0)) {
@@ -495,11 +492,19 @@ contract NameWrapper is
             revert Unauthorised(node, msg.sender);
         }
 
-        (address currentOwner, uint32 fuses, uint64 expiry) = getData(uint256(node));
+        (address currentOwner, uint32 fuses, uint64 expiry) = getData(
+            uint256(node)
+        );
 
         _burn(uint256(node));
 
-        upgradeContract.wrapFromUpgrade(name, currentOwner, fuses, expiry, extraData);
+        upgradeContract.wrapFromUpgrade(
+            name,
+            currentOwner,
+            fuses,
+            expiry,
+            extraData
+        );
     }
 
     /** 
@@ -575,7 +580,7 @@ contract NameWrapper is
         bytes memory name = _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
 
-        if (!isWrapped(node)) {
+        if (!_isWrapped(node)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             _wrap(node, name, owner, fuses, expiry);
         } else {
@@ -610,7 +615,7 @@ contract NameWrapper is
         _checkFusesAreSettable(node, fuses);
         _saveLabel(parentNode, node, label);
         expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
-        if (!isWrapped(node)) {
+        if (!_isWrapped(node)) {
             ens.setSubnodeRecord(
                 parentNode,
                 labelhash,
@@ -765,8 +770,31 @@ contract NameWrapper is
         return fuses & fuseMask == fuseMask;
     }
 
-    // Note: This function only works for non .eth 2LDs. 
-    function isWrapped(bytes32 node) internal view returns (bool) {
+    /**
+     * @notice Checks if a name is wrapped
+     * @param node Namehash of the name
+     * @return Boolean of whether or not the name is wrapped
+     */
+
+    function isWrapped(bytes32 node) public view returns (bool) {
+        bytes memory name = names[node];
+        if (name.length == 0) {
+            return false;
+        }
+        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
+        bool wrapped = _isWrapped(node);
+        if (parentNode != ETH_NODE) {
+            return wrapped;
+        }
+        try registrar.ownerOf(uint256(labelhash)) returns (address owner) {
+            return owner == address(this);
+        } catch {
+            return false;
+        }
+    }
+
+    function _isWrapped(bytes32 node) internal view returns (bool) {
         return
             ownerOf(uint256(node)) != address(0) &&
             ens.owner(node) == address(this);
