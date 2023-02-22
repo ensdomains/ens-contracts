@@ -5782,16 +5782,24 @@ describe('Name Wrapper', () => {
     })
   })
 
-  describe('isWrapped()', () => {
+  describe('isWrapped(bytes32 node)', () => {
     const label = 'something'
     const wrappedTokenId = namehash(label + '.eth')
+    let result
 
     before(async () => {
+      result = await ethers.provider.send('evm_snapshot')
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
     })
 
+    after(async () => {
+      await ethers.provider.send('evm_revert', [result])
+    })
+
     it('identifies a wrapped .eth name', async () => {
-      expect(await NameWrapper.isWrapped(wrappedTokenId)).to.equal(true)
+      expect(await NameWrapper['isWrapped(bytes32)'](wrappedTokenId)).to.equal(
+        true,
+      )
     })
 
     it('identifies an expired .eth name as unwrapped', async () => {
@@ -5800,7 +5808,9 @@ describe('Name Wrapper', () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, 1 * DAY)
       await evm.advanceTime(1 * DAY + 1)
       await evm.mine()
-      expect(await NameWrapper.isWrapped(wrappedTokenId)).to.equal(false)
+      expect(await NameWrapper['isWrapped(bytes32)'](wrappedTokenId)).to.equal(
+        false,
+      )
     })
 
     it('identifies an eth name registered on old controller as unwrapped', async () => {
@@ -5809,23 +5819,23 @@ describe('Name Wrapper', () => {
       const tokenId = namehash('oldcontroller.eth')
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
       expect(await BaseRegistrar.ownerOf(labelHash)).equal(account)
-      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+      expect(await NameWrapper['isWrapped(bytes32)'](tokenId)).to.equal(false)
     })
 
     it('identifies an unregistered .eth name as unwrapped', async () => {
       const tokenId = namehash('abcdefghijklmnop.eth')
-      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+      expect(await NameWrapper['isWrapped(bytes32)'](tokenId)).to.equal(false)
     })
 
     it('identifies an unregistered tld as unwrapped', async () => {
       const tokenId = namehash('abc')
-      expect(await NameWrapper.isWrapped(tokenId)).to.equal(false)
+      expect(await NameWrapper['isWrapped(bytes32)'](tokenId)).to.equal(false)
     })
 
     it('identifies a wrapped subname', async () => {
       await NameWrapper.setSubnodeOwner(wrappedTokenId, 'sub', account, 0, 0)
       const subTokenId = namehash('sub.something.eth')
-      expect(await NameWrapper.isWrapped(subTokenId)).to.equal(true)
+      expect(await NameWrapper['isWrapped(bytes32)'](subTokenId)).to.equal(true)
     })
 
     it('identifies an expired wrapped subname as unwrapped', async () => {
@@ -5839,7 +5849,105 @@ describe('Name Wrapper', () => {
       await evm.advanceTime(101)
       await evm.mine()
       const subTokenId = namehash('sub.something.eth')
-      expect(await NameWrapper.isWrapped(subTokenId)).to.equal(false)
+      expect(await NameWrapper['isWrapped(bytes32)'](subTokenId)).to.equal(
+        false,
+      )
+    })
+  })
+
+  describe('isWrapped(bytes32 parentNode, bytes32 labelhash)', () => {
+    const label = 'something'
+    const wrappedTokenId = namehash(label + '.eth')
+
+    before(async () => {
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
+    })
+
+    after(async () => {
+      await ethers.provider.send('evm_revert', [result])
+    })
+
+    it('identifies a wrapped .eth name', async () => {
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          namehash('eth'),
+          labelhash('something'),
+        ),
+      ).to.equal(true)
+    })
+
+    it('identifies an expired .eth name as unwrapped', async () => {
+      const label = 'expired'
+      await registerSetupAndWrapName(label, account, CANNOT_UNWRAP, 1 * DAY)
+      await evm.advanceTime(1 * DAY + 1)
+      await evm.mine()
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          namehash('eth'),
+          labelhash('expired'),
+        ),
+      ).to.equal(false)
+    })
+
+    it('identifies an eth name registered on old controller as unwrapped', async () => {
+      const label = 'oldcontroller'
+      const labelHash = labelhash(label)
+      await BaseRegistrar.register(labelHash, account, 1 * DAY)
+      expect(await BaseRegistrar.ownerOf(labelHash)).equal(account)
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          namehash('eth'),
+          labelHash,
+        ),
+      ).to.equal(false)
+    })
+
+    it('identifies an unregistered .eth name as unwrapped', async () => {
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          namehash('eth'),
+          labelhash('abcdefghijklmnop'),
+        ),
+      ).to.equal(false)
+    })
+
+    it('identifies an unregistered tld as unwrapped', async () => {
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          ROOT_NODE,
+          labelhash('abc'),
+        ),
+      ).to.equal(false)
+    })
+
+    it('identifies a wrapped subname', async () => {
+      const label = 'sub'
+      await NameWrapper.setSubnodeOwner(wrappedTokenId, label, account, 0, 0)
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          namehash('something.eth'),
+          labelhash(label),
+        ),
+      ).to.equal(true)
+    })
+
+    it('identifies an expired wrapped subname as unwrapped', async () => {
+      const label = 'sub'
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        label,
+        account,
+        PARENT_CANNOT_CONTROL,
+        100,
+      )
+      await evm.advanceTime(101)
+      await evm.mine()
+      expect(
+        await NameWrapper['isWrapped(bytes32,bytes32)'](
+          wrappedTokenId,
+          labelhash(label),
+        ),
+      ).to.equal(false)
     })
   })
 

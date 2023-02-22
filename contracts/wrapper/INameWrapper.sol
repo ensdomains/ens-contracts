@@ -163,4 +163,5 @@ interface INameWrapper is IERC1155 {
         returns (bool);
 
     function isWrapped(bytes32) external view returns (bool);
+    function isWrapped(bytes32, bytes32) external view returns (bool);
 }

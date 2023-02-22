@@ -79,6 +79,7 @@ const INTERFACES = {
     'ownerOf(uint256)',
     'allFusesBurned(bytes32,uint32)',
     'isWrapped(bytes32)',
+    'isWrapped(bytes32,bytes32)',
   ],
 }
 

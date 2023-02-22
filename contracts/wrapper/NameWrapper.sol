@@ -793,6 +793,26 @@ contract NameWrapper is
             return false;
         }
     }
+    /**
+     * @notice Checks if a name is wrapped in a more gas efficient way
+     * @param parentNode Namehash of the name
+     * @param labelhash Namehash of the name
+     * @return Boolean of whether or not the name is wrapped
+     */
+
+    function isWrapped(bytes32 parentNode, bytes32 labelhash) public view returns (bool) {
+        bytes32 node = _makeNode(parentNode, labelhash);
+        bool wrapped = _isWrapped(node);
+        if (parentNode != ETH_NODE) {
+            return wrapped;
+        }
+        try registrar.ownerOf(uint256(labelhash)) returns (address owner) {
+            return owner == address(this);
+        } catch {
+            return false;
+        }
+    }
+
 
     function _isWrapped(bytes32 node) internal view returns (bool) {
         return
