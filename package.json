@@ -7,7 +7,7 @@
     "test:local": "hardhat --network localhost test",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
-    "format": "prettier --write .",
+    "format": "prettier --write ./contracts/*,./test/*",
     "precommit": "yarn format",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public",
