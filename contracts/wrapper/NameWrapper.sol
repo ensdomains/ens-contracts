@@ -813,13 +813,6 @@ contract NameWrapper is
         }
     }
 
-
-    function _isWrapped(bytes32 node) internal view returns (bool) {
-        return
-            ownerOf(uint256(node)) != address(0) &&
-            ens.owner(node) == address(this);
-    }
-
     function onERC721Received(
         address to,
         address,
@@ -1113,5 +1106,11 @@ contract NameWrapper is
             // Cannot directly burn other non-user settable fuses
             revert OperationProhibited(node);
         }
+    }
+
+    function _isWrapped(bytes32 node) internal view returns (bool) {
+        return
+            ownerOf(uint256(node)) != address(0) &&
+            ens.owner(node) == address(this);
     }
 }
