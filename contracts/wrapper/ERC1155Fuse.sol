@@ -28,13 +28,9 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC165, IERC165)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC165, IERC165) returns (bool) {
         return
             interfaceId == type(IERC1155).interfaceId ||
             interfaceId == type(IERC1155MetadataURI).interfaceId ||
@@ -48,13 +44,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      *
      * - `account` cannot be the zero address.
      */
-    function balanceOf(address account, uint256 id)
-        public
-        view
-        virtual
-        override
-        returns (uint256)
-    {
+    function balanceOf(
+        address account,
+        uint256 id
+    ) public view virtual override returns (uint256) {
         require(
             account != address(0),
             "ERC1155: balance query for the zero address"
@@ -73,13 +66,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      *
      * - `accounts` and `ids` must have the same length.
      */
-    function balanceOfBatch(address[] memory accounts, uint256[] memory ids)
-        public
-        view
-        virtual
-        override
-        returns (uint256[] memory)
-    {
+    function balanceOfBatch(
+        address[] memory accounts,
+        uint256[] memory ids
+    ) public view virtual override returns (uint256[] memory) {
         require(
             accounts.length == ids.length,
             "ERC1155: accounts and ids length mismatch"
@@ -97,11 +87,10 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC1155-setApprovalForAll}.
      */
-    function setApprovalForAll(address operator, bool approved)
-        public
-        virtual
-        override
-    {
+    function setApprovalForAll(
+        address operator,
+        bool approved
+    ) public virtual override {
         require(
             msg.sender != operator,
             "ERC1155: setting approval status for self"
@@ -114,29 +103,19 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address account, address operator)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address account,
+        address operator
+    ) public view virtual override returns (bool) {
         return _operatorApprovals[account][operator];
     }
 
     /**
      * @dev Returns the Name's owner address and fuses
      */
-    function getData(uint256 tokenId)
-        public
-        view
-        virtual
-        returns (
-            address owner,
-            uint32 fuses,
-            uint64 expiry
-        )
-    {
+    function getData(
+        uint256 tokenId
+    ) public view virtual returns (address owner, uint32 fuses, uint64 expiry) {
         uint256 t = _tokens[tokenId];
         owner = address(uint160(t));
         expiry = uint64(t >> 192);

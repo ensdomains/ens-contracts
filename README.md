@@ -146,6 +146,10 @@ PublicResolver includes the following profiles that implements different EIPs.
 
 ## Developer guide
 
+### pre-commit 
+
+This repo runs a husky precommit to prettify all contract files to keep them consistent.
+
 ### How to setup
 
 ```

@@ -49,11 +49,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     event NewOracle(address oracle);
     event NewPublicSuffixList(address suffixes);
 
-    constructor(
-        DNSSEC _dnssec,
-        PublicSuffixList _suffixes,
-        ENS _ens
-    ) {
+    constructor(DNSSEC _dnssec, PublicSuffixList _suffixes, ENS _ens) {
         oracle = _dnssec;
         emit NewOracle(address(oracle));
         suffixes = _suffixes;
@@ -129,25 +125,18 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         }
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        external
-        pure
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) external pure override returns (bool) {
         return
             interfaceID == type(IERC165).interfaceId ||
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    function _claim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input)
-        internal
-        returns (
-            bytes32 parentNode,
-            bytes32 labelHash,
-            address addr
-        )
-    {
+    function _claim(
+        bytes memory name,
+        DNSSEC.RRSetWithSignature[] memory input
+    ) internal returns (bytes32 parentNode, bytes32 labelHash, address addr) {
         (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
 
         // Get the first label
@@ -178,10 +167,10 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         emit Claim(node, addr, name, inception);
     }
 
-    function enableNode(bytes memory domain, uint256 offset)
-        internal
-        returns (bytes32 node)
-    {
+    function enableNode(
+        bytes memory domain,
+        uint256 offset
+    ) internal returns (bytes32 node) {
         uint256 len = domain.readUint8(offset);
         if (len == 0) {
             return bytes32(0);

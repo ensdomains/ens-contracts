@@ -9,12 +9,10 @@ import "../BytesUtils.sol";
 contract SHA256Digest is Digest {
     using BytesUtils for *;
 
-    function verify(bytes calldata data, bytes calldata hash)
-        external
-        pure
-        override
-        returns (bool)
-    {
+    function verify(
+        bytes calldata data,
+        bytes calldata hash
+    ) external pure override returns (bool) {
         require(hash.length == 32, "Invalid sha256 hash length");
         return sha256(data) == hash.readBytes32(0);
     }

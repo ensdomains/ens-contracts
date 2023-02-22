@@ -88,12 +88,10 @@ contract ETHRegistrarController is
         nameWrapper = _nameWrapper;
     }
 
-    function rentPrice(string memory name, uint256 duration)
-        public
-        view
-        override
-        returns (IPriceOracle.Price memory price)
-    {
+    function rentPrice(
+        string memory name,
+        uint256 duration
+    ) public view override returns (IPriceOracle.Price memory price) {
         bytes32 label = keccak256(bytes(name));
         price = prices.price(name, base.nameExpires(uint256(label)), duration);
     }
@@ -205,21 +203,17 @@ contract ETHRegistrarController is
         }
     }
 
-    function renew(string calldata name, uint256 duration)
-        external
-        payable
-        override
-    {
+    function renew(
+        string calldata name,
+        uint256 duration
+    ) external payable override {
         bytes32 labelhash = keccak256(bytes(name));
         uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
         if (msg.value < price.base) {
             revert InsufficientValue();
         }
-        uint256 expires = nameWrapper.renew(
-            tokenId,
-            duration
-        );
+        uint256 expires = nameWrapper.renew(tokenId, duration);
 
         if (msg.value > price.base) {
             payable(msg.sender).transfer(msg.value - price.base);
@@ -232,11 +226,9 @@ contract ETHRegistrarController is
         payable(owner()).transfer(address(this).balance);
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        external
-        pure
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) external pure returns (bool) {
         return
             interfaceID == type(IERC165).interfaceId ||
             interfaceID == type(IETHRegistrarController).interfaceId;

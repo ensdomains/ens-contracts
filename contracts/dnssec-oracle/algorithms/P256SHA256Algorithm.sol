@@ -27,20 +27,16 @@ contract P256SHA256Algorithm is Algorithm, EllipticCurve {
             );
     }
 
-    function parseSignature(bytes memory data)
-        internal
-        pure
-        returns (uint256[2] memory)
-    {
+    function parseSignature(
+        bytes memory data
+    ) internal pure returns (uint256[2] memory) {
         require(data.length == 64, "Invalid p256 signature length");
         return [uint256(data.readBytes32(0)), uint256(data.readBytes32(32))];
     }
 
-    function parseKey(bytes memory data)
-        internal
-        pure
-        returns (uint256[2] memory)
-    {
+    function parseKey(
+        bytes memory data
+    ) internal pure returns (uint256[2] memory) {
         require(data.length == 68, "Invalid p256 key length");
         return [uint256(data.readBytes32(4)), uint256(data.readBytes32(36))];
     }

@@ -13,15 +13,12 @@ abstract contract DNSSEC {
     event AlgorithmUpdated(uint8 id, address addr);
     event DigestUpdated(uint8 id, address addr);
 
-    function verifyRRSet(RRSetWithSignature[] memory input)
-        external
-        view
-        virtual
-        returns (bytes memory rrs, uint32 inception);
+    function verifyRRSet(
+        RRSetWithSignature[] memory input
+    ) external view virtual returns (bytes memory rrs, uint32 inception);
 
-    function verifyRRSet(RRSetWithSignature[] memory input, uint256 now)
-        public
-        view
-        virtual
-        returns (bytes memory rrs, uint32 inception);
+    function verifyRRSet(
+        RRSetWithSignature[] memory input,
+        uint256 now
+    ) public view virtual returns (bytes memory rrs, uint32 inception);
 }

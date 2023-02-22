@@ -18,11 +18,7 @@ library RecordParser {
     )
         internal
         pure
-        returns (
-            bytes memory key,
-            bytes memory value,
-            uint256 nextOffset
-        )
+        returns (bytes memory key, bytes memory value, uint256 nextOffset)
     {
         uint256 separator = input.find(offset, len, "=");
         if (separator == type(uint256).max) {

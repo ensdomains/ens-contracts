@@ -79,13 +79,9 @@ contract NameWrapper is
         names[ETH_NODE] = "\x03eth\x00";
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC1155Fuse, INameWrapper)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC1155Fuse, INameWrapper) returns (bool) {
         return
             interfaceId == type(INameWrapper).interfaceId ||
             interfaceId == type(IERC721Receiver).interfaceId ||
@@ -100,12 +96,9 @@ contract NameWrapper is
      * @return owner The owner of the name
      */
 
-    function ownerOf(uint256 id)
-        public
-        view
-        override(ERC1155Fuse, INameWrapper)
-        returns (address owner)
-    {
+    function ownerOf(
+        uint256 id
+    ) public view override(ERC1155Fuse, INameWrapper) returns (address owner) {
         return super.ownerOf(id);
     }
 
@@ -117,15 +110,13 @@ contract NameWrapper is
      * @return expiry Expiry of the name
      */
 
-    function getData(uint256 id)
+    function getData(
+        uint256 id
+    )
         public
         view
         override(ERC1155Fuse, INameWrapper)
-        returns (
-            address owner,
-            uint32 fuses,
-            uint64 expiry
-        )
+        returns (address owner, uint32 fuses, uint64 expiry)
     {
         (owner, fuses, expiry) = super.getData(id);
 
@@ -139,10 +130,9 @@ contract NameWrapper is
      * @param _metadataService The new metadata service
      */
 
-    function setMetadataService(IMetadataService _metadataService)
-        public
-        onlyOwner
-    {
+    function setMetadataService(
+        IMetadataService _metadataService
+    ) public onlyOwner {
         metadataService = _metadataService;
     }
 
@@ -152,7 +142,9 @@ contract NameWrapper is
      * @return string uri of the metadata service
      */
 
-    function uri(uint256 tokenId)
+    function uri(
+        uint256 tokenId
+    )
         public
         view
         override(INameWrapper, IERC1155MetadataURI)
@@ -168,10 +160,9 @@ contract NameWrapper is
      * @param _upgradeAddress address of an upgraded contract
      */
 
-    function setUpgradeContract(INameWrapperUpgrade _upgradeAddress)
-        public
-        onlyOwner
-    {
+    function setUpgradeContract(
+        INameWrapperUpgrade _upgradeAddress
+    ) public onlyOwner {
         if (address(upgradeContract) != address(0)) {
             registrar.setApprovalForAll(address(upgradeContract), false);
             ens.setApprovalForAll(address(upgradeContract), false);
@@ -205,11 +196,10 @@ contract NameWrapper is
      * @return whether or not is owner or approved
      */
 
-    function canModifyName(bytes32 node, address addr)
-        public
-        view
-        returns (bool)
-    {
+    function canModifyName(
+        bytes32 node,
+        address addr
+    ) public view returns (bool) {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
             (owner == addr || isApprovedForAll(owner, addr)) &&
@@ -298,11 +288,10 @@ contract NameWrapper is
      * @return expires The expiry date of the name on the .eth registrar, in seconds since the Unix epoch.
      */
 
-    function renew(uint256 tokenId, uint256 duration)
-        external
-        onlyController
-        returns (uint256 expires)
-    {
+    function renew(
+        uint256 tokenId,
+        uint256 duration
+    ) external onlyController returns (uint256 expires) {
         bytes32 node = _makeNode(ETH_NODE, bytes32(tokenId));
 
         uint256 registrarExpiry = registrar.renew(tokenId, duration);
@@ -420,7 +409,10 @@ contract NameWrapper is
      * @return Old fuses
      */
 
-    function setFuses(bytes32 node, uint16 ownerControlledFuses)
+    function setFuses(
+        bytes32 node,
+        uint16 ownerControlledFuses
+    )
         public
         onlyTokenOwner(node)
         operationAllowed(node, CANNOT_BURN_FUSES)
@@ -676,11 +668,10 @@ contract NameWrapper is
      * @param resolver the resolver contract
      */
 
-    function setResolver(bytes32 node, address resolver)
-        public
-        onlyTokenOwner(node)
-        operationAllowed(node, CANNOT_SET_RESOLVER)
-    {
+    function setResolver(
+        bytes32 node,
+        address resolver
+    ) public onlyTokenOwner(node) operationAllowed(node, CANNOT_SET_RESOLVER) {
         ens.setResolver(node, resolver);
     }
 
@@ -690,11 +681,10 @@ contract NameWrapper is
      * @param ttl TTL in the registry
      */
 
-    function setTTL(bytes32 node, uint64 ttl)
-        public
-        onlyTokenOwner(node)
-        operationAllowed(node, CANNOT_SET_TTL)
-    {
+    function setTTL(
+        bytes32 node,
+        uint64 ttl
+    ) public onlyTokenOwner(node) operationAllowed(node, CANNOT_SET_TTL) {
         ens.setTTL(node, ttl);
     }
 
@@ -722,10 +712,10 @@ contract NameWrapper is
      * @param subnode Namehash of the subname to check
      */
 
-    function _checkCanCallSetSubnodeOwner(bytes32 parentNode, bytes32 subnode)
-        internal
-        view
-    {
+    function _checkCanCallSetSubnodeOwner(
+        bytes32 parentNode,
+        bytes32 subnode
+    ) internal view {
         (
             address subnodeOwner,
             uint32 subnodeFuses,
@@ -761,11 +751,10 @@ contract NameWrapper is
      * @return Boolean of whether or not all the selected fuses are burned
      */
 
-    function allFusesBurned(bytes32 node, uint32 fuseMask)
-        public
-        view
-        returns (bool)
-    {
+    function allFusesBurned(
+        bytes32 node,
+        uint32 fuseMask
+    ) public view returns (bool) {
         (, uint32 fuses, ) = getData(uint256(node));
         return fuses & fuseMask == fuseMask;
     }
@@ -785,7 +774,7 @@ contract NameWrapper is
         bytes32 parentNode = name.namehash(offset);
         return isWrapped(parentNode, labelhash);
     }
-    
+
     /**
      * @notice Checks if a name is wrapped in a more gas efficient way
      * @param parentNode Namehash of the name
@@ -793,7 +782,10 @@ contract NameWrapper is
      * @return Boolean of whether or not the name is wrapped
      */
 
-    function isWrapped(bytes32 parentNode, bytes32 labelhash) public view returns (bool) {
+    function isWrapped(
+        bytes32 parentNode,
+        bytes32 labelhash
+    ) public view returns (bool) {
         bytes32 node = _makeNode(parentNode, labelhash);
         bool wrapped = _isWrapped(node);
         if (parentNode != ETH_NODE) {
@@ -881,19 +873,17 @@ contract NameWrapper is
         return (owner, fuses);
     }
 
-    function _makeNode(bytes32 node, bytes32 labelhash)
-        private
-        pure
-        returns (bytes32)
-    {
+    function _makeNode(
+        bytes32 node,
+        bytes32 labelhash
+    ) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(node, labelhash));
     }
 
-    function _addLabel(string memory label, bytes memory name)
-        internal
-        pure
-        returns (bytes memory ret)
-    {
+    function _addLabel(
+        string memory label,
+        bytes memory name
+    ) internal pure returns (bytes memory ret) {
         if (bytes(label).length < 1) {
             revert LabelTooShort();
         }
