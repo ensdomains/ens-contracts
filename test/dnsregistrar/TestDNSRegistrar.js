@@ -68,6 +68,8 @@ contract('DNSRegistrar', function (accounts) {
     ])
 
     registrar = await DNSRegistrarContract.new(
+      ZERO_ADDRESS, // Previous registrar
+      ZERO_ADDRESS, // Resolver
       dnssec.address,
       suffixes.address,
       ens.address,
@@ -188,6 +190,7 @@ contract('DNSRegistrar', function (accounts) {
       ZERO_ADDRESS,
       ZERO_ADDRESS,
     )
+    await resolver.setApprovalForAll(registrar.address, true);
 
     const proof = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
@@ -217,6 +220,15 @@ contract('DNSRegistrar', function (accounts) {
         ZERO_ADDRESS,
         accounts[0],
       ),
+    )
+  })
+
+  it('does not allow setting the owner to 0 with an empty record', async () => {
+    await exceptions.expectFailure(
+      registrar.proveAndClaim(
+        utils.hexEncodeName('foo.test'),
+        []
+      )
     )
   })
 })

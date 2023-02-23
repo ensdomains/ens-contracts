@@ -10,6 +10,7 @@ import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
+import "./profiles/ExtendedResolver.sol";
 import "./Multicallable.sol";
 import "../wrapper/INameWrapper.sol";
 
@@ -26,7 +27,8 @@ contract PublicResolver is
     InterfaceResolver,
     NameResolver,
     PubkeyResolver,
-    TextResolver
+    TextResolver,
+    ExtendedResolver
 {
     ENS immutable ens;
     INameWrapper immutable nameWrapper;
