@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {ERC1155Fuse, IERC165, IERC1155MetadataURI} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, CANNOT_APPROVE, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -110,6 +110,23 @@ contract NameWrapper is
     }
 
     /**
+     * @notice Approves an address for a name
+     * @param to address to approve
+     * @param tokenId name to approve
+     */
+
+    function approve(address to, uint256 tokenId)
+        public
+        override(ERC1155Fuse, INameWrapper)
+    {
+        (,uint32 fuses,) = getData(tokenId);
+        if(fuses & CANNOT_APPROVE == CANNOT_APPROVE){
+            revert OperationProhibited(bytes32(tokenId));
+        }
+        super.approve(to, tokenId);
+    }
+
+    /**
      * @notice Gets the data for a name
      * @param id Namehash of the name
      * @return owner Owner of the name
@@ -212,7 +229,7 @@ contract NameWrapper is
     {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
-            (owner == addr || isApprovedForAll(owner, addr)) &&
+            (owner == addr || isApprovedForAll(owner, addr)) || getApproved(uint256(node)) == addr &&
             (fuses & IS_DOT_ETH == 0 ||
                 expiry - GRACE_PERIOD >= block.timestamp);
     }

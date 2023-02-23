@@ -13,6 +13,7 @@ uint32 constant CANNOT_TRANSFER = 4;
 uint32 constant CANNOT_SET_RESOLVER = 8;
 uint32 constant CANNOT_SET_TTL = 16;
 uint32 constant CANNOT_CREATE_SUBDOMAIN = 32;
+uint32 constant CANNOT_APPROVE = 64;
 //uint16 reserved for parent controlled fuses from bit 17 to bit 32
 uint32 constant PARENT_CANNOT_CONTROL = 1 << 16;
 uint32 constant IS_DOT_ETH = 1 << 17;
@@ -144,6 +145,9 @@ interface INameWrapper is IERC1155 {
     function setTTL(bytes32 node, uint64 ttl) external;
 
     function ownerOf(uint256 id) external view returns (address owner);
+
+    function approve(address to, uint256 tokenId)
+        external;
 
     function getData(uint256 id)
         external

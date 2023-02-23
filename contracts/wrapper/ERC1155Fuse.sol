@@ -11,10 +11,16 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
+    /**
+     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
+     */
+    event Approval(address indexed owner, address indexed approved, uint256 indexed tokenId);
     mapping(uint256 => uint256) public _tokens;
 
     // Mapping from owner to operator approvals
     mapping(address => mapping(address => bool)) private _operatorApprovals;
+    // Mapping from token ID to approved address
+    mapping(uint256 => address) private _tokenApprovals;
 
     /**************************************************************************
      * ERC721 methods
@@ -24,6 +30,32 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         (address owner, , ) = getData(id);
         return owner;
     }
+
+
+        /**
+     * @dev See {IERC721-approve}.
+     */
+    function approve(address to, uint256 tokenId) public virtual {
+        address owner = ownerOf(tokenId);
+        require(to != owner, "ERC721: approval to current owner");
+
+        require(
+            msg.sender == owner || isApprovedForAll(owner, msg.sender),
+            "ERC721: approve caller is not token owner or approved for all"
+        );
+
+        _approve(to, tokenId);
+    }
+
+    /**
+     * @dev See {IERC721-getApproved}.
+     */
+    function getApproved(uint256 tokenId) public view virtual returns (address) {
+        _requireMinted(tokenId);
+
+        return _tokenApprovals[tokenId];
+    }
+
 
     /**
      * @dev See {IERC165-supportsInterface}.
@@ -379,5 +411,36 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
                 revert("ERC1155: transfer to non ERC1155Receiver implementer");
             }
         }
+    }
+
+    /* ERC721 internal functions */
+
+    /**
+     * @dev Approve `to` to operate on `tokenId`
+     *
+     * Emits an {Approval} event.
+     */
+    function _approve(address to, uint256 tokenId) internal virtual {
+        _tokenApprovals[tokenId] = to;
+        emit Approval(ownerOf(tokenId), to, tokenId);
+    }
+
+    /**
+     * @dev Reverts if the `tokenId` has not been minted yet.
+     */
+    function _requireMinted(uint256 tokenId) internal view virtual {
+        require(_exists(tokenId), "ERC721: invalid token ID");
+    }
+
+    /**
+     * @dev Returns whether `tokenId` exists.
+     *
+     * Tokens can be managed by their owner or approved accounts via {approve} or {setApprovalForAll}.
+     *
+     * Tokens start existing when they are minted (`_mint`),
+     * and stop existing when they are burned (`_burn`).
+     */
+    function _exists(uint256 tokenId) internal view virtual returns (bool) {
+        return ownerOf(tokenId) != address(0);
     }
 }
