@@ -103,6 +103,23 @@ contract NameWrapper is
     }
 
     /**
+     * @notice Gets the owner of a name
+     * @param id Namehash of the name
+     * @return operator Approved operator of a name
+     */
+
+    function getApproved(
+        uint256 id
+    )
+        public
+        view
+        override(ERC1155Fuse, INameWrapper)
+        returns (address operator)
+    {
+        return super.getApproved(id);
+    }
+
+    /**
      * @notice Approves an address for a name
      * @param to address to approve
      * @param tokenId name to approve
@@ -219,10 +236,11 @@ contract NameWrapper is
     ) public view returns (bool) {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
-            (owner == addr || isApprovedForAll(owner, addr)) ||
-            (getApproved(uint256(node)) == addr &&
-                (fuses & IS_DOT_ETH == 0 ||
-                    expiry - GRACE_PERIOD >= block.timestamp));
+            (owner == addr ||
+                isApprovedForAll(owner, addr) ||
+                getApproved(uint256(node)) == addr) &&
+            (fuses & IS_DOT_ETH == 0 ||
+                expiry - GRACE_PERIOD >= block.timestamp);
     }
 
     /**

@@ -143,6 +143,8 @@ interface INameWrapper is IERC1155 {
 
     function approve(address to, uint256 tokenId) external;
 
+    function getApproved(uint256 tokenId) external view returns (address);
+
     function getData(
         uint256 id
     ) external view returns (address, uint32, uint64);
