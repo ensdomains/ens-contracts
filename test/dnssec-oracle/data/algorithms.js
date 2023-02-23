@@ -23,8 +23,8 @@ module.exports = [
       // org.			39	IN	SOA	a0.org.afilias-nst.info. noc.afilias-nst.info. 2012953483 1800 900 604800 86400
       '0x00060701000003845af561bf5ad9a42f0746036f726700036f72670000060001000003840043026130036f72670b6166696c6961732d6e737404696e666f00036e6f630b6166696c6961732d6e737404696e666f0077fb3b8b000007080000038400093a8000015180',
       // org.			39	IN	RRSIG	SOA 7 1 900 20180511092623 20180420082623 1862 org. NNyzNfXm72KiOuKvkd/s57kw4bYTX0xh4QBBca36MbYOl7SoqojQOfrU QmVj6/khTAOh2Ywx/S/2CKRQEhavsdBLKT29TlD5ahyzDHQu1hwvS6ZA qXgaPqeiXJiJodEUFkeCRWpp43iuqwh55mz6EeGqpX7vUpQ3DCDgfa3l o18=
-      '0x34dcb335f5e6ef62a23ae2af91dfece7b930e1b6135f4c61e1004171adfa31b60e97b4a8aa88d039fad4426563ebf9214c03a1d98c31fd2ff608a4501216afb1d04b293dbd4e50f96a1cb30c742ed61c2f4ba640a9781a3ea7a25c9889a1d114164782456a69e378aeab0879e66cfa11e1aaa57eef5294370c20e07dade5a35f'
-    ]
+      '0x34dcb335f5e6ef62a23ae2af91dfece7b930e1b6135f4c61e1004171adfa31b60e97b4a8aa88d039fad4426563ebf9214c03a1d98c31fd2ff608a4501216afb1d04b293dbd4e50f96a1cb30c742ed61c2f4ba640a9781a3ea7a25c9889a1d114164782456a69e378aeab0879e66cfa11e1aaa57eef5294370c20e07dade5a35f',
+    ],
   ],
   [
     'RSASHA256Algorithm',
@@ -54,8 +54,8 @@ module.exports = [
       //               20000101000000 9033 example.net. kRCOH6u7l0QGy9qpC9
       //               l1sLncJcOKFLJ7GhiUOibu4teYp5VE9RncriShZNz85mwlMgNEa
       //               cFYK/lPtPiVYP4bwg==);{id = 9033}
-      '0x91108e1fabbb974406cbdaa90bd975b0b9dc25c38a14b27b1a18943a26eee2d798a79544f519dcae24a164dcfce66c2532034469c1582bf94fb4f89560fe1bc2'
-    ]
+      '0x91108e1fabbb974406cbdaa90bd975b0b9dc25c38a14b27b1a18943a26eee2d798a79544f519dcae24a164dcfce66c2532034469c1582bf94fb4f89560fe1bc2',
+    ],
   ],
   [
     'P256SHA256Algorithm',
@@ -86,7 +86,7 @@ module.exports = [
       //               20100909100439 20100812100439 55648 example.net.
       //               qx6wLYqmh+l9oCKTN6qIc+bw6ya+KJ8oMz0YP107epXA
       //               yGmt+3SNruPFKG7tZoLBLlUzGGus7ZwmwWep666VCw== )
-      '0xab1eb02d8aa687e97da0229337aa8873e6f0eb26be289f28333d183f5d3b7a95c0c869adfb748daee3c5286eed6682c12e5533186baced9c26c167a9ebae950b'
-    ]
-  ]
-];
+      '0xab1eb02d8aa687e97da0229337aa8873e6f0eb26be289f28333d183f5d3b7a95c0c869adfb748daee3c5286eed6682c12e5533186baced9c26c167a9ebae950b',
+    ],
+  ],
+]

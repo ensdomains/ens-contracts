@@ -11,7 +11,7 @@ import 'hardhat-gas-reporter'
 import { HardhatUserConfig, task } from 'hardhat/config'
 import { Artifact } from 'hardhat/types'
 import { promisify } from 'util'
-import "hardhat-contract-sizer";
+import 'hardhat-contract-sizer'
 
 const exec = promisify(_exec)
 
@@ -29,7 +29,10 @@ dotenv.config({ debug: false })
 
 let real_accounts = undefined
 if (process.env.DEPLOYER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
+  real_accounts = [
+    process.env.DEPLOYER_KEY,
+    process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
+  ]
 }
 
 // circular dependency shared with actions

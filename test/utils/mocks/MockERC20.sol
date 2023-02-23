@@ -9,10 +9,10 @@ contract MockERC20 is ERC20 {
         string memory symbol,
         address[] memory addresses
     ) ERC20(name, symbol) {
-        _mint(msg.sender, 100 * 10**uint256(decimals()));
+        _mint(msg.sender, 100 * 10 ** uint256(decimals()));
 
         for (uint256 i = 0; i < addresses.length; i++) {
-            _mint(addresses[i], 100 * 10**uint256(decimals()));
+            _mint(addresses[i], 100 * 10 ** uint256(decimals()));
         }
     }
 }

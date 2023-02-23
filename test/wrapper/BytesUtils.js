@@ -17,7 +17,9 @@ describe('BytesUtils', () => {
   let BytesUtils
 
   before(async () => {
-    const BytesUtilsFactory = await ethers.getContractFactory("contracts/wrapper/test/TestBytesUtils.sol:TestBytesUtils")
+    const BytesUtilsFactory = await ethers.getContractFactory(
+      'contracts/wrapper/test/TestBytesUtils.sol:TestBytesUtils',
+    )
     BytesUtils = await BytesUtilsFactory.deploy()
   })
 
@@ -41,29 +43,41 @@ describe('BytesUtils', () => {
     })
 
     it('Reverts when given an empty string', async () => {
-      await expect(BytesUtils.readLabel('0x', 0)).to.be.revertedWith('readLabel: Index out of bounds')
+      await expect(BytesUtils.readLabel('0x', 0)).to.be.revertedWith(
+        'readLabel: Index out of bounds',
+      )
     })
 
     it('Reverts when given an index after the end of the string', async () => {
-      await expect(BytesUtils.readLabel(encodeName('test.tld'), 10)).to.be.revertedWith('readLabel: Index out of bounds')
+      await expect(
+        BytesUtils.readLabel(encodeName('test.tld'), 10),
+      ).to.be.revertedWith('readLabel: Index out of bounds')
     })
   })
 
   describe('namehash()', () => {
     it('Hashes the empty name to 0', async () => {
-      expect(await BytesUtils.namehash(encodeName('.'), 0)).to.equal(namehash(''))
+      expect(await BytesUtils.namehash(encodeName('.'), 0)).to.equal(
+        namehash(''),
+      )
     })
 
     it('Hashes .eth correctly', async () => {
-      expect(await BytesUtils.namehash(encodeName('eth'), 0)).to.equal(namehash('eth'))
+      expect(await BytesUtils.namehash(encodeName('eth'), 0)).to.equal(
+        namehash('eth'),
+      )
     })
 
     it('Hashes a 2LD correctly', async () => {
-      expect(await BytesUtils.namehash(encodeName('test.tld'), 0)).to.equal(namehash('test.tld'))
+      expect(await BytesUtils.namehash(encodeName('test.tld'), 0)).to.equal(
+        namehash('test.tld'),
+      )
     })
 
     it('Hashes partial names correctly', async () => {
-      expect(await BytesUtils.namehash(encodeName('test.tld'), 5)).to.equal(namehash('tld'))
+      expect(await BytesUtils.namehash(encodeName('test.tld'), 5)).to.equal(
+        namehash('tld'),
+      )
     })
   })
 })
