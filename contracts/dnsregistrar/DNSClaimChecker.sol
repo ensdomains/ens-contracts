@@ -14,11 +14,10 @@ library DNSClaimChecker {
     uint16 constant CLASS_INET = 1;
     uint16 constant TYPE_TXT = 16;
 
-    function getOwnerAddress(bytes memory name, bytes memory data)
-        internal
-        pure
-        returns (address, bool)
-    {
+    function getOwnerAddress(
+        bytes memory name,
+        bytes memory data
+    ) internal pure returns (address, bool) {
         // Add "_ens." to the front of the name.
         Buffer.buffer memory buf;
         buf.init(name.length + 5);

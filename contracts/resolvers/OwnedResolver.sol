@@ -30,7 +30,9 @@ contract OwnedResolver is
         return msg.sender == owner();
     }
 
-    function supportsInterface(bytes4 interfaceID)
+    function supportsInterface(
+        bytes4 interfaceID
+    )
         public
         view
         virtual

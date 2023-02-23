@@ -2,13 +2,13 @@
 
 The NameWrapper wraps ENS names, adding new functionality to them:
 
- - Makes all ENS names at any level into ERC1155 tokens.
- - Supports 'emancipating' names by allowing the owner of a parent name to revoke control over subdomains.
- - Supports 'locking' names by allowing the owner of a name to revoke control over changes in resolver, creation of subdomains, and other parameters.
- - Wrapped names can expire; a name that is emancipated or locked has a built in expiration at which the name (and that status) expires.
- - UIs and Smart Contracts can check the status of a name with a single function call, allowing them to ensure security guarantees are upheld.
- - .eth names can be registered and renewed via the wrapper, removing any need to wrap names separately after registration.
- - Owners of names can create wrapped subdomains directly, without having to register-then-wrap.
+- Makes all ENS names at any level into ERC1155 tokens.
+- Supports 'emancipating' names by allowing the owner of a parent name to revoke control over subdomains.
+- Supports 'locking' names by allowing the owner of a name to revoke control over changes in resolver, creation of subdomains, and other parameters.
+- Wrapped names can expire; a name that is emancipated or locked has a built in expiration at which the name (and that status) expires.
+- UIs and Smart Contracts can check the status of a name with a single function call, allowing them to ensure security guarantees are upheld.
+- .eth names can be registered and renewed via the wrapper, removing any need to wrap names separately after registration.
+- Owners of names can create wrapped subdomains directly, without having to register-then-wrap.
 
 ## Glossary of terms
 
@@ -19,7 +19,7 @@ The NameWrapper wraps ENS names, adding new functionality to them:
 - Locking - The process of the owner of a name revoking some level of control over its own name.
 - Owner-controlled fuses - Fuses that can be burned by the owner of a name or the owner of the parent name if the name is not emancipated.
 - Parent-controlled fuses - Fuses that can be burned by the owner of the parent name.
-- Expiry - Expiry is the date when the name expires and is no longer able to be owned. Expiry only comes into effect when a name is emancipated or locked. Expiry can ONLY be extended and can only be less than or equal to the parent's expiry.  Only the parent or an approved address of the parent can extend expiry.
+- Expiry - Expiry is the date when the name expires and is no longer able to be owned. Expiry only comes into effect when a name is emancipated or locked. Expiry can be extended by parent or approved addresses, and if the parent burnt the parent controlled fuses(PCF), then the subnames can extend their expiry by themselves. However, the PCF can be unburnt later if the parent name expires. For the latest update, refer to: https://discuss.ens.domains/t/namewrapper-updates-including-testnet-deployment-addresses/14505/48
 
 ## Lifecycle of a name
 
@@ -52,7 +52,7 @@ Some state transitions are irrevocable; once a name is Emancipated or Locked, it
 
 Names start out in the unregistered state before they are registered, and return to it after they expire.
 
-To check if a name is Unregistered, verify that `NameWrapper.ownerOf` returns `address(0)` and so does `Registry.owner`.
+To check if a name is Unregistered, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` returns either `address(0)` or the address of the NameWrapper contract.
 
 #### Unwrapped
 
@@ -60,7 +60,7 @@ A name that is registered but not managed by the name wrapper is Unwrapped.
 
 Unwrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar.
 
-To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` does not.
+To check if a name is Unwrapped, verify that `NameWrapper.ownerOf` returns `address(0)` and `Registry.owner` returns any address except for `address(0)` or the address of the NameWrapper contract.
 
 #### Wrapped
 
@@ -68,7 +68,7 @@ Wrapping an Unwrapped name makes it Wrapped. Wrapped names are managed by the na
 
 Wrapped names do not expire, with the exception of .eth second-level names, which have behaviour enforced by the .eth registrar, and have a wrapper expiry equal to the end of the name's grace period.
 
-To check if a name is Wrapped, verify that `NameWrapper.ownerOf` does not return `address(0)`.
+To check if a name is Wrapped, verify that `NameWrapper.ownerOf(node)` does not return `address(0)`, `Registry.owner` is the NameWrapper contract and if it's a .eth name `registrar.ownerOf(labelhash)` must be the NameWrapper contract. If any of these are false, the name should be consider unwrapped.
 
 #### Emancipated
 
@@ -96,16 +96,19 @@ To check if a name is Locked, verify that the `CANNOT_UNWRAP` fuse is burned.
 
 ## Expiry
 
-The NameWrapper tracks an expiration time for each name. Expiry of names is not enabled by default. This means you can leave expiry at 0 or a number less than `block.timestamp` and the name will have an owner and be able to set records. Expiry is only applicable to names in the Emancipated and Locked states.
+The NameWrapper tracks an expiration time for each name. Expiry of names is not enabled by default. This means you can leave expiry at 0 or a number less than `block.timestamp` and the name will have an owner and be able to set records. Expiry causes fuses to reset for any wrapped name. However the name itself will only expire if it is in the Emancipated or Locked state.
 
-If the name is Emancipated or Locked, the following changes happen:
+For all wrapped names, the following change happens when the expiry has been reached:
 
-- The NameWrapper returns `address(0)` as the name owner from `ownerOf()` or `getData()` if the name is expired.
-- The NameWrapper treats all fuses as unset and returns uint32(0) from `getData()` for fuses if the name is expired.
+- The NameWrapper treats all fuses as unset and returns uint32(0) from `getData()` for fuses.
 
-Expiry can still be extended even if a name is in the Wrapped state, but does not have any practical effect on the name.
+In addition, if the name is Emancipated or Locked, the following change happens when the expiry has been reached:
 
-.eth names do not have their own expiry in the NameWrapper and instead derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended on the .eth registrar will also have the same effect inside the NameWrapper. At the expiry date inside the .eth registrar, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains.
+- The NameWrapper returns `address(0)` as the name owner from `ownerOf()` or `getData()`.
+
+If a name is Wrapped (but not Emancipated or Locked), then the expiry will only cause parent-controlled fuses to reset, and otherwise has no practical effect on the name.
+
+.eth names derive their expiry from the .eth registrar; the wrapper's expiry is set to the end of the name's grace period. A name that is extended using the Name Wrapper aware .eth registrar controller calling `renew()` or wrapped using `wrapETH2LD()`, the name's expiry will **sync** the wrapper expiry to the .eth registrar expiry. At the expiry date, the .eth name will be frozen for the entirety of the grace period. This includes all functionality that checks the owner, but does not affect its subdomains. If the name is renewed by a wrapper unaware .eth registrar controller, the wrapper expiry of the name will remain in the same expired state and will not sync.
 
 Expiry can be extended using the following functions:
 
@@ -113,12 +116,15 @@ Expiry can be extended using the following functions:
 - `setSubnodeOwner()`
 - `setSubnodeRecord()`
 - `renew()`
+- `extendExpiry()`
 
 `setChildFuses()` and `renew()` do not have any direct restrictions around when they can be called to extend expiry. `renew()` cannot be called on a name that has expired (past grace period) on the .eth registrar and must be re-registered instead.
 
 `setSubnodeOwner()` and `setSubnodeRecord()` both revert when the subdomain is Emancipated or Locked.
 
 `renew()` indirectly extends the expiry of a .eth name by renewing the name inside the .eth registrar.
+
+`extendExpiry()` extends the expiry of any name. It can only be called by the owner of the name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
 
 ## Fuses
 
@@ -130,16 +136,16 @@ When a fuse is set, we say it is "burned", to illustrate the one-way nature of f
 
 There are three fuses that have special control over the burning mechanism: `PARENT_CANNOT_CONTROL`, `CANNOT_UNWRAP`, and `CANNOT_BURN_FUSES`.
 
- - `PARENT_CANNOT_CONTROL` cannot be burned unless `CANNOT_UNWRAP` is burned on the parent name. Burning `PARENT_CANNOT_CONTROL` moves the name to the Emancipated state.
- - `CANNOT_UNWRAP` cannot be burned unless `PARENT_CANNOT_CONTROL` is also burned. Burning `CANNOT_UNWRAP` moves the name to the Locked state.
- - Other user-controlled fuses cannot be burned unless `CANNOT_UNWRAP` is burned.
+- `PARENT_CANNOT_CONTROL` cannot be burned unless `CANNOT_UNWRAP` is burned on the parent name. Burning `PARENT_CANNOT_CONTROL` moves the name to the Emancipated state.
+- `CANNOT_UNWRAP` cannot be burned unless `PARENT_CANNOT_CONTROL` is also burned. Burning `CANNOT_UNWRAP` moves the name to the Locked state.
+- Other user-controlled fuses cannot be burned unless `CANNOT_UNWRAP` is burned.
 - A parent name's owner can still extend the expiry of a name with `PARENT_CANNOT_CONTROL` burned.
 - Burning `PARENT_CANNOT_CONTROL` prevents the owner of the parent name from burning any further fuses on the name.
 - Burning `PARENT_CANNOT_CONTROL` ensures the parent cannot call `setSubnodeOwner()` or `setSubnodeRecord()` on that specific subdomain. This means that a parent cannot change the owner or records of a subdomain using `setSubnode*()` and additionally a parent cannot burn fuses or extend with `setSubnode*()` and `setChildFuses()`, since the functions are now restricted.
 - Burning `PARENT_CANNOT_CONTROL` allows the parent or name owner to burn owner-controlled fuses. Until `PARENT_CANNOT_CONTROL` is burnt, no owner-controlled fuses can be set. This does not affect parent-controlled fuses.
 - Important note for developers: To ensure `PARENT_CANNOT_CONTROL` is actually set and not automatically reset to 0, the expiry MUST be extended at the same time to be greater than the current block's timestamp.
-- Burning `CANNOT_UNWRAP` ensures the name cannot be unwrapped. 
-- Other user-controlled fuses can only be burned if `CANNOT_UNWRAP` is also burned. This also allows the owner of the name to burn `PARENT_CANNOT_CONTROL` and all parent-controlled fuses on subdomains. 
+- Burning `CANNOT_UNWRAP` ensures the name cannot be unwrapped.
+- Other user-controlled fuses can only be burned if `CANNOT_UNWRAP` is also burned. This also allows the owner of the name to burn `PARENT_CANNOT_CONTROL` and all parent-controlled fuses on subdomains.
 - `CANNOT_BURN_FUSES` can be burned to prevent any further changes to fuses. As with all user-controlled fuses, this cannot be burned unless `PARENT_CANNOT_CONTROL` and `CANNOT_UNWRAP` are both burned.
 
 ### List of pre-defined fuses
@@ -149,28 +155,40 @@ These fuses are used within the NameWrapper and are not available for custom use
 Anything that is not predefined here as a fuse can be also burnt as a custom fuse. Fuse bits 1-16 (the first uint16 of the uint32) can be burnt by the owner of the name, or by the owner of the parent name at the same time as burning `PARENT_CANNOT_CONTROL`. Fuse bits 17-32 (the second half of the uint32) can only be burnt by the owner of the parent name.
 
 #### CANNOT_UNWRAP = 1
+
 If this fuse is burned, the name cannot be unwrapped, and calls to unwrap and unwrapETH2LD, as well as other effects that would unwrap a name such as `setSubnodeOwner` will fail.
 
 #### CANNOT_BURN_FUSES = 2
+
 If this fuse is burned, no further fuses can be burned. This has the effect of 'locking open' some set of permissions on the name. Calls to setFuses, and other methods that modify the set of fuses, will fail. Other methods can still be called successfully so long as they do not specify new fuses to burn.
 
 #### CANNOT_TRANSFER = 4
+
 If this fuse is burned, the name cannot be transferred. Calls to safeTransferFrom and safeBatchTransferFrom will fail.
 
 #### CANNOT_SET_RESOLVER = 8
+
 If this fuse is burned, the resolver cannot be changed. Calls to setResolver, setRecord and setSubnodeRecord will fail.
 
 #### CANNOT_SET_TTL = 16
+
 If this fuse is burned, the TTL cannot be changed. Calls to setTTL, setRecord, and setSubnodeRecord will fail.
 
 #### CANNOT_CREATE_SUBDOMAIN = 32
+
 If this fuse is burned, new subdomains cannot be created. Calls to setSubnodeOwner and setSubnodeRecord will fail if they reference a name that does not already exist.
 
 #### PARENT_CANNOT_CONTROL = 65536
+
 If this fuse is burned, existing subdomains cannot be replaced by the parent name and the parent can no longer burn other fuses on this child. Calls to setSubnodeOwner and setSubnodeRecord will fail if they reference a name that already exists. Attempting to burn fuses in setChildFuses will also fail. This fuse can only be burnt by the parent of a node.
 
 #### IS_DOT_ETH = 131072
+
 If this fuse is burned, it means that the name is a .eth name. This fuse cannot be burned manually and is burned when wrapETH2LD() or onERC721Received() is called.
+
+#### CAN_EXTEND_EXPIRY = 262144
+
+If this fuse is burned, a name will be able to extend its own expiry in the NameWrapper. Does not apply to .eth 2LDs, as the expiry will inherit from the registrar in that case, and this fuse will not be burned when wrapping/registering .eth 2LDs.
 
 ### Checking Fuses using `allFusesBurned(node, fuseMask)`
 
@@ -179,7 +197,7 @@ To check whether or not a fuse is burnt you can use this function that takes a f
 ```js
 const areBurned = await allFusesBurned(
   namehash('vitalik.eth'),
-  CANNOT_TRANSFER | CANNOT_SET_RESOLVER
+  CANNOT_TRANSFER | CANNOT_SET_RESOLVER,
 )
 // if CANNOT_UNWRAP AND CANNOT_SET_RESOLVER are *both* burned this will return true
 ```
@@ -209,6 +227,7 @@ Wraps any name other than a .eth second-level name.
 Parent-controlled fuses are retained on unwrap, so if the name was previously Emancipated and has not since expired, it will return directly to the Emancipated state.
 
 ### `onERC721Received()`
+
 **Start State**: Unwrapped
 **End State**: Emancipated | Locked
 
@@ -216,19 +235,22 @@ Wraps a .eth second-level name by sending the ERC721 NFT to the wrapper contract
 
 Otherwise behaves identically to `wrapETH2LD`.
 
-### `registerAndWrapETH2LD()` 
+### `registerAndWrapETH2LD()`
+
 **Start State**: Unregistered
 **End State**: Emancipated | Locked
 
 Allows a registrar controller to register and wrap a name in a single operation. After registering the name, behaves identically to `wrapETH2LD`.
 
 ### `renew()`
+
 **Start State**: Emancipated | Locked
 **End State**: Emancipated | Locked
 
 Allows a registrar controller to renew a .eth second-level name.
 
 ### `setSubnodeOwner()`
+
 **Start State**: Unregistered | Unwrapped | Wrapped
 **End State**: Unregistered | Wrapped | Emancipated | Locked
 
@@ -245,6 +267,7 @@ If an expiration is provided, the subname's expiration will be set to the greate
 If fuses are provided, they will be burned on the subname.
 
 ### `setSubnodeRecord()`
+
 **Start State**: Unregistered | Unwrapped | Wrapped
 **End State**: Wrapped | Emancipated | Locked
 
@@ -253,12 +276,14 @@ Creates or replaces a subname while updating resolver and TTL records.
 Behaves identically to `setSubnodeOwner()`, additionally setting the resolver and TTL for the subname. If the new owner is `address(0)`, resolver and TTL are ignored.
 
 ### `unwrapETH2LD()`
+
 **Start State**: Emancipated
 **End State**: Unwrapped
 
 Unwraps a .eth second-level name, provided that the name is not Locked.
 
 ### `unwrap()`
+
 **Start State**: Wrapped | Emancipated
 **End State**: Unwrapped
 
@@ -267,6 +292,7 @@ Unwraps any name other than a .eth second-level name, provided that the name is 
 Parent-controlled fuses are retained on unwrap, so if the name was previously Emancipated and has not since expired, it will return directly to the Emancipated state if `wrap()` is called on it.
 
 ### `setRecord()`
+
 **Start State**: Wrapped | Emancipated | Locked
 **End State**: Unregistered | Wrapped | Emancipated | Locked
 
@@ -275,6 +301,7 @@ Mirrors the existing registry functionality, allowing you to set owner, resolver
 When called with an owner of `address(0)`, unwraps the name provided it is not Locked and not a .eth second-level name.
 
 ### `setFuses()`
+
 **Start State**: Emancipated | Locked
 **End State**: Locked
 
@@ -284,13 +311,23 @@ In order to burn any other fuse, `CANNOT_UNWRAP` must be burned as well, moving 
 
 Cannot be called if `CANNOT_BURN_FUSES` has been burned.
 
+### `extendExpiry()`
+
+**Start State**: Wrapped | Emancipated | Locked
+**End State**: Wrapped | Emancipated | Locked
+
+`extendExpiry()` can only be called by the owner of a name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
+
+The expiry can only be extended, not reduced. And the max expiry is automatically set to the expiry of the parent node.
+
 ### `setChildFuses()`
+
 **Start State**: Wrapped
 **End State**: Emancipated | Locked
 
 `setChildFuses()` can only be called the parent owner of a name. It can burn both user-controlled and parent-controlled fuses.
 
-If the name is Emancipated or Locked, this function may be called to extend the expiry, but cannot burn any further fuses. 
+If the name is Emancipated or Locked, this function may be called to extend the expiry, but cannot burn any further fuses.
 
 ### Setting Records
 
@@ -306,7 +343,7 @@ The NameWrapper mirrors most of the functionality from the original ENS registry
 
 ### Getting Data
 
-The NameWrapper has 2 functions for getting data from the contract. 
+The NameWrapper has 2 functions for getting data from the contract.
 
 - `getData`
 - `ownerOf`
@@ -339,7 +376,6 @@ To check if a name has been wrapped, call `isWrapped()`. This checks that the ow
 If you transfer your subdomain to the NameWrapper using `registry.setSubnodeOwner()`, `registry.setSubnodeRecord` or `registry.setOwner()`, the NameWrapper will NOT recognise this as a wrap. There will be no `NameWrapped` event emitted, and there won't be an ERC1155 minted for that specific name. For this reason, if you want to check whether or not a name has been wrapped, you must check if the owner in the registry is the NameWrapper AND the owner in the NameWrapper is non-zero.
 
 Since the NameWrapper does have `onERC721Received` support, the NameWrapper WILL recognise a transfer of the .eth registrar ERC721 token to the NameWrapper as a wrap.
-
 
 ## Register wrapped names
 
@@ -462,4 +498,6 @@ The upgraded namewrapper must include the interface `INameWrapperUpgrade.sol`, w
 require(isTokenOwnerOrApproved(parentNode) || msg.sender == oldWrapperAddress && registrar.ownerOf(parentLabelHash) == address(this))
 ```
 
-It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts)
+It is recommended to have this check after the normal checks, so normal usage in the new wrapper does not cost any additional gas (unless the require actually reverts).
+
+If the function signature of the new NameWrapper changes, there must be an extra function added to the new NameWrapper, that takes the old function signature of `wrap()` and `wrapETH2LD()` and then translates them into the new function signatures to avoid a situation where the old NameWrapper cannot call the new NameWrapper.

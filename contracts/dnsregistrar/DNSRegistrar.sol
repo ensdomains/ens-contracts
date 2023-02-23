@@ -122,25 +122,18 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         }
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        external
-        pure
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) external pure override returns (bool) {
         return
             interfaceID == type(IERC165).interfaceId ||
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    function _claim(bytes memory name, DNSSEC.RRSetWithSignature[] memory input)
-        internal
-        returns (
-            bytes32 parentNode,
-            bytes32 labelHash,
-            address addr
-        )
-    {
+    function _claim(
+        bytes memory name,
+        DNSSEC.RRSetWithSignature[] memory input
+    ) internal returns (bytes32 parentNode, bytes32 labelHash, address addr) {
         (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
 
         // Get the first label
