@@ -5,7 +5,7 @@ dist: trusty
 language: node_js
 
 node_js:
-  - "14"
+  - '14'
 env:
   - TASK=test
   - TASK=lint

@@ -3,7 +3,7 @@ const StablePriceOracle = artifacts.require('./StablePriceOracle')
 
 const { expect } = require('chai')
 
-contract('StablePriceOracle', function(accounts) {
+contract('StablePriceOracle', function (accounts) {
   let priceOracle
 
   before(async () => {
@@ -11,27 +11,24 @@ contract('StablePriceOracle', function(accounts) {
     var dummyOracle = await DummyOracle.new(1000000000n)
     // 4 attousd per second for 3 character names, 2 attousd per second for 4 character names,
     // 1 attousd per second for longer names.
-    priceOracle = await StablePriceOracle.new(dummyOracle.address, [
-      0,
-      0,
-      4,
-      2,
-      1,
-    ])
+    priceOracle = await StablePriceOracle.new(
+      dummyOracle.address,
+      [0, 0, 4, 2, 1],
+    )
   })
 
   it('should return correct prices', async () => {
     expect(parseInt((await priceOracle.price('foo', 0, 3600)).base)).to.equal(
-      1440
+      1440,
     )
     expect(parseInt((await priceOracle.price('quux', 0, 3600)).base)).to.equal(
-      720
+      720,
     )
     expect(parseInt((await priceOracle.price('fubar', 0, 3600)).base)).to.equal(
-      360
+      360,
     )
     expect(
-      parseInt((await priceOracle.price('foobie', 0, 3600)).base)
+      parseInt((await priceOracle.price('foobie', 0, 3600)).base),
     ).to.equal(360)
   })
 
@@ -48,7 +45,7 @@ contract('StablePriceOracle', function(accounts) {
       1,
     ])
     expect((await priceOracle2.price('foo', 0, 86400))[0].toString()).to.equal(
-      '8640000000000000000000'
+      '8640000000000000000000',
     )
   })
 })

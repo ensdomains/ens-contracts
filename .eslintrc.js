@@ -2,20 +2,20 @@ module.exports = {
   env: {
     mocha: true,
   },
-  plugins: ["babel"],
+  plugins: ['babel'],
   rules: {
-    "import/extensions": [
-      "error",
-      "ignorePackages",
+    'import/extensions': [
+      'error',
+      'ignorePackages',
       {
-        js: "never",
-        ts: "never",
+        js: 'never',
+        ts: 'never',
       },
     ],
-    "import/prefer-default-export": "off",
-    "prefer-destructuring": "off",
-    "prefer-template": "off",
-    "no-console": "off",
-    "func-names": "off",
+    'import/prefer-default-export': 'off',
+    'prefer-destructuring': 'off',
+    'prefer-template': 'off',
+    'no-console': 'off',
+    'func-names': 'off',
   },
-};
+}
