@@ -19,7 +19,10 @@ error OffchainLookup(
 );
 
 interface IDNSGateway {
-    function resolve(bytes memory name, uint16 qtype) external returns(DNSSEC.RRSetWithSignature[] memory);
+    function resolve(
+        bytes memory name,
+        uint16 qtype
+    ) external returns (DNSSEC.RRSetWithSignature[] memory);
 }
 
 uint16 constant CLASS_INET = 1;
@@ -57,14 +60,19 @@ contract OffchainDNSResolver is IExtendedResolver {
         );
     }
 
-    function resolveCallback(bytes calldata response, bytes calldata extraData)
-        external
-        view
-        returns (bytes memory)
-    {
-        (bytes memory name, bytes memory query) = abi.decode(extraData, (bytes, bytes));
-        DNSSEC.RRSetWithSignature[] memory rrsets = abi.decode(response, (DNSSEC.RRSetWithSignature[]));
-        
+    function resolveCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (bytes memory) {
+        (bytes memory name, bytes memory query) = abi.decode(
+            extraData,
+            (bytes, bytes)
+        );
+        DNSSEC.RRSetWithSignature[] memory rrsets = abi.decode(
+            response,
+            (DNSSEC.RRSetWithSignature[])
+        );
+
         (bytes memory data, ) = oracle.verifyRRSet(rrsets);
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
@@ -73,22 +81,44 @@ contract OffchainDNSResolver is IExtendedResolver {
         ) {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
-            if(!rrname.equals(name) || iter.class != CLASS_INET || iter.dnstype != TYPE_TXT) {
+            if (
+                !rrname.equals(name) ||
+                iter.class != CLASS_INET ||
+                iter.dnstype != TYPE_TXT
+            ) {
                 continue;
             }
 
             // Look for a valid ENS-DNS TXT record
-            (address dnsresolver, bytes memory context) = parseRR(iter.data, iter.rdataOffset, iter.nextOffset);
+            (address dnsresolver, bytes memory context) = parseRR(
+                iter.data,
+                iter.rdataOffset,
+                iter.nextOffset
+            );
 
             // If we found a valid record, try to resolve it
-            if(dnsresolver != address(0)) {
-                if(IERC165(dnsresolver).supportsInterface(IExtendedDNSResolver.resolve.selector)) {
-                    return IExtendedDNSResolver(dnsresolver).resolve(name, query, context);
-                } else if(IERC165(dnsresolver).supportsInterface(IExtendedResolver.resolve.selector)) {
+            if (dnsresolver != address(0)) {
+                if (
+                    IERC165(dnsresolver).supportsInterface(
+                        IExtendedDNSResolver.resolve.selector
+                    )
+                ) {
+                    return
+                        IExtendedDNSResolver(dnsresolver).resolve(
+                            name,
+                            query,
+                            context
+                        );
+                } else if (
+                    IERC165(dnsresolver).supportsInterface(
+                        IExtendedResolver.resolve.selector
+                    )
+                ) {
                     return IExtendedResolver(dnsresolver).resolve(name, query);
                 } else {
-                    (bool ok, bytes memory ret) = address(dnsresolver).staticcall(query);
-                    if(ok) {
+                    (bool ok, bytes memory ret) = address(dnsresolver)
+                        .staticcall(query);
+                    if (ok) {
                         return ret;
                     } else {
                         revert CouldNotResolve(name);
@@ -96,51 +126,73 @@ contract OffchainDNSResolver is IExtendedResolver {
                 }
             }
         }
-        
+
         // No valid records; revert.
         revert CouldNotResolve(name);
     }
 
-    function parseRR(bytes memory data, uint256 idx, uint256 lastIdx) internal view returns (address, bytes memory) {
+    function parseRR(
+        bytes memory data,
+        uint256 idx,
+        uint256 lastIdx
+    ) internal view returns (address, bytes memory) {
         bytes memory txt = readTXT(data, idx, lastIdx);
-        
+
         // Must start with the magic word
-        if(txt.length < 5 || !txt.equals(0, "ENS1 ", 0, 5)) {
+        if (txt.length < 5 || !txt.equals(0, "ENS1 ", 0, 5)) {
             return (address(0), "");
         }
 
         // Parse the name or address
         uint256 lastTxtIdx = txt.find(5, txt.length - 5, " ");
-        if(lastTxtIdx > txt.length) {
+        if (lastTxtIdx > txt.length) {
             address dnsResolver = parseAndResolve(txt, 5, txt.length);
             return (dnsResolver, "");
         } else {
             address dnsResolver = parseAndResolve(txt, 5, lastTxtIdx);
-            return (dnsResolver, txt.substring(lastTxtIdx + 1, txt.length - lastTxtIdx - 1));
+            return (
+                dnsResolver,
+                txt.substring(lastTxtIdx + 1, txt.length - lastTxtIdx - 1)
+            );
         }
     }
 
-    function readTXT(bytes memory data, uint256 startIdx, uint256 lastIdx) internal pure returns(bytes memory) {
+    function readTXT(
+        bytes memory data,
+        uint256 startIdx,
+        uint256 lastIdx
+    ) internal pure returns (bytes memory) {
         // TODO: Concatenate multiple text fields
         uint256 fieldLength = data.readUint8(startIdx);
         assert(startIdx + fieldLength < lastIdx);
         return data.substring(startIdx + 1, fieldLength);
     }
 
-    function parseAndResolve(bytes memory nameOrAddress, uint256 idx, uint256 lastIdx) internal view returns(address) {
-        if(nameOrAddress[idx] == '0' && nameOrAddress[idx + 1] == 'x') {
-            (address ret, bool valid) = nameOrAddress.hexToAddress(idx + 2, lastIdx);
-            if(valid) {
+    function parseAndResolve(
+        bytes memory nameOrAddress,
+        uint256 idx,
+        uint256 lastIdx
+    ) internal view returns (address) {
+        if (nameOrAddress[idx] == "0" && nameOrAddress[idx + 1] == "x") {
+            (address ret, bool valid) = nameOrAddress.hexToAddress(
+                idx + 2,
+                lastIdx
+            );
+            if (valid) {
                 return ret;
             }
         }
         return resolveName(nameOrAddress, idx, lastIdx);
     }
 
-    function resolveName(bytes memory name, uint256 idx, uint256 lastIdx) internal view returns(address) {
+    function resolveName(
+        bytes memory name,
+        uint256 idx,
+        uint256 lastIdx
+    ) internal view returns (address) {
         bytes32 node = textNamehash(name, idx, lastIdx);
         address resolver = ens.resolver(node);
-        if(resolver == address(0)) {
+        if (resolver == address(0)) {
             return address(0);
         }
         return IAddrResolver(resolver).addr(node);
@@ -152,14 +204,21 @@ contract OffchainDNSResolver is IExtendedResolver {
      * @param idx Index to start at
      * @param lastIdx Index to end at
      */
-    function textNamehash(bytes memory name, uint256 idx, uint256 lastIdx) internal view returns(bytes32) {
-        uint256 separator = name.find(idx, name.length - idx, bytes1('.'));
+    function textNamehash(
+        bytes memory name,
+        uint256 idx,
+        uint256 lastIdx
+    ) internal view returns (bytes32) {
+        uint256 separator = name.find(idx, name.length - idx, bytes1("."));
         bytes32 parentNode = bytes32(0);
-        if(separator < lastIdx) {
+        if (separator < lastIdx) {
             parentNode = textNamehash(name, separator + 1, lastIdx);
         } else {
             separator = lastIdx;
         }
-        return keccak256(abi.encodePacked(parentNode, name.keccak(idx, separator - idx)));
+        return
+            keccak256(
+                abi.encodePacked(parentNode, name.keccak(idx, separator - idx))
+            );
     }
 }

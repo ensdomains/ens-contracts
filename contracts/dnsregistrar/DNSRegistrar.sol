@@ -108,12 +108,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             name,
             input
         );
-        if(msg.sender != owner) {
+        if (msg.sender != owner) {
             revert PermissionDenied(msg.sender, owner);
         }
         ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
         if (addr != address(0)) {
-            if(resolver == address(0)) {
+            if (resolver == address(0)) {
                 revert PreconditionNotMet();
             }
             bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
@@ -156,28 +156,25 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
 
         bool found;
         (addr, found) = DNSClaimChecker.getOwnerAddress(name, data);
-        if(!found) {
+        if (!found) {
             revert NoOwnerRecordFound();
         }
 
         emit Claim(node, addr, name, inception);
     }
 
-    function enableNode(bytes memory domain)
-        public
-        returns (bytes32 node)
-    {
+    function enableNode(bytes memory domain) public returns (bytes32 node) {
         // Name must be in the public suffix list.
-        if(!suffixes.isPublicSuffix(domain)) {
+        if (!suffixes.isPublicSuffix(domain)) {
             revert InvalidPublicSuffix(domain);
         }
         return _enableNode(domain, 0);
     }
 
-    function _enableNode(bytes memory domain, uint256 offset)
-        internal
-        returns(bytes32 node)
-    {
+    function _enableNode(
+        bytes memory domain,
+        uint256 offset
+    ) internal returns (bytes32 node) {
         uint256 len = domain.readUint8(offset);
         if (len == 0) {
             return bytes32(0);
@@ -193,9 +190,15 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
                 root.setSubnodeOwner(label, address(this));
                 ens.setResolver(node, resolver);
             } else {
-                ens.setSubnodeRecord(parentNode, label, address(this), resolver, 0);
+                ens.setSubnodeRecord(
+                    parentNode,
+                    label,
+                    address(this),
+                    resolver,
+                    0
+                );
             }
-        } else if(owner != address(this)) {
+        } else if (owner != address(this)) {
             revert PreconditionNotMet();
         }
         return node;

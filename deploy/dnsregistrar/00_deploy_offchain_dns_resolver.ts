@@ -12,10 +12,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const tx = await deploy('OffchainDNSResolver', {
     from: deployer,
-    args: [registry.address, dnssec.address, "https://dnssec-oracle.ens.domains/"],
+    args: [
+      registry.address,
+      dnssec.address,
+      'https://dnssec-oracle.ens.domains/',
+    ],
     log: true,
   })
-  console.log(`Deployed OffchainDNSResolver to ${tx.address}`);
+  console.log(`Deployed OffchainDNSResolver to ${tx.address}`)
 }
 
 func.tags = ['OffchainDNSResolver']

@@ -190,7 +190,7 @@ contract('DNSRegistrar', function (accounts) {
       ZERO_ADDRESS,
       ZERO_ADDRESS,
     )
-    await resolver.setApprovalForAll(registrar.address, true);
+    await resolver.setApprovalForAll(registrar.address, true)
 
     const proof = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
@@ -225,10 +225,7 @@ contract('DNSRegistrar', function (accounts) {
 
   it('does not allow setting the owner to 0 with an empty record', async () => {
     await exceptions.expectFailure(
-      registrar.proveAndClaim(
-        utils.hexEncodeName('foo.test'),
-        []
-      )
+      registrar.proveAndClaim(utils.hexEncodeName('foo.test'), []),
     )
   })
 })

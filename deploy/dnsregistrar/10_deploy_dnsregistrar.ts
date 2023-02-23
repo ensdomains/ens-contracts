@@ -26,15 +26,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       resolver.address,
       dnssec.address,
       publicSuffixList.address,
-      registry.address
+      registry.address,
     ],
     log: true,
   })
-  console.log(`Deployed DNSRegistrar to ${tx.address}`);
+  console.log(`Deployed DNSRegistrar to ${tx.address}`)
 
   const tx2 = await root
     .connect(await ethers.getSigner(owner))
-    .setController(tx.address, true);
+    .setController(tx.address, true)
   console.log(`Set DNSRegistrar as controller of Root (${tx2.hash})`)
 }
 

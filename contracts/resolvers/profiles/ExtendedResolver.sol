@@ -2,13 +2,12 @@
 pragma solidity ^0.8.4;
 
 contract ExtendedResolver {
-    function resolve(bytes memory /* name */, bytes memory data)
-        external
-        view
-        returns (bytes memory)
-    {
+    function resolve(
+        bytes memory /* name */,
+        bytes memory data
+    ) external view returns (bytes memory) {
         (bool success, bytes memory result) = address(this).staticcall(data);
-        if(success) {
+        if (success) {
             return result;
         } else {
             // Revert with the reason provided by the call

@@ -40,11 +40,11 @@ library DNSClaimChecker {
         return (address(0x0), false);
     }
 
-    function parseRR(bytes memory rdata, uint256 idx, uint256 endIdx)
-        internal
-        pure
-        returns (address, bool)
-    {
+    function parseRR(
+        bytes memory rdata,
+        uint256 idx,
+        uint256 endIdx
+    ) internal pure returns (address, bool) {
         while (idx < endIdx) {
             uint256 len = rdata.readUint8(idx);
             idx += 1;
