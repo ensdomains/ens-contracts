@@ -238,7 +238,7 @@ contract NameWrapper is
         return
             (owner == addr ||
                 isApprovedForAll(owner, addr) ||
-                getApproved(uint256(node)) == addr) &&
+                (owner != address(0) && getApproved(uint256(node)) == addr)) &&
             (fuses & IS_DOT_ETH == 0 ||
                 expiry - GRACE_PERIOD >= block.timestamp);
     }
