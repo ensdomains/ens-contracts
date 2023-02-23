@@ -645,11 +645,7 @@ contract('ETHRegistrarController', function () {
     var balanceBefore = await web3.eth.getBalance(controller.address)
     const duration = 86400
     const [price] = await controller.rentPrice(sha3('newname'), duration)
-    await controller2.renew(
-      'newname',
-      duration,
-      { value: price },
-    )
+    await controller2.renew('newname', duration, { value: price })
     var newExpires = await baseRegistrar.nameExpires(sha3('newname'))
     const [, newFuses, newFuseExpiry] = await nameWrapper.getData(nodehash)
     expect(newExpires.toNumber() - expires.toNumber()).to.equal(duration)

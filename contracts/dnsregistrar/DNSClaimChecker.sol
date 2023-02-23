@@ -14,11 +14,10 @@ library DNSClaimChecker {
     uint16 constant CLASS_INET = 1;
     uint16 constant TYPE_TXT = 16;
 
-    function getOwnerAddress(bytes memory name, bytes memory data)
-        internal
-        pure
-        returns (address, bool)
-    {
+    function getOwnerAddress(
+        bytes memory name,
+        bytes memory data
+    ) internal pure returns (address, bool) {
         // Add "_ens." to the front of the name.
         Buffer.buffer memory buf;
         buf.init(name.length + 5);
@@ -41,11 +40,10 @@ library DNSClaimChecker {
         return (address(0x0), false);
     }
 
-    function parseRR(bytes memory rdata, uint256 idx)
-        internal
-        pure
-        returns (address, bool)
-    {
+    function parseRR(
+        bytes memory rdata,
+        uint256 idx
+    ) internal pure returns (address, bool) {
         while (idx < rdata.length) {
             uint256 len = rdata.readUint8(idx);
             idx += 1;
@@ -72,11 +70,10 @@ library DNSClaimChecker {
         return hexToAddress(str, idx + 4);
     }
 
-    function hexToAddress(bytes memory str, uint256 idx)
-        internal
-        pure
-        returns (address, bool)
-    {
+    function hexToAddress(
+        bytes memory str,
+        uint256 idx
+    ) internal pure returns (address, bool) {
         if (str.length - idx < 40) return (address(0x0), false);
         uint256 ret = 0;
         for (uint256 i = idx; i < idx + 40; i++) {

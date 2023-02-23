@@ -13,20 +13,16 @@ error OffchainLookup(
 );
 
 contract DummyOffchainResolver is IExtendedResolver, ERC165 {
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override returns (bool) {
         return
             interfaceId == type(IExtendedResolver).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
     function resolve(
-        bytes calldata, /* name */
+        bytes calldata /* name */,
         bytes calldata data
     ) external view returns (bytes memory, address) {
         string[] memory urls = new string[](1);
@@ -44,11 +40,10 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
         return abi.encode("onchain");
     }
 
-    function resolveCallback(bytes calldata response, bytes calldata extraData)
-        external
-        view
-        returns (bytes memory)
-    {
+    function resolveCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (bytes memory) {
         require(
             keccak256(response) == keccak256(extraData),
             "Response data error"

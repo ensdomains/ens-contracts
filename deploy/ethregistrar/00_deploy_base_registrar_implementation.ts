@@ -20,15 +20,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     from: deployer,
     args: [registry.address, namehash.hash('eth')],
     log: true,
-  };
+  }
 
   const bri = await deploy('BaseRegistrarImplementation', deployArgs)
-  if(!bri.newlyDeployed) return;
+  if (!bri.newlyDeployed) return
 
   const registrar = await ethers.getContract('BaseRegistrarImplementation')
 
   const tx1 = await registrar.transferOwnership(owner, { from: deployer })
-  console.log(`Transferring ownership of registrar to owner (tx: ${tx1.hash})...`)
+  console.log(
+    `Transferring ownership of registrar to owner (tx: ${tx1.hash})...`,
+  )
   await tx1.wait()
 
   const tx2 = await root

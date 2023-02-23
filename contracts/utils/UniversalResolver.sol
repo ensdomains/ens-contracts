@@ -41,9 +41,9 @@ struct OffchainLookupExtraData {
 }
 
 interface BatchGateway {
-    function query(OffchainLookupCallData[] memory data)
-        external
-        returns (bool[] memory failures, bytes[] memory responses);
+    function query(
+        OffchainLookupCallData[] memory data
+    ) external returns (bool[] memory failures, bytes[] memory responses);
 }
 
 /**
@@ -73,11 +73,10 @@ contract UniversalResolver is ERC165, Ownable {
      * @param data The resolution data, as specified in ENSIP-10.
      * @return The result of resolving the name.
      */
-    function resolve(bytes calldata name, bytes memory data)
-        external
-        view
-        returns (bytes memory, address)
-    {
+    function resolve(
+        bytes calldata name,
+        bytes memory data
+    ) external view returns (bytes memory, address) {
         return
             _resolveSingle(
                 name,
@@ -88,11 +87,10 @@ contract UniversalResolver is ERC165, Ownable {
             );
     }
 
-    function resolve(bytes calldata name, bytes[] memory data)
-        external
-        view
-        returns (bytes[] memory, address)
-    {
+    function resolve(
+        bytes calldata name,
+        bytes[] memory data
+    ) external view returns (bytes[] memory, address) {
         return resolve(name, data, batchGatewayURLs);
     }
 
@@ -165,16 +163,9 @@ contract UniversalResolver is ERC165, Ownable {
         );
     }
 
-    function reverse(bytes calldata reverseName)
-        external
-        view
-        returns (
-            string memory,
-            address,
-            address,
-            address
-        )
-    {
+    function reverse(
+        bytes calldata reverseName
+    ) external view returns (string memory, address, address, address) {
         return reverse(reverseName, batchGatewayURLs);
     }
 
@@ -183,16 +174,10 @@ contract UniversalResolver is ERC165, Ownable {
      * @param reverseName The reverse name to resolve, in normalised and DNS-encoded form. e.g. b6E040C9ECAaE172a89bD561c5F73e1C48d28cd9.addr.reverse
      * @return The resolved name, the resolved address, the reverse resolver address, and the resolver address.
      */
-    function reverse(bytes calldata reverseName, string[] memory gateways)
-        public
-        view
-        returns (
-            string memory,
-            address,
-            address,
-            address
-        )
-    {
+    function reverse(
+        bytes calldata reverseName,
+        string[] memory gateways
+    ) public view returns (string memory, address, address, address) {
         bytes memory encodedCall = abi.encodeCall(
             INameResolver.name,
             reverseName.namehash(0)
@@ -220,16 +205,7 @@ contract UniversalResolver is ERC165, Ownable {
         bytes memory resolvedReverseData,
         address reverseResolverAddress,
         string[] memory gateways
-    )
-        internal
-        view
-        returns (
-            string memory,
-            address,
-            address,
-            address
-        )
-    {
+    ) internal view returns (string memory, address, address, address) {
         string memory resolvedName = abi.decode(resolvedReverseData, (string));
 
         (bytes memory encodedName, bytes32 namehash) = resolvedName
@@ -271,11 +247,10 @@ contract UniversalResolver is ERC165, Ownable {
         return (results[0], resolver);
     }
 
-    function resolveCallback(bytes calldata response, bytes calldata extraData)
-        external
-        view
-        returns (bytes[] memory, address)
-    {
+    function resolveCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (bytes[] memory, address) {
         (bytes[] memory results, address resolver, , ) = _resolveCallback(
             response,
             extraData,
@@ -284,16 +259,10 @@ contract UniversalResolver is ERC165, Ownable {
         return (results, resolver);
     }
 
-    function reverseCallback(bytes calldata response, bytes calldata extraData)
-        external
-        view
-        returns (
-            string memory,
-            address,
-            address,
-            address
-        )
-    {
+    function reverseCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (string memory, address, address, address) {
         (
             bytes[] memory resolvedData,
             address resolverAddress,
@@ -325,13 +294,9 @@ contract UniversalResolver is ERC165, Ownable {
             );
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override returns (bool) {
         return
             interfaceId == type(IExtendedResolver).interfaceId ||
             super.supportsInterface(interfaceId);
@@ -344,12 +309,7 @@ contract UniversalResolver is ERC165, Ownable {
     )
         internal
         view
-        returns (
-            bytes[] memory,
-            address,
-            string[] memory,
-            bytes memory
-        )
+        returns (bytes[] memory, address, string[] memory, bytes memory)
     {
         MulticallData memory multicallData;
         multicallData.callbackFunction = callbackFunction;
@@ -479,20 +439,17 @@ contract UniversalResolver is ERC165, Ownable {
      * @param name The name to resolve, in DNS-encoded and normalised form.
      * @return The Resolver responsible for this name, and the namehash of the full name.
      */
-    function findResolver(bytes calldata name)
-        public
-        view
-        returns (Resolver, bytes32)
-    {
+    function findResolver(
+        bytes calldata name
+    ) public view returns (Resolver, bytes32) {
         (address resolver, bytes32 labelhash) = findResolver(name, 0);
         return (Resolver(resolver), labelhash);
     }
 
-    function findResolver(bytes calldata name, uint256 offset)
-        internal
-        view
-        returns (address, bytes32)
-    {
+    function findResolver(
+        bytes calldata name,
+        uint256 offset
+    ) internal view returns (address, bytes32) {
         uint256 labelLength = uint256(uint8(name[offset]));
         if (labelLength == 0) {
             return (address(0), bytes32(0));
@@ -525,11 +482,9 @@ contract UniversalResolver is ERC165, Ownable {
         }
     }
 
-    function _multicall(MulticallData memory multicallData)
-        internal
-        view
-        returns (bytes[] memory results)
-    {
+    function _multicall(
+        MulticallData memory multicallData
+    ) internal view returns (bytes[] memory results) {
         uint256 length = multicallData.data.length;
         uint256 offchainCount = 0;
         OffchainLookupCallData[]

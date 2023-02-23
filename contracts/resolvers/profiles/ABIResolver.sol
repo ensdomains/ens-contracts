@@ -35,13 +35,10 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
      * @return contentType The content type of the return value
      * @return data The ABI data
      */
-    function ABI(bytes32 node, uint256 contentTypes)
-        external
-        view
-        virtual
-        override
-        returns (uint256, bytes memory)
-    {
+    function ABI(
+        bytes32 node,
+        uint256 contentTypes
+    ) external view virtual override returns (uint256, bytes memory) {
         mapping(uint256 => bytes) storage abiset = versionable_abis[
             recordVersions[node]
         ][node];
@@ -62,13 +59,9 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         return (0, bytes(""));
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view virtual override returns (bool) {
         return
             interfaceID == type(IABIResolver).interfaceId ||
             super.supportsInterface(interfaceID);
