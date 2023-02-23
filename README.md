@@ -148,7 +148,7 @@ PublicResolver includes the following profiles that implements different EIPs.
 
 ### pre-commit 
 
-This repo runs a husky precommit to prettify all contract files to keep them consistent.
+This repo runs a husky precommit to prettify all contract files to keep them consistent. Add new folder/files to `prettier format` script in package.json.
 
 ### How to setup
 
