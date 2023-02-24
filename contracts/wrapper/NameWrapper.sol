@@ -116,6 +116,10 @@ contract NameWrapper is
         override(ERC1155Fuse, INameWrapper)
         returns (address operator)
     {
+        address owner = ownerOf(id);
+        if (owner == address(0)) {
+            return address(0);
+        }
         return super.getApproved(id);
     }
 
@@ -238,7 +242,8 @@ contract NameWrapper is
         return
             (owner == addr ||
                 isApprovedForAll(owner, addr) ||
-                (owner != address(0) && getApproved(uint256(node)) == addr)) &&
+                (owner != address(0) &&
+                    super.getApproved(uint256(node)) == addr)) &&
             (fuses & IS_DOT_ETH == 0 ||
                 expiry - GRACE_PERIOD >= block.timestamp);
     }
