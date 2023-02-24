@@ -153,6 +153,14 @@ contract('UniversalResolver', function (accounts) {
       )
       expect(result['0']).to.equal(accounts[1])
     })
+    it('should allow encrypted labels', async () => {
+      const result = await universalResolver.callStatic.findResolver(
+        dns.hexEncodeName(
+          '[9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658].eth',
+        ),
+      )
+      expect(result['0']).to.equal(publicResolver.address)
+    })
   })
 
   describe('resolve()', () => {
