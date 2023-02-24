@@ -10,7 +10,7 @@ import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
 import {NameEncoder} from "./NameEncoder.sol";
 import {BytesUtils} from "../wrapper/BytesUtils.sol";
-import "hardhat/console.sol";
+import {HexUtils} from "./HexUtils.sol";
 
 error OffchainLookup(
     address sender,
@@ -55,6 +55,7 @@ contract UniversalResolver is ERC165, Ownable {
     using Address for address;
     using NameEncoder for string;
     using BytesUtils for bytes;
+    using HexUtils for bytes;
 
     string[] public batchGatewayURLs;
     ENS public immutable registry;
@@ -465,7 +466,8 @@ contract UniversalResolver is ERC165, Ownable {
             name[nextLabel - 1] == 0x5d
         ) {
             // Encrypted label
-            labelHash = hexStringToBytes32(name[offset + 2:nextLabel - 1]);
+            (labelHash, ) = bytes(name[offset + 2:nextLabel - 1])
+                .hexStringToBytes32(0, 64);
         } else {
             labelHash = keccak256(name[offset + 1:nextLabel]);
         }
@@ -567,34 +569,5 @@ contract UniversalResolver is ERC165, Ownable {
                 extraDatas
             )
         );
-    }
-
-    function hexStringToBytes32(
-        bytes memory b
-    ) internal pure returns (bytes32 r) {
-        assembly {
-            function getHex(c) -> ascii {
-                if and(gt(c, 47), lt(c, 58)) {
-                    ascii := sub(c, 48)
-                }
-                if and(gt(c, 64), lt(c, 71)) {
-                    ascii := add(sub(c, 65), 10)
-                }
-                if and(gt(c, 96), lt(c, 103)) {
-                    ascii := add(sub(c, 97), 10)
-                }
-            }
-            let ptr := add(b, 32)
-            for {
-                let i := 0
-            } lt(i, 64) {
-                i := add(i, 2)
-            } {
-                let byte1 := byte(0, mload(add(ptr, i)))
-                let byte2 := byte(0, mload(add(ptr, add(i, 1))))
-                let combined := or(shl(4, getHex(byte1)), getHex(byte2))
-                r := or(shl(8, r), combined)
-            }
-        }
     }
 }
