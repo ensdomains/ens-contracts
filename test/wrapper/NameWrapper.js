@@ -1354,6 +1354,30 @@ describe('Name Wrapper', () => {
 
       expect(owner).to.equal(account)
     })
+
+    it('Returns 0 when owner is expired', async () => {
+      const label = 'subdomain'
+      const tokenId = labelhash(label)
+      const wrappedTokenId = namehash(label + '.eth')
+      const CAN_DO_EVERYTHING = 0
+
+      await BaseRegistrar.register(tokenId, account, 1 * DAY)
+
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS,
+      )
+
+      await evm.advanceTime(1 * DAY + GRACE_PERIOD + 1)
+      await evm.mine()
+
+      const owner = await NameWrapper.ownerOf(wrappedTokenId)
+
+      expect(owner).to.equal(EMPTY_ADDRESS)
+    })
   })
   describe('setUpgradeContract()', () => {
     it('Reverts if called by someone that is not the owner', async () => {
