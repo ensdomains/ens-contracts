@@ -880,7 +880,7 @@ contract NameWrapper is
         uint256 id,
         uint32 fuses,
         uint64 expiry
-    ) internal view override returns (bool) {
+    ) internal override returns (bool) {
         // For this check, treat .eth 2LDs as expiring at the start of the grace period.
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             expiry -= GRACE_PERIOD;
@@ -896,6 +896,10 @@ contract NameWrapper is
             if (fuses & CANNOT_TRANSFER != 0) {
                 revert OperationProhibited(bytes32(id));
             }
+        }
+
+        if (fuses & CANNOT_APPROVE == 0) {
+            delete _tokenApprovals[id];
         }
     }
 
