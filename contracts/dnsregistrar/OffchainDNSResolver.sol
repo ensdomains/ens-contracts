@@ -9,6 +9,7 @@ import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
+import "../utils/HexUtils.sol";
 
 error OffchainLookup(
     address sender,
@@ -31,6 +32,7 @@ uint16 constant TYPE_TXT = 16;
 contract OffchainDNSResolver is IExtendedResolver {
     using RRUtils for *;
     using BytesUtils for bytes;
+    using HexUtils for bytes;
 
     ENS public immutable ens;
     DNSSEC public immutable oracle;
