@@ -898,6 +898,7 @@ contract NameWrapper is
             }
         }
 
+        // delete token approval if CANNOT_APPROVE has not been burnt
         if (fuses & CANNOT_APPROVE == 0) {
             delete _tokenApprovals[id];
         }
