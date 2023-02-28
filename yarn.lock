@@ -55,12 +55,10 @@
     nano-base32 "^1.0.1"
     ripemd160 "^2.0.2"
 
-"@ensdomains/buffer@^0.0.13":
-  version "0.0.13"
-  resolved "https://registry.yarnpkg.com/@ensdomains/buffer/-/buffer-0.0.13.tgz#b9f60defb78fc5f2bee30faca17e63dfbef19253"
-  integrity sha512-8aA+U/e4S54ebPwcge1HHvvpgXLKxPd6EOSegMlrTvBnKB8RwB3OpNyflaikD6KqzIwDaBaH8bvnTrMcfpV7oQ==
-  dependencies:
-    "@nomiclabs/hardhat-truffle5" "^2.0.0"
+"@ensdomains/buffer@^0.1.1":
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/@ensdomains/buffer/-/buffer-0.1.1.tgz#6c275ba7e457e935405b67876f1f0d980c8baa63"
+  integrity sha512-92SfSiNS8XorgU7OUBHo/i1ZU7JV7iz/6bKuLPNVsMxV79/eI7fJR6jfJJc40zAHjs3ha+Xo965Idomlq3rqnw==
 
 "@ensdomains/dnsprovejs@^0.3.7":
   version "0.3.9"
