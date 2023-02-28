@@ -240,34 +240,9 @@ contract NameWrapper is
     ) public view returns (bool) {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
-            (owner == addr ||
-                isApprovedForAll(owner, addr) ||
-                (owner != address(0) &&
-                    super.getApproved(uint256(node)) == addr)) &&
-            (fuses & IS_DOT_ETH == 0 ||
-                expiry - GRACE_PERIOD >= block.timestamp);
+            _canModifyNameWithData(node, owner, fuses, expiry, addr);
     }
     
-    /**
-     * @notice Check if the address is the owner or approved by owner.
-     * @param owner The owner of the name.
-     * @param fuses The fuses of the name.
-     * @param expiry The expiry of the name.
-     * @param addr The address address to check permissions for.
-     * @return whether or not is owner or approved.
-     */
-
-    function canModifyNameWithData(address owner, uint32 fuses, uint64 expiry, address addr)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            (owner == addr || isApprovedForAll(owner, addr)) &&
-            (fuses & IS_DOT_ETH == 0 ||
-                expiry - GRACE_PERIOD >= block.timestamp);
-    }
-
 
 
     /**
@@ -514,7 +489,7 @@ contract NameWrapper is
         expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
         // Allow the owner of the parent name to extend the expiry.
-        if(canModifyNameWithData(parentOwner, parentFuses, parentExpiry, msg.sender)){
+        if(_canModifyNameWithData(parentNode, parentOwner, parentFuses, parentExpiry, msg.sender)){
             _setData(node, owner, fuses, expiry);
             emit ExpiryExtended(node, expiry);
             return expiry;
@@ -522,7 +497,7 @@ contract NameWrapper is
 
         // If the caller is not the parent then check to make sure the caller is the owner of the name.
         // _canModifyNameWithData explicitly takes oldExpiry, not the new expiry passed to this function
-        if (!canModifyNameWithData(owner, fuses, oldExpiry, msg.sender)) {
+        if (!_canModifyNameWithData(node, owner, fuses, oldExpiry, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -1040,6 +1015,18 @@ contract NameWrapper is
         } else {
             _transfer(oldOwner, owner, uint256(node), 1, "");
         }
+    }
+
+    function _canModifyNameWithData(bytes32 node, address owner, uint32 fuses, uint64 expiry, address addr)
+        internal
+        view
+        returns (bool)
+    {
+        return
+            (owner == addr ||
+                isApprovedForAll(owner, addr) ||
+                (owner != address(0) && super.getApproved(uint256(node)) == addr)) &&
+                (fuses & IS_DOT_ETH == 0 || expiry - GRACE_PERIOD >= block.timestamp);
     }
 
     // wrapper function for stack limit
