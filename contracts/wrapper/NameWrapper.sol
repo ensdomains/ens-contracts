@@ -239,11 +239,8 @@ contract NameWrapper is
         address addr
     ) public view returns (bool) {
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
-        return
-            _canModifyNameWithData(node, owner, fuses, expiry, addr);
+        return _canModifyNameWithData(node, owner, fuses, expiry, addr);
     }
-    
-
 
     /**
      * @notice Wraps a .eth domain, creating a new token and sending the original ERC721 token to this contract
@@ -483,21 +480,33 @@ contract NameWrapper is
             uint256(node)
         );
 
-        (address parentOwner, uint32 parentFuses, uint64 parentExpiry) = getData(uint256(parentNode));
+        (
+            address parentOwner,
+            uint32 parentFuses,
+            uint64 parentExpiry
+        ) = getData(uint256(parentNode));
 
-        // Set the expiry between the old expiry and the parent expiry (max expiry). 
+        // Set the expiry between the old expiry and the parent expiry (max expiry).
         expiry = _normaliseExpiry(expiry, oldExpiry, parentExpiry);
 
         // Allow the owner of the parent name to extend the expiry.
-        if(_canModifyNameWithData(parentNode, parentOwner, parentFuses, parentExpiry, msg.sender)){
+        if (
+            _canModifyNameWithData(
+                parentNode,
+                parentOwner,
+                parentFuses,
+                parentExpiry,
+                msg.sender
+            )
+        ) {
             _setData(node, owner, fuses, expiry);
             emit ExpiryExtended(node, expiry);
             return expiry;
-        } 
+        }
 
-        // If the caller is not the parent then check to make sure the caller is the owner of the name.
+        // If the caller is not the parent then check to make sure the caller is the approved address of the name.
         // _canModifyNameWithData explicitly takes oldExpiry, not the new expiry passed to this function
-        if (!_canModifyNameWithData(node, owner, fuses, oldExpiry, msg.sender)) {
+        if (!_approvedCanRenew(node, owner, fuses, oldExpiry, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -510,7 +519,6 @@ contract NameWrapper is
         _setData(node, owner, fuses, expiry);
         emit ExpiryExtended(node, expiry);
         return expiry;
-
     }
 
     /**
@@ -593,6 +601,25 @@ contract NameWrapper is
         }
         fuses |= oldFuses;
         _setFuses(node, owner, fuses, oldExpiry, expiry);
+    }
+
+    /**
+     * @notice Sets the subdomain owner in the registry and then wraps the subdomain
+     * @param parentNode Parent namehash of the subdomain
+     * @param label Label of the subdomain as a string
+     * @param approved New owner in the wrapper
+     * @return node Namehash of the subdomain
+     */
+
+    function setSubnodeApproval(
+        bytes32 parentNode,
+        string calldata label,
+        address approved
+    ) internal onlyTokenOwner(parentNode) returns (bytes32 node) {
+        bytes32 labelhash = keccak256(bytes(label));
+        node = _makeNode(parentNode, labelhash);
+        _checkCanCallSetSubnodeOwner(parentNode, node);
+        _approve(approved, uint256(node));
     }
 
     /**
@@ -1017,16 +1044,33 @@ contract NameWrapper is
         }
     }
 
-    function _canModifyNameWithData(bytes32 node, address owner, uint32 fuses, uint64 expiry, address addr)
-        internal
-        view
-        returns (bool)
-    {
+    function _canModifyNameWithData(
+        bytes32 node,
+        address owner,
+        uint32 fuses,
+        uint64 expiry,
+        address addr
+    ) internal view returns (bool) {
         return
             (owner == addr ||
                 isApprovedForAll(owner, addr) ||
-                (owner != address(0) && super.getApproved(uint256(node)) == addr)) &&
-                (fuses & IS_DOT_ETH == 0 || expiry - GRACE_PERIOD >= block.timestamp);
+                (owner != address(0) &&
+                    super.getApproved(uint256(node)) == addr)) &&
+            (fuses & IS_DOT_ETH == 0 ||
+                expiry - GRACE_PERIOD >= block.timestamp);
+    }
+
+    function _approvedCanRenew(
+        bytes32 node,
+        address owner,
+        uint32 fuses,
+        uint64 expiry,
+        address addr
+    ) internal view returns (bool) {
+        return
+            (owner != address(0) && super.getApproved(uint256(node)) == addr) &&
+            (fuses & IS_DOT_ETH == 0 ||
+                expiry - GRACE_PERIOD >= block.timestamp);
     }
 
     // wrapper function for stack limit
