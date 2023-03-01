@@ -294,6 +294,8 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             tokenId
         );
         (, fuses) = _clearOwnerAndFuses(oldOwner, fuses, expiry);
+        // Clear approvals
+        delete _tokenApprovals[tokenId];
         // Fuses and expiry are kept on burn
         _setData(tokenId, address(0x0), fuses, expiry);
         emit TransferSingle(msg.sender, oldOwner, address(0x0), tokenId, 1);
