@@ -226,7 +226,7 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Checks if msg.sender is the owner or approved by the owner of a name
+     * @notice Checks if msg.sender is the owner or operator of the owner of a name
      * @param node namehash of the name to check
      */
 
@@ -239,13 +239,43 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Checks if owner or approved by owner
+     * @notice Checks if msg.sender is the owner or approved
+     * @param node namehash of the name to check
+     */
+
+    modifier onlyTokenOwnerOrApproved(bytes32 node) {
+        if (!canModifySubname(node, msg.sender)) {
+            revert Unauthorised(node, msg.sender);
+        }
+
+        _;
+    }
+
+    /**
+     * @notice Checks if owner or operator of the owner
      * @param node namehash of the name to check
      * @param addr which address to check permissions for
-     * @return whether or not is owner or approved
+     * @return whether or not is owner or operator
      */
 
     function canModifyName(
+        bytes32 node,
+        address addr
+    ) public view returns (bool) {
+        (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
+        return
+            (owner == addr || isApprovedForAll(owner, addr)) &&
+            _isDotEthAndIsNotExpired(fuses, expiry);
+    }
+
+    /**
+     * @notice Checks if owner/operator or approved by owner
+     * @param node namehash of the name to check
+     * @param addr which address to check permissions for
+     * @return whether or not is owner/operator or approved
+     */
+
+    function canModifySubname(
         bytes32 node,
         address addr
     ) public view returns (bool) {
@@ -255,8 +285,7 @@ contract NameWrapper is
                 isApprovedForAll(owner, addr) ||
                 (owner != address(0) &&
                     super.getApproved(uint256(node)) == addr)) &&
-            (fuses & IS_DOT_ETH == 0 ||
-                expiry - GRACE_PERIOD >= block.timestamp);
+            _isDotEthAndIsNotExpired(fuses, expiry);
     }
 
     /**
@@ -494,7 +523,7 @@ contract NameWrapper is
         bytes32 node = _makeNode(parentNode, labelhash);
 
         // this flag is used later, when checking fuses
-        bool canModifyParentName = canModifyName(parentNode, msg.sender);
+        bool canModifyParentName = canModifySubname(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
         if (!canModifyParentName && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
@@ -580,7 +609,7 @@ contract NameWrapper is
                 revert Unauthorised(node, msg.sender);
             }
         } else {
-            if (!canModifyName(parentNode, msg.sender)) {
+            if (!canModifySubname(parentNode, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
         }
@@ -616,7 +645,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
+    ) public onlyTokenOwnerOrApproved(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkCanCallSetSubnodeOwner(parentNode, node);
@@ -652,7 +681,7 @@ contract NameWrapper is
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
+    ) public onlyTokenOwnerOrApproved(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkCanCallSetSubnodeOwner(parentNode, node);
@@ -1152,5 +1181,13 @@ contract NameWrapper is
         return
             ownerOf(uint256(node)) != address(0) &&
             ens.owner(node) == address(this);
+    }
+
+    function _isDotEthAndIsNotExpired(
+        uint32 fuses,
+        uint64 expiry
+    ) internal view returns (bool) {
+        return (fuses & IS_DOT_ETH == 0 ||
+            expiry - GRACE_PERIOD >= block.timestamp);
     }
 }
