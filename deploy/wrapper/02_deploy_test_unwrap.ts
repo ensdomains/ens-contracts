@@ -2,6 +2,15 @@ import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
+const TESTNET_WRAPPER_ADDRESSES = {
+  goerli: [
+    '0x582224b8d4534F4749EFA4f22eF7241E0C56D4B8',
+    '0xEe1F756aCde7E81B2D8cC6aB3c8A1E2cE6db0F39',
+    '0x060f1546642E67c485D56248201feA2f9AB1803C',
+    // Add more testnet NameWrapper addresses here...
+  ],
+}
+
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, getUnnamedAccounts, deployments, network } = hre
   const { deploy } = deployments
@@ -29,11 +38,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const testnetWrapperAddresses = JSON.parse(
-    process.env.TESTNET_WRAPPER_ADDRESSES || '[]',
-  )
+  const testnetWrapperAddresses =
+    TESTNET_WRAPPER_ADDRESSES[
+      network.name as keyof typeof TESTNET_WRAPPER_ADDRESSES
+    ]
 
-  if (testnetWrapperAddresses.length === 0) {
+  if (!testnetWrapperAddresses || testnetWrapperAddresses.length === 0) {
     console.log('No testnet wrappers found, skipping')
     return
   }
