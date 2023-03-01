@@ -9,6 +9,7 @@ import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
@@ -100,6 +101,16 @@ contract NameWrapper is
         uint256 id
     ) public view override(ERC1155Fuse, INameWrapper) returns (address owner) {
         return super.ownerOf(id);
+    }
+
+    function safeTransferFrom(
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) public override(ERC1155Fuse, IERC1155) onlyTokenOwner(bytes32(id)) {
+        super.safeTransferFrom(from, to, id, amount, data);
     }
 
     /**

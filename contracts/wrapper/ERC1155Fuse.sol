@@ -167,11 +167,6 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         bytes memory data
     ) public virtual override {
         require(to != address(0), "ERC1155: transfer to the zero address");
-        require(
-            from == msg.sender || isApprovedForAll(from, msg.sender),
-            "ERC1155: caller is not owner nor approved"
-        );
-
         _transfer(from, to, id, amount, data);
     }
 
