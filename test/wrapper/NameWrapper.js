@@ -1742,6 +1742,67 @@ describe('Name Wrapper', () => {
       )
     })
 
+    it('Approval is cleared on unwrapETH2LD()', async () => {
+      await NameWrapper.approve(account2, wrappedTokenId)
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(account2)
+
+      await NameWrapper.unwrapETH2LD(tokenId, account, account)
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      // rewrapping to test approval is still cleared
+
+      await NameWrapper.wrapETH2LD('subdomain', account, 0, EMPTY_ADDRESS)
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      // reapprove to show approval can be reinstated
+
+      await NameWrapper.approve(account2, wrappedTokenId)
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(account2)
+    })
+
+    it('Approval is cleared on unwrap()', async () => {
+      await NameWrapper.setSubnodeOwner(
+        wrappedTokenId,
+        'sub',
+        account,
+        0,
+        EMPTY_ADDRESS,
+      )
+      await NameWrapper.approve(account2, namehash('sub.subdomain.eth'))
+      expect(
+        await NameWrapper.getApproved(namehash('sub.subdomain.eth')),
+      ).to.equal(account2)
+      await NameWrapper.unwrap(wrappedTokenId, labelhash('sub'), account)
+      expect(
+        await NameWrapper.getApproved(namehash('sub.subdomain.eth')),
+      ).to.equal(EMPTY_ADDRESS)
+      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrap(
+        encodeName('sub.subdomain.eth'),
+        account,
+        EMPTY_ADDRESS,
+      )
+      expect(
+        await NameWrapper.getApproved(namehash('sub.subdomain.eth')),
+      ).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapper.approve(account2, namehash('sub.subdomain.eth'))
+
+      expect(
+        await NameWrapper.getApproved(namehash('sub.subdomain.eth')),
+      ).to.equal(account2)
+
+      // rewrapping to test approval is still cleared
+    })
+
     it('Approval is not cleared on transfer if CANNOT_APPROVE is burnt', async () => {
       await NameWrapper.approve(account2, wrappedTokenId)
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_UNWRAP | CANNOT_APPROVE)
