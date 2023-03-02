@@ -120,6 +120,7 @@ interface INameWrapper is IERC1155 {
         bytes32 node,
         string calldata label,
         address newOwner,
+        address approved,
         uint32 fuses,
         uint64 expiry
     ) external returns (bytes32);

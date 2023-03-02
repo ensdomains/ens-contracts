@@ -40,7 +40,6 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      */
     function approve(address to, uint256 tokenId) public virtual {
         address owner = ownerOf(tokenId);
-        require(to != owner, "ERC721: approval to current owner");
 
         require(
             msg.sender == owner || isApprovedForAll(owner, msg.sender),

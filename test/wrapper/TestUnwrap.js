@@ -218,6 +218,7 @@ describe('TestUnwrap', () => {
           parentHash,
           'to-upgrade',
           account,
+          EMPTY_ADDRESS,
           0,
           0,
         )
@@ -246,6 +247,7 @@ describe('TestUnwrap', () => {
           parentHash,
           'to-upgrade',
           account,
+          EMPTY_ADDRESS,
           0,
           0,
         )
@@ -273,6 +275,7 @@ describe('TestUnwrap', () => {
           parentHash,
           'to-upgrade',
           account,
+          EMPTY_ADDRESS,
           0,
           0,
         )

@@ -67,7 +67,7 @@ const INTERFACES = {
     'setChildFuses(bytes32,bytes32,uint32,uint64)',
     'setSubnodeRecord(bytes32,string,address,address,uint64,uint32,uint64)',
     'setRecord(bytes32,address,address,uint64)',
-    'setSubnodeOwner(bytes32,string,address,uint32,uint64)',
+    'setSubnodeOwner(bytes32,string,address,address,uint32,uint64)',
     'extendExpiry(bytes32,bytes32,uint64)',
     'canModifyName(bytes32,address)',
     'setResolver(bytes32,address)',

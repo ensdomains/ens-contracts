@@ -83,6 +83,7 @@ function shouldRespectConstraints(contracts, getSigners) {
       parentNode,
       childLabel,
       account2,
+      EMPTY_ADDRESS,
       childFuses,
       childExpiry, // Expired
     )
@@ -144,6 +145,7 @@ function shouldRespectConstraints(contracts, getSigners) {
       parentNode,
       childLabel,
       account2,
+      EMPTY_ADDRESS,
       childFuses,
       parentExpiry - 86400, // Expires a day before parent
     )
@@ -267,6 +269,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         parentNode,
         childLabel,
         account2,
+        EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
         MAX_EXPIRY,
       )
@@ -318,6 +321,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
           MAX_EXPIRY,
         ),
@@ -347,6 +351,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         parentNode,
         childLabel,
         account,
+        EMPTY_ADDRESS,
         CAN_DO_EVERYTHING,
         0,
       )
@@ -477,6 +482,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
           0,
         ),
@@ -518,6 +524,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         parentNode,
         childLabel,
         account2,
+        EMPTY_ADDRESS,
         CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CANNOT_SET_RESOLVER,
         0,
       )
@@ -572,6 +579,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
           0,
         ),
@@ -624,6 +632,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_SET_RESOLVER,
           0,
         ),
@@ -634,6 +643,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
           0,
         ),
@@ -644,6 +654,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
           0,
         ),
@@ -698,6 +709,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account,
+          EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
           0,
         ),
@@ -743,8 +755,16 @@ function shouldRespectConstraints(contracts, getSigners) {
     })
 
     it('Parent cannot call ens.subnodeOwner to forcefully unwrap', async () => {
-      await expect(EnsRegistry.setSubnodeOwner(parentNode, childNode, account))
-        .to.be.reverted
+      await expect(
+        EnsRegistry.setSubnodeOwner(
+          parentNode,
+          childNode,
+          account,
+          EMPTY_ADDRESS,
+          0,
+          0,
+        ),
+      ).to.be.reverted
     })
   }
 
@@ -820,6 +840,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           PARENT_CANNOT_CONTROL,
           0,
         ),
@@ -907,6 +928,7 @@ function shouldRespectConstraints(contracts, getSigners) {
         parentNode,
         childLabel,
         account2,
+        EMPTY_ADDRESS,
         CAN_DO_EVERYTHING, // Node's CU/PCC not burned
         0, // Expired
       )
@@ -1239,7 +1261,14 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     it('Parent cannot unburn fuses with setSubnodeOwner()', async () => {
       await expect(
-        NameWrapper.setSubnodeOwner(parentNode, childLabel, account2, 0, 0),
+        NameWrapper.setSubnodeOwner(
+          parentNode,
+          childLabel,
+          account2,
+          EMPTY_ADDRESS,
+          0,
+          0,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${childNode}")`)
       const [, fuses] = await NameWrapper.getData(childNode)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
@@ -1320,6 +1349,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_UNWRAP,
           0,
         ),
@@ -1370,6 +1400,7 @@ function shouldRespectConstraints(contracts, getSigners) {
           parentNode,
           childLabel,
           account2,
+          EMPTY_ADDRESS,
           CANNOT_UNWRAP,
           0,
         ),
@@ -1439,7 +1470,14 @@ function shouldRespectConstraints(contracts, getSigners) {
 
     it('Parent cannot unburn fuses with setSubnodeOwner()', async () => {
       await expect(
-        NameWrapper.setSubnodeOwner(parentNode, childLabel, account2, 0, 0),
+        NameWrapper.setSubnodeOwner(
+          parentNode,
+          childLabel,
+          account2,
+          EMPTY_ADDRESS,
+          0,
+          0,
+        ),
       ).to.be.revertedWith(`OperationProhibited("${childNode}")`)
       const [, fuses] = await NameWrapper.getData(childNode)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
