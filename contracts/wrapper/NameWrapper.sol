@@ -265,7 +265,7 @@ contract NameWrapper is
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
             (owner == addr || isApprovedForAll(owner, addr)) &&
-            _isDotEthAndIsNotExpired(fuses, expiry);
+            _isNotDotEthOrIsNotExpired(fuses, expiry);
     }
 
     /**
@@ -283,9 +283,8 @@ contract NameWrapper is
         return
             (owner == addr ||
                 isApprovedForAll(owner, addr) ||
-                (owner != address(0) &&
-                    super.getApproved(uint256(node)) == addr)) &&
-            _isDotEthAndIsNotExpired(fuses, expiry);
+                getApproved(uint256(node)) == addr) &&
+            _isNotDotEthOrIsNotExpired(fuses, expiry);
     }
 
     /**
@@ -523,9 +522,9 @@ contract NameWrapper is
         bytes32 node = _makeNode(parentNode, labelhash);
 
         // this flag is used later, when checking fuses
-        bool canModifyParentName = canModifySubname(parentNode, msg.sender);
+        bool canModifyParentSubname = canModifySubname(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
-        if (!canModifyParentName && !canModifyName(node, msg.sender)) {
+        if (!canModifyParentSubname && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -534,7 +533,7 @@ contract NameWrapper is
         );
 
         // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
-        if (!canModifyParentName && fuses & CAN_EXTEND_EXPIRY == 0) {
+        if (!canModifyParentSubname && fuses & CAN_EXTEND_EXPIRY == 0) {
             revert OperationProhibited(node);
         }
 
@@ -1183,7 +1182,7 @@ contract NameWrapper is
             ens.owner(node) == address(this);
     }
 
-    function _isDotEthAndIsNotExpired(
+    function _isNotDotEthOrIsNotExpired(
         uint32 fuses,
         uint64 expiry
     ) internal view returns (bool) {
