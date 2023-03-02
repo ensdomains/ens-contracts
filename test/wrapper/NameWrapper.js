@@ -6659,6 +6659,18 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
+    it('When a .eth name is in grace period it cannot call batchSafeTransferFrom', async () => {
+      await expect(
+        NameWrapper.safeBatchTransferFrom(
+          account,
+          account2,
+          [wrappedTokenId],
+          [1],
+          '0x',
+        ),
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
+    })
+
     it('When a .eth name is in grace period it cannot call setResolver', async () => {
       await expect(
         NameWrapper.setResolver(wrappedTokenId, EMPTY_ADDRESS),
