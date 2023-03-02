@@ -244,7 +244,7 @@ contract NameWrapper is
      */
 
     modifier onlyTokenOwnerOrApproved(bytes32 node) {
-        if (!canModifySubname(node, msg.sender)) {
+        if (!canModifySubnames(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -275,7 +275,7 @@ contract NameWrapper is
      * @return whether or not is owner/operator or approved
      */
 
-    function canModifySubname(
+    function canModifySubnames(
         bytes32 node,
         address addr
     ) public view returns (bool) {
@@ -522,7 +522,7 @@ contract NameWrapper is
         bytes32 node = _makeNode(parentNode, labelhash);
 
         // this flag is used later, when checking fuses
-        bool canModifyParentSubname = canModifySubname(parentNode, msg.sender);
+        bool canModifyParentSubname = canModifySubnames(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
         if (!canModifyParentSubname && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
@@ -608,7 +608,7 @@ contract NameWrapper is
                 revert Unauthorised(node, msg.sender);
             }
         } else {
-            if (!canModifySubname(parentNode, msg.sender)) {
+            if (!canModifySubnames(parentNode, msg.sender)) {
                 revert Unauthorised(node, msg.sender);
             }
         }
