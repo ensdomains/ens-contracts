@@ -958,7 +958,7 @@ contract NameWrapper is
     function _addLabel(
         string memory label,
         bytes memory name
-    ) private pure returns (bytes memory ret) {
+    ) internal pure returns (bytes memory ret) {
         if (bytes(label).length < 1) {
             revert LabelTooShort();
         }
@@ -990,7 +990,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint32 fuses,
         uint64 expiry
-    ) private {
+    ) internal {
         _mint(node, wrappedOwner, fuses, expiry);
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
@@ -1002,7 +1002,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) private {
+    ) internal {
         bytes memory name = _addLabel(label, names[parentNode]);
         _wrap(node, name, owner, fuses, expiry);
     }
@@ -1011,7 +1011,7 @@ contract NameWrapper is
         bytes32 parentNode,
         bytes32 node,
         string memory label
-    ) private returns (bytes memory) {
+    ) internal returns (bytes memory) {
         bytes memory name = _addLabel(label, names[parentNode]);
         names[node] = name;
         return name;
@@ -1024,7 +1024,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) private {
+    ) internal {
         (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
@@ -1046,7 +1046,7 @@ contract NameWrapper is
         bytes32 node,
         uint32 fuses,
         uint64 expiry
-    ) private view returns (uint64) {
+    ) internal view returns (uint64) {
         (, , uint64 oldExpiry) = getData(uint256(node));
         (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
         _checkParentFuses(node, fuses, parentFuses);
@@ -1057,7 +1057,7 @@ contract NameWrapper is
         bytes32 node,
         uint32 fuses,
         uint32 parentFuses
-    ) private pure {
+    ) internal pure {
         bool isBurningParentControlledFuses = fuses & PARENT_CONTROLLED_FUSES !=
             0;
 
@@ -1130,7 +1130,7 @@ contract NameWrapper is
         uint32 fuses,
         uint64 oldExpiry,
         uint64 expiry
-    ) private {
+    ) internal {
         _setData(node, owner, fuses, expiry);
         emit FusesSet(node, fuses);
         if (expiry > oldExpiry) {
@@ -1159,14 +1159,14 @@ contract NameWrapper is
         }
     }
 
-    function _checkFusesAreSettable(bytes32 node, uint32 fuses) private pure {
+    function _checkFusesAreSettable(bytes32 node, uint32 fuses) internal pure {
         if (fuses | USER_SETTABLE_FUSES != USER_SETTABLE_FUSES) {
             // Cannot directly burn other non-user settable fuses
             revert OperationProhibited(node);
         }
     }
 
-    function _isWrapped(bytes32 node) private view returns (bool) {
+    function _isWrapped(bytes32 node) internal view returns (bool) {
         return
             ownerOf(uint256(node)) != address(0) &&
             ens.owner(node) == address(this);
@@ -1175,7 +1175,7 @@ contract NameWrapper is
     function _isETH2LDInGracePeriod(
         uint32 fuses,
         uint64 expiry
-    ) private view returns (bool) {
+    ) internal view returns (bool) {
         return
             fuses & IS_DOT_ETH == IS_DOT_ETH &&
             expiry - GRACE_PERIOD < block.timestamp;
