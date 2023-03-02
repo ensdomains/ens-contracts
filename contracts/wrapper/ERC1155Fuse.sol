@@ -196,7 +196,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
 
             (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-            _preTransferCheck(id, fuses, expiry);
+            _beforeTransfer(id, fuses, expiry);
 
             require(
                 amount == 1 && oldOwner == from,
@@ -236,7 +236,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             (uint256(expiry) << 192);
     }
 
-    function _preTransferCheck(
+    function _beforeTransfer(
         uint256 id,
         uint32 fuses,
         uint64 expiry
@@ -310,7 +310,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     ) internal {
         (address oldOwner, uint32 fuses, uint64 expiry) = getData(id);
 
-        _preTransferCheck(id, fuses, expiry);
+        _beforeTransfer(id, fuses, expiry);
 
         require(
             amount == 1 && oldOwner == from,

@@ -915,7 +915,7 @@ contract NameWrapper is
 
     /***** Internal functions */
 
-    function _preTransferCheck(
+    function _beforeTransfer(
         uint256 id,
         uint32 fuses,
         uint64 expiry
