@@ -350,7 +350,7 @@ function shouldBehaveLikeERC1155(
                       '0x',
                     ),
                 ).to.be.revertedWith(
-                  'ERC1155: caller is not owner nor approved',
+                  `ERC1155: caller is not owner nor approved`,
                 )
               })
             },

@@ -77,6 +77,8 @@ const INTERFACES = {
     'uri(uint256)',
     'setUpgradeContract(address)',
     'ownerOf(uint256)',
+    'approve(address,uint256)',
+    'getApproved(uint256)',
     'allFusesBurned(bytes32,uint32)',
     'isWrapped(bytes32)',
     'isWrapped(bytes32,bytes32)',
