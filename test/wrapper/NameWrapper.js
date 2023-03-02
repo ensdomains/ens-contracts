@@ -6577,7 +6577,6 @@ describe('Name Wrapper', () => {
 
   describe('Grace period tests', () => {
     const label = 'test'
-    const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
     const subLabel = 'sub'
     const subTokenId = namehash(subLabel + '.' + label + '.eth')
@@ -6645,6 +6644,18 @@ describe('Name Wrapper', () => {
     it('When a .eth name is in grace period it cannot call setRecord', async () => {
       await expect(
         NameWrapper.setRecord(wrappedTokenId, account2, EMPTY_ADDRESS, 0),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+    })
+
+    it('When a .eth name is in grace period it cannot call safeTransferFrom', async () => {
+      await expect(
+        NameWrapper.safeTransferFrom(
+          account,
+          account2,
+          wrappedTokenId,
+          1,
+          '0x',
+        ),
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
     })
 
