@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 
-/* This contract is a variation on ERC1155 with the additions of _setData, getData and _preTransferCheck and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
+/* This contract is a variation on ERC1155 with the additions of _setData, getData and _beforeTransfer and ownerOf. _setData and getData allows the use of the other 96 bits next to the address of the owner for extra data. We use this to store 'fuses' that control permissions that can be burnt. 32 bits are used for the fuses themselves and 64 bits are used for the expiry of the name. When a name has expired, its fuses will be be set back to 0 */
 
 abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
@@ -167,6 +167,11 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         bytes memory data
     ) public virtual override {
         require(to != address(0), "ERC1155: transfer to the zero address");
+        require(
+            from == msg.sender || isApprovedForAll(from, msg.sender),
+            "ERC1155: caller is not owner nor approved"
+        );
+
         _transfer(from, to, id, amount, data);
     }
 
@@ -240,7 +245,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         uint256 id,
         uint32 fuses,
         uint64 expiry
-    ) internal virtual returns (bool);
+    ) internal virtual;
 
     function _clearOwnerAndFuses(
         address owner,

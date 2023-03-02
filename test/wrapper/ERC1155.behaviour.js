@@ -350,7 +350,7 @@ function shouldBehaveLikeERC1155(
                       '0x',
                     ),
                 ).to.be.revertedWith(
-                  `Unauthorised("${firstTokenId}", "${proxyAddress}")`,
+                  `ERC1155: caller is not owner nor approved`,
                 )
               })
             },

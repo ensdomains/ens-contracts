@@ -103,16 +103,6 @@ contract NameWrapper is
         return super.ownerOf(id);
     }
 
-    function safeTransferFrom(
-        address from,
-        address to,
-        uint256 id,
-        uint256 amount,
-        bytes memory data
-    ) public override(ERC1155Fuse, IERC1155) onlyTokenOwner(bytes32(id)) {
-        super.safeTransferFrom(from, to, id, amount, data);
-    }
-
     /**
      * @notice Gets the owner of a name
      * @param id Namehash of the name
@@ -919,7 +909,7 @@ contract NameWrapper is
         uint256 id,
         uint32 fuses,
         uint64 expiry
-    ) internal override returns (bool) {
+    ) internal override {
         // For this check, treat .eth 2LDs as expiring at the start of the grace period.
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
             expiry -= GRACE_PERIOD;
@@ -968,7 +958,7 @@ contract NameWrapper is
     function _addLabel(
         string memory label,
         bytes memory name
-    ) internal pure returns (bytes memory ret) {
+    ) private pure returns (bytes memory ret) {
         if (bytes(label).length < 1) {
             revert LabelTooShort();
         }
@@ -1000,7 +990,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint32 fuses,
         uint64 expiry
-    ) internal {
+    ) private {
         _mint(node, wrappedOwner, fuses, expiry);
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
@@ -1012,7 +1002,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) internal {
+    ) private {
         bytes memory name = _addLabel(label, names[parentNode]);
         _wrap(node, name, owner, fuses, expiry);
     }
@@ -1021,7 +1011,7 @@ contract NameWrapper is
         bytes32 parentNode,
         bytes32 node,
         string memory label
-    ) internal returns (bytes memory) {
+    ) private returns (bytes memory) {
         bytes memory name = _addLabel(label, names[parentNode]);
         names[node] = name;
         return name;
@@ -1034,7 +1024,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) internal {
+    ) private {
         (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
@@ -1056,7 +1046,7 @@ contract NameWrapper is
         bytes32 node,
         uint32 fuses,
         uint64 expiry
-    ) internal view returns (uint64) {
+    ) private view returns (uint64) {
         (, , uint64 oldExpiry) = getData(uint256(node));
         (, uint32 parentFuses, uint64 maxExpiry) = getData(uint256(parentNode));
         _checkParentFuses(node, fuses, parentFuses);
@@ -1067,7 +1057,7 @@ contract NameWrapper is
         bytes32 node,
         uint32 fuses,
         uint32 parentFuses
-    ) internal pure {
+    ) private pure {
         bool isBurningParentControlledFuses = fuses & PARENT_CONTROLLED_FUSES !=
             0;
 
@@ -1082,7 +1072,7 @@ contract NameWrapper is
         uint64 expiry,
         uint64 oldExpiry,
         uint64 maxExpiry
-    ) internal pure returns (uint64) {
+    ) private pure returns (uint64) {
         // Expiry cannot be more than maximum allowed
         // .eth names will check registrar, non .eth check parent
         if (expiry > maxExpiry) {
@@ -1140,7 +1130,7 @@ contract NameWrapper is
         uint32 fuses,
         uint64 oldExpiry,
         uint64 expiry
-    ) internal {
+    ) private {
         _setData(node, owner, fuses, expiry);
         emit FusesSet(node, fuses);
         if (expiry > oldExpiry) {
@@ -1169,14 +1159,14 @@ contract NameWrapper is
         }
     }
 
-    function _checkFusesAreSettable(bytes32 node, uint32 fuses) internal pure {
+    function _checkFusesAreSettable(bytes32 node, uint32 fuses) private pure {
         if (fuses | USER_SETTABLE_FUSES != USER_SETTABLE_FUSES) {
             // Cannot directly burn other non-user settable fuses
             revert OperationProhibited(node);
         }
     }
 
-    function _isWrapped(bytes32 node) internal view returns (bool) {
+    function _isWrapped(bytes32 node) private view returns (bool) {
         return
             ownerOf(uint256(node)) != address(0) &&
             ens.owner(node) == address(this);
@@ -1185,7 +1175,7 @@ contract NameWrapper is
     function _isETH2LDInGracePeriod(
         uint32 fuses,
         uint64 expiry
-    ) internal view returns (bool) {
+    ) private view returns (bool) {
         return
             fuses & IS_DOT_ETH == IS_DOT_ETH &&
             expiry - GRACE_PERIOD < block.timestamp;

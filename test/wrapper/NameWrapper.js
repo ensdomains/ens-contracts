@@ -1677,7 +1677,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
+      ).to.be.revertedWith(`ERC1155: caller is not owner nor approved`)
     })
 
     it('Approved address cannot transfer the name with setRecord()', async () => {
@@ -6656,7 +6656,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
     it('When a .eth name is in grace period it cannot call setResolver', async () => {
@@ -6801,7 +6801,7 @@ describe('Name Wrapper', () => {
       await registerSetupAndWrapName(label, account, CANNOT_UNWRAP)
       await expect(
         NameWrapperH.safeTransferFrom(hacker, account, wrappedTokenId, 1, '0x'),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${hacker}")`)
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
     it('Approval on the Wrapper does not give permission to wrap the .eth name', async () => {
@@ -6836,7 +6836,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
     it('Approval on the Wrapper does not give permission to transfer after expiry', async () => {
@@ -6855,11 +6855,11 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
 
       await expect(
         NameWrapperH.safeTransferFrom(account, hacker, wrappedTokenId, 1, '0x'),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${hacker}")`)
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
     it('When emancipated names expire, they are untransferrible', async () => {
@@ -6884,9 +6884,7 @@ describe('Name Wrapper', () => {
           1,
           '0x',
         ),
-      ).to.be.revertedWith(
-        `Unauthorised("${namehash(`test.${label}.eth`)}", "${account}")`,
-      )
+      ).to.be.revertedWith(`ERC1155: insufficient balance for transfer`)
     })
 
     it('Returns a balance of 0 for expired names', async () => {
