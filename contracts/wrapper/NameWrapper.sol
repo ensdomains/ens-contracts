@@ -265,7 +265,7 @@ contract NameWrapper is
         (address owner, uint32 fuses, uint64 expiry) = getData(uint256(node));
         return
             (owner == addr || isApprovedForAll(owner, addr)) &&
-            _checkETH2LDNotInGracePeriod(fuses, expiry);
+            !_isETH2LDInGracePeriod(fuses, expiry);
     }
 
     /**
@@ -284,7 +284,7 @@ contract NameWrapper is
             (owner == addr ||
                 isApprovedForAll(owner, addr) ||
                 getApproved(uint256(node)) == addr) &&
-            _checkETH2LDNotInGracePeriod(fuses, expiry);
+            !_isETH2LDInGracePeriod(fuses, expiry);
     }
 
     /**
@@ -1182,11 +1182,12 @@ contract NameWrapper is
             ens.owner(node) == address(this);
     }
 
-    function _checkETH2LDNotInGracePeriod(
+    function _isETH2LDInGracePeriod(
         uint32 fuses,
         uint64 expiry
     ) internal view returns (bool) {
-        return (fuses & IS_DOT_ETH == 0 ||
-            expiry - GRACE_PERIOD >= block.timestamp);
+        return
+            fuses & IS_DOT_ETH == IS_DOT_ETH &&
+            expiry - GRACE_PERIOD < block.timestamp;
     }
 }
