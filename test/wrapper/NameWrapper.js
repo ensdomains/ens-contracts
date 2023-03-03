@@ -2031,6 +2031,7 @@ describe('Name Wrapper', () => {
             account,
             PARENT_CANNOT_CONTROL | IS_DOT_ETH,
             expectedExpiry.add(GRACE_PERIOD),
+            EMPTY_ADDRESS,
             '0x00',
           )
       })
@@ -2064,6 +2065,7 @@ describe('Name Wrapper', () => {
             account,
             PARENT_CANNOT_CONTROL | IS_DOT_ETH,
             expectedExpiry.add(GRACE_PERIOD),
+            EMPTY_ADDRESS,
             '0x00',
           )
       })
@@ -2140,6 +2142,7 @@ describe('Name Wrapper', () => {
               CANNOT_SET_RESOLVER |
               IS_DOT_ETH,
             expectedExpiry,
+            EMPTY_ADDRESS,
             '0x00',
           )
       })
@@ -2221,6 +2224,7 @@ describe('Name Wrapper', () => {
               CANNOT_SET_RESOLVER |
               IS_DOT_ETH,
             expectedExpiry,
+            EMPTY_ADDRESS,
             '0x01',
           )
       })
@@ -2281,10 +2285,10 @@ describe('Name Wrapper', () => {
 
         await expect(tx)
           .to.emit(NameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(encodedName, account, 0, 0, '0x00')
+          .withArgs(encodedName, account, 0, 0, EMPTY_ADDRESS, '0x00')
       })
 
-      it('upgrades a name if sender is authroized by the owner', async () => {
+      it('upgrades a name if sender is authorized by the owner', async () => {
         await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
         await NameWrapper.setApprovalForAll(account2, true)
 
@@ -2308,7 +2312,14 @@ describe('Name Wrapper', () => {
 
         await expect(tx)
           .to.emit(NameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(encodeName('to-upgrade.xyz'), account, 0, 0, '0x00')
+          .withArgs(
+            encodeName('to-upgrade.xyz'),
+            account,
+            0,
+            0,
+            EMPTY_ADDRESS,
+            '0x00',
+          )
       })
 
       it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
@@ -2367,6 +2378,7 @@ describe('Name Wrapper', () => {
             account,
             expectedFuses,
             expectedExpiry.add(GRACE_PERIOD),
+            EMPTY_ADDRESS,
             '0x00',
           )
       })
@@ -2467,7 +2479,14 @@ describe('Name Wrapper', () => {
 
         expect(tx)
           .to.emit(NameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(encodeName('to-upgrade.xyz'), account, 0, 0, '0x01')
+          .withArgs(
+            encodeName('to-upgrade.xyz'),
+            account,
+            0,
+            0,
+            EMPTY_ADDRESS,
+            '0x01',
+          )
       })
 
       it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
@@ -3563,9 +3582,7 @@ describe('Name Wrapper', () => {
 
       await expect(
         NameWrapper2.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
-      ).to.be.revertedWith(
-        `Unauthorised("${subWrappedTokenId}", "${account2}")`,
-      )
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
     })
 
     it('Does not allow child owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
@@ -3595,7 +3612,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`OperationProhibited("${subWrappedTokenId}")`)
     })
 
-    it('Allow parent owner to set expiry if Emancipated child name has expired', async () => {
+    it('Does not allow parent owner to set expiry if Emancipated child name has expired', async () => {
       await registerSetupAndWrapName('fuses', account, CANNOT_UNWRAP)
       const parentExpiry = await BaseRegistrar.nameExpires(tokenId)
       await NameWrapper.setSubnodeOwner(
@@ -3625,18 +3642,9 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(parentExpiry - DAY + 3600)
 
-      await NameWrapper.extendExpiry(
-        wrappedTokenId,
-        labelhash('sub'),
-        MAX_EXPIRY,
-      )
-      ;[owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.fuses.eth'),
-      )
-
-      expect(owner).to.equal(EMPTY_ADDRESS)
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
+      await expect(
+        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
     })
 
     it('Allows parent owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
@@ -3687,18 +3695,9 @@ describe('Name Wrapper', () => {
       expect(fuses).to.equal(0)
       expect(expiry).to.equal(0)
 
-      await NameWrapper.extendExpiry(
-        wrappedTokenId,
-        labelhash('sub'),
-        MAX_EXPIRY,
-      )
-      ;[owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.fuses.eth'),
-      )
-
-      expect(owner).to.equal(EMPTY_ADDRESS)
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
+      await expect(
+        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
     })
 
     it('Allows extendExpiry() to be called on unwrapped names', async () => {
@@ -3740,18 +3739,9 @@ describe('Name Wrapper', () => {
       let registryOwner = await EnsRegistry.owner(namehash('sub.fuses.eth'))
       expect(registryOwner).to.equal(account)
 
-      await NameWrapper.extendExpiry(
-        wrappedTokenId,
-        labelhash('sub'),
-        MAX_EXPIRY,
-      )
-      ;[owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.fuses.eth'),
-      )
-
-      expect(owner).to.equal(account)
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(parentExpiry.add(GRACE_PERIOD))
+      await expect(
+        NameWrapper.extendExpiry(wrappedTokenId, labelhash('sub'), MAX_EXPIRY),
+      ).to.be.revertedWith(`NameIsNotWrapped()`)
     })
 
     it('Emits Expiry Extended event', async () => {

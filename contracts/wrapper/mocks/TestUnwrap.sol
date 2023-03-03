@@ -55,6 +55,7 @@ contract TestUnwrap is Ownable {
         address wrappedOwner,
         uint32 fuses,
         uint64 expiry,
+        address approved,
         bytes calldata extraData
     ) public {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
