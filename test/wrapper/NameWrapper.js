@@ -1803,6 +1803,33 @@ describe('Name Wrapper', () => {
       // rewrapping to test approval is still cleared
     })
 
+    it('Approval is cleared on re-registration and wrap of expired name', async () => {
+      await NameWrapper.approve(account2, wrappedTokenId)
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_UNWRAP | CANNOT_APPROVE)
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(account2)
+      await evm.advanceTime(2 * DAY + GRACE_PERIOD)
+      await evm.mine()
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      await BaseRegistrar.register(tokenId, account, 1 * DAY)
+      // rewrapping to test approval is still cleared
+      await NameWrapper.wrapETH2LD(
+        label,
+        account,
+        CAN_DO_EVERYTHING,
+        EMPTY_ADDRESS,
+      )
+
+      expect(await NameWrapper.getApproved(wrappedTokenId)).to.equal(
+        EMPTY_ADDRESS,
+      )
+
+      expect(await NameWrapper.ownerOf(wrappedTokenId)).to.equal(account)
+    })
+
     it('Approval is not cleared on transfer if CANNOT_APPROVE is burnt', async () => {
       await NameWrapper.approve(account2, wrappedTokenId)
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_UNWRAP | CANNOT_APPROVE)
