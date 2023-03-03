@@ -511,6 +511,10 @@ contract NameWrapper is
     ) public returns (uint64) {
         bytes32 node = _makeNode(parentNode, labelhash);
 
+        if (!_isWrapped(node)) {
+            revert NameIsNotWrapped();
+        }
+
         // this flag is used later, when checking fuses
         bool canModifyParentSubname = canModifySubnames(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
