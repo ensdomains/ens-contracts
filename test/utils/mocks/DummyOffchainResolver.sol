@@ -24,7 +24,7 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
     function resolve(
         bytes calldata /* name */,
         bytes calldata data
-    ) external view returns (bytes memory, address) {
+    ) external view returns (bytes memory) {
         string[] memory urls = new string[](1);
         urls[0] = "https://example.com/";
         revert OffchainLookup(

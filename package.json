@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.13",
+  "version": "0.0.20",
   "description": "ENS contracts",
   "scripts": {
     "test": "hardhat test",
@@ -54,7 +54,7 @@
     "js-sha3": "0.8.0"
   },
   "dependencies": {
-    "@ensdomains/buffer": "^0.0.13",
+    "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
     "dns-packet": "^5.3.0"

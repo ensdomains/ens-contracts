@@ -10,6 +10,7 @@ import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
 import {NameEncoder} from "./NameEncoder.sol";
 import {BytesUtils} from "../wrapper/BytesUtils.sol";
+import {HexUtils} from "./HexUtils.sol";
 
 error OffchainLookup(
     address sender,
@@ -54,6 +55,7 @@ contract UniversalResolver is ERC165, Ownable {
     using Address for address;
     using NameEncoder for string;
     using BytesUtils for bytes;
+    using HexUtils for bytes;
 
     string[] public batchGatewayURLs;
     ENS public immutable registry;
@@ -455,7 +457,20 @@ contract UniversalResolver is ERC165, Ownable {
             return (address(0), bytes32(0));
         }
         uint256 nextLabel = offset + labelLength + 1;
-        bytes32 labelHash = keccak256(name[offset + 1:nextLabel]);
+        bytes32 labelHash;
+        if (
+            labelLength == 66 &&
+            // 0x5b == '['
+            name[offset + 1] == 0x5b &&
+            // 0x5d == ']'
+            name[nextLabel - 1] == 0x5d
+        ) {
+            // Encrypted label
+            (labelHash, ) = bytes(name[offset + 2:nextLabel - 1])
+                .hexStringToBytes32(0, 64);
+        } else {
+            labelHash = keccak256(name[offset + 1:nextLabel]);
+        }
         (address parentresolver, bytes32 parentnode) = findResolver(
             name,
             nextLabel
