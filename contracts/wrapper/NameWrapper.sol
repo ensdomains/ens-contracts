@@ -562,6 +562,8 @@ contract NameWrapper is
             uint256(node)
         );
 
+        address approved = getApproved(uint256(node));
+
         _burn(uint256(node));
 
         upgradeContract.wrapFromUpgrade(
@@ -569,6 +571,7 @@ contract NameWrapper is
             currentOwner,
             fuses,
             expiry,
+            approved,
             extraData
         );
     }
