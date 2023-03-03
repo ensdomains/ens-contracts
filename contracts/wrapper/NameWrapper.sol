@@ -658,7 +658,9 @@ contract NameWrapper is
         if (!_isWrapped(node)) {
             ens.setSubnodeOwner(parentNode, labelhash, address(this));
             // Add an approved address
-            super._approve(approved, uint256(node));
+            if (approved != address(0)) {
+                super._approve(approved, uint256(node));
+            }
             _wrap(node, name, owner, fuses, expiry);
         } else {
             _updateName(parentNode, node, label, owner, fuses, expiry);
