@@ -2450,6 +2450,40 @@ describe('Name Wrapper', () => {
         )
       })
 
+      it('Keep approval information on upgrade', async () => {
+        await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
+
+        await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)
+
+        await NameWrapper.setSubnodeRecord(
+          namehash('xyz'),
+          'to-upgrade',
+          account,
+          account2,
+          0,
+          0,
+          0,
+        )
+        const ownerOfWrappedXYZ = await NameWrapper.ownerOf(
+          namehash('to-upgrade.xyz'),
+        )
+        expect(ownerOfWrappedXYZ).to.equal(account)
+
+        // set approval
+        await NameWrapper.approve(account3, namehash('to-upgrade.xyz'))
+        expect(
+          await NameWrapper.getApproved(namehash('to-upgrade.xyz')),
+        ).to.equal(account3)
+
+        // set the upgradeContract of the NameWrapper contract
+        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+
+        const tx = await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), '0x')
+        expect(tx)
+          .to.emit(NameWrapperUpgraded, 'NameUpgraded')
+          .withArgs(encodeName('to-upgrade.xyz'), account, 0, 0, account3, '0x')
+      })
+
       it('Will allow you to pass through extra data on upgrade', async () => {
         await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
 
