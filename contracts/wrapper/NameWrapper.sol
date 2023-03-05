@@ -229,19 +229,6 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Checks if msg.sender is the owner or approved
-     * @param node namehash of the name to check
-     */
-
-    modifier onlyTokenOwnerOrApproved(bytes32 node) {
-        if (!canModifySubnames(node, msg.sender)) {
-            revert Unauthorised(node, msg.sender);
-        }
-
-        _;
-    }
-
-    /**
      * @notice Checks if owner or operator of the owner
      * @param node namehash of the name to check
      * @param addr which address to check permissions for
@@ -265,7 +252,7 @@ contract NameWrapper is
      * @return whether or not is owner/operator or approved
      */
 
-    function canModifySubnames(
+    function canExtendSubnames(
         bytes32 node,
         address addr
     ) public view returns (bool) {
@@ -291,7 +278,7 @@ contract NameWrapper is
         address wrappedOwner,
         uint16 ownerControlledFuses,
         address resolver
-    ) public {
+    ) public returns (uint64 expiry) {
         uint256 tokenId = uint256(keccak256(bytes(label)));
         address registrant = registrar.ownerOf(tokenId);
         if (
@@ -310,7 +297,7 @@ contract NameWrapper is
         // transfer the ens record back to the new owner (this contract)
         registrar.reclaim(tokenId, address(this));
 
-        uint64 expiry = uint64(registrar.nameExpires(tokenId)) + GRACE_PERIOD;
+        expiry = uint64(registrar.nameExpires(tokenId)) + GRACE_PERIOD;
 
         _wrapETH2LD(
             label,
@@ -516,9 +503,9 @@ contract NameWrapper is
         }
 
         // this flag is used later, when checking fuses
-        bool canModifyParentSubname = canModifySubnames(parentNode, msg.sender);
+        bool canExtendSubname = canExtendSubnames(parentNode, msg.sender);
         // only allow the owner of the name or owner of the parent name
-        if (!canModifyParentSubname && !canModifyName(node, msg.sender)) {
+        if (!canExtendSubname && !canModifyName(node, msg.sender)) {
             revert Unauthorised(node, msg.sender);
         }
 
@@ -527,7 +514,7 @@ contract NameWrapper is
         );
 
         // Either CAN_EXTEND_EXPIRY must be set, or the caller must have permission to modify the parent name
-        if (!canModifyParentSubname && fuses & CAN_EXTEND_EXPIRY == 0) {
+        if (!canExtendSubname && fuses & CAN_EXTEND_EXPIRY == 0) {
             revert OperationProhibited(node);
         }
 
@@ -577,7 +564,7 @@ contract NameWrapper is
     }
 
     /** 
-    /* @notice Sets fuses of a name that you own the parent of. Can also be called by the owner of a .eth name
+    /* @notice Sets fuses of a name that you own the parent of
      * @param parentNode Parent namehash of the name e.g. vitalik.xyz would be namehash('xyz')
      * @param labelhash Labelhash of the name, e.g. vitalik.xyz would be keccak256('vitalik')
      * @param fuses Fuses to burn
@@ -605,8 +592,8 @@ contract NameWrapper is
                 revert Unauthorised(node, msg.sender);
             }
         } else {
-            if (!canModifySubnames(parentNode, msg.sender)) {
-                revert Unauthorised(node, msg.sender);
+            if (!canModifyName(parentNode, msg.sender)) {
+                revert Unauthorised(parentNode, msg.sender);
             }
         }
 
@@ -641,7 +628,7 @@ contract NameWrapper is
         address owner,
         uint32 fuses,
         uint64 expiry
-    ) public onlyTokenOwnerOrApproved(parentNode) returns (bytes32 node) {
+    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkCanCallSetSubnodeOwner(parentNode, node);
@@ -677,7 +664,7 @@ contract NameWrapper is
         uint64 ttl,
         uint32 fuses,
         uint64 expiry
-    ) public onlyTokenOwnerOrApproved(parentNode) returns (bytes32 node) {
+    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
         bytes32 labelhash = keccak256(bytes(label));
         node = _makeNode(parentNode, labelhash);
         _checkCanCallSetSubnodeOwner(parentNode, node);

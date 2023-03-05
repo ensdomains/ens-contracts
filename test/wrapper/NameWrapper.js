@@ -1437,6 +1437,8 @@ describe('Name Wrapper', () => {
     const tokenId = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
     const sublabelHash = labelhash('sub')
+    const subWrappedTokenId = namehash('sub.' + label + '.eth')
+    let parentExpiry
     let result
     before(async () => {
       result = await ethers.provider.send('evm_snapshot')
@@ -1448,6 +1450,7 @@ describe('Name Wrapper', () => {
         CAN_DO_EVERYTHING,
         EMPTY_ADDRESS,
       )
+      ;[, , parentExpiry] = await NameWrapper.getData(wrappedTokenId)
     })
 
     after(async () => {
@@ -1490,14 +1493,14 @@ describe('Name Wrapper', () => {
     })
 
     it('Allows approved address to call extendExpiry()', async () => {
-      await NameWrapper.approve(account2, wrappedTokenId)
-      await NameWrapper2.setSubnodeOwner(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
         0,
         EMPTY_ADDRESS,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
 
       expect(await NameWrapper.ownerOf(namehash('sub.subdomain.eth'))).to.equal(
         account2,
@@ -1510,76 +1513,62 @@ describe('Name Wrapper', () => {
       expect(expiry).to.equal(100)
     })
 
-    it('Allows approved address to call setSubnodeOwner()', async () => {
-      await NameWrapper.approve(account2, wrappedTokenId)
-      await NameWrapper2.setSubnodeOwner(
+    it('Does not allows approved address to call setSubnodeOwner()', async () => {
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
         0,
         EMPTY_ADDRESS,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
 
       expect(await NameWrapper.ownerOf(namehash('sub.subdomain.eth'))).to.equal(
         account2,
       )
 
-      await NameWrapper2.setSubnodeOwner(
-        wrappedTokenId,
-        'sub',
-        account3,
-        0,
-        1000,
-      )
-      const [owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.subdomain.eth'),
-      )
-      expect(owner).to.equal(account3)
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(1000)
+      await expect(
+        NameWrapper2.setSubnodeOwner(wrappedTokenId, 'sub', account3, 0, 1000),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
     it('Allows approved address to call setSubnodeRecord()', async () => {
-      await NameWrapper.approve(account2, wrappedTokenId)
-      await NameWrapper2.setSubnodeOwner(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
         0,
         EMPTY_ADDRESS,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
 
       expect(await NameWrapper.ownerOf(namehash('sub.subdomain.eth'))).to.equal(
         account2,
       )
 
-      await NameWrapper2.setSubnodeRecord(
-        wrappedTokenId,
-        'sub',
-        account2,
-        EMPTY_ADDRESS,
-        0,
-        0,
-        10000,
-      )
-      const [owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.subdomain.eth'),
-      )
-      expect(owner).to.equal(account2)
-      expect(fuses).to.equal(0)
-      expect(expiry).to.equal(10000)
+      await expect(
+        NameWrapper2.setSubnodeRecord(
+          wrappedTokenId,
+          'sub',
+          account2,
+          EMPTY_ADDRESS,
+          0,
+          0,
+          10000,
+        ),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
     it('Allows approved address to call setChildFuses()', async () => {
       await NameWrapper.setFuses(wrappedTokenId, CANNOT_UNWRAP)
-      await NameWrapper.approve(account2, wrappedTokenId)
-      await NameWrapper2.setSubnodeOwner(
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
         0,
         EMPTY_ADDRESS,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
 
       expect(await NameWrapper.ownerOf(namehash('sub.subdomain.eth'))).to.equal(
         account2,
@@ -1587,73 +1576,70 @@ describe('Name Wrapper', () => {
 
       const [, , parentExpiry] = await NameWrapper2.getData(wrappedTokenId)
 
-      await NameWrapper2.setChildFuses(
-        wrappedTokenId,
-        labelhash('sub'),
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CAN_EXTEND_EXPIRY,
-        parentExpiry,
-      )
-      const [owner, fuses, expiry] = await NameWrapper.getData(
-        namehash('sub.subdomain.eth'),
-      )
-      expect(owner).to.equal(account2)
-      expect(fuses).to.equal(
-        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CAN_EXTEND_EXPIRY,
-      )
-      expect(expiry).to.equal(parentExpiry)
+      await expect(
+        NameWrapper2.setChildFuses(
+          wrappedTokenId,
+          labelhash('sub'),
+          CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CAN_EXTEND_EXPIRY,
+          parentExpiry,
+        ),
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
-    it('Does not allow approved accounts to act as the owner when name is expired', async () => {
-      await NameWrapper.approve(account2, wrappedTokenId)
-      // does not revert when not expired
-      await NameWrapper2.setSubnodeOwner(
+    it('Does not allow approved accounts to extend expiry when expired', async () => {
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
         account2,
         0,
         EMPTY_ADDRESS,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
+
       await evm.advanceTime(2 * DAY)
       await evm.mine()
       await expect(
-        NameWrapper2.setSubnodeOwner(
-          wrappedTokenId,
-          'sub',
-          account,
-          0,
-          EMPTY_ADDRESS,
-        ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
+        NameWrapper2.extendExpiry(wrappedTokenId, labelhash('sub'), 1000),
+      ).to.be.revertedWith(
+        `OperationProhibited("${namehash('sub.subdomain.eth')}")`,
+      )
     })
 
     it('Approved address can be replaced and previous approved is removed', async () => {
-      await NameWrapper.approve(account2, wrappedTokenId)
-      await NameWrapper2.setSubnodeOwner(
+      await NameWrapper.setFuses(wrappedTokenId, CANNOT_UNWRAP)
+      // Make sure there are no lingering approvals
+      await NameWrapper.setApprovalForAll(account2, false)
+      await NameWrapper.setApprovalForAll(account3, false)
+
+      await NameWrapper.setSubnodeOwner(
         wrappedTokenId,
         'sub',
-        account2,
-        0,
-        EMPTY_ADDRESS,
+        account,
+        CANNOT_UNWRAP | PARENT_CANNOT_CONTROL | CAN_EXTEND_EXPIRY,
+        parentExpiry - 1000,
       )
+      await NameWrapper.approve(account2, wrappedTokenId)
+
       await NameWrapper.approve(account3, wrappedTokenId)
 
-      await NameWrapper3.setSubnodeOwner(
+      await NameWrapper3.extendExpiry(
         wrappedTokenId,
-        'sub2',
-        account3,
-        0,
-        EMPTY_ADDRESS,
+        labelhash('sub'),
+        parentExpiry - 500,
       )
 
       await expect(
-        NameWrapper2.setSubnodeOwner(
+        NameWrapper2.extendExpiry(
           wrappedTokenId,
-          'sub2',
-          account2,
-          0,
-          EMPTY_ADDRESS,
+          labelhash('sub'),
+          parentExpiry,
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
+      ).to.be.revertedWith(
+        `Unauthorised("${subWrappedTokenId}", "${account2}")`,
+      )
+
+      const [, , expiry] = await NameWrapper.getData(subWrappedTokenId)
+      expect(expiry).to.equal(parentExpiry - 500)
     })
 
     it('Approved address cannot be removed/replaced when fuse is burnt', async () => {
@@ -4072,9 +4058,7 @@ describe('Name Wrapper', () => {
           CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
           MAX_EXPIRY,
         ),
-      ).to.be.revertedWith(
-        `Unauthorised("${subWrappedTokenId}", "${account2}")`,
-      )
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account2}")`)
     })
 
     it('Normalises expiry to the parent expiry', async () => {
@@ -4147,7 +4131,7 @@ describe('Name Wrapper', () => {
           CANNOT_SET_RESOLVER,
           0,
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
+      ).to.be.revertedWith(`Unauthorised("${namehash('eth')}", "${account}")`)
     })
 
     it('Does not allow burning fuses if CANNOT_UNWRAP is not burnt', async () => {
@@ -6796,7 +6780,7 @@ describe('Name Wrapper', () => {
     it('When a .eth name is in grace period it cannot call setChildFuses', async () => {
       await expect(
         NameWrapper.setChildFuses(wrappedTokenId, labelhash('sub'), 0, 0),
-      ).to.be.revertedWith(`Unauthorised("${subTokenId}", "${account}")`)
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId}", "${account}")`)
     })
 
     it('When a .eth name is in grace period, unexpired subdomains can call setFuses', async () => {
@@ -7113,7 +7097,7 @@ describe('Name Wrapper', () => {
           PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_CREATE_SUBDOMAIN,
           MAX_EXPIRY,
         ),
-      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId2}", "${hacker}")`)
+      ).to.be.revertedWith(`Unauthorised("${wrappedTokenId1}", "${hacker}")`)
     })
     it('Renewing a wrapped, but expired name .eth in the wrapper, but unexpired on the registrar resyncs expiry', async () => {
       await NameWrapper.registerAndWrapETH2LD(
