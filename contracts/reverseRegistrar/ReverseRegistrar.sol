@@ -1,6 +1,6 @@
 pragma solidity >=0.8.4;
 
-import "./ENS.sol";
+import "../registry/ENS.sol";
 import "./IReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../root/Controllable.sol";

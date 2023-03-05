@@ -4,7 +4,7 @@ pragma solidity ~0.8.17;
 import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {Resolver} from "../resolvers/Resolver.sol";
-import {ReverseRegistrar} from "../registry/ReverseRegistrar.sol";
+import {ReverseRegistrar} from "../reverseRegistrar/ReverseRegistrar.sol";
 import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";

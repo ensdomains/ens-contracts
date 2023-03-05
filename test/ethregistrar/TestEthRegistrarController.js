@@ -116,6 +116,7 @@ contract('ETHRegistrarController', function () {
       86400,
       reverseRegistrar.address,
       nameWrapper.address,
+      ens.address,
     )
     controller2 = controller.connect(signers[1])
     await nameWrapper.setController(controller.address, true)
