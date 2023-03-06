@@ -21,11 +21,11 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-    - run: npm ci
+        cache: 'yarn'
+    - run: yarn install --frozen-lockfile
 
     - name: Run CI
-      run: npm run test
+      run: yarn test
 
     # - name: Lint
     #   if: success() || failure()
