@@ -6,11 +6,9 @@ import {BytesUtils} from "../wrapper/BytesUtils.sol";
 library NameEncoder {
     using BytesUtils for bytes;
 
-    function dnsEncodeName(string memory name)
-        internal
-        pure
-        returns (bytes memory dnsName, bytes32 node)
-    {
+    function dnsEncodeName(
+        string memory name
+    ) internal pure returns (bytes memory dnsName, bytes32 node) {
         uint8 labelLength = 0;
         bytes memory bytesName = bytes(name);
         uint256 length = bytesName.length;

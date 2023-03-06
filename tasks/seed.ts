@@ -38,7 +38,7 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
       REGISTRY_ADDRESS: registryAddress,
       REGISTRAR_ADDRESS: registrarAddress,
       WRAPPER_ADDRESS: wrapperAddress,
-      RESOLVER_ADDRESS: resolverAddress
+      RESOLVER_ADDRESS: resolverAddress,
     } = parsedFile
     if (
       !(

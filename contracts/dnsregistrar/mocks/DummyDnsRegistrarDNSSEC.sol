@@ -23,15 +23,10 @@ contract DummyDNSSEC {
         }
     }
 
-    function rrdata(uint16 dnstype, bytes memory name)
-        public
-        view
-        returns (
-            uint32,
-            uint64,
-            bytes20
-        )
-    {
+    function rrdata(
+        uint16 dnstype,
+        bytes memory name
+    ) public view returns (uint32, uint64, bytes20) {
         require(dnstype == expectedType);
         require(keccak256(name) == keccak256(expectedName));
         return (inception, inserted, hash);

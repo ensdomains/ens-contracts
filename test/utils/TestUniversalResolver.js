@@ -1,4 +1,5 @@
-const { expect } = require('chai')
+const { solidity } = require('ethereum-waffle')
+const { use, expect } = require('chai')
 const namehash = require('eth-ens-namehash')
 const { hexDataSlice } = require('ethers/lib/utils')
 const sha3 = require('web3-utils').sha3
@@ -6,6 +7,9 @@ const { Contract } = require('ethers')
 const { ethers } = require('hardhat')
 const { dns } = require('../test-utils')
 const { writeFile } = require('fs/promises')
+const { deploy } = require('../test-utils/contracts')
+
+use(solidity)
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 const EMPTY_BYTES32 =
@@ -47,19 +51,20 @@ contract('UniversalResolver', function (accounts) {
 
   beforeEach(async () => {
     node = namehash.hash('eth')
-    ens = await ENSRegistry.deploy()
-    nameWrapper = await NameWrapper.deploy()
-    publicResolver = await PublicResolver.deploy(
+    ens = await deploy('ENSRegistry')
+    nameWrapper = await deploy('DummyNameWrapper')
+    publicResolver = await deploy(
+      'PublicResolver',
       ens.address,
       nameWrapper.address,
       ZERO_ADDRESS,
       ZERO_ADDRESS,
     )
-    universalResolver = await UniversalResolver.deploy(ens.address, [
+    universalResolver = await deploy('UniversalResolver', ens.address, [
       'http://universal-offchain-resolver.local/',
     ])
-    dummyOffchainResolver = await DummyOffchainResolver.deploy()
-    reverseRegistrar = await ReverseRegistrar.deploy(ens.address)
+    dummyOffchainResolver = await deploy('DummyOffchainResolver')
+    reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
     reverseNode = accounts[0].toLowerCase().substring(2) + '.addr.reverse'
 
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('eth'), accounts[0], {
@@ -147,6 +152,14 @@ contract('UniversalResolver', function (accounts) {
         dns.hexEncodeName('sub.test.eth'),
       )
       expect(result['0']).to.equal(accounts[1])
+    })
+    it('should allow encrypted labels', async () => {
+      const result = await universalResolver.callStatic.findResolver(
+        dns.hexEncodeName(
+          '[9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658].eth',
+        ),
+      )
+      expect(result['0']).to.equal(publicResolver.address)
     })
   })
 
@@ -434,12 +447,82 @@ contract('UniversalResolver', function (accounts) {
       expect(resolverAddress).to.equal(dummyOffchainResolver.address)
       expect(encodedRes).to.equal('0x')
     })
+    it('should allow response at non-0 extraData index', async () => {
+      const addrData = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('offchain.test.eth')],
+      )
+      const textData = publicResolver.interface.encodeFunctionData(
+        'text(bytes32,string)',
+        [namehash.hash('offchain.test.eth'), 'foo'],
+      )
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        [
+          dummyOffchainResolver.address,
+          ['http://universal-offchain-resolver.local/'],
+          '0x',
+          [
+            ['0x00000000', addrData],
+            [resolveCallbackSig, textData],
+          ],
+        ],
+      )
+      const responses = batchGateway.encodeFunctionResult('query', [
+        [false],
+        [textData],
+      ])
+      const [[encodedRes, encodedResTwo], resolverAddress] =
+        await universalResolver.callStatic.resolveCallback(responses, extraData)
+      const [addrRet] = ethers.utils.defaultAbiCoder.decode(
+        ['bytes'],
+        encodedRes,
+      )
+      const [addrRetTwo] = publicResolver.interface.decodeFunctionResult(
+        'addr(bytes32)',
+        encodedResTwo,
+      )
+      expect(ethers.utils.toUtf8String(addrRet)).to.equal('onchain')
+      expect(addrRetTwo).to.equal(dummyOffchainResolver.address)
+      expect(resolverAddress).to.equal(dummyOffchainResolver.address)
+    })
+    it('should gracefully handle a non-existent function on an offchain resolver', async () => {
+      const addrData = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32,uint256)',
+        [namehash.hash('offchain.test.eth'), 60],
+      )
+      const textData = publicResolver.interface.encodeFunctionData(
+        'text(bytes32,string)',
+        [namehash.hash('offchain.test.eth'), 'foo'],
+      )
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        [
+          dummyOffchainResolver.address,
+          ['http://universal-offchain-resolver.local/'],
+          '0x',
+          [
+            ['0x00000000', addrData],
+            [resolveCallbackSig, textData],
+          ],
+        ],
+      )
+      const responses = batchGateway.encodeFunctionResult('query', [
+        [false],
+        [textData],
+      ])
+      const [[addr, text], resolver] =
+        await universalResolver.callStatic.resolveCallback(responses, extraData)
+      const [addrRetFromText] = publicResolver.interface.decodeFunctionResult(
+        'addr(bytes32)',
+        text,
+      )
+      expect(addr).to.equal('0x')
+      expect(addrRetFromText).to.equal(dummyOffchainResolver.address)
+      expect(resolver).to.equal(dummyOffchainResolver.address)
+    })
   })
   describe('reverseCallback', () => {
-    const encodedName = ethers.utils.defaultAbiCoder.encode(
-      ['string'],
-      ['offchain.test.eth'],
-    )
     it('should revert with metadata for initial forward resolution if required', async () => {
       const extraData = ethers.utils.defaultAbiCoder.encode(
         ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],

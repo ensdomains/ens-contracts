@@ -7,7 +7,7 @@ const ENS = artifacts.require('./registry/ENSRegistry')
 const BaseRegistrar = artifacts.require('./BaseRegistrarImplementation')
 const DummyOracle = artifacts.require('./DummyOracle')
 const ExponentialPremiumPriceOracle = artifacts.require(
-  './ExponentialPremiumPriceOracle'
+  './ExponentialPremiumPriceOracle',
 )
 
 const START_PRICE = 100000000
@@ -21,7 +21,7 @@ function exponentialReduceFloatingPoint(startPrice, days) {
   }
   return 0
 }
-contract('ExponentialPricePremiumOracle', function(accounts) {
+contract('ExponentialPricePremiumOracle', function (accounts) {
   let priceOracle
 
   before(async () => {
@@ -39,7 +39,7 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
       dummyOracle.address,
       [0, 0, 4, 2, 1],
       BigInt(START_PRICE * 1e18),
-      LAST_DAY
+      LAST_DAY,
     )
   })
 
@@ -48,15 +48,15 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
 
     assert.equal(
       parseInt((await priceOracle.price('quux', 0, 3600)).base),
-      3600
+      3600,
     )
     assert.equal(
       parseInt((await priceOracle.price('fubar', 0, 3600)).base),
-      1800
+      1800,
     )
     assert.equal(
       parseInt((await priceOracle.price('foobie', 0, 3600)).base),
-      1800
+      1800,
     )
   })
 
@@ -76,11 +76,11 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
     const expectedPrice = ((START_PRICE - LAST_VALUE) / 2) * 1e18 // ETH at $2 for $1 mil in 18 decimal precision
     assert.equal(
       (await priceOracle.premium('foobar', ts, 0)).toString(),
-      expectedPrice
+      expectedPrice,
     )
     assert.equal(
       (await priceOracle.price('foobar', ts, 0)).premium.toString(),
-      expectedPrice
+      expectedPrice,
     )
   })
 
@@ -96,15 +96,15 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
       (
         Number(await priceOracle.premium('foobar', ts, lengthOfRegistration)) /
         1e18
-      ).toFixed(2)
+      ).toFixed(2),
     ).to.equal(expectedPremium)
 
     expect(
       (
         Number(
-          (await priceOracle.price('foobar', ts, lengthOfRegistration)).premium
+          (await priceOracle.price('foobar', ts, lengthOfRegistration)).premium,
         ) / 1e18
-      ).toFixed(2)
+      ).toFixed(2),
     ).to.equal(expectedPremium)
   })
 
@@ -113,10 +113,10 @@ contract('ExponentialPricePremiumOracle', function(accounts) {
     expect(
       (
         await priceOracle.premium('foobar', ts - LAST_DAY * DAY + 1, 0)
-      ).toNumber()
+      ).toNumber(),
     ).to.be.greaterThan(0)
     expect(
-      (await priceOracle.premium('foobar', ts - LAST_DAY * DAY, 0)).toNumber()
+      (await priceOracle.premium('foobar', ts - LAST_DAY * DAY, 0)).toNumber(),
     ).to.equal(0)
   })
 

@@ -97,11 +97,10 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @param resolver The address of the resolver to set; 0 to leave unchanged.
      * @return The ENS node hash of the reverse record.
      */
-    function claimWithResolver(address owner, address resolver)
-        public
-        override
-        returns (bytes32)
-    {
+    function claimWithResolver(
+        address owner,
+        address resolver
+    ) public override returns (bytes32) {
         return claimForAddr(msg.sender, owner, resolver);
     }
 

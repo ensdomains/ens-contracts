@@ -16,11 +16,10 @@ library RRUtils {
      * @param offset The offset to start reading at.
      * @return The length of the DNS name at 'offset', in bytes.
      */
-    function nameLength(bytes memory self, uint256 offset)
-        internal
-        pure
-        returns (uint256)
-    {
+    function nameLength(
+        bytes memory self,
+        uint256 offset
+    ) internal pure returns (uint256) {
         uint256 idx = offset;
         while (true) {
             assert(idx < self.length);
@@ -39,11 +38,10 @@ library RRUtils {
      * @param offset The offset to start reading at.
      * @return ret The name.
      */
-    function readName(bytes memory self, uint256 offset)
-        internal
-        pure
-        returns (bytes memory ret)
-    {
+    function readName(
+        bytes memory self,
+        uint256 offset
+    ) internal pure returns (bytes memory ret) {
         uint256 len = nameLength(self, offset);
         return self.substring(offset, len);
     }
@@ -54,11 +52,10 @@ library RRUtils {
      * @param offset The offset to start reading at.
      * @return The number of labels in the DNS name at 'offset', in bytes.
      */
-    function labelCount(bytes memory self, uint256 offset)
-        internal
-        pure
-        returns (uint256)
-    {
+    function labelCount(
+        bytes memory self,
+        uint256 offset
+    ) internal pure returns (uint256) {
         uint256 count = 0;
         while (true) {
             assert(offset < self.length);
@@ -94,11 +91,9 @@ library RRUtils {
         bytes name;
     }
 
-    function readSignedSet(bytes memory data)
-        internal
-        pure
-        returns (SignedSet memory self)
-    {
+    function readSignedSet(
+        bytes memory data
+    ) internal pure returns (SignedSet memory self) {
         self.typeCovered = data.readUint16(RRSIG_TYPE);
         self.algorithm = data.readUint8(RRSIG_ALGORITHM);
         self.labels = data.readUint8(RRSIG_LABELS);
@@ -113,11 +108,9 @@ library RRUtils {
         );
     }
 
-    function rrs(SignedSet memory rrset)
-        internal
-        pure
-        returns (RRIterator memory)
-    {
+    function rrs(
+        SignedSet memory rrset
+    ) internal pure returns (RRIterator memory) {
         return iterateRRs(rrset.data, 0);
     }
 
@@ -140,11 +133,10 @@ library RRUtils {
      * @param offset The offset to start reading at.
      * @return ret An iterator object.
      */
-    function iterateRRs(bytes memory self, uint256 offset)
-        internal
-        pure
-        returns (RRIterator memory ret)
-    {
+    function iterateRRs(
+        bytes memory self,
+        uint256 offset
+    ) internal pure returns (RRIterator memory ret) {
         ret.data = self;
         ret.nextOffset = offset;
         next(ret);
@@ -205,11 +197,9 @@ library RRUtils {
      * @param iter The iterator.
      * @return A new bytes object containing the RR's RDATA.
      */
-    function rdata(RRIterator memory iter)
-        internal
-        pure
-        returns (bytes memory)
-    {
+    function rdata(
+        RRIterator memory iter
+    ) internal pure returns (bytes memory) {
         return
             iter.data.substring(
                 iter.rdataOffset,
@@ -266,16 +256,15 @@ library RRUtils {
         self.digest = data.substring(offset + DS_DIGEST, length - DS_DIGEST);
     }
 
-    function isSubdomainOf(bytes memory self, bytes memory other) 
-        internal
-        pure
-        returns (bool)
-    {
+    function isSubdomainOf(
+        bytes memory self,
+        bytes memory other
+    ) internal pure returns (bool) {
         uint256 off = 0;
         uint256 counts = labelCount(self, 0);
         uint256 othercounts = labelCount(other, 0);
 
-        while(counts > othercounts) {
+        while (counts > othercounts) {
             off = progress(self, off);
             counts--;
         }
@@ -283,11 +272,10 @@ library RRUtils {
         return self.equals(off, other, 0);
     }
 
-    function compareNames(bytes memory self, bytes memory other)
-        internal
-        pure
-        returns (int256)
-    {
+    function compareNames(
+        bytes memory self,
+        bytes memory other
+    ) internal pure returns (int256) {
         if (self.equals(other)) {
             return 0;
         }
@@ -341,21 +329,19 @@ library RRUtils {
     /**
      * @dev Compares two serial numbers using RFC1982 serial number math.
      */
-    function serialNumberGte(uint32 i1, uint32 i2)
-        internal
-        pure
-        returns (bool)
-    {
+    function serialNumberGte(
+        uint32 i1,
+        uint32 i2
+    ) internal pure returns (bool) {
         unchecked {
             return int32(i1) - int32(i2) >= 0;
         }
     }
 
-    function progress(bytes memory body, uint256 off)
-        internal
-        pure
-        returns (uint256)
-    {
+    function progress(
+        bytes memory body,
+        uint256 off
+    ) internal pure returns (uint256) {
         return off + 1 + body.readUint8(off);
     }
 
