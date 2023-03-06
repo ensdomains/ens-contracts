@@ -11,6 +11,7 @@ import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./Multicallable.sol";
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 
 interface INameWrapper {
     function ownerOf(uint256 id) external view returns (address);
@@ -29,7 +30,8 @@ contract PublicResolver is
     InterfaceResolver,
     NameResolver,
     PubkeyResolver,
-    TextResolver
+    TextResolver,
+    ReverseClaimer
 {
     ENS immutable ens;
     INameWrapper immutable nameWrapper;
@@ -73,7 +75,7 @@ contract PublicResolver is
         INameWrapper wrapperAddress,
         address _trustedETHController,
         address _trustedReverseRegistrar
-    ) {
+    ) ReverseClaimer(_ens, msg.sender) {
         ens = _ens;
         nameWrapper = wrapperAddress;
         trustedETHController = _trustedETHController;

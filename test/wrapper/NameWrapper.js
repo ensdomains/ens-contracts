@@ -113,6 +113,14 @@ describe('Name Wrapper', () => {
       'ReverseRegistrar',
       EnsRegistry.address,
     )
+
+    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
+    await EnsRegistry.setSubnodeOwner(
+      namehash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
+
     const Resolver = await deploy(
       'PublicResolver',
       EnsRegistry.address,
@@ -121,13 +129,6 @@ describe('Name Wrapper', () => {
       ReverseRegistrar.address,
     )
     await ReverseRegistrar.setDefaultResolver(Resolver.address)
-
-    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
-    await EnsRegistry.setSubnodeOwner(
-      namehash('reverse'),
-      labelhash('addr'),
-      ReverseRegistrar.address,
-    )
 
     NameWrapper = await deploy(
       'NameWrapper',
