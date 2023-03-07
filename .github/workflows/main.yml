@@ -2,31 +2,40 @@ name: CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
 
 jobs:
-  build:
-
+  test:
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: [14.x, 16.x, 18.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
-    - uses: actions/checkout@v3
-    - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'yarn'
-    - run: yarn install --frozen-lockfile
+      - uses: actions/checkout@v3
 
-    - name: Run CI
-      run: yarn test
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
 
-    # - name: Lint
-    #   if: success() || failure()
-    #   run: npm run lint
+      - run: yarn install --frozen-lockfile
+
+      - name: Run test
+        run: yarn test
+
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Run deploy
+        run: yarn test:deploy
+        env:
+          BATCH_GATEWAY_URLS: '["https://universal-offchain-unwrapper.ens-cf.workers.dev/"]'

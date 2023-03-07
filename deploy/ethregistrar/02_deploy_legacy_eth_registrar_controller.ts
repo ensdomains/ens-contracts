@@ -42,11 +42,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await tx3.wait()
 
-  console.log('Running unwrapped name registrations...')
-  await run('register-unwrapped-names', {
-    deletePreviousDeployments: false,
-    resetMemory: false,
-  })
+  if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
+    console.log('Running unwrapped name registrations...')
+    await run('register-unwrapped-names', {
+      deletePreviousDeployments: false,
+      resetMemory: false,
+    })
+  }
 
   return true
 }

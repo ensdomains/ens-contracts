@@ -27,11 +27,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     console.log(`Setting owner of root node to owner (tx: ${rootTx.hash})`)
     await rootTx.wait()
 
-    console.log('Running legacy registry scripts...')
-    await run('legacy-registry-names', {
-      deletePreviousDeployments: false,
-      resetMemory: false,
-    })
+    if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
+      console.log('Running legacy registry scripts...')
+      await run('legacy-registry-names', {
+        deletePreviousDeployments: false,
+        resetMemory: false,
+      })
+    }
 
     const revertRootTx = await legacyRegistry
       .connect(await ethers.getSigner(owner))
