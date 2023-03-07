@@ -37,3 +37,5 @@ jobs:
 
       - name: Run deploy
         run: yarn test:deploy
+        env:
+          BATCH_GATEWAY_URLS: '["https://universal-offchain-unwrapper.ens-cf.workers.dev/"]'
