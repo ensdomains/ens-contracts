@@ -43,7 +43,7 @@ contract('PublicResolver', function (accounts) {
       ens.address,
       nameWrapper.address,
       accounts[9], // trusted contract
-      EMPTY_ADDRESS, //ReverseRegistrar.address,
+      ReverseRegistrar.address, //ReverseRegistrar.address,
     )
 
     await ReverseRegistrar.setDefaultResolver(resolver.address)
