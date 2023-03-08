@@ -1241,7 +1241,7 @@ async function setTLDs(
     ) {
       console.log(`Transferring .${tld} to new DNS registrar`)
       transactions.push(
-        await registrar.enableNode(tld, registrar.address, {
+        await registrar.enableNode(tld, {
           from: owner,
           gasLimit: 10000000,
         }),
