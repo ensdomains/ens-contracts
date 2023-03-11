@@ -62,7 +62,7 @@ interface INameWrapper is IERC1155 {
         address wrappedOwner,
         uint16 ownerControlledFuses,
         address resolver
-    ) external;
+    ) external returns (uint64 expires);
 
     function registerAndWrapETH2LD(
         string calldata label,

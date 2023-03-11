@@ -7,6 +7,7 @@ interface INameWrapperUpgrade {
         address wrappedOwner,
         uint32 fuses,
         uint64 expiry,
+        address approved,
         bytes calldata extraData
     ) external;
 }

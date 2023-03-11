@@ -184,7 +184,14 @@ describe('TestUnwrap', () => {
         await TestUnwrap.setWrapperApproval(NameWrapper.address, true)
 
         await expect(
-          TestUnwrap.wrapFromUpgrade(encodedName, account, 0, 0, 0),
+          TestUnwrap.wrapFromUpgrade(
+            encodedName,
+            account,
+            0,
+            0,
+            EMPTY_ADDRESS,
+            0,
+          ),
         ).to.be.revertedWith('Unauthorised')
       })
     })
@@ -276,7 +283,14 @@ describe('TestUnwrap', () => {
         await TestUnwrap.setWrapperApproval(NameWrapper.address, true)
 
         await expect(
-          TestUnwrap.wrapFromUpgrade(encodedName, account, 0, 0, 0),
+          TestUnwrap.wrapFromUpgrade(
+            encodedName,
+            account,
+            0,
+            0,
+            EMPTY_ADDRESS,
+            0,
+          ),
         ).to.be.revertedWith('Unauthorised')
       })
     })
