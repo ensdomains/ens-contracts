@@ -12,10 +12,7 @@ import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./Multicallable.sol";
 import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
-
-interface INameWrapper {
-    function ownerOf(uint256 id) external view returns (address);
-}
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
 
 /**
  * A simple resolver anyone can use; only allows the owner of a node to set its
