@@ -14,7 +14,6 @@ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Recei
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils} from "./BytesUtils.sol";
-import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error IncompatibleParent();
@@ -34,7 +33,6 @@ contract NameWrapper is
     INameWrapper,
     Controllable,
     IERC721Receiver,
-    ERC20Recoverable,
     ReverseClaimer
 {
     using BytesUtils for bytes;
@@ -516,8 +514,8 @@ contract NameWrapper is
             uint256(node)
         );
 
-        // If the caller is the owner of the parent, then we can extend the expiry.
-        if (canModifyParentSubname) {
+        // If the caller is the owner of the parent or approved, then the caller can extend the expiry.
+        if (canExtendSubname) {
             // max expiry is set to the expiry of the parent
             (, , uint64 maxExpiry) = getData(uint256(parentNode));
             expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
