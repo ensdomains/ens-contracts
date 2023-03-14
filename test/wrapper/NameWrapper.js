@@ -107,6 +107,29 @@ describe('Name Wrapper', () => {
       'https://ens.domains',
     )
 
+    //setup reverse registrar
+
+    const ReverseRegistrar = await deploy(
+      'ReverseRegistrar',
+      EnsRegistry.address,
+    )
+
+    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
+    await EnsRegistry.setSubnodeOwner(
+      namehash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
+
+    const Resolver = await deploy(
+      'PublicResolver',
+      EnsRegistry.address,
+      '0x0000000000000000000000000000000000000000',
+      '0x0000000000000000000000000000000000000000',
+      ReverseRegistrar.address,
+    )
+    await ReverseRegistrar.setDefaultResolver(Resolver.address)
+
     NameWrapper = await deploy(
       'NameWrapper',
       EnsRegistry.address,

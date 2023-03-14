@@ -8,7 +8,10 @@ const namehash = require('eth-ens-namehash')
 const utils = require('./Helpers/Utils')
 const { exceptions } = require('@ensdomains/test-utils')
 const { assert } = require('chai')
+const { deploy } = require('../test-utils/contracts')
 const { rootKeys, hexEncodeSignedSet } = require('../utils/dnsutils.js')
+const { EMPTY_BYTES32 } = require('../test-utils/constants')
+const { labelhash } = require('../test-utils/ens')
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
@@ -55,6 +58,13 @@ contract('DNSRegistrar', function (accounts) {
 
   beforeEach(async function () {
     ens = await ENSRegistry.new()
+    const ReverseRegistrar = await deploy('ReverseRegistrar', ens.address)
+    await ens.setSubnodeOwner(EMPTY_BYTES32, labelhash('reverse'), accounts[0])
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
 
     root = await Root.new(ens.address)
     await ens.setOwner('0x0', root.address)

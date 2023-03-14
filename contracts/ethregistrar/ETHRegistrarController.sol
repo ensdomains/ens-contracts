@@ -4,7 +4,9 @@ pragma solidity ~0.8.17;
 import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {Resolver} from "../resolvers/Resolver.sol";
-import {ReverseRegistrar} from "../registry/ReverseRegistrar.sol";
+import {ENS} from "../registry/ENS.sol";
+import {ReverseRegistrar} from "../reverseRegistrar/ReverseRegistrar.sol";
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -31,7 +33,8 @@ contract ETHRegistrarController is
     Ownable,
     IETHRegistrarController,
     IERC165,
-    ERC20Recoverable
+    ERC20Recoverable,
+    ReverseClaimer
 {
     using StringUtils for *;
     using Address for address;
@@ -70,8 +73,9 @@ contract ETHRegistrarController is
         uint256 _minCommitmentAge,
         uint256 _maxCommitmentAge,
         ReverseRegistrar _reverseRegistrar,
-        INameWrapper _nameWrapper
-    ) {
+        INameWrapper _nameWrapper,
+        ENS _ens
+    ) ReverseClaimer(_ens, msg.sender) {
         if (_maxCommitmentAge <= _minCommitmentAge) {
             revert MaxCommitmentAgeTooLow();
         }

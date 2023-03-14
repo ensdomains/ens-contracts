@@ -53,6 +53,17 @@ contract('UniversalResolver', function (accounts) {
     node = namehash.hash('eth')
     ens = await deploy('ENSRegistry')
     nameWrapper = await deploy('DummyNameWrapper')
+    reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
+    reverseNode = accounts[0].toLowerCase().substring(2) + '.addr.reverse'
+    await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('reverse'), accounts[0], {
+      from: accounts[0],
+    })
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      sha3('addr'),
+      reverseRegistrar.address,
+      { from: accounts[0] },
+    )
     publicResolver = await deploy(
       'PublicResolver',
       ens.address,
@@ -64,8 +75,6 @@ contract('UniversalResolver', function (accounts) {
       'http://universal-offchain-resolver.local/',
     ])
     dummyOffchainResolver = await deploy('DummyOffchainResolver')
-    reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
-    reverseNode = accounts[0].toLowerCase().substring(2) + '.addr.reverse'
 
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('eth'), accounts[0], {
       from: accounts[0],
@@ -73,15 +82,6 @@ contract('UniversalResolver', function (accounts) {
     await ens.setSubnodeOwner(namehash.hash('eth'), sha3('test'), accounts[0], {
       from: accounts[0],
     })
-    await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('reverse'), accounts[0], {
-      from: accounts[0],
-    })
-    await ens.setSubnodeOwner(
-      namehash.hash('reverse'),
-      sha3('addr'),
-      reverseRegistrar.address,
-      { from: accounts[0] },
-    )
     await ens.setResolver(namehash.hash('test.eth'), publicResolver.address, {
       from: accounts[0],
     })

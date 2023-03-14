@@ -32,6 +32,15 @@ contract('ReverseRegistrar', function (accounts) {
     nameWrapper = await NameWrapper.new()
 
     registrar = await ReverseRegistrar.new(ens.address)
+    await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
+      from: accounts[0],
+    })
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      sha3('addr'),
+      registrar.address,
+      { from: accounts[0] },
+    )
     resolver = await PublicResolver.new(
       ens.address,
       nameWrapper.address,
@@ -46,16 +55,6 @@ contract('ReverseRegistrar', function (accounts) {
     )
     dummyOwnable = await ReverseRegistrar.new(ens.address)
     dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)
-
-    await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
-      from: accounts[0],
-    })
-    await ens.setSubnodeOwner(
-      namehash.hash('reverse'),
-      sha3('addr'),
-      registrar.address,
-      { from: accounts[0] },
-    )
   })
 
   it('should calculate node hash correctly', async () => {

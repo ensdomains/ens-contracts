@@ -1,6 +1,12 @@
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const PublicResolver = artifacts.require('PublicResolver.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+const { deploy } = require('../test-utils/contracts')
+const { labelhash } = require('../test-utils/ens')
+const {
+  EMPTY_BYTES32: ROOT_NODE,
+  EMPTY_ADDRESS,
+} = require('../test-utils/constants')
 
 const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
@@ -11,18 +17,37 @@ const { exceptions } = require('../test-utils')
 contract('PublicResolver', function (accounts) {
   let node
   let ens, resolver, nameWrapper
-  const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+  let account
+  let signers
+  let result
 
   beforeEach(async () => {
+    signers = await ethers.getSigners()
+    account = await signers[0].getAddress()
     node = namehash.hash('eth')
     ens = await ENS.new()
     nameWrapper = await NameWrapper.new()
+
+    //setup reverse registrar
+
+    const ReverseRegistrar = await deploy('ReverseRegistrar', ens.address)
+
+    await ens.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
+
     resolver = await PublicResolver.new(
       ens.address,
       nameWrapper.address,
       accounts[9], // trusted contract
-      EMPTY_ADDRESS,
+      ReverseRegistrar.address, //ReverseRegistrar.address,
     )
+
+    await ReverseRegistrar.setDefaultResolver(resolver.address)
+
     await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
       from: accounts[0],
     })

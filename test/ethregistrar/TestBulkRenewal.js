@@ -6,6 +6,8 @@ const DummyOracle = artifacts.require('./DummyOracle')
 const StablePriceOracle = artifacts.require('./StablePriceOracle')
 const BulkRenewal = artifacts.require('./BulkRenewal')
 const NameWrapper = artifacts.require('./wrapper/NameWrapper.sol')
+const { deploy } = require('../test-utils/contracts')
+const { EMPTY_BYTES32: EMPTY_BYTES } = require('../test-utils/constants')
 
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -23,6 +25,7 @@ contract('BulkRenewal', function (accounts) {
   let priceOracle
   let bulkRenewal
   let nameWrapper
+  let reverseRegistrar
 
   const ownerAccount = accounts[0] // Account that owns the registrar
   const registrantAccount = accounts[1] // Account that owns test names
@@ -36,11 +39,24 @@ contract('BulkRenewal', function (accounts) {
       from: ownerAccount,
     })
 
+    // Setup reverseRegistrar
+    reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
+
+    await ens.setSubnodeOwner(EMPTY_BYTES, sha3('reverse'), accounts[0])
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      sha3('addr'),
+      reverseRegistrar.address,
+    )
+
+    // Create a name wrapper
+
     nameWrapper = await NameWrapper.new(
       ens.address,
       baseRegistrar.address,
       ownerAccount,
     )
+
     // Create a public resolver
     resolver = await PublicResolver.new(
       ens.address,
@@ -62,6 +78,7 @@ contract('BulkRenewal', function (accounts) {
       86400,
       EMPTY_ADDRESS,
       nameWrapper.address,
+      ens.address,
       { from: ownerAccount },
     )
     var wrapperAddress = await controller.nameWrapper()

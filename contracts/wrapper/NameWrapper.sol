@@ -7,6 +7,8 @@ import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
+import {IReverseRegistrar} from "../reverseRegistrar/IReverseRegistrar.sol";
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
@@ -32,7 +34,8 @@ contract NameWrapper is
     INameWrapper,
     Controllable,
     IERC721Receiver,
-    ERC20Recoverable
+    ERC20Recoverable,
+    ReverseClaimer
 {
     using BytesUtils for bytes;
 
@@ -57,12 +60,12 @@ contract NameWrapper is
         ENS _ens,
         IBaseRegistrar _registrar,
         IMetadataService _metadataService
-    ) {
+    ) ReverseClaimer(_ens, msg.sender) {
         ens = _ens;
         registrar = _registrar;
         metadataService = _metadataService;
 
-        /* Burn PARENT_CANNOT_CONTROL and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE */
+        /* Burn PARENT_CANNOT_CONTROL and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE and set expiry to max */
 
         _setData(
             uint256(ETH_NODE),
@@ -365,10 +368,10 @@ contract NameWrapper is
             return registrarExpiry;
         }
 
-        // set expiry in Wrapper
+        // Set expiry in Wrapper
         uint64 expiry = uint64(registrarExpiry) + GRACE_PERIOD;
 
-        //use super to allow names expired on the wrapper, but not expired on the registrar to renew()
+        // Use super to allow names expired on the wrapper, but not expired on the registrar to renew()
         (address owner, uint32 fuses, ) = super.getData(uint256(node));
         _setData(node, owner, fuses, expiry);
 
@@ -518,7 +521,7 @@ contract NameWrapper is
             revert OperationProhibited(node);
         }
 
-        // max expiry is set to the expiry of the parent
+        // Max expiry is set to the expiry of the parent
         (, , uint64 maxExpiry) = getData(uint256(parentNode));
         expiry = _normaliseExpiry(expiry, oldExpiry, maxExpiry);
 
