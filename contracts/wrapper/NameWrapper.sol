@@ -526,7 +526,7 @@ contract NameWrapper is
             return expiry;
         }
 
-        // Check to make sure the caller is the approved contract and CAN_EXTEND_EXPIRY is set.
+        // If the caller is the approved contract of the node and CAN_EXTEND_EXPIRY is set, then the caller can extend the expiry.
         if (
             getApproved(uint256(node)) != msg.sender ||
             fuses & CAN_EXTEND_EXPIRY == 0
