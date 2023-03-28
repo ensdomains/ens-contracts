@@ -33,7 +33,8 @@ contract('UniversalResolver', function (accounts) {
     nameWrapper,
     reverseRegistrar,
     reverseNode,
-    batchGateway
+    batchGateway,
+    dummyOldResolver
 
   before(async () => {
     batchGateway = (await ethers.getContractAt('BatchGateway', ZERO_ADDRESS))
@@ -55,6 +56,8 @@ contract('UniversalResolver', function (accounts) {
     nameWrapper = await deploy('DummyNameWrapper')
     reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
     reverseNode = accounts[0].toLowerCase().substring(2) + '.addr.reverse'
+    oldResolverReverseNode =
+      accounts[10].toLowerCase().substring(2) + '.addr.reverse'
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('reverse'), accounts[0], {
       from: accounts[0],
     })
@@ -75,6 +78,7 @@ contract('UniversalResolver', function (accounts) {
       'http://universal-offchain-resolver.local/',
     ])
     dummyOffchainResolver = await deploy('DummyOffchainResolver')
+    dummyOldResolver = await deploy('DummyOldResolver')
 
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('eth'), accounts[0], {
       from: accounts[0],
@@ -124,6 +128,16 @@ contract('UniversalResolver', function (accounts) {
       from: accounts[0],
     })
     await publicResolver.setName(namehash.hash(reverseNode), 'test.eth')
+
+    const oldResolverSigner = await ethers.getSigner(accounts[10])
+    const _reverseRegistrar = reverseRegistrar.connect(oldResolverSigner)
+    const _ens = ens.connect(oldResolverSigner)
+
+    await _reverseRegistrar.claim(accounts[10])
+    await _ens.setResolver(
+      namehash.hash(oldResolverReverseNode),
+      dummyOldResolver.address,
+    )
   })
 
   const resolveCallbackSig = ethers.utils.hexDataSlice(
@@ -598,6 +612,13 @@ contract('UniversalResolver', function (accounts) {
       expect(result['1']).to.equal(accounts[1])
       expect(result['2']).to.equal(publicResolver.address)
       expect(result['3']).to.equal(publicResolver.address)
+    })
+    it('should not use all the gas on a revert', async () => {
+      const estimate = await universalResolver.estimateGas['reverse(bytes)'](
+        dns.hexEncodeName(oldResolverReverseNode),
+        { gasLimit: 8000000 },
+      )
+      expect(estimate.lt(200000)).to.be.true
     })
   })
 })

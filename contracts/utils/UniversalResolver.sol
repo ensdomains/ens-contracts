@@ -487,7 +487,7 @@ contract UniversalResolver is ERC165, Ownable {
         address resolver
     ) internal view returns (bool) {
         try
-            Resolver(resolver).supportsInterface(
+            Resolver(resolver).supportsInterface{gas: 50000}(
                 type(IExtendedResolver).interfaceId
             )
         returns (bool supported) {
