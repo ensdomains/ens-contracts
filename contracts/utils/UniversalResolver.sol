@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17 <0.9.0;
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -487,20 +486,15 @@ contract UniversalResolver is ERC165, Ownable {
     function _hasExtendedResolver(
         address resolver
     ) internal view returns (bool) {
-        bool success = LowLevelCallUtils.functionStaticCall(
-            resolver,
-            abi.encodeCall(
-                IERC165.supportsInterface,
-                (type(IExtendedResolver).interfaceId)
+        try
+            Resolver(resolver).supportsInterface{gas: 50000}(
+                type(IExtendedResolver).interfaceId
             )
-        );
-        uint256 size = LowLevelCallUtils.returnDataSize();
-        if (!success || size != 32) {
+        returns (bool supported) {
+            return supported;
+        } catch {
             return false;
         }
-        return
-            bytes32(LowLevelCallUtils.readReturnData(0, 32)) ==
-            bytes32(uint256(1));
     }
 
     function _multicall(

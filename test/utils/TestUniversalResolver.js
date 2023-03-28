@@ -618,7 +618,7 @@ contract('UniversalResolver', function (accounts) {
         dns.hexEncodeName(oldResolverReverseNode),
         { gasLimit: 8000000 },
       )
-      expect(estimate.lt(8000000)).to.be.true
+      expect(estimate.lt(200000)).to.be.true
     })
   })
 })
