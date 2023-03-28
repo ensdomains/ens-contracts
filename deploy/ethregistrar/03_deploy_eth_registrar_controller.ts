@@ -86,7 +86,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const resolver = await provider.getResolver('eth')
   if (resolver === null) {
     console.log(
-      'No resolver set for .eth; not setting interface for ETH Registrar Controller',
+      `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
     )
     return
   }

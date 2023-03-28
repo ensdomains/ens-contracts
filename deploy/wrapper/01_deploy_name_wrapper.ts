@@ -59,7 +59,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const resolver = await providerWithEns.getResolver('eth')
   if (resolver === null) {
     console.log(
-      'No resolver set for .eth; not setting interface for NameWrapper',
+      `No resolver set for .eth; not setting interface ${interfaceId} for NameWrapper`,
     )
     return
   }
