@@ -69,7 +69,7 @@ const config: HardhatUserConfig = {
       accounts: real_accounts,
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `http://dappnode.local:8545/`,
       tags: ['legacy', 'use_root'],
       chainId: 1,
       accounts: real_accounts,
