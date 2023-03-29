@@ -238,7 +238,7 @@ contract('UniversalResolver', function (accounts) {
           data,
         ),
       ).to.be.revertedWith(
-        'UniversalResolver: Wildcard on legacy resolvers is not supported',
+        'UniversalResolver: Wildcard on non-extended resolvers is not supported',
       )
     })
 

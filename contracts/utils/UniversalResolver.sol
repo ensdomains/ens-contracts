@@ -524,7 +524,7 @@ contract UniversalResolver is ERC165, Ownable {
 
         require(
             !multicallData.isWildcard || hasExtendedResolver,
-            "UniversalResolver: Wildcard on legacy resolvers is not supported"
+            "UniversalResolver: Wildcard on non-extended resolvers is not supported"
         );
 
         for (uint256 i = 0; i < length; i++) {
