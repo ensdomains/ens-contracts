@@ -16,6 +16,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
+  const registry = await ethers.getContract('ENSRegistry', owner)
+
   const registrar = await ethers.getContract(
     'BaseRegistrarImplementation',
     owner,
@@ -36,6 +38,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       86400,
       reverseRegistrar.address,
       nameWrapper.address,
+      registry.address,
     ],
     log: true,
   }
@@ -83,7 +86,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const resolver = await provider.getResolver('eth')
   if (resolver === null) {
     console.log(
-      'No resolver set for .eth; not setting interface for ETH Registrar Controller',
+      `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
     )
     return
   }
