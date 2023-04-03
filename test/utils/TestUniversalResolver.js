@@ -115,6 +115,24 @@ contract('UniversalResolver', function (accounts) {
       accounts[0],
       { from: accounts[0] },
     )
+    await ens.setSubnodeOwner(
+      namehash.hash('test.eth'),
+      sha3('no-resolver'),
+      accounts[0],
+      { from: accounts[0] },
+    )
+    let name = 'test.eth'
+    for (let i = 0; i < 5; i += 1) {
+      const parent = name
+      const label = `sub${i}`
+      await ens.setSubnodeOwner(
+        namehash.hash(parent),
+        sha3(label),
+        accounts[0],
+        { from: accounts[0] },
+      )
+      name = `${label}.${parent}`
+    }
     await ens.setResolver(
       namehash.hash('offchain.test.eth'),
       dummyOffchainResolver.address,
@@ -175,6 +193,19 @@ contract('UniversalResolver', function (accounts) {
       )
       expect(result['0']).to.equal(publicResolver.address)
     })
+    it('should return the final offset for the found resolver', async () => {
+      const result = await universalResolver.findResolver(
+        dns.hexEncodeName('foo.test.eth'),
+      )
+      expect(result['2']).to.equal(4)
+    })
+    it('should find a resolver many levels up', async () => {
+      const result = await universalResolver.findResolver(
+        dns.hexEncodeName('sub4.sub3.sub2.sub1.sub0.test.eth'),
+      )
+      expect(result['0']).to.equal(publicResolver.address)
+      expect(result['2']).to.equal(25)
+    })
   })
 
   describe('resolve()', () => {
@@ -195,112 +226,111 @@ contract('UniversalResolver', function (accounts) {
       expect(ret).to.equal(accounts[1])
     })
 
-    describe('resolve()', () => {
-      it('should resolve a record if `supportsInterface` throws', async () => {
-        const legacyResolver = await LegacyResolver.deploy()
-        await ens.setSubnodeOwner(
-          namehash.hash('eth'),
-          sha3('test2'),
-          accounts[0],
-          { from: accounts[0] },
-        )
-        await ens.setResolver(
-          namehash.hash('test2.eth'),
-          legacyResolver.address,
-          { from: accounts[0] },
-        )
-        const data = publicResolver.interface.encodeFunctionData(
-          'addr(bytes32)',
-          [namehash.hash('test.eth')],
-        )
-        const result = await universalResolver['resolve(bytes,bytes)'](
-          dns.hexEncodeName('test2.eth'),
+    it('should throw if a resolver is not set on the queried name, and the found resolver does not support resolve()', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('no-resolver.test.eth')],
+      )
+
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('no-resolver.test.eth'),
+          data,
+        ),
+      ).to.be.revertedWith(
+        'UniversalResolver: Wildcard on non-extended resolvers is not supported',
+      )
+    })
+
+    it('should resolve a record if `supportsInterface` throws', async () => {
+      const legacyResolver = await LegacyResolver.deploy()
+      await ens.setSubnodeOwner(
+        namehash.hash('eth'),
+        sha3('test2'),
+        accounts[0],
+        { from: accounts[0] },
+      )
+      await ens.setResolver(
+        namehash.hash('test2.eth'),
+        legacyResolver.address,
+        { from: accounts[0] },
+      )
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('test.eth')],
+      )
+      const result = await universalResolver['resolve(bytes,bytes)'](
+        dns.hexEncodeName('test2.eth'),
+        data,
+      )
+      const [ret] = ethers.utils.defaultAbiCoder.decode(
+        ['address'],
+        result['0'],
+      )
+      expect(ret).to.equal(legacyResolver.address)
+    })
+
+    it('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('offchain.test.eth')],
+      )
+
+      // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
+      // This is the extraData value the universal resolver should encode
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        [
+          false,
+          dummyOffchainResolver.address,
+          ['http://universal-offchain-resolver.local/'],
+          '0x',
+          [[resolveCallbackSig, data]],
+        ],
+      )
+
+      const callData = batchGateway.encodeFunctionData('query', [
+        [[dummyOffchainResolver.address, ['https://example.com/'], data]],
+      ])
+
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('offchain.test.eth'),
           data,
         )
-        const [ret] = ethers.utils.defaultAbiCoder.decode(
-          ['address'],
-          result['0'],
-        )
-        expect(ret).to.equal(legacyResolver.address)
-      })
-
-      it('should resolve a record via legacy methods', async () => {
-        const data = publicResolver.interface.encodeFunctionData(
-          'addr(bytes32)',
-          [namehash.hash('test.eth')],
-        )
-        const result = await universalResolver['resolve(bytes,bytes)'](
-          dns.hexEncodeName('test.eth'),
-          data,
-        )
-        const [ret] = ethers.utils.defaultAbiCoder.decode(
-          ['address'],
-          result['0'],
-        )
-        expect(ret).to.equal(accounts[1])
-      })
-
-      it('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
-        const data = publicResolver.interface.encodeFunctionData(
-          'addr(bytes32)',
-          [namehash.hash('offchain.test.eth')],
-        )
-
-        // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
-        // This is the extraData value the universal resolver should encode
-        const extraData = ethers.utils.defaultAbiCoder.encode(
-          ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
-          [
-            dummyOffchainResolver.address,
-            ['http://universal-offchain-resolver.local/'],
-            '0x',
-            [[resolveCallbackSig, data]],
-          ],
-        )
-
-        const callData = batchGateway.encodeFunctionData('query', [
-          [[dummyOffchainResolver.address, ['https://example.com/'], data]],
+      } catch (e) {
+        expect(e.errorName).to.equal('OffchainLookup')
+        expect(e.errorArgs.sender).to.equal(universalResolver.address)
+        expect(e.errorArgs.urls).to.deep.equal([
+          'http://universal-offchain-resolver.local/',
         ])
-
-        try {
-          await universalResolver['resolve(bytes,bytes)'](
-            dns.hexEncodeName('offchain.test.eth'),
-            data,
-          )
-        } catch (e) {
-          expect(e.errorName).to.equal('OffchainLookup')
-          expect(e.errorArgs.sender).to.equal(universalResolver.address)
-          expect(e.errorArgs.urls).to.deep.equal([
-            'http://universal-offchain-resolver.local/',
-          ])
-          expect(e.errorArgs.callData).to.equal(callData)
-          expect(e.errorArgs.callbackFunction).to.equal(
-            ethers.utils.hexDataSlice(
-              ethers.utils.id('resolveSingleCallback(bytes,bytes)'),
-              0,
-              4,
-            ),
-          )
-          expect(e.errorArgs.extraData).to.equal(extraData)
-        }
-      })
-      it('should use custom gateways when specified', async () => {
-        const data = publicResolver.interface.encodeFunctionData(
-          'addr(bytes32)',
-          [namehash.hash('offchain.test.eth')],
+        expect(e.errorArgs.callData).to.equal(callData)
+        expect(e.errorArgs.callbackFunction).to.equal(
+          ethers.utils.hexDataSlice(
+            ethers.utils.id('resolveSingleCallback(bytes,bytes)'),
+            0,
+            4,
+          ),
         )
-        try {
-          await universalResolver['resolve(bytes,bytes,string[])'](
-            dns.hexEncodeName('offchain.test.eth'),
-            data,
-            ['https://custom-offchain-resolver.local/'],
-          )
-        } catch (e) {
-          expect(e.errorArgs.urls).to.deep.equal([
-            'https://custom-offchain-resolver.local/',
-          ])
-        }
-      })
+        expect(e.errorArgs.extraData).to.equal(extraData)
+      }
+    })
+    it('should use custom gateways when specified', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('offchain.test.eth')],
+      )
+      try {
+        await universalResolver['resolve(bytes,bytes,string[])'](
+          dns.hexEncodeName('offchain.test.eth'),
+          data,
+          ['https://custom-offchain-resolver.local/'],
+        )
+      } catch (e) {
+        expect(e.errorArgs.urls).to.deep.equal([
+          'https://custom-offchain-resolver.local/',
+        ])
+      }
     })
 
     describe('batch', () => {
@@ -343,8 +373,9 @@ contract('UniversalResolver', function (accounts) {
           ],
         ])
         const extraData = ethers.utils.defaultAbiCoder.encode(
-          ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+          ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
           [
+            false,
             dummyOffchainResolver.address,
             ['http://universal-offchain-resolver.local/'],
             '0x',
@@ -376,8 +407,9 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('offchain.test.eth')],
       )
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -413,8 +445,9 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('offchain.test.eth'), 'foo'],
       )
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -444,8 +477,9 @@ contract('UniversalResolver', function (accounts) {
     })
     it('should not revert if there is an error in a call', async () => {
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -471,8 +505,9 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('offchain.test.eth'), 'foo'],
       )
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -510,8 +545,9 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('offchain.test.eth'), 'foo'],
       )
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -539,8 +575,9 @@ contract('UniversalResolver', function (accounts) {
   describe('reverseCallback', () => {
     it('should revert with metadata for initial forward resolution if required', async () => {
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           '0x',
@@ -556,12 +593,12 @@ contract('UniversalResolver', function (accounts) {
       } catch (e) {
         expect(e.errorName).to.equal('OffchainLookup')
         const extraDataReturned = ethers.utils.defaultAbiCoder.decode(
-          ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+          ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
           e.errorArgs.extraData,
         )
         const metaData = ethers.utils.defaultAbiCoder.decode(
           ['string', 'address'],
-          extraDataReturned[2],
+          extraDataReturned[3],
         )
         expect(metaData[0]).to.equal('offchain.test.eth')
         expect(metaData[1]).to.equal(dummyOffchainResolver.address)
@@ -573,8 +610,9 @@ contract('UniversalResolver', function (accounts) {
         ['offchain.test.eth', dummyOffchainResolver.address],
       )
       const extraData = ethers.utils.defaultAbiCoder.encode(
-        ['address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
         [
+          false,
           dummyOffchainResolver.address,
           ['http://universal-offchain-resolver.local/'],
           metaData,

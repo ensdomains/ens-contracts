@@ -25,6 +25,7 @@ struct MulticallData {
     bytes[] data;
     string[] gateways;
     bytes4 callbackFunction;
+    bool isWildcard;
     address resolver;
     bytes metaData;
     bool[] failures;
@@ -146,11 +147,13 @@ contract UniversalResolver is ERC165, Ownable {
         bytes4 callbackFunction,
         bytes memory metaData
     ) internal view returns (bytes[] memory results, address resolverAddress) {
-        (Resolver resolver, ) = findResolver(name);
+        (Resolver resolver, , uint256 finalOffset) = findResolver(name);
         resolverAddress = address(resolver);
         if (resolverAddress == address(0)) {
             return (results, address(0));
         }
+
+        bool isWildcard = finalOffset != 0;
 
         results = _multicall(
             MulticallData(
@@ -158,6 +161,7 @@ contract UniversalResolver is ERC165, Ownable {
                 data,
                 gateways,
                 callbackFunction,
+                isWildcard,
                 resolverAddress,
                 metaData,
                 new bool[](data.length)
@@ -321,13 +325,14 @@ contract UniversalResolver is ERC165, Ownable {
         );
         OffchainLookupExtraData[] memory extraDatas;
         (
+            multicallData.isWildcard,
             multicallData.resolver,
             multicallData.gateways,
             multicallData.metaData,
             extraDatas
         ) = abi.decode(
             extraData,
-            (address, string[], bytes, OffchainLookupExtraData[])
+            (bool, address, string[], bytes, OffchainLookupExtraData[])
         );
         require(responses.length <= extraDatas.length);
         multicallData.data = new bytes[](extraDatas.length);
@@ -439,22 +444,28 @@ contract UniversalResolver is ERC165, Ownable {
      * @dev Finds a resolver by recursively querying the registry, starting at the longest name and progressively
      *      removing labels until it finds a result.
      * @param name The name to resolve, in DNS-encoded and normalised form.
-     * @return The Resolver responsible for this name, and the namehash of the full name.
+     * @return resolver The Resolver responsible for this name.
+     * @return namehash The namehash of the full name.
+     * @return finalOffset The offset of the first label with a resolver.
      */
     function findResolver(
         bytes calldata name
-    ) public view returns (Resolver, bytes32) {
-        (address resolver, bytes32 labelhash) = findResolver(name, 0);
-        return (Resolver(resolver), labelhash);
+    ) public view returns (Resolver, bytes32, uint256) {
+        (
+            address resolver,
+            bytes32 namehash,
+            uint256 finalOffset
+        ) = findResolver(name, 0);
+        return (Resolver(resolver), namehash, finalOffset);
     }
 
     function findResolver(
         bytes calldata name,
         uint256 offset
-    ) internal view returns (address, bytes32) {
+    ) internal view returns (address, bytes32, uint256) {
         uint256 labelLength = uint256(uint8(name[offset]));
         if (labelLength == 0) {
-            return (address(0), bytes32(0));
+            return (address(0), bytes32(0), offset);
         }
         uint256 nextLabel = offset + labelLength + 1;
         bytes32 labelHash;
@@ -471,16 +482,17 @@ contract UniversalResolver is ERC165, Ownable {
         } else {
             labelHash = keccak256(name[offset + 1:nextLabel]);
         }
-        (address parentresolver, bytes32 parentnode) = findResolver(
-            name,
-            nextLabel
-        );
+        (
+            address parentresolver,
+            bytes32 parentnode,
+            uint256 parentoffset
+        ) = findResolver(name, nextLabel);
         bytes32 node = keccak256(abi.encodePacked(parentnode, labelHash));
         address resolver = registry.resolver(node);
         if (resolver != address(0)) {
-            return (resolver, node);
+            return (resolver, node, offset);
         }
-        return (parentresolver, node);
+        return (parentresolver, node, parentoffset);
     }
 
     function _hasExtendedResolver(
@@ -509,6 +521,11 @@ contract UniversalResolver is ERC165, Ownable {
         results = new bytes[](length);
         bool isCallback = multicallData.name.length == 0;
         bool hasExtendedResolver = _hasExtendedResolver(multicallData.resolver);
+
+        require(
+            !multicallData.isWildcard || hasExtendedResolver,
+            "UniversalResolver: Wildcard on non-extended resolvers is not supported"
+        );
 
         for (uint256 i = 0; i < length; i++) {
             bytes memory item = multicallData.data[i];
@@ -563,6 +580,7 @@ contract UniversalResolver is ERC165, Ownable {
             abi.encodeWithSelector(BatchGateway.query.selector, callDatas),
             multicallData.callbackFunction,
             abi.encode(
+                multicallData.isWildcard,
                 multicallData.resolver,
                 multicallData.gateways,
                 multicallData.metaData,
