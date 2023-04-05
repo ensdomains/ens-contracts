@@ -90,6 +90,11 @@ describe('Forever Subdomain registrar', () => {
       MetaDataservice.address,
     )
 
+    NameWrapper2 = NameWrapper.connect(signers[1])
+
+    await BaseRegistrar.addController(NameWrapper.address)
+    await NameWrapper.setController(account, true)
+
     PublicResolver = await deploy(
       'PublicResolver',
       EnsRegistry.address,
@@ -221,6 +226,39 @@ describe('Forever Subdomain registrar', () => {
           [],
         ),
       ).to.be.revertedWith(`Unavailable()`)
+    })
+
+    it('Names can extend their own expiry', async () => {
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
+        .registrationFee
+
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        [],
+      )
+
+      await NameWrapper.renew(labelhash('test'), 86400)
+      const [, , newParentExpiry] = await NameWrapper.getData(node)
+      expect(parseInt(newParentExpiry)).to.equal(parseInt(parentExpiry) + 86400)
+
+      await NameWrapper2.extendExpiry(
+        node,
+        labelhash('subname'),
+        newParentExpiry,
+      )
+      const [, , newSubnodeExpiry] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+      expect(parseInt(newSubnodeExpiry)).to.equal(parseInt(newParentExpiry))
     })
   })
 })
