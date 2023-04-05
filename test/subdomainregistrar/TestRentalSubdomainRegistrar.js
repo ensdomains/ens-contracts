@@ -69,19 +69,36 @@ describe('Rental Subdomain registrar', () => {
       'https://ens.domains',
     )
 
+    //setup reverse registrar
+
+    const ReverseRegistrar = await deploy(
+      'ReverseRegistrar',
+      EnsRegistry.address,
+    )
+
+    await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
+    await EnsRegistry.setSubnodeOwner(
+      namehash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
+
     NameWrapper = await deploy(
       'NameWrapper',
       EnsRegistry.address,
       BaseRegistrar.address,
       MetaDataservice.address,
     )
+
     PublicResolver = await deploy(
       'PublicResolver',
       EnsRegistry.address,
       NameWrapper.address,
-      EMPTY_ADDRESS,
-      EMPTY_ADDRESS,
+      '0x0000000000000000000000000000000000000000',
+      ReverseRegistrar.address,
     )
+
+    await ReverseRegistrar.setDefaultResolver(PublicResolver.address)
 
     Erc20 = await deploy('MockERC20', 'ENS Token', 'ENS', [account2])
     Erc20WithAccount2 = Erc20.connect(signers[1])

@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.17;
 
 import {INameWrapper, PARENT_CANNOT_CONTROL, CAN_EXTEND_EXPIRY} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -32,6 +32,17 @@ contract ForeverSubdomainRegistrar is
         names[node].registrationFee = fee;
         names[node].token = token;
         names[node].beneficiary = beneficiary;
+    }
+
+    function available(
+        bytes32 node
+    )
+        public
+        view
+        override(BaseSubdomainRegistrar, IForeverSubdomainRegistrar)
+        returns (bool)
+    {
+        return super.available(node);
     }
 
     function register(

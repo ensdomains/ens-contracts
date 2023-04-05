@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.17;
 
 import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -33,6 +33,17 @@ contract RentalSubdomainRegistrar is
         names[node].registrationFee = fee;
         names[node].token = token;
         names[node].beneficiary = beneficiary;
+    }
+
+    function available(
+        bytes32 node
+    )
+        public
+        view
+        override(BaseSubdomainRegistrar, IRentalSubdomainRegistrar)
+        returns (bool)
+    {
+        return super.available(node);
     }
 
     function register(
@@ -190,7 +201,7 @@ contract RentalSubdomainRegistrar is
         emit NameRenewed(node, newExpiry);
     }
 
-    function _checkParent(bytes32 parentNode, uint64 duration) internal {
+    function _checkParent(bytes32 parentNode, uint64 duration) internal view {
         (, uint64 parentExpiry) = super._checkParent(parentNode);
 
         if (duration + block.timestamp > parentExpiry) {
