@@ -138,7 +138,8 @@ describe('Forever Subdomain registrar', () => {
   })
 
   describe('register', () => {
-    it('should allow subdomains to be created', async () => {
+    let parentExpiry
+    beforeEach(async () => {
       const parentDuration = 86400 * 2
       await BaseRegistrar.register(labelhash('test'), account, parentDuration)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
@@ -148,7 +149,7 @@ describe('Forever Subdomain registrar', () => {
         CANNOT_UNWRAP,
         EMPTY_ADDRESS,
       )
-      const [, , parentExpiry] = await NameWrapper.getData(node)
+      ;[, , parentExpiry] = await NameWrapper.getData(node)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(
         node,
@@ -158,6 +159,8 @@ describe('Forever Subdomain registrar', () => {
         true,
       )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+    })
+    it('should allow subdomains to be created', async () => {
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
         .registrationFee
@@ -181,6 +184,43 @@ describe('Forever Subdomain registrar', () => {
       expect(owner).to.equal(account2)
       expect(expiry).to.equal(parentExpiry)
       expect(fuses).to.equal(CAN_EXTEND_EXPIRY | PARENT_CANNOT_CONTROL)
+    })
+
+    it('should not allow subdomains to be registerd over another domain', async () => {
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
+        .registrationFee
+
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        [],
+      )
+      const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
+      expect(balanceBefore.sub(balanceAfter)).to.equal(fee)
+      const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
+
+      expect(owner).to.equal(account2)
+      expect(expiry).to.equal(parentExpiry)
+      expect(fuses).to.equal(CAN_EXTEND_EXPIRY | PARENT_CANNOT_CONTROL)
+
+      await expect(
+        SubdomainRegistrar2.register(
+          node,
+          'subname',
+          account2,
+          EMPTY_ADDRESS,
+          0,
+          [],
+        ),
+      ).to.be.revertedWith(`Unavailable()`)
     })
   })
 })

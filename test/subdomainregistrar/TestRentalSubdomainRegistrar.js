@@ -140,7 +140,7 @@ describe('Rental Subdomain registrar', () => {
   })
 
   describe('register', () => {
-    it('should allow subdomains to be created', async () => {
+    beforeEach(async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD(
@@ -157,17 +157,21 @@ describe('Rental Subdomain registrar', () => {
         account,
         true,
       )
-      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+    })
+    it('should allow subdomains to be created', async () => {
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const duration = 86400
       const fee =
         (await SubdomainRegistrar.names(namehash('test.eth'))).registrationFee *
         duration
 
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
       )
+
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -186,22 +190,10 @@ describe('Rental Subdomain registrar', () => {
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
     })
     it('should not allow subdomains to be created on unapproved parents', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        1,
-        account,
-        true,
-      )
       await Erc20.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
       )
-
       await expect(
         SubdomainRegistrar.register(
           node,
@@ -220,10 +212,11 @@ describe('Rental Subdomain registrar', () => {
     })
 
     it('should allow subdomains to be registered without a fee', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
+      const node = namehash('nofee.eth')
+      await BaseRegistrar.register(labelhash('nofee'), account, 86400 * 2)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD(
-        'test',
+        'nofee',
         account,
         CANNOT_UNWRAP,
         EMPTY_ADDRESS,
@@ -248,25 +241,15 @@ describe('Rental Subdomain registrar', () => {
         [],
       )
       const block = await ethers.provider.getBlock('latest')
-      const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
+      const [owner, fuses, expiry] = await NameWrapper.getData(
+        namehash('subname.nofee.eth'),
+      )
       expect(owner).to.equal(account2)
       expect(expiry).to.equal(block.timestamp + duration)
       expect(fuses).to.equal(PARENT_CANNOT_CONTROL)
     })
 
     it('should revert if user has insufficient balance of the token', async () => {
-      const node = namehash('test.eth')
-      await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        1,
-        account,
-        true,
-      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount3.approve(
         SubdomainRegistrar.address,
