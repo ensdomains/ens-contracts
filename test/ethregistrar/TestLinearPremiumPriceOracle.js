@@ -9,7 +9,7 @@ const toBN = require('web3-utils').toBN
 
 const DAY = 86400
 
-contract('LinearPremiumPriceOracle', function(accounts) {
+contract('LinearPremiumPriceOracle', function (accounts) {
   let priceOracle
 
   before(async () => {
@@ -29,18 +29,18 @@ contract('LinearPremiumPriceOracle', function(accounts) {
       dummyOracle.address,
       [0, 0, 4, 2, 1],
       premium,
-      decreaseRate
+      decreaseRate,
     )
   })
 
   it('should report the correct premium and decrease rate', async () => {
     assert.equal(
       (await priceOracle.initialPremium()).toString(),
-      '100000000000000000000'
+      '100000000000000000000',
     )
     assert.equal(
       (await priceOracle.premiumDecreaseRate()).toString(),
-      '1000000000000000'
+      '1000000000000000',
     )
   })
 
@@ -49,15 +49,15 @@ contract('LinearPremiumPriceOracle', function(accounts) {
 
     assert.equal(
       parseInt((await priceOracle.price('quux', 0, 3600)).base),
-      3600
+      3600,
     )
     assert.equal(
       parseInt((await priceOracle.price('fubar', 0, 3600)).base),
-      1800
+      1800,
     )
     assert.equal(
       parseInt((await priceOracle.price('foobie', 0, 3600)).base),
-      1800
+      1800,
     )
   })
 
@@ -76,11 +76,11 @@ contract('LinearPremiumPriceOracle', function(accounts) {
     const ts = (await web3.eth.getBlock('latest')).timestamp - 90 * DAY
     assert.equal(
       (await priceOracle.premium('foobar', ts, 0)).toString(),
-      '50000000000000000000'
+      '50000000000000000000',
     )
     assert.equal(
       (await priceOracle.price('foobar', ts, 0)).premium,
-      '50000000000000000000'
+      '50000000000000000000',
     )
   })
 
@@ -89,11 +89,11 @@ contract('LinearPremiumPriceOracle', function(accounts) {
       (await web3.eth.getBlock('latest')).timestamp - (90 * DAY + 50000)
     assert.equal(
       (await priceOracle.premium('foobar', ts, 0)).toString(),
-      '25000000000000000000'
+      '25000000000000000000',
     )
     assert.equal(
       (await priceOracle.price('foobar', ts, 0)).premium,
-      '25000000000000000000'
+      '25000000000000000000',
     )
   })
 

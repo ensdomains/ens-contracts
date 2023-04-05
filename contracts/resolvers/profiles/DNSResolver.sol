@@ -50,11 +50,10 @@ abstract contract DNSResolver is
      * @param node the namehash of the node for which to set the records
      * @param data the DNS wire format records to set
      */
-    function setDNSRecords(bytes32 node, bytes calldata data)
-        external
-        virtual
-        authorised(node)
-    {
+    function setDNSRecords(
+        bytes32 node,
+        bytes calldata data
+    ) external virtual authorised(node) {
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -127,12 +126,10 @@ abstract contract DNSResolver is
      * @param node the namehash of the node for which to check the records
      * @param name the namehash of the node for which to check the records
      */
-    function hasDNSRecords(bytes32 node, bytes32 name)
-        public
-        view
-        virtual
-        returns (bool)
-    {
+    function hasDNSRecords(
+        bytes32 node,
+        bytes32 name
+    ) public view virtual returns (bool) {
         return (versionable_nameEntriesCount[recordVersions[node]][node][
             name
         ] != 0);
@@ -144,11 +141,10 @@ abstract contract DNSResolver is
      * @param node The node to update.
      * @param hash The zonehash to set
      */
-    function setZonehash(bytes32 node, bytes calldata hash)
-        external
-        virtual
-        authorised(node)
-    {
+    function setZonehash(
+        bytes32 node,
+        bytes calldata hash
+    ) external virtual authorised(node) {
         uint64 currentRecordVersion = recordVersions[node];
         bytes memory oldhash = versionable_zonehashes[currentRecordVersion][
             node
@@ -162,23 +158,15 @@ abstract contract DNSResolver is
      * @param node The ENS node to query.
      * @return The associated contenthash.
      */
-    function zonehash(bytes32 node)
-        external
-        view
-        virtual
-        override
-        returns (bytes memory)
-    {
+    function zonehash(
+        bytes32 node
+    ) external view virtual override returns (bytes memory) {
         return versionable_zonehashes[recordVersions[node]][node];
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view virtual override returns (bool) {
         return
             interfaceID == type(IDNSRecordResolver).interfaceId ||
             interfaceID == type(IDNSZoneResolver).interfaceId ||

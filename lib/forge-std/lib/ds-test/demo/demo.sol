@@ -7,6 +7,7 @@ contract DemoTest is DSTest {
     function test_this() public pure {
         require(true);
     }
+
     function test_logs() public {
         emit log("-- log(string)");
         emit log("a string");
@@ -35,14 +36,18 @@ contract DemoTest is DSTest {
         emit log("-- log_named_decimal_int(string, int, uint)");
         emit log_named_decimal_int("decimal int", -1.0e18, 18);
     }
-    event log_old_named_uint(bytes32,uint);
+
+    event log_old_named_uint(bytes32, uint);
+
     function test_old_logs() public {
         emit log_old_named_uint("key", 500);
         emit log_named_bytes32("bkey", "val");
     }
+
     function test_trace() public view {
         this.echo("string 1", "string 2");
     }
+
     function test_multiline() public {
         emit log("a multiline\\nstring");
         emit log("a multiline string");
@@ -53,9 +58,11 @@ contract DemoTest is DSTest {
         emit log_named_bytes("0x0000", hex"0000");
         emit logs(hex"ff");
     }
-    function echo(string memory s1, string memory s2) public pure
-        returns (string memory, string memory)
-    {
+
+    function echo(
+        string memory s1,
+        string memory s2
+    ) public pure returns (string memory, string memory) {
         return (s1, s2);
     }
 
@@ -74,6 +81,7 @@ contract DemoTest is DSTest {
     }
 
     event MyEvent(uint, uint indexed, uint, uint indexed);
+
     function test_events() public {
         emit MyEvent(1, 2, 3, 4);
     }
@@ -215,8 +223,7 @@ contract DemoTest is DSTest {
 }
 
 contract DemoTestWithSetUp {
-    function setUp() public {
-    }
-    function test_pass() public pure {
-    }
+    function setUp() public {}
+
+    function test_pass() public pure {}
 }

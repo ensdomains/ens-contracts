@@ -34,6 +34,18 @@ interface Resolver is
     /* Deprecated events */
     event ContentChanged(bytes32 indexed node, bytes32 hash);
 
+    function setApprovalForAll(address, bool) external;
+
+    function approve(bytes32 node, address delegate, bool approved) external;
+
+    function isApprovedForAll(address account, address operator) external;
+
+    function isApprovedFor(
+        address owner,
+        bytes32 node,
+        address delegate
+    ) external;
+
     function setABI(
         bytes32 node,
         uint256 contentType,
@@ -42,11 +54,7 @@ interface Resolver is
 
     function setAddr(bytes32 node, address addr) external;
 
-    function setAddr(
-        bytes32 node,
-        uint256 coinType,
-        bytes calldata a
-    ) external;
+    function setAddr(bytes32 node, uint256 coinType, bytes calldata a) external;
 
     function setContenthash(bytes32 node, bytes calldata hash) external;
 
@@ -54,11 +62,7 @@ interface Resolver is
 
     function setName(bytes32 node, string calldata _name) external;
 
-    function setPubkey(
-        bytes32 node,
-        bytes32 x,
-        bytes32 y
-    ) external;
+    function setPubkey(bytes32 node, bytes32 x, bytes32 y) external;
 
     function setText(
         bytes32 node,
@@ -72,13 +76,14 @@ interface Resolver is
         address implementer
     ) external;
 
-    function multicall(bytes[] calldata data)
-        external
-        returns (bytes[] memory results);
+    function multicall(
+        bytes[] calldata data
+    ) external returns (bytes[] memory results);
 
-    function multicallWithNodeCheck(bytes32 nodehash, bytes[] calldata data)
-        external
-        returns (bytes[] memory results);
+    function multicallWithNodeCheck(
+        bytes32 nodehash,
+        bytes[] calldata data
+    ) external returns (bytes[] memory results);
 
     /* Deprecated functions */
     function content(bytes32 node) external view returns (bytes32);

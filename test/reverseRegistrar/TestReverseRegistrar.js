@@ -19,7 +19,7 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
   assert.equal(tx.logs[0].args.node, node)
 }
 
-contract('ReverseRegistrar', function(accounts) {
+contract('ReverseRegistrar', function (accounts) {
   let node, node2, node3, dummyOwnableReverseNode
 
   let registrar, resolver, ens, nameWrapper, dummyOwnable, defaultResolver
@@ -32,21 +32,6 @@ contract('ReverseRegistrar', function(accounts) {
     nameWrapper = await NameWrapper.new()
 
     registrar = await ReverseRegistrar.new(ens.address)
-    resolver = await PublicResolver.new(
-      ens.address,
-      nameWrapper.address,
-      '0x0000000000000000000000000000000000000000',
-      registrar.address
-    )
-    await registrar.setDefaultResolver(resolver.address)
-    defaultResolver = new ethers.Contract(
-      await registrar.defaultResolver(),
-      PublicResolver.abi,
-      ethers.provider
-    )
-    dummyOwnable = await ReverseRegistrar.new(ens.address)
-    dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)
-
     await ens.setSubnodeOwner('0x0', sha3('reverse'), accounts[0], {
       from: accounts[0],
     })
@@ -54,8 +39,22 @@ contract('ReverseRegistrar', function(accounts) {
       namehash.hash('reverse'),
       sha3('addr'),
       registrar.address,
-      { from: accounts[0] }
+      { from: accounts[0] },
     )
+    resolver = await PublicResolver.new(
+      ens.address,
+      nameWrapper.address,
+      '0x0000000000000000000000000000000000000000',
+      registrar.address,
+    )
+    await registrar.setDefaultResolver(resolver.address)
+    defaultResolver = new ethers.Contract(
+      await registrar.defaultResolver(),
+      PublicResolver.abi,
+      ethers.provider,
+    )
+    dummyOwnable = await ReverseRegistrar.new(ens.address)
+    dummyOwnableReverseNode = getReverseNode(dummyOwnable.address)
   })
 
   it('should calculate node hash correctly', async () => {
@@ -76,14 +75,9 @@ contract('ReverseRegistrar', function(accounts) {
 
   describe('claimForAddr', () => {
     it('allows an account to claim its address', async () => {
-      await registrar.claimForAddr(
-        accounts[0],
-        accounts[1],
-        resolver.address,
-        {
-          from: accounts[0],
-        }
-      )
+      await registrar.claimForAddr(accounts[0], accounts[1], resolver.address, {
+        from: accounts[0],
+      })
       assert.equal(await ens.owner(node), accounts[1])
     })
 
@@ -94,7 +88,7 @@ contract('ReverseRegistrar', function(accounts) {
         resolver.address,
         {
           from: accounts[0],
-        }
+        },
       )
       assertReverseClaimedEventEmitted(tx, accounts[0], node)
     })
@@ -103,33 +97,23 @@ contract('ReverseRegistrar', function(accounts) {
       await exceptions.expectFailure(
         registrar.claimForAddr(accounts[1], accounts[0], resolver.address, {
           from: accounts[0],
-        })
+        }),
       )
     })
 
     it('allows an authorised account to claim a different address', async () => {
       await ens.setApprovalForAll(accounts[0], true, { from: accounts[1] })
-      await registrar.claimForAddr(
-        accounts[1],
-        accounts[2],
-        resolver.address,
-        {
-          from: accounts[0],
-        }
-      )
+      await registrar.claimForAddr(accounts[1], accounts[2], resolver.address, {
+        from: accounts[0],
+      })
       assert.equal(await ens.owner(node2), accounts[2])
     })
 
     it('allows a controller to claim a different address', async () => {
       await registrar.setController(accounts[0], true)
-      await registrar.claimForAddr(
-        accounts[1],
-        accounts[2],
-        resolver.address,
-        {
-          from: accounts[0],
-        }
-      )
+      await registrar.claimForAddr(accounts[1], accounts[2], resolver.address, {
+        from: accounts[0],
+      })
       assert.equal(await ens.owner(node2), accounts[2])
     })
 
@@ -141,7 +125,7 @@ contract('ReverseRegistrar', function(accounts) {
         resolver.address,
         {
           from: accounts[0],
-        }
+        },
       )
       assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
     })
@@ -189,7 +173,7 @@ contract('ReverseRegistrar', function(accounts) {
         'testname',
         {
           from: accounts[0],
-        }
+        },
       )
       assert.equal(await ens.resolver(node2), resolver.address)
       assert.equal(await resolver.name(node2), 'testname')
@@ -203,7 +187,7 @@ contract('ReverseRegistrar', function(accounts) {
         'testname',
         {
           from: accounts[0],
-        }
+        },
       )
       assertReverseClaimedEventEmitted(tx, accounts[0], node)
     })
@@ -217,8 +201,8 @@ contract('ReverseRegistrar', function(accounts) {
           'testname',
           {
             from: accounts[0],
-          }
-        )
+          },
+        ),
       )
     })
 
@@ -230,7 +214,7 @@ contract('ReverseRegistrar', function(accounts) {
         'testname',
         {
           from: accounts[0],
-        }
+        },
       )
       assert.equal(await ens.resolver(node), resolver.address)
       assert.equal(await resolver.name(node), 'testname')
@@ -245,7 +229,7 @@ contract('ReverseRegistrar', function(accounts) {
         'testname',
         {
           from: accounts[1],
-        }
+        },
       )
       assert.equal(await ens.resolver(node), resolver.address)
       assert.equal(await resolver.name(node), 'testname')
@@ -259,12 +243,12 @@ contract('ReverseRegistrar', function(accounts) {
         'dummyownable.eth',
         {
           from: accounts[0],
-        }
+        },
       )
       assert.equal(await ens.owner(dummyOwnableReverseNode), accounts[0])
       assert.equal(
         await resolver.name(dummyOwnableReverseNode),
-        'dummyownable.eth'
+        'dummyownable.eth',
       )
     })
   })
@@ -272,7 +256,7 @@ contract('ReverseRegistrar', function(accounts) {
   describe('setController', () => {
     it('forbid non-owner from setting a controller', async () => {
       await exceptions.expectFailure(
-        registrar.setController(accounts[1], true, { from: accounts[1] })
+        registrar.setController(accounts[1], true, { from: accounts[1] }),
       )
     })
   })

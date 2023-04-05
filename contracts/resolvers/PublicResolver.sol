@@ -11,10 +11,8 @@ import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./Multicallable.sol";
-
-interface INameWrapper {
-    function ownerOf(uint256 id) external view returns (address);
-}
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
 
 /**
  * A simple resolver anyone can use; only allows the owner of a node to set its
@@ -29,7 +27,8 @@ contract PublicResolver is
     InterfaceResolver,
     NameResolver,
     PubkeyResolver,
-    TextResolver
+    TextResolver,
+    ReverseClaimer
 {
     ENS immutable ens;
     INameWrapper immutable nameWrapper;
@@ -50,7 +49,8 @@ contract PublicResolver is
      * the set of token approvals.
      * (owner, name, delegate) => approved
      */
-    mapping(address => mapping(bytes32 => mapping(address => bool))) private _tokenApprovals;
+    mapping(address => mapping(bytes32 => mapping(address => bool)))
+        private _tokenApprovals;
 
     // Logged when an operator is added or removed.
     event ApprovalForAll(
@@ -72,7 +72,7 @@ contract PublicResolver is
         INameWrapper wrapperAddress,
         address _trustedETHController,
         address _trustedReverseRegistrar
-    ) {
+    ) ReverseClaimer(_ens, msg.sender) {
         ens = _ens;
         nameWrapper = wrapperAddress;
         trustedETHController = _trustedETHController;
@@ -95,23 +95,18 @@ contract PublicResolver is
     /**
      * @dev See {IERC1155-isApprovedForAll}.
      */
-    function isApprovedForAll(address account, address operator)
-        public
-        view
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address account,
+        address operator
+    ) public view returns (bool) {
         return _operatorApprovals[account][operator];
     }
-
 
     /**
      * @dev Approve a delegate to be able to updated records on a node.
      */
     function approve(bytes32 node, address delegate, bool approved) external {
-        require(
-            msg.sender != delegate,
-            "Setting delegate status for self"
-        );
+        require(msg.sender != delegate, "Setting delegate status for self");
 
         _tokenApprovals[msg.sender][node][delegate] = approved;
         emit Approved(msg.sender, node, delegate, approved);
@@ -120,11 +115,11 @@ contract PublicResolver is
     /**
      * @dev Check to see if the delegate has been approved by the owner for the node.
      */
-    function isApprovedFor(address owner, bytes32 node, address delegate)
-        public
-        view
-        returns (bool)
-    {
+    function isApprovedFor(
+        address owner,
+        bytes32 node,
+        address delegate
+    ) public view returns (bool) {
         return _tokenApprovals[owner][node][delegate];
     }
 
@@ -139,11 +134,15 @@ contract PublicResolver is
         if (owner == address(nameWrapper)) {
             owner = nameWrapper.ownerOf(uint256(node));
         }
-        return owner == msg.sender || isApprovedForAll(owner, msg.sender) || 
+        return
+            owner == msg.sender ||
+            isApprovedForAll(owner, msg.sender) ||
             isApprovedFor(owner, node, msg.sender);
     }
 
-    function supportsInterface(bytes4 interfaceID)
+    function supportsInterface(
+        bytes4 interfaceID
+    )
         public
         view
         override(

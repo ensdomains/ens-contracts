@@ -4,7 +4,9 @@ pragma solidity ~0.8.17;
 import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
 import {StringUtils} from "./StringUtils.sol";
 import {Resolver} from "../resolvers/Resolver.sol";
-import {ReverseRegistrar} from "../registry/ReverseRegistrar.sol";
+import {ENS} from "../registry/ENS.sol";
+import {ReverseRegistrar} from "../reverseRegistrar/ReverseRegistrar.sol";
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -31,7 +33,8 @@ contract ETHRegistrarController is
     Ownable,
     IETHRegistrarController,
     IERC165,
-    ERC20Recoverable
+    ERC20Recoverable,
+    ReverseClaimer
 {
     using StringUtils for *;
     using Address for address;
@@ -70,8 +73,9 @@ contract ETHRegistrarController is
         uint256 _minCommitmentAge,
         uint256 _maxCommitmentAge,
         ReverseRegistrar _reverseRegistrar,
-        INameWrapper _nameWrapper
-    ) {
+        INameWrapper _nameWrapper,
+        ENS _ens
+    ) ReverseClaimer(_ens, msg.sender) {
         if (_maxCommitmentAge <= _minCommitmentAge) {
             revert MaxCommitmentAgeTooLow();
         }
@@ -88,12 +92,10 @@ contract ETHRegistrarController is
         nameWrapper = _nameWrapper;
     }
 
-    function rentPrice(string memory name, uint256 duration)
-        public
-        view
-        override
-        returns (IPriceOracle.Price memory price)
-    {
+    function rentPrice(
+        string memory name,
+        uint256 duration
+    ) public view override returns (IPriceOracle.Price memory price) {
         bytes32 label = keccak256(bytes(name));
         price = prices.price(name, base.nameExpires(uint256(label)), duration);
     }
@@ -205,21 +207,17 @@ contract ETHRegistrarController is
         }
     }
 
-    function renew(string calldata name, uint256 duration)
-        external
-        payable
-        override
-    {
+    function renew(
+        string calldata name,
+        uint256 duration
+    ) external payable override {
         bytes32 labelhash = keccak256(bytes(name));
         uint256 tokenId = uint256(labelhash);
         IPriceOracle.Price memory price = rentPrice(name, duration);
         if (msg.value < price.base) {
             revert InsufficientValue();
         }
-        uint256 expires = nameWrapper.renew(
-            tokenId,
-            duration
-        );
+        uint256 expires = nameWrapper.renew(tokenId, duration);
 
         if (msg.value > price.base) {
             payable(msg.sender).transfer(msg.value - price.base);
@@ -232,11 +230,9 @@ contract ETHRegistrarController is
         payable(owner()).transfer(address(this).balance);
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        external
-        pure
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) external pure returns (bool) {
         return
             interfaceID == type(IERC165).interfaceId ||
             interfaceID == type(IETHRegistrarController).interfaceId;

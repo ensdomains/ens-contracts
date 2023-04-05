@@ -29,23 +29,16 @@ abstract contract TextResolver is ITextResolver, ResolverBase {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function text(bytes32 node, string calldata key)
-        external
-        view
-        virtual
-        override
-        returns (string memory)
-    {
+    function text(
+        bytes32 node,
+        string calldata key
+    ) external view virtual override returns (string memory) {
         return versionable_texts[recordVersions[node]][node][key];
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view virtual override returns (bool) {
         return
             interfaceID == type(ITextResolver).interfaceId ||
             super.supportsInterface(interfaceID);

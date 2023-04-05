@@ -11,8 +11,8 @@ interface IAddressResolver {
         bytes newAddress
     );
 
-    function addr(bytes32 node, uint256 coinType)
-        external
-        view
-        returns (bytes memory);
+    function addr(
+        bytes32 node,
+        uint256 coinType
+    ) external view returns (bytes memory);
 }

@@ -18,5 +18,5 @@ interface IForeverSubdomainRegistrar {
         bytes[] calldata records
     ) external payable;
 
-    function available(bytes32 node) external view returns (bool);
+    // function available(bytes32 node) external view returns (bool);
 }

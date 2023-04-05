@@ -62,25 +62,23 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
      * @param startPremium starting price
      * @param elapsed time past since expiry
      */
-    function decayedPremium(uint256 startPremium, uint256 elapsed)
-        public
-        pure
-        returns (uint256)
-    {
+    function decayedPremium(
+        uint256 startPremium,
+        uint256 elapsed
+    ) public pure returns (uint256) {
         uint256 daysPast = (elapsed * PRECISION) / 1 days;
         uint256 intDays = daysPast / PRECISION;
         uint256 premium = startPremium >> intDays;
         uint256 partDay = (daysPast - intDays * PRECISION);
-        uint256 fraction = (partDay * (2**16)) / PRECISION;
+        uint256 fraction = (partDay * (2 ** 16)) / PRECISION;
         uint256 totalPremium = addFractionalPremium(fraction, premium);
         return totalPremium;
     }
 
-    function addFractionalPremium(uint256 fraction, uint256 premium)
-        internal
-        pure
-        returns (uint256)
-    {
+    function addFractionalPremium(
+        uint256 fraction,
+        uint256 premium
+    ) internal pure returns (uint256) {
         if (fraction & (1 << 0) != 0) {
             premium = (premium * bit1) / PRECISION;
         }
@@ -132,13 +130,9 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         return premium;
     }
 
-    function supportsInterface(bytes4 interfaceID)
-        public
-        view
-        virtual
-        override
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view virtual override returns (bool) {
         return super.supportsInterface(interfaceID);
     }
 }

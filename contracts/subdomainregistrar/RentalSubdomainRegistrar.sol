@@ -198,11 +198,10 @@ contract RentalSubdomainRegistrar is
         }
     }
 
-    function _makeNode(bytes32 node, bytes32 labelhash)
-        private
-        pure
-        returns (bytes32)
-    {
+    function _makeNode(
+        bytes32 node,
+        bytes32 labelhash
+    ) private pure returns (bytes32) {
         return keccak256(abi.encodePacked(node, labelhash));
     }
 }

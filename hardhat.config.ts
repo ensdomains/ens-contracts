@@ -6,12 +6,11 @@ import '@nomiclabs/hardhat-truffle5'
 import '@nomiclabs/hardhat-waffle'
 import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
+import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
-import { HardhatUserConfig, task, subtask } from 'hardhat/config'
-import { Artifact } from 'hardhat/types'
+import { HardhatUserConfig } from 'hardhat/config'
 import { promisify } from 'util'
-import "hardhat-contract-sizer";
 
 const exec = promisify(_exec)
 
@@ -29,7 +28,10 @@ dotenv.config({ debug: false })
 
 let real_accounts = undefined
 if (process.env.DEPLOYER_KEY) {
-  real_accounts = [process.env.DEPLOYER_KEY, process.env.OWNER_KEY || process.env.DEPLOYER_KEY]
+  real_accounts = [
+    process.env.DEPLOYER_KEY,
+    process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
+  ]
 }
 
 // circular dependency shared with actions
@@ -80,7 +82,17 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2500,
+            runs: 1300,
+          },
+        },
+      },
+      // for DummyOldResolver contract
+      {
+        version: '0.4.11',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200,
           },
         },
       },
@@ -108,7 +120,7 @@ const config: HardhatUserConfig = {
       default: 0,
     },
     owner: {
-      default: 1,
+      default: 0,
     },
   },
   external: {

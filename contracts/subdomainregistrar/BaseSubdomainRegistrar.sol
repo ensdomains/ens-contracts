@@ -37,7 +37,7 @@ abstract contract BaseSubdomainRegistrar {
         _;
     }
 
-    function available(bytes32 node) public returns (bool) {
+    function available(bytes32 node) public view returns (bool) {
         try wrapper.getData(uint256(node)) returns (
             address,
             uint32,

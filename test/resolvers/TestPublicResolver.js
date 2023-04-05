@@ -1,6 +1,12 @@
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const PublicResolver = artifacts.require('PublicResolver.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
+const { deploy } = require('../test-utils/contracts')
+const { labelhash } = require('../test-utils/ens')
+const {
+  EMPTY_BYTES32: ROOT_NODE,
+  EMPTY_ADDRESS,
+} = require('../test-utils/constants')
 
 const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
@@ -8,21 +14,40 @@ const sha3 = require('web3-utils').sha3
 
 const { exceptions } = require('../test-utils')
 
-contract('PublicResolver', function(accounts) {
+contract('PublicResolver', function (accounts) {
   let node
   let ens, resolver, nameWrapper
-  const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
+  let account
+  let signers
+  let result
 
   beforeEach(async () => {
+    signers = await ethers.getSigners()
+    account = await signers[0].getAddress()
     node = namehash.hash('eth')
     ens = await ENS.new()
     nameWrapper = await NameWrapper.new()
+
+    //setup reverse registrar
+
+    const ReverseRegistrar = await deploy('ReverseRegistrar', ens.address)
+
+    await ens.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
+    await ens.setSubnodeOwner(
+      namehash.hash('reverse'),
+      labelhash('addr'),
+      ReverseRegistrar.address,
+    )
+
     resolver = await PublicResolver.new(
       ens.address,
       nameWrapper.address,
       accounts[9], // trusted contract
-      EMPTY_ADDRESS
+      ReverseRegistrar.address, //ReverseRegistrar.address,
     )
+
+    await ReverseRegistrar.setDefaultResolver(resolver.address)
+
     await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
       from: accounts[0],
     })
@@ -35,7 +60,7 @@ contract('PublicResolver', function(accounts) {
           from: accounts[0],
           to: resolver.address,
           gas: 3000000,
-        })
+        }),
       )
     })
 
@@ -46,7 +71,7 @@ contract('PublicResolver', function(accounts) {
           to: resolver.address,
           gas: 3000000,
           value: 1,
-        })
+        }),
       )
     })
   })
@@ -85,7 +110,7 @@ contract('PublicResolver', function(accounts) {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
         node,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -125,7 +150,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -137,7 +162,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -149,14 +174,14 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
     it('returns zero when fetching nonexistent addresses', async () => {
       assert.equal(
         await resolver.methods['addr(bytes32)'](node),
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
@@ -165,11 +190,11 @@ contract('PublicResolver', function(accounts) {
         node,
         123,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.methods['addr(bytes32,uint256)'](node, 123),
-        accounts[1].toLowerCase()
+        accounts[1].toLowerCase(),
       )
     })
 
@@ -177,7 +202,7 @@ contract('PublicResolver', function(accounts) {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
         node,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -188,7 +213,7 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[1].args.a, accounts[1])
       assert.equal(
         await resolver.methods['addr(bytes32,uint256)'](node, 60),
-        accounts[1].toLowerCase()
+        accounts[1].toLowerCase(),
       )
     })
 
@@ -197,7 +222,7 @@ contract('PublicResolver', function(accounts) {
         node,
         60,
         accounts[2],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -216,7 +241,7 @@ contract('PublicResolver', function(accounts) {
           to: resolver.address,
           gas: 3000000,
           value: 1,
-        })
+        }),
       )
     })
   })
@@ -226,7 +251,7 @@ contract('PublicResolver', function(accounts) {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
         node,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -268,7 +293,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -280,7 +305,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -292,14 +317,14 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
     it('returns zero when fetching nonexistent addresses', async () => {
       assert.equal(
         await resolver.methods['addr(bytes32)'](node),
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
@@ -308,11 +333,11 @@ contract('PublicResolver', function(accounts) {
         node,
         123,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.methods['addr(bytes32,uint256)'](node, 123),
-        accounts[1].toLowerCase()
+        accounts[1].toLowerCase(),
       )
     })
 
@@ -320,7 +345,7 @@ contract('PublicResolver', function(accounts) {
       var tx = await resolver.methods['setAddr(bytes32,address)'](
         node,
         accounts[1],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -331,7 +356,7 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[1].args.a, accounts[1])
       assert.equal(
         await resolver.methods['addr(bytes32,uint256)'](node, 60),
-        accounts[1].toLowerCase()
+        accounts[1].toLowerCase(),
       )
     })
 
@@ -340,7 +365,7 @@ contract('PublicResolver', function(accounts) {
         node,
         60,
         accounts[2],
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 2)
       assert.equal(tx.logs[0].event, 'AddressChanged')
@@ -377,7 +402,7 @@ contract('PublicResolver', function(accounts) {
 
     it('forbids setting name by non-owners', async () => {
       await exceptions.expectFailure(
-        resolver.setName(node, 'name2', { from: accounts[1] })
+        resolver.setName(node, 'name2', { from: accounts[1] }),
       )
     })
 
@@ -410,11 +435,11 @@ contract('PublicResolver', function(accounts) {
       let result = await resolver.pubkey(node)
       assert.equal(
         result[0],
-        '0x0000000000000000000000000000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
       )
       assert.equal(
         result[1],
-        '0x0000000000000000000000000000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
       )
     })
 
@@ -425,7 +450,7 @@ contract('PublicResolver', function(accounts) {
         node,
         '0x1000000000000000000000000000000000000000000000000000000000000000',
         '0x2000000000000000000000000000000000000000000000000000000000000000',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
 
       let x =
@@ -459,8 +484,8 @@ contract('PublicResolver', function(accounts) {
           node,
           '0x1000000000000000000000000000000000000000000000000000000000000000',
           '0x2000000000000000000000000000000000000000000000000000000000000000',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -473,7 +498,7 @@ contract('PublicResolver', function(accounts) {
       await resolver.setPubkey(node, x, y, { from: accounts[0] })
 
       await exceptions.expectFailure(
-        resolver.setPubkey(node, x, y, { from: accounts[1] })
+        resolver.setPubkey(node, x, y, { from: accounts[1] }),
       )
     })
 
@@ -482,7 +507,7 @@ contract('PublicResolver', function(accounts) {
         node,
         '0x1000000000000000000000000000000000000000000000000000000000000000',
         '0x2000000000000000000000000000000000000000000000000000000000000000',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
 
       await exceptions.expectFailure(
@@ -490,8 +515,8 @@ contract('PublicResolver', function(accounts) {
           node,
           '0x3000000000000000000000000000000000000000000000000000000000000000',
           '0x4000000000000000000000000000000000000000000000000000000000000000',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -499,8 +524,14 @@ contract('PublicResolver', function(accounts) {
       await basicSetPubkey()
       await resolver.clearRecords(node)
       result = await resolver.pubkey(node)
-      assert.equal(result[0], '0x0000000000000000000000000000000000000000000000000000000000000000')
-      assert.equal(result[1], '0x0000000000000000000000000000000000000000000000000000000000000000')
+      assert.equal(
+        result[0],
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+      )
+      assert.equal(
+        result[1],
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+      )
     })
   })
 
@@ -541,13 +572,13 @@ contract('PublicResolver', function(accounts) {
 
     it('rejects invalid content types', async () => {
       await exceptions.expectFailure(
-        resolver.setABI(node, 0x3, '0x12', { from: accounts[0] })
+        resolver.setABI(node, 0x3, '0x12', { from: accounts[0] }),
       )
     })
 
     it('forbids setting value by non-owners', async () => {
       await exceptions.expectFailure(
-        resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[1] })
+        resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[1] }),
       )
     })
 
@@ -588,7 +619,7 @@ contract('PublicResolver', function(accounts) {
 
     it('forbids setting new text by non-owners', async () => {
       await exceptions.expectFailure(
-        resolver.setText(node, 'url', url, { from: accounts[1] })
+        resolver.setText(node, 'url', url, { from: accounts[1] }),
       )
     })
 
@@ -596,7 +627,7 @@ contract('PublicResolver', function(accounts) {
       await resolver.setText(node, 'url', url, { from: accounts[0] })
 
       await exceptions.expectFailure(
-        resolver.setText(node, 'url', url, { from: accounts[1] })
+        resolver.setText(node, 'url', url, { from: accounts[1] }),
       )
     })
 
@@ -612,11 +643,11 @@ contract('PublicResolver', function(accounts) {
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.contenthash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
     }
 
@@ -626,21 +657,21 @@ contract('PublicResolver', function(accounts) {
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.contenthash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
 
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000002',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.contenthash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
     })
 
@@ -648,21 +679,21 @@ contract('PublicResolver', function(accounts) {
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.contenthash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
 
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000002',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.contenthash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
     })
 
@@ -671,8 +702,8 @@ contract('PublicResolver', function(accounts) {
         resolver.setContenthash(
           node,
           '0x0000000000000000000000000000000000000000000000000000000000000001',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -680,15 +711,15 @@ contract('PublicResolver', function(accounts) {
       await resolver.setContenthash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
 
       await exceptions.expectFailure(
         resolver.setContenthash(
           node,
           '0x0000000000000000000000000000000000000000000000000000000000000001',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -720,15 +751,15 @@ contract('PublicResolver', function(accounts) {
 
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
-        '0x016103657468000001000100000e10000401020304'
+        '0x016103657468000001000100000e10000401020304',
       )
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('b.eth.')), 1),
-        '0x016203657468000001000100000e10000402030405016203657468000001000100000e10000403040506'
+        '0x016203657468000001000100000e10000402030405016203657468000001000100000e10000403040506',
       )
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
-        '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840'
+        '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840',
       )
     }
     it('permits setting name by owner', basicSetDNSRecords)
@@ -745,11 +776,11 @@ contract('PublicResolver', function(accounts) {
 
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
-        '0x016103657468000001000100000e10000404050607'
+        '0x016103657468000001000100000e10000404050607',
       )
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
-        '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840'
+        '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840',
       )
     })
 
@@ -763,7 +794,7 @@ contract('PublicResolver', function(accounts) {
       // Initial check
       var hasEntries = await resolver.hasDNSRecords(
         node,
-        sha3(dnsName('c.eth.'))
+        sha3(dnsName('c.eth.')),
       )
       assert.equal(hasEntries, true)
       hasEntries = await resolver.hasDNSRecords(node, sha3(dnsName('d.eth.')))
@@ -794,7 +825,7 @@ contract('PublicResolver', function(accounts) {
 
       assert.equal(
         await resolver.dnsRecord(node, sha3(dnsName('e.eth.')), 1),
-        '0x016503657468000001000100000e10000401020304'
+        '0x016503657468000001000100000e10000401020304',
       )
     })
 
@@ -803,7 +834,7 @@ contract('PublicResolver', function(accounts) {
       const frec = '016603657468000001000100000e10000401020304'
       const rec = '0x' + frec
       await exceptions.expectFailure(
-        resolver.setDNSRecords(node, rec, { from: accounts[1] })
+        resolver.setDNSRecords(node, rec, { from: accounts[1] }),
       )
     })
 
@@ -811,11 +842,11 @@ contract('PublicResolver', function(accounts) {
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.zonehash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
     }
 
@@ -825,21 +856,21 @@ contract('PublicResolver', function(accounts) {
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.zonehash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
 
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000002',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.zonehash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
     })
 
@@ -847,21 +878,21 @@ contract('PublicResolver', function(accounts) {
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.zonehash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
 
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000002',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(
         await resolver.zonehash(node),
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
     })
 
@@ -870,8 +901,8 @@ contract('PublicResolver', function(accounts) {
         resolver.setZonehash(
           node,
           '0x0000000000000000000000000000000000000000000000000000000000000001',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -879,15 +910,15 @@ contract('PublicResolver', function(accounts) {
       await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
 
       await exceptions.expectFailure(
         resolver.setZonehash(
           node,
           '0x0000000000000000000000000000000000000000000000000000000000000001',
-          { from: accounts[1] }
-        )
+          { from: accounts[1] },
+        ),
       )
     })
 
@@ -899,7 +930,7 @@ contract('PublicResolver', function(accounts) {
       var tx = await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000001',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 1)
       assert.equal(tx.logs[0].event, 'DNSZonehashChanged')
@@ -907,41 +938,41 @@ contract('PublicResolver', function(accounts) {
       assert.equal(tx.logs[0].args.lastzonehash, undefined)
       assert.equal(
         tx.logs[0].args.zonehash,
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
 
       tx = await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000002',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 1)
       assert.equal(tx.logs[0].event, 'DNSZonehashChanged')
       assert.equal(tx.logs[0].args.node, node)
       assert.equal(
         tx.logs[0].args.lastzonehash,
-        '0x0000000000000000000000000000000000000000000000000000000000000001'
+        '0x0000000000000000000000000000000000000000000000000000000000000001',
       )
       assert.equal(
         tx.logs[0].args.zonehash,
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
 
       tx = await resolver.setZonehash(
         node,
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        { from: accounts[0] }
+        { from: accounts[0] },
       )
       assert.equal(tx.logs.length, 1)
       assert.equal(tx.logs[0].event, 'DNSZonehashChanged')
       assert.equal(tx.logs[0].args.node, node)
       assert.equal(
         tx.logs[0].args.lastzonehash,
-        '0x0000000000000000000000000000000000000000000000000000000000000002'
+        '0x0000000000000000000000000000000000000000000000000000000000000002',
       )
       assert.equal(
         tx.logs[0].args.zonehash,
-        '0x0000000000000000000000000000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
       )
     })
 
@@ -976,7 +1007,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.interfaceImplementer(node, '0x12345678'),
-        accounts[0]
+        accounts[0],
       )
     }
 
@@ -988,7 +1019,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.interfaceImplementer(node, '0x12345678'),
-        resolver.address
+        resolver.address,
       )
     })
 
@@ -996,17 +1027,14 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.setInterface(node, '0x12345678', accounts[1], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
     it('returns 0 when fetching unset interface', async () => {
       assert.equal(
-        await resolver.interfaceImplementer(
-          namehash.hash('foo'),
-          '0x12345678'
-        ),
-        '0x0000000000000000000000000000000000000000'
+        await resolver.interfaceImplementer(namehash.hash('foo'), '0x12345678'),
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
@@ -1017,12 +1045,12 @@ contract('PublicResolver', function(accounts) {
         resolver.address,
         {
           from: accounts[0],
-        }
+        },
       )
       // Check the ID for `addr(bytes32)`
       assert.equal(
         await resolver.interfaceImplementer(node, '0x3b3b57de'),
-        resolver.address
+        resolver.address,
       )
     })
 
@@ -1030,7 +1058,7 @@ contract('PublicResolver', function(accounts) {
       // Check an imaginary interface ID we know it doesn't support.
       assert.equal(
         await resolver.interfaceImplementer(node, '0x00000000'),
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
@@ -1042,7 +1070,7 @@ contract('PublicResolver', function(accounts) {
       // Check the ID for `supportsInterface(bytes4)`
       assert.equal(
         await resolver.interfaceImplementer(node, '0x01ffc9a7'),
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
@@ -1054,14 +1082,17 @@ contract('PublicResolver', function(accounts) {
       // Check the ID for `supportsInterface(bytes4)`
       assert.equal(
         await resolver.interfaceImplementer(node, '0x01ffc9a7'),
-        '0x0000000000000000000000000000000000000000'
+        '0x0000000000000000000000000000000000000000',
       )
     })
 
     it('resets record on version change', async () => {
       await basicSetInterface()
       await resolver.clearRecords(node)
-      assert.equal(await resolver.interfaceImplementer(node, '0x12345678'), '0x0000000000000000000000000000000000000000')
+      assert.equal(
+        await resolver.interfaceImplementer(node, '0x12345678'),
+        '0x0000000000000000000000000000000000000000',
+      )
     })
   })
 
@@ -1072,7 +1103,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.isApprovedForAll(accounts[0], accounts[1]),
-        true
+        true,
       )
     })
 
@@ -1082,7 +1113,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.isApprovedForAll(await ens.owner(node), accounts[1]),
-        true
+        true,
       )
       await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
         from: accounts[1],
@@ -1097,7 +1128,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -1110,7 +1141,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[2],
-        })
+        }),
       )
     })
 
@@ -1148,7 +1179,7 @@ contract('PublicResolver', function(accounts) {
 
     it('reverts if attempting to approve self as an operator', async () => {
       await expect(
-        resolver.setApprovalForAll(accounts[1], true, { from: accounts[1] })
+        resolver.setApprovalForAll(accounts[1], true, { from: accounts[1] }),
       ).to.be.revertedWith('ERC1155: setting approval status for self')
     })
 
@@ -1158,13 +1189,13 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, owner, {
           from: operator,
-        })
+        }),
       )
       await ens.setOwner(node, nameWrapper.address, { from: owner })
       await expect(
         resolver.methods['setAddr(bytes32,address)'](node, owner, {
           from: operator,
-        })
+        }),
       )
     })
   })
@@ -1176,7 +1207,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.isApprovedFor(accounts[0], node, accounts[1]),
-        true
+        true,
       )
     })
 
@@ -1186,7 +1217,7 @@ contract('PublicResolver', function(accounts) {
       })
       assert.equal(
         await resolver.isApprovedFor(await ens.owner(node), node, accounts[1]),
-        true
+        true,
       )
       await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
         from: accounts[1],
@@ -1201,7 +1232,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[1],
-        })
+        }),
       )
     })
 
@@ -1214,7 +1245,7 @@ contract('PublicResolver', function(accounts) {
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[2],
-        })
+        }),
       )
     })
 
@@ -1246,7 +1277,7 @@ contract('PublicResolver', function(accounts) {
 
     it('reverts if attempting to delegate self as an delegate', async () => {
       await expect(
-        resolver.approve(node, accounts[1], true, { from: accounts[1] })
+        resolver.approve(node, accounts[1], true, { from: accounts[1] }),
       ).to.be.revertedWith('Setting delegate status for self')
     })
   })
@@ -1255,7 +1286,7 @@ contract('PublicResolver', function(accounts) {
     it('allows setting multiple fields', async () => {
       var addrSet = resolver.contract.methods['setAddr(bytes32,address)'](
         node,
-        accounts[1]
+        accounts[1],
       ).encodeABI()
       var textSet = resolver.contract.methods
         .setText(node, 'url', 'https://ethereum.org/')
@@ -1292,11 +1323,11 @@ contract('PublicResolver', function(accounts) {
       ])
       assert.equal(
         web3.eth.abi.decodeParameters(['address'], results[0])[0],
-        accounts[1]
+        accounts[1],
       )
       assert.equal(
         web3.eth.abi.decodeParameters(['string'], results[1])[0],
-        'https://ethereum.org/'
+        'https://ethereum.org/',
       )
     })
   })
@@ -1323,7 +1354,7 @@ function dnsName(name) {
     '0x' +
     buf.reduce(
       (output, elem) => output + ('0' + elem.toString(16)).slice(-2),
-      ''
+      '',
     )
   )
 }

@@ -41,5 +41,5 @@ interface IRentalSubdomainRegistrar {
         uint64 duration
     ) external payable;
 
-    function available(bytes32 node) external view;
+    // function available(bytes32 node) external view returns (bool);
 }
