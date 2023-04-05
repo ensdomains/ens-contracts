@@ -124,7 +124,7 @@ Expiry can be extended using the following functions:
 
 `renew()` indirectly extends the expiry of a .eth name by renewing the name inside the .eth registrar.
 
-`extendExpiry()` extends the expiry of any name. It can only be called by the owner of the name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
+`extendExpiry()` extends the expiry of any name. It can only be called by the owner of the name, an approved address or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent. An approved address can be set by calling `approve()`.
 
 ## Fuses
 
@@ -177,6 +177,10 @@ If this fuse is burned, the TTL cannot be changed. Calls to setTTL, setRecord, a
 #### CANNOT_CREATE_SUBDOMAIN = 32
 
 If this fuse is burned, new subdomains cannot be created. Calls to setSubnodeOwner and setSubnodeRecord will fail if they reference a name that does not already exist.
+
+#### CANNOT_APPROVE = 64
+
+If this fuse is burned, `approve()` cannot be called on this name anymore and so the current approved address cannot be changed until expiry.
 
 #### PARENT_CANNOT_CONTROL = 65536
 
@@ -316,7 +320,7 @@ Cannot be called if `CANNOT_BURN_FUSES` has been burned.
 **Start State**: Wrapped | Emancipated | Locked
 **End State**: Wrapped | Emancipated | Locked
 
-`extendExpiry()` can only be called by the owner of a name or the owner of the parent name. When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent.
+`extendExpiry()` can only be called by the owner of a name, the owner of the parent name or an approved address (known as a renewal manager). When called by the owner of the name, the `CAN_EXTEND_EXPIRY` fuse must have already been burned by the parent. The approved address can be set by calling `approve
 
 The expiry can only be extended, not reduced. And the max expiry is automatically set to the expiry of the parent node.
 
