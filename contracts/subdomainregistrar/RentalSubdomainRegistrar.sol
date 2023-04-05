@@ -11,9 +11,11 @@ struct Name {
     uint256 registrationFee; // per second
     address token; // ERC20 token
     address beneficiary;
+    bool active;
 }
 
 error ParentWillHaveExpired(bytes32 node);
+error ParentNameNotSetup(bytes32 parentNode);
 
 contract RentalSubdomainRegistrar is
     BaseSubdomainRegistrar,
@@ -28,11 +30,13 @@ contract RentalSubdomainRegistrar is
         bytes32 node,
         address token,
         uint256 fee,
-        address beneficiary
+        address beneficiary,
+        bool active
     ) public onlyOwner(node) {
         names[node].registrationFee = fee;
         names[node].token = token;
         names[node].beneficiary = beneficiary;
+        names[node].active = active;
     }
 
     function available(
@@ -55,6 +59,9 @@ contract RentalSubdomainRegistrar is
         uint64 duration,
         bytes[] calldata records
     ) public payable {
+        if (!names[parentNode].active) {
+            revert ParentNameNotSetup(parentNode);
+        }
         uint256 fee = duration * names[parentNode].registrationFee;
 
         _checkParent(parentNode, duration);

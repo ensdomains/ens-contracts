@@ -6,7 +6,8 @@ interface IForeverSubdomainRegistrar {
         bytes32 node,
         address token,
         uint256 fee,
-        address beneficiary
+        address beneficiary,
+        bool active
     ) external;
 
     function register(

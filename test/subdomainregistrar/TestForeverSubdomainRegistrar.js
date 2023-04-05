@@ -150,7 +150,13 @@ describe('Forever Subdomain registrar', () => {
       )
       const [, , parentExpiry] = await NameWrapper.getData(node)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const fee = (await SubdomainRegistrar.names(namehash('test.eth')))

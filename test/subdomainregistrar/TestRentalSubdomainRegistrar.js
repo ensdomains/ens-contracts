@@ -150,7 +150,13 @@ describe('Rental Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const duration = 86400
@@ -184,7 +190,13 @@ describe('Rental Subdomain registrar', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await Erc20.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
@@ -219,7 +231,13 @@ describe('Rental Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       const duration = 86400
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar.setupDomain(node, EMPTY_ADDRESS, 0, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        EMPTY_ADDRESS,
+        0,
+        account,
+        true,
+      )
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -242,7 +260,13 @@ describe('Rental Subdomain registrar', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount3.approve(
         SubdomainRegistrar.address,
@@ -273,7 +297,13 @@ describe('Rental Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
@@ -312,7 +342,13 @@ describe('Rental Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 0, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        0,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar2.register(
         node,
@@ -343,7 +379,13 @@ describe('Rental Subdomain registrar', () => {
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
@@ -380,7 +422,13 @@ describe('Rental Subdomain registrar', () => {
         EMPTY_ADDRESS,
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      await SubdomainRegistrar.setupDomain(
+        node,
+        EMPTY_ADDRESS,
+        0,
+        EMPTY_ADDRESS,
+        true,
+      )
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar2.register(
         node,
@@ -460,7 +508,13 @@ describe('Rental Subdomain registrar', () => {
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const totalFee = fee * duration * 2
@@ -515,7 +569,13 @@ describe('Rental Subdomain registrar', () => {
       )
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
       const fee = (await SubdomainRegistrar.names(node)).registrationFee
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const totalFee = fee * duration * 2

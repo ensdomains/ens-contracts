@@ -8,10 +8,13 @@ import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155
 import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
 
+error ParentNameNotSetup(bytes32 parentNode);
+
 struct Name {
     uint256 registrationFee; // per registration
     address token; // ERC20 token
     address beneficiary;
+    bool active;
 }
 
 contract ForeverSubdomainRegistrar is
@@ -27,11 +30,13 @@ contract ForeverSubdomainRegistrar is
         bytes32 node,
         address token,
         uint256 fee,
-        address beneficiary
+        address beneficiary,
+        bool active
     ) public onlyOwner(node) {
         names[node].registrationFee = fee;
         names[node].token = token;
         names[node].beneficiary = beneficiary;
+        names[node].active = true;
     }
 
     function available(
@@ -53,6 +58,10 @@ contract ForeverSubdomainRegistrar is
         uint16 fuses,
         bytes[] calldata records
     ) public payable {
+        if (!names[parentNode].active) {
+            revert ParentNameNotSetup(parentNode);
+        }
+
         uint256 fee = names[parentNode].registrationFee;
 
         if (fee > 0) {
