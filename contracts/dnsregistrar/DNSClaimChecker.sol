@@ -31,6 +31,7 @@ library DNSClaimChecker {
             !iter.done();
             iter.next()
         ) {
+            if (iter.name().compareNames(buf.buf) != 0) continue;
             bool found;
             address addr;
             (addr, found) = parseRR(data, iter.rdataOffset, iter.nextOffset);
