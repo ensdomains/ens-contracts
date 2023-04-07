@@ -88,6 +88,4 @@ contract ForeverSubdomainRegistrar is
             records
         );
     }
-
-    function syncExpiry(bytes32 parentNode, bytes32 labelHash) public {}
 }
