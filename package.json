@@ -5,6 +5,7 @@
   "scripts": {
     "test": "hardhat test",
     "test:local": "hardhat --network localhost test",
+    "test:deploy": "hardhat --network hardhat deploy",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "format": "prettier --write .",
