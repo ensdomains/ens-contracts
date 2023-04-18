@@ -9,7 +9,7 @@ const namehash = require('eth-ens-namehash')
 
 contract('Parent Avatar Resolver', function (accounts) {
   let node
-  let ens, resolver, nameWrapper
+  let ens, resolver, resolver2, nameWrapper
   let account
   let signers
 
@@ -38,6 +38,8 @@ contract('Parent Avatar Resolver', function (accounts) {
       accounts[9], // trusted contract
       ReverseRegistrar.address, //ReverseRegistrar.address,
     )
+
+    resolver2 = resolver.connect(signers[1])
 
     await ReverseRegistrar.setDefaultResolver(resolver.address)
 
@@ -76,11 +78,9 @@ contract('Parent Avatar Resolver', function (accounts) {
 
     it('should not able to set avatar if not the parent Owner', async () => {
       ens.setSubnodeOwner('0x0', labelhash('eth'), accounts[1])
-      expect(
-        resolver.setAvatar(ROOT_NODE, labelhash('eth'), 'https://example.com', {
-          from: accounts[1],
-        }),
-      ).to.be.revertedWith('AvatarCannotBeSetByOwner()')
+      await expect(
+        resolver2.setAvatar(ROOT_NODE, labelhash('eth'), 'https://example.com'),
+      ).to.be.revertedWith('NotAuthorised()')
     })
   })
 })

@@ -4,13 +4,17 @@ pragma solidity >=0.8.4;
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "./profiles/IVersionableResolver.sol";
 
+error NotAuthorised();
+
 abstract contract ResolverBase is ERC165, IVersionableResolver {
     mapping(bytes32 => uint64) public recordVersions;
 
     function isAuthorised(bytes32 node) internal view virtual returns (bool);
 
     modifier authorised(bytes32 node) {
-        require(isAuthorised(node));
+        if (!isAuthorised(node)) {
+            revert NotAuthorised();
+        }
         _;
     }
 
