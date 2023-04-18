@@ -2,15 +2,12 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const NameWrapper = artifacts.require('DummyNameWrapper.sol')
 const { deploy } = require('../test-utils/contracts')
 const { labelhash } = require('../test-utils/ens')
-const {
-  EMPTY_BYTES32: ROOT_NODE,
-  EMPTY_ADDRESS,
-} = require('../test-utils/constants')
+const { EMPTY_BYTES32: ROOT_NODE } = require('../test-utils/constants')
 
 const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
 
-contract('PublicResolver', function (accounts) {
+contract('Parent Avatar Resolver', function (accounts) {
   let node
   let ens, resolver, nameWrapper
   let account
