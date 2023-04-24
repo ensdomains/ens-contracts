@@ -17,10 +17,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
 
   const registry = await ethers.getContract('ENSRegistry')
+  const controller = await ethers.getContract('ETHRegistrarController')
 
   const bulkRenewal = await deploy('BulkRenewal', {
     from: deployer,
-    args: [registry.address],
+    args: [controller.address],
     log: true,
   })
 
