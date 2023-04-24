@@ -9,8 +9,6 @@ import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract StaticBulkRenewal is IBulkRenewal {
     ETHRegistrarController controller;
-    bytes32 private constant ETH_NAMEHASH =
-        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
     constructor(ETHRegistrarController _controller) {
         controller = _controller;
