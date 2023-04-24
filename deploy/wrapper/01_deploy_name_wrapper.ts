@@ -84,6 +84,7 @@ func.dependencies = [
   'BaseRegistrarImplementation',
   'StaticMetadataService',
   'registry',
+  'ReverseRegistrar',
 ]
 
 export default func
