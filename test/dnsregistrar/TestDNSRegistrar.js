@@ -301,7 +301,7 @@ contract('DNSRegistrar', function (accounts) {
   it('cannot claim multiple names using single unrelated proof', async function () {
     const alice = accounts[1]
 
-    // Build sample proof for a DNS record with name `poc.test` that alice owns
+    // Build sample proof for a DNS record with name `alice.test` that alice owns
     const proofForAliceDotTest = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
       hexEncodeSignedSet(testRrset('alice.test', alice)),
