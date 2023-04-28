@@ -137,7 +137,8 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
             relayer != msg.sender ||
-            signatureExpiry < block.timestamp
+            signatureExpiry < block.timestamp ||
+            signatureExpiry > block.timestamp + 1 days
         ) {
             revert InvalidSignature();
         }
