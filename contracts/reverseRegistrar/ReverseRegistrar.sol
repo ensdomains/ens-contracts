@@ -15,12 +15,6 @@ bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000
 
 bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
-bytes4 constant claimForAddrWithSignatureFuncId = bytes4(
-    keccak256(
-        "claimForAddrWithSignature(address,address,address,address,uint256,bytes)"
-    )
-);
-
 error InvalidSignature();
 
 // namehash('addr.reverse')
@@ -116,7 +110,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature
-    ) public returns (bytes32) {
+    ) public override returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
@@ -124,7 +118,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
 
         bytes32 hash = keccak256(
             abi.encodePacked(
-                claimForAddrWithSignatureFuncId,
+                IReverseRegistrar.claimForAddrWithSignature.selector,
                 addr,
                 owner,
                 resolver,
@@ -219,7 +213,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         uint256 signatureExpiry,
         bytes memory signature,
         string memory name
-    ) public returns (bytes32) {
+    ) public override returns (bytes32) {
         bytes32 node = claimForAddrWithSignature(
             addr,
             owner,
