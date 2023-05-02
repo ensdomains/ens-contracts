@@ -11,6 +11,15 @@ interface IReverseRegistrar {
         address resolver
     ) external returns (bytes32);
 
+    function claimForAddrWithSignature(
+        address addr,
+        address owner,
+        address resolver,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes calldata signature
+    ) external returns (bytes32);
+
     function claimWithResolver(
         address owner,
         address resolver
@@ -22,6 +31,16 @@ interface IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
+        string memory name
+    ) external returns (bytes32);
+
+    function setNameForAddrWithSignature(
+        address addr,
+        address owner,
+        address resolver,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes calldata signature,
         string memory name
     ) external returns (bytes32);
 
