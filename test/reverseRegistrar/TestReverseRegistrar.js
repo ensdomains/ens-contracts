@@ -293,17 +293,47 @@ contract('ReverseRegistrar', function (accounts) {
       )
       assert.equal(await ens.owner(node), accounts[1])
     })
+  })
 
-    it('event ReverseClaimed is emitted', async () => {
-      const tx = await registrar.claimForAddr(
+  describe('setNameForAddrWithSignature', () => {
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const funcId = ethers.utils
+        .id(
+          'claimForAddrWithSignature(address,address,address,address,uint256,bytes)',
+        )
+        .substring(0, 10)
+      const block = await ethers.provider.getBlock('latest')
+      const signatureExpiry = block.timestamp + 3600
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
+            [
+              funcId,
+              accounts[0],
+              accounts[1],
+              resolver.address,
+              accounts[2],
+              signatureExpiry,
+            ],
+          ),
+        ),
+      )
+
+      await registrar.setNameForAddrWithSignature(
         accounts[0],
         accounts[1],
         resolver.address,
+        accounts[2],
+        signatureExpiry,
+        signature,
+        'hello.eth',
         {
-          from: accounts[0],
+          from: accounts[2],
         },
       )
-      assertReverseClaimedEventEmitted(tx, accounts[0], node)
+      assert.equal(await ens.owner(node), accounts[1])
+      assert.equal(await resolver.name(node), 'hello.eth')
     })
   })
 
