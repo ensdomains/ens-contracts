@@ -132,6 +132,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
                 signatureExpiry
             )
         );
+
         bytes32 message = hash.toEthSignedMessageHash();
 
         if (
@@ -196,6 +197,37 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         string memory name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddr(addr, owner, resolver);
+        NameResolver(resolver).setName(node, name);
+        return node;
+    }
+
+    /**
+     * @dev Sets the `name()` record for the reverse ENS record associated with
+     * the account provided. Updates the resolver to a designated resolver
+     * Only callable by controllers and authorised users
+     * @param addr The reverse record to set
+     * @param owner The owner of the reverse node
+     * @param resolver The resolver of the reverse node
+     * @param name The name to set for this address.
+     * @return The ENS node hash of the reverse record.
+     */
+    function setNameForAddrWithSignature(
+        address addr,
+        address owner,
+        address resolver,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature,
+        string memory name
+    ) public returns (bytes32) {
+        bytes32 node = claimForAddrWithSignature(
+            addr,
+            owner,
+            resolver,
+            relayer,
+            signatureExpiry,
+            signature
+        );
         NameResolver(resolver).setName(node, name);
         return node;
     }
