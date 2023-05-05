@@ -223,7 +223,7 @@ contract ETHRegistrarController is
             payable(msg.sender).transfer(msg.value - price.base);
         }
 
-        emit NameRenewed(name, labelhash, msg.value, expires);
+        emit NameRenewed(name, labelhash, price.base, expires);
     }
 
     function withdraw() public {
