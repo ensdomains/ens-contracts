@@ -267,116 +267,10 @@ describe('Rental Subdomain registrar', () => {
         ),
       ).to.be.revertedWith(`ERC20: transfer amount exceeds balance`)
     })
-  })
-
-  describe('renew', () => {
-    it('should allow subdomains to be renewed', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 200000)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS,
-      )
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        1,
-        account,
-        true,
-      )
-      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await Erc20WithAccount2.approve(
-        SubdomainRegistrar.address,
-        ethers.constants.MaxUint256,
-      )
-      await SubdomainRegistrar2.register(
-        node,
-        'subname',
-        account2,
-        EMPTY_ADDRESS,
-        0,
-        86400,
-        [],
-      )
-
-      const [, , expiry] = await NameWrapper.getData(
-        namehash('subname.test.eth'),
-      )
-
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
-
-      await SubdomainRegistrar2.renew(node, labelhash('subname'), 500)
-      const [, , expiry2] = await NameWrapper.getData(
-        namehash('subname.test.eth'),
-      )
-      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 500)
-    })
-
-    it('should allow subdomains to be renewed even with 0 registration fee', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 200000)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS,
-      )
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        0,
-        account,
-        true,
-      )
-      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await SubdomainRegistrar2.register(
-        node,
-        'subname',
-        account2,
-        EMPTY_ADDRESS,
-        0,
-        86400,
-        [],
-      )
-
-      const [, , expiry] = await NameWrapper.getData(
-        namehash('subname.test.eth'),
-      )
-
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
-
-      await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
-      const [, , expiry2] = await NameWrapper.getData(
-        namehash('subname.test.eth'),
-      )
-
-      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 86400)
-    })
 
     it('should revert if parent is expired', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 86400)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD('test', account, 0, EMPTY_ADDRESS)
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        1,
-        account,
-        true,
-      )
-      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await Erc20WithAccount2.approve(
-        SubdomainRegistrar.address,
-        ethers.constants.MaxUint256,
-      )
-
       //move time forward to expire parent
-      await increaseTime(86400)
+      await increaseTime(86400 * 2 + 1)
       await mine()
 
       await expect(
@@ -390,6 +284,84 @@ describe('Rental Subdomain registrar', () => {
           [],
         ),
       ).to.be.revertedWith(`ParentExpired("${node}")`)
+    })
+
+    it('should revert if expiry is greater than parent', async () => {
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount3.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await expect(
+        SubdomainRegistrar3.register(
+          node,
+          'subname',
+          account2,
+          EMPTY_ADDRESS,
+          0,
+          86400 * 3, // greater than parent
+          [],
+        ),
+      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
+    })
+  })
+
+  describe('renew', () => {
+    beforeEach(async () => {
+      await BaseRegistrar.register(labelhash('test'), account, 200000)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        86400,
+        [],
+      )
+
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+    })
+    it('should allow subdomains to be renewed', async () => {
+      const [, , expiry] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+      await SubdomainRegistrar2.renew(node, labelhash('subname'), 500)
+      const [, , expiry2] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 500)
+    })
+
+    it('should allow subdomains to be renewed even with 0 registration fee', async () => {
+      const [, , expiry] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+      await SubdomainRegistrar2.renew(node, labelhash('subname'), 86400)
+      const [, , expiry2] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+
+      expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 86400)
     })
   })
 
@@ -432,6 +404,45 @@ describe('Rental Subdomain registrar', () => {
         account2,
       )
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
+    })
+
+    it('should revert if expiry is greater than parent', async () => {
+      await BaseRegistrar.register(labelhash('test'), account, 200000)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        86400,
+        [],
+      )
+
+      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
+
+      await expect(
+        SubdomainRegistrar2.renew(node, labelhash('subname'), 84600 * 3),
+      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
     })
   })
 
@@ -537,6 +548,59 @@ describe('Rental Subdomain registrar', () => {
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
       expect(await PublicResolver['addr(bytes32)'](subNode2)).to.equal(account3)
     })
+
+    it('should allow subnames to be batch registered with records with a fee', async () => {
+      const node = namehash('test.eth')
+      const duration = 86400
+      await BaseRegistrar.register(labelhash('test'), account, duration * 2)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const totalFee = fee * duration * 2
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await expect(
+        SubdomainRegistrar2.batchRegister(
+          node,
+          ['subname', 'subname2'],
+          [account2, account3],
+          PublicResolver.address,
+          0,
+          duration * 3,
+          [
+            [
+              PublicResolver.interface.encodeFunctionData(
+                'setAddr(bytes32,address)',
+                [subNode, account2],
+              ),
+            ],
+            [
+              PublicResolver.interface.encodeFunctionData(
+                'setAddr(bytes32,address)',
+                [subNode2, account3],
+              ),
+            ],
+          ],
+        ),
+      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}"`)
+    })
   })
   describe('batchRenew()', () => {
     it('should allow a subname to be batch registered with records with a fee', async () => {
@@ -617,6 +681,65 @@ describe('Rental Subdomain registrar', () => {
 
       const balanceAfterRenewal = await Erc20WithAccount2.balanceOf(account2)
       expect(balanceAfter).to.equal(balanceAfterRenewal.add(totalFee))
+    })
+
+    it('should allow a subname to be batch registered with records with a fee', async () => {
+      const node = namehash('test.eth')
+      const duration = 86400
+      await BaseRegistrar.register(labelhash('test'), account, duration * 3)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
+      const fee = (await SubdomainRegistrar.names(node)).registrationFee
+      const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
+      const totalFee = fee * duration * 2
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      await SubdomainRegistrar2.batchRegister(
+        node,
+        ['subname', 'subname2'],
+        [account2, account3],
+        PublicResolver.address,
+        0,
+        duration,
+        [
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [subNode, account2],
+            ),
+          ],
+          [
+            PublicResolver.interface.encodeFunctionData(
+              'setAddr(bytes32,address)',
+              [subNode2, account3],
+            ),
+          ],
+        ],
+      )
+
+      await expect(
+        SubdomainRegistrar2.batchRenew(
+          node,
+          [labelhash('subname'), labelhash('subname2')],
+          duration * 4,
+        ),
+      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
     })
   })
 })
