@@ -33,7 +33,7 @@ abstract contract BaseSubdomainRegistrar {
         wrapper = INameWrapper(_wrapper);
     }
 
-    modifier onlyOwner(bytes32 node) {
+    modifier authorised(bytes32 node) {
         if (!wrapper.canModifyName(node, msg.sender)) {
             revert Unauthorised(node);
         }

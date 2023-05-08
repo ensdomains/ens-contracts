@@ -32,7 +32,7 @@ contract RentalSubdomainRegistrar is
         uint256 fee,
         address beneficiary,
         bool active
-    ) public onlyOwner(node) {
+    ) public authorised(node) {
         names[node] = Name({
             registrationFee: fee,
             token: token,
