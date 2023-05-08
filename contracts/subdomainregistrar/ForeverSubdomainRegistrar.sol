@@ -5,7 +5,7 @@ import {INameWrapper, PARENT_CANNOT_CONTROL, CAN_EXTEND_EXPIRY} from "../wrapper
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
+import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
@@ -67,10 +67,6 @@ contract ForeverSubdomainRegistrar is
         uint256 fee = names[parentNode].registrationFee;
 
         if (fee > 0) {
-            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
-                revert InsufficientFunds();
-            }
-
             IERC20(names[parentNode].token).transferFrom(
                 msg.sender,
                 address(names[parentNode].beneficiary),

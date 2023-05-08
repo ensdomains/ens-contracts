@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {INameWrapper, PARENT_CANNOT_CONTROL} from "../wrapper/INameWrapper.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {BaseSubdomainRegistrar, InsufficientFunds, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
+import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IRentalSubdomainRegistrar} from "./IRentalSubdomainRegistrar.sol";
 
 struct Name {
@@ -14,7 +14,7 @@ struct Name {
     bool active;
 }
 
-error ParentWillHaveExpired(bytes32 node);
+error DurationTooLong(bytes32 node);
 error ParentNameNotSetup(bytes32 parentNode);
 
 contract RentalSubdomainRegistrar is
@@ -69,10 +69,6 @@ contract RentalSubdomainRegistrar is
         _checkParent(parentNode, duration);
 
         if (fee > 0) {
-            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
-                revert InsufficientFunds();
-            }
-
             IERC20(names[parentNode].token).transferFrom(
                 msg.sender,
                 address(names[parentNode].beneficiary),
@@ -133,10 +129,6 @@ contract RentalSubdomainRegistrar is
             labels.length;
 
         if (fee > 0) {
-            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
-                revert InsufficientFunds();
-            }
-
             IERC20(names[parentNode].token).transferFrom(
                 msg.sender,
                 address(names[parentNode].beneficiary),
@@ -173,10 +165,6 @@ contract RentalSubdomainRegistrar is
             labelhashes.length;
 
         if (fee > 0) {
-            if (IERC20(names[parentNode].token).balanceOf(msg.sender) < fee) {
-                revert InsufficientFunds();
-            }
-
             IERC20(names[parentNode].token).transferFrom(
                 msg.sender,
                 address(names[parentNode].beneficiary),
@@ -214,7 +202,7 @@ contract RentalSubdomainRegistrar is
         (, uint64 parentExpiry) = super._checkParent(parentNode);
 
         if (duration + block.timestamp > parentExpiry) {
-            revert ParentWillHaveExpired(parentNode);
+            revert DurationTooLong(parentNode);
         }
     }
 

@@ -5,7 +5,6 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
-error InsufficientFunds();
 error NameNotRegistered();
 error InvalidTokenAddress(address);
 error NameNotSetup(bytes32 node);

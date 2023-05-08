@@ -265,7 +265,7 @@ describe('Rental Subdomain registrar', () => {
           86400,
           [],
         ),
-      ).to.be.revertedWith(`InsufficientFunds()`)
+      ).to.be.revertedWith(`ERC20: transfer amount exceeds balance`)
     })
   })
 
