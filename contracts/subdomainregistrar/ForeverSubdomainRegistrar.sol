@@ -39,6 +39,7 @@ contract ForeverSubdomainRegistrar is
             beneficiary: beneficiary,
             active: active
         });
+        emit NameSetup(node, token, fee, beneficiary, active);
     }
 
     function available(

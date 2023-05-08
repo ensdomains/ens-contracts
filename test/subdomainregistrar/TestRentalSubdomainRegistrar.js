@@ -139,6 +139,34 @@ describe('Rental Subdomain registrar', () => {
     await ethers.provider.send('evm_revert', [result])
   })
 
+  describe('setupDomain()', () => {
+    beforeEach(async () => {
+      await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+    })
+
+    it('should emit an event when setting up a domain', async () => {
+      const tx = await SubdomainRegistrar.setupDomain(
+        node,
+        Erc20.address,
+        1,
+        account,
+        true,
+      )
+
+      await expect(tx)
+        .to.emit(SubdomainRegistrar, 'NameSetup')
+        .withArgs(node, Erc20.address, 1, account, true)
+    })
+  })
+
   describe('register', () => {
     beforeEach(async () => {
       await BaseRegistrar.register(labelhash('test'), account, 86400 * 2)
@@ -304,9 +332,33 @@ describe('Rental Subdomain registrar', () => {
         ),
       ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
     })
+
+    it('should emit an event on registration', async () => {
+      const duration = 86400
+      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+      await Erc20WithAccount2.approve(
+        SubdomainRegistrar.address,
+        ethers.constants.MaxUint256,
+      )
+      const tx = SubdomainRegistrar2.register(
+        node,
+        'subname',
+        account2,
+        EMPTY_ADDRESS,
+        0,
+        duration,
+        [],
+      )
+      const expiry =
+        (await ethers.provider.getBlock('latest')).timestamp + duration
+
+      await expect(tx)
+        .to.emit(SubdomainRegistrar, 'NameRegistered')
+        .withArgs(namehash('subname.test.eth'), expiry)
+    })
   })
 
-  describe('renew', () => {
+  describe('renew()', () => {
     beforeEach(async () => {
       await BaseRegistrar.register(labelhash('test'), account, 200000)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
@@ -363,6 +415,26 @@ describe('Rental Subdomain registrar', () => {
 
       expect(expiry2.toNumber()).to.equal(expiry.toNumber() + 86400)
     })
+
+    it('should revert if expiry is greater than parent', async () => {
+      await expect(
+        SubdomainRegistrar2.renew(node, labelhash('subname'), 84600 * 3),
+      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
+    })
+
+    it('should emit an event on renewal', async () => {
+      const tx = await SubdomainRegistrar2.renew(
+        node,
+        labelhash('subname'),
+        500,
+      )
+      const [, , expiry] = await NameWrapper.getData(
+        namehash('subname.test.eth'),
+      )
+      await expect(tx)
+        .to.emit(SubdomainRegistrar, 'NameRenewed')
+        .withArgs(namehash('subname.test.eth'), expiry)
+    })
   })
 
   describe('register Subnames with records', () => {
@@ -404,45 +476,6 @@ describe('Rental Subdomain registrar', () => {
         account2,
       )
       expect(await PublicResolver['addr(bytes32)'](subNode)).to.equal(account2)
-    })
-
-    it('should revert if expiry is greater than parent', async () => {
-      await BaseRegistrar.register(labelhash('test'), account, 200000)
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-      await NameWrapper.wrapETH2LD(
-        'test',
-        account,
-        CANNOT_UNWRAP,
-        EMPTY_ADDRESS,
-      )
-      expect(await NameWrapper.ownerOf(node)).to.equal(account)
-      await SubdomainRegistrar.setupDomain(
-        node,
-        Erc20.address,
-        1,
-        account,
-        true,
-      )
-      await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
-      await Erc20WithAccount2.approve(
-        SubdomainRegistrar.address,
-        ethers.constants.MaxUint256,
-      )
-      await SubdomainRegistrar2.register(
-        node,
-        'subname',
-        account2,
-        EMPTY_ADDRESS,
-        0,
-        86400,
-        [],
-      )
-
-      expect(await NameWrapper.ownerOf(subNode)).to.equal(account2)
-
-      await expect(
-        SubdomainRegistrar2.renew(node, labelhash('subname'), 84600 * 3),
-      ).to.be.revertedWith(`DurationTooLong("${namehash('test.eth')}")`)
     })
   })
 

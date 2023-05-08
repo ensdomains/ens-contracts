@@ -142,6 +142,30 @@ describe('Forever Subdomain registrar', () => {
     await ethers.provider.send('evm_revert', [result])
   })
 
+  describe('setupDomain()', () => {
+    beforeEach(async () => {
+      const parentDuration = 86400 * 2
+      await BaseRegistrar.register(labelhash('test'), account, parentDuration)
+      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
+      await NameWrapper.wrapETH2LD(
+        'test',
+        account,
+        CANNOT_UNWRAP,
+        EMPTY_ADDRESS,
+      )
+      ;[, , parentExpiry] = await NameWrapper.getData(node)
+      expect(await NameWrapper.ownerOf(node)).to.equal(account)
+    })
+
+    it('should emit an event when a domain is setup', async () => {
+      await expect(
+        SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account, true),
+      )
+        .to.emit(SubdomainRegistrar, 'NameSetup')
+        .withArgs(node, Erc20.address, 1, account, true)
+    })
+  })
+
   describe('register', () => {
     let parentExpiry
     beforeEach(async () => {

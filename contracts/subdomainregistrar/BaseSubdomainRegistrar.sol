@@ -19,6 +19,14 @@ abstract contract BaseSubdomainRegistrar {
 
     event NameRegistered(bytes32 node, uint256 expiry);
     event NameRenewed(bytes32 node, uint256 expiry);
+    event NameSetup(
+        bytes32 node,
+        address token,
+        uint256 registrationFee,
+        address beneficiary,
+        bool active
+    );
+
     uint64 private GRACE_PERIOD = 90 days;
 
     constructor(address _wrapper) {
