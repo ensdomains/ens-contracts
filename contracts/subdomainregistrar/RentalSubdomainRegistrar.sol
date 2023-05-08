@@ -192,7 +192,7 @@ contract RentalSubdomainRegistrar is
             revert NameNotRegistered();
         }
 
-        newExpiry = expiry += duration;
+        newExpiry = expiry + duration;
 
         wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
 
