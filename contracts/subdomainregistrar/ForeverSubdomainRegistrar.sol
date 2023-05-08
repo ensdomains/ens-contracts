@@ -33,10 +33,12 @@ contract ForeverSubdomainRegistrar is
         address beneficiary,
         bool active
     ) public onlyOwner(node) {
-        names[node].registrationFee = fee;
-        names[node].token = token;
-        names[node].beneficiary = beneficiary;
-        names[node].active = true;
+        names[node] = Name({
+            registrationFee: fee,
+            token: token,
+            beneficiary: beneficiary,
+            active: active
+        });
     }
 
     function available(
