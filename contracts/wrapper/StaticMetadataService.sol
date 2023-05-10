@@ -1,7 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-contract StaticMetadataService {
+import {IMetadataService} from "./IMetadataService.sol";
+
+contract StaticMetadataService is IMetadataService {
     string private _uri;
 
     constructor(string memory _metaDataUri) {
