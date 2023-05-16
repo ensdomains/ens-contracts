@@ -1248,7 +1248,6 @@ async function setTLDs(
       console.log(`Transferring .${tld} to new DNS registrar`)
       transactions.push(
         await registrar.enableNode(encodeName(tld), {
-          from: owner,
           gasLimit: 10000000,
         }),
       )
@@ -1260,10 +1259,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, network } = hre
   const { owner } = await getNamedAccounts()
 
-  const registrar = await ethers.getContract('DNSRegistrar')
   const signer = await ethers.getSigner(owner)
 
   let transactions: any[] = []
+  const registrar = await ethers.getContract('DNSRegistrar', signer)
   const registry = await ethers.getContract('ENSRegistry', signer)
   transactions = await setTLDs(
     owner,
