@@ -4,10 +4,7 @@ import "../registry/ENS.sol";
 import "./IReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../root/Controllable.sol";
-
-abstract contract NameResolver {
-    function setName(bytes32 node, string memory name) public virtual;
-}
+import "../resolvers/profiles/NameResolver.sol";
 
 bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000000000000000;
 
