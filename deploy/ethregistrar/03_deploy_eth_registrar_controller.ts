@@ -28,6 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
   const nameWrapper = await ethers.getContract('NameWrapper', owner)
+  const ethOwnedResolver = await ethers.getContract('OwnedResolver', owner)
 
   const deployArgs = {
     from: deployer,
@@ -85,6 +86,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   const resolver = await provider.getResolver('eth')
   if (resolver === null) {
+    registrar.setResolver(ethOwnedResolver.address)
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
     )
@@ -112,6 +114,7 @@ func.dependencies = [
   'ExponentialPremiumPriceOracle',
   'ReverseRegistrar',
   'NameWrapper',
+  'EthOwnedResolver',
 ]
 
 export default func
