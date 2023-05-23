@@ -6,41 +6,16 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IRentalSubdomainRegistrar} from "./IRentalSubdomainRegistrar.sol";
-
-struct Name {
-    uint256 registrationFee; // per second
-    address token; // ERC20 token
-    address beneficiary;
-    bool active;
-}
+import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
 
 error DurationTooLong(bytes32 node);
-error ParentNameNotSetup(bytes32 parentNode);
 
 contract RentalSubdomainRegistrar is
     BaseSubdomainRegistrar,
     ERC1155Holder,
     IRentalSubdomainRegistrar
 {
-    mapping(bytes32 => Name) public names;
-
     constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}
-
-    function setupDomain(
-        bytes32 node,
-        address token,
-        uint256 fee,
-        address beneficiary,
-        bool active
-    ) public authorised(node) {
-        names[node] = Name({
-            registrationFee: fee,
-            token: token,
-            beneficiary: beneficiary,
-            active: active
-        });
-        emit NameSetup(node, token, fee, beneficiary, active);
-    }
 
     function available(
         bytes32 node
@@ -53,129 +28,58 @@ contract RentalSubdomainRegistrar is
         return super.available(node);
     }
 
-    function register(
-        bytes32 parentNode,
-        string calldata label,
-        address newOwner,
-        address resolver,
-        uint16 fuses,
-        uint64 duration,
-        bytes[] calldata records
-    ) public payable {
-        if (!names[parentNode].active) {
-            revert ParentNameNotSetup(parentNode);
-        }
-        uint256 fee = duration * names[parentNode].registrationFee;
-
-        _checkParent(parentNode, duration);
-
-        if (fee > 0) {
-            IERC20(names[parentNode].token).transferFrom(
-                msg.sender,
-                address(names[parentNode].beneficiary),
-                fee
-            );
-        }
-
-        _register(
-            parentNode,
-            label,
-            newOwner,
-            resolver,
-            fuses,
-            uint64(block.timestamp) + duration,
-            records
-        );
-    }
-
     function renew(
         bytes32 parentNode,
-        bytes32 labelhash,
+        string calldata label,
         uint64 duration
     ) external payable returns (uint64 newExpiry) {
         _checkParent(parentNode, duration);
 
-        uint256 fee = duration * names[parentNode].registrationFee;
+        (address token, uint256 fee) = names[parentNode].pricer.price(
+            parentNode,
+            label,
+            duration
+        );
 
         if (fee > 0) {
-            IERC20(names[parentNode].token).transferFrom(
+            IERC20(token).transferFrom(
                 msg.sender,
                 address(names[parentNode].beneficiary),
                 fee
             );
         }
 
-        return _renew(parentNode, labelhash, duration);
-    }
-
-    function batchRegister(
-        bytes32 parentNode,
-        string[] calldata labels,
-        address[] calldata addresses,
-        address resolver,
-        uint16 fuses,
-        uint64 duration,
-        bytes[][] calldata records
-    ) public {
-        if (
-            labels.length != addresses.length || labels.length != records.length
-        ) {
-            revert DataMissing();
-        }
-
-        _checkParent(parentNode, duration);
-
-        uint256 fee = duration *
-            names[parentNode].registrationFee *
-            labels.length;
-
-        if (fee > 0) {
-            IERC20(names[parentNode].token).transferFrom(
-                msg.sender,
-                address(names[parentNode].beneficiary),
-                fee
-            );
-        }
-
-        for (uint256 i = 0; i < labels.length; i++) {
-            _register(
-                parentNode,
-                labels[i],
-                addresses[i],
-                resolver,
-                fuses,
-                uint64(block.timestamp) + duration,
-                records[i]
-            );
-        }
+        return _renew(parentNode, label, duration);
     }
 
     function batchRenew(
         bytes32 parentNode,
-        bytes32[] calldata labelhashes,
+        string[] calldata labels,
         uint64 duration
     ) external payable {
-        if (labelhashes.length == 0) {
+        if (labels.length == 0) {
             revert DataMissing();
         }
 
         _checkParent(parentNode, duration);
 
-        uint256 fee = duration *
-            names[parentNode].registrationFee *
-            labelhashes.length;
-
-        if (fee > 0) {
-            IERC20(names[parentNode].token).transferFrom(
-                msg.sender,
-                address(names[parentNode].beneficiary),
-                fee
-            );
-        }
-
         // TODO: Should we add a check to return the new expiry?
-        for (uint256 i = 0; i < labelhashes.length; i++) {
-            _renew(parentNode, labelhashes[i], duration);
+        ISubnamePricer pricer = names[parentNode].pricer;
+        for (uint256 i = 0; i < labels.length; i++) {
+            (address token, uint256 price) = pricer.price(
+                parentNode,
+                labels[i],
+                duration
+            );
+
+            if (price > 0) {
+                IERC20(token).transferFrom(
+                    msg.sender,
+                    address(names[parentNode].beneficiary),
+                    price
+                );
+            }
+            _renew(parentNode, labels[i], duration);
         }
     }
 
@@ -183,9 +87,10 @@ contract RentalSubdomainRegistrar is
 
     function _renew(
         bytes32 parentNode,
-        bytes32 labelhash,
+        string calldata label,
         uint64 duration
     ) internal returns (uint64 newExpiry) {
+        bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(parentNode, labelhash);
         (, , uint64 expiry) = wrapper.getData(uint256(node));
         if (expiry < block.timestamp) {
@@ -197,14 +102,6 @@ contract RentalSubdomainRegistrar is
         wrapper.setChildFuses(parentNode, labelhash, 0, newExpiry);
 
         emit NameRenewed(node, newExpiry);
-    }
-
-    function _checkParent(bytes32 parentNode, uint64 duration) internal view {
-        (, uint64 parentExpiry) = super._checkParent(parentNode);
-
-        if (duration + block.timestamp > parentExpiry) {
-            revert DurationTooLong(parentNode);
-        }
     }
 
     function _makeNode(

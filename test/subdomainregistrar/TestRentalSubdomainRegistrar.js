@@ -41,6 +41,8 @@ describe('Rental Subdomain registrar', () => {
   let account
   let account2
   let result
+  let RentalPricer
+  let RentalPricerFree
 
   //constants
   const node = namehash('test.eth')
@@ -130,6 +132,9 @@ describe('Rental Subdomain registrar', () => {
 
     SubdomainRegistrar2 = SubdomainRegistrar.connect(signers[1])
     SubdomainRegistrar3 = SubdomainRegistrar.connect(signers[2])
+
+    RentalPricer = await deploy('SinglePriceERC20Rental', 1, Erc20.address)
+    RentalPricerFree = await deploy('SinglePriceERC20Rental', 0, Erc20.address)
   })
 
   beforeEach(async () => {
@@ -155,15 +160,14 @@ describe('Rental Subdomain registrar', () => {
     it('should emit an event when setting up a domain', async () => {
       const tx = await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
 
       await expect(tx)
         .to.emit(SubdomainRegistrar, 'NameSetup')
-        .withArgs(node, Erc20.address, 1, account, true)
+        .withArgs(node, RentalPricer.address, account, true)
     })
   })
 
@@ -180,8 +184,7 @@ describe('Rental Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
@@ -189,9 +192,13 @@ describe('Rental Subdomain registrar', () => {
     it('should allow subdomains to be created', async () => {
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
       const duration = 86400
-      const fee =
-        (await SubdomainRegistrar.names(namehash('test.eth'))).registrationFee *
-        duration
+      const [, fee] = await RentalPricer.price(
+        namehash('test.eth'),
+        'subname',
+        duration,
+      )
+
+      console.log(fee)
 
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
 
@@ -254,8 +261,7 @@ describe('Rental Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(
         node,
-        EMPTY_ADDRESS,
-        0,
+        RentalPricerFree.address,
         account,
         true,
       )
@@ -371,8 +377,7 @@ describe('Rental Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
@@ -451,8 +456,7 @@ describe('Rental Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(
         node,
-        EMPTY_ADDRESS,
-        0,
+        RentalPricerFree.address,
         EMPTY_ADDRESS,
         true,
       )
@@ -537,8 +541,7 @@ describe('Rental Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
@@ -597,8 +600,7 @@ describe('Rental Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
@@ -651,8 +653,7 @@ describe('Rental Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )
@@ -731,8 +732,7 @@ describe('Rental Subdomain registrar', () => {
       await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        RentalPricer.address,
         account,
         true,
       )

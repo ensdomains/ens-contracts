@@ -2,6 +2,8 @@
 pragma solidity ^0.8.17;
 import {INameWrapper, PARENT_CANNOT_CONTROL, IS_DOT_ETH} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -12,8 +14,16 @@ error DataMissing();
 error ParentExpired(bytes32 node);
 error ParentNotWrapped(bytes32 node);
 error DurationTooLong(bytes32 node);
+error ParentNameNotSetup(bytes32 parentNode);
+
+struct Name {
+    ISubnamePricer pricer;
+    address beneficiary;
+    bool active;
+}
 
 abstract contract BaseSubdomainRegistrar {
+    mapping(bytes32 => Name) public names;
     INameWrapper public immutable wrapper;
     using Address for address;
 
@@ -21,8 +31,7 @@ abstract contract BaseSubdomainRegistrar {
     event NameRenewed(bytes32 node, uint256 expiry);
     event NameSetup(
         bytes32 node,
-        address token,
-        uint256 registrationFee,
+        address pricer,
         address beneficiary,
         bool active
     );
@@ -40,7 +49,7 @@ abstract contract BaseSubdomainRegistrar {
         _;
     }
     modifier canBeRegistered(bytes32 parentNode, uint64 duration) {
-        _checkParent(parentNode);
+        _checkParent(parentNode, duration);
         _;
     }
 
@@ -54,6 +63,91 @@ abstract contract BaseSubdomainRegistrar {
         } catch {
             return true;
         }
+    }
+
+    function setupDomain(
+        bytes32 node,
+        ISubnamePricer pricer,
+        address beneficiary,
+        bool active
+    ) public authorised(node) {
+        names[node] = Name({
+            pricer: pricer,
+            beneficiary: beneficiary,
+            active: active
+        });
+        emit NameSetup(node, address(pricer), beneficiary, active);
+    }
+
+    function batchRegister(
+        bytes32 parentNode,
+        string[] calldata labels,
+        address[] calldata addresses,
+        address resolver,
+        uint16 fuses,
+        uint64 duration,
+        bytes[][] calldata records
+    ) public {
+        if (
+            labels.length != addresses.length || labels.length != records.length
+        ) {
+            revert DataMissing();
+        }
+
+        _checkParent(parentNode, duration);
+
+        _batchPayBeneficiary(parentNode, labels, duration);
+
+        //double loop to prevent re-entrancy because _register calls user supplied functions
+
+        for (uint256 i = 0; i < labels.length; i++) {
+            _register(
+                parentNode,
+                labels[i],
+                addresses[i],
+                resolver,
+                fuses,
+                uint64(block.timestamp) + duration,
+                records[i]
+            );
+        }
+    }
+
+    function register(
+        bytes32 parentNode,
+        string calldata label,
+        address newOwner,
+        address resolver,
+        uint16 fuses,
+        uint64 duration,
+        bytes[] calldata records
+    ) public payable {
+        if (!names[parentNode].active) {
+            revert ParentNameNotSetup(parentNode);
+        }
+
+        (address token, uint256 fee) = ISubnamePricer(names[parentNode].pricer)
+            .price(parentNode, label, duration);
+
+        _checkParent(parentNode, duration);
+
+        if (fee > 0) {
+            IERC20(token).transferFrom(
+                msg.sender,
+                address(names[parentNode].beneficiary),
+                fee
+            );
+        }
+
+        _register(
+            parentNode,
+            label,
+            newOwner,
+            resolver,
+            fuses,
+            uint64(block.timestamp) + duration,
+            records
+        );
     }
 
     /* Internal Functions */
@@ -99,6 +193,26 @@ abstract contract BaseSubdomainRegistrar {
         emit NameRegistered(node, expiry);
     }
 
+    function _batchPayBeneficiary(
+        bytes32 parentNode,
+        string[] calldata labels,
+        uint64 duration
+    ) internal {
+        ISubnamePricer pricer = names[parentNode].pricer;
+        for (uint256 i = 0; i < labels.length; i++) {
+            (address token, uint256 price) = pricer.price(
+                parentNode,
+                labels[0],
+                duration
+            );
+            IERC20(token).transferFrom(
+                msg.sender,
+                names[parentNode].beneficiary,
+                price
+            );
+        }
+    }
+
     function _setRecords(
         bytes32 node,
         address resolver,
@@ -118,8 +232,9 @@ abstract contract BaseSubdomainRegistrar {
         }
     }
 
-    function _checkParent(bytes32 node) internal view returns (uint32, uint64) {
-        try wrapper.getData(uint256(node)) returns (
+    function _checkParent(bytes32 parentNode, uint64 duration) internal view {
+        uint64 parentExpiry;
+        try wrapper.getData(uint256(parentNode)) returns (
             address,
             uint32 fuses,
             uint64 expiry
@@ -129,11 +244,15 @@ abstract contract BaseSubdomainRegistrar {
             }
 
             if (block.timestamp > expiry) {
-                revert ParentExpired(node);
+                revert ParentExpired(parentNode);
             }
-            return (fuses, expiry);
+            parentExpiry = expiry;
         } catch {
-            revert ParentNotWrapped(node);
+            revert ParentNotWrapped(parentNode);
+        }
+
+        if (duration + block.timestamp > parentExpiry) {
+            revert DurationTooLong(parentNode);
         }
     }
 }

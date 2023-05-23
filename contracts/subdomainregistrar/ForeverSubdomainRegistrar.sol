@@ -7,40 +7,16 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
+import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
-
-struct Name {
-    uint256 registrationFee; // per registration
-    address token; // ERC20 token
-    address beneficiary;
-    bool active;
-}
 
 contract ForeverSubdomainRegistrar is
     BaseSubdomainRegistrar,
     ERC1155Holder,
     IForeverSubdomainRegistrar
 {
-    mapping(bytes32 => Name) public names;
-
     constructor(address wrapper) BaseSubdomainRegistrar(wrapper) {}
-
-    function setupDomain(
-        bytes32 node,
-        address token,
-        uint256 fee,
-        address beneficiary,
-        bool active
-    ) public authorised(node) {
-        names[node] = Name({
-            registrationFee: fee,
-            token: token,
-            beneficiary: beneficiary,
-            active: active
-        });
-        emit NameSetup(node, token, fee, beneficiary, active);
-    }
 
     function available(
         bytes32 node
@@ -51,40 +27,5 @@ contract ForeverSubdomainRegistrar is
         returns (bool)
     {
         return super.available(node);
-    }
-
-    function register(
-        bytes32 parentNode,
-        string calldata label,
-        address newOwner,
-        address resolver,
-        uint16 fuses,
-        bytes[] calldata records
-    ) public payable {
-        if (!names[parentNode].active) {
-            revert ParentNameNotSetup(parentNode);
-        }
-
-        uint256 fee = names[parentNode].registrationFee;
-
-        if (fee > 0) {
-            IERC20(names[parentNode].token).transferFrom(
-                msg.sender,
-                address(names[parentNode].beneficiary),
-                fee
-            );
-        }
-
-        (, , uint64 parentExpiry) = wrapper.getData(uint256(parentNode));
-
-        _register(
-            parentNode,
-            label,
-            newOwner,
-            resolver,
-            uint32(fuses) | CAN_EXTEND_EXPIRY,
-            parentExpiry,
-            records
-        );
     }
 }
