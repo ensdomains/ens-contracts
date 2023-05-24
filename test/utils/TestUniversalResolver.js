@@ -245,15 +245,12 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.other')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.other'),
           data,
-        )
-        expect(false).to.be.true
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverNotFound')
-      }
+        ),
+      ).to.be.revertedWith('UniversalResolver: Resolver could not be found')
     })
 
     it('should return with revert data if resolver reverts', async () => {

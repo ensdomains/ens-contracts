@@ -141,6 +141,10 @@ contract UniversalResolver is ERC165, Ownable {
             callbackFunction,
             metaData
         );
+        require(
+            results.length != 0,
+            "UniversalResolver: Resolver could not be found"
+        );
         return (results[0], resolver);
     }
 
