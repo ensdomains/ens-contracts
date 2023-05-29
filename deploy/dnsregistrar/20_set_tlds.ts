@@ -1,3 +1,4 @@
+import packet from 'dns-packet'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -6,6 +7,7 @@ const tld_map = {
   mainnet: ['xyz'],
   ropsten: ['xyz'],
   localhost: ['xyz'],
+  hardhat: ['xyz'],
   goerli: [
     'exposed',
     'target',
@@ -1224,6 +1226,10 @@ const tld_map = {
 const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
+function encodeName(name: string) {
+  return '0x' + packet.name.encode(name).toString('hex')
+}
+
 async function setTLDs(
   owner: string,
   registry: any,
@@ -1241,8 +1247,7 @@ async function setTLDs(
     ) {
       console.log(`Transferring .${tld} to new DNS registrar`)
       transactions.push(
-        await registrar.enableNode(tld, {
-          from: owner,
+        await registrar.enableNode(encodeName(tld), {
           gasLimit: 10000000,
         }),
       )
@@ -1254,11 +1259,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, network } = hre
   const { owner } = await getNamedAccounts()
 
-  const registrar = await ethers.getContract('DNSRegistrar')
   const signer = await ethers.getSigner(owner)
 
   let transactions: any[] = []
-  const root = await ethers.getContract('Root', signer)
+  const registrar = await ethers.getContract('DNSRegistrar', signer)
   const registry = await ethers.getContract('ENSRegistry', signer)
   transactions = await setTLDs(
     owner,
@@ -1276,6 +1280,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['dnsregistrar']
-func.dependencies = ['registry', 'root', 'dnssec-oracle']
+func.dependencies = ['registry', 'dnssec-oracle']
 
 export default func

@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "ENS contracts",
   "scripts": {
     "test": "hardhat test",
