@@ -15,8 +15,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!ethOwnedResolver.newlyDeployed) return
 }
 
-func.id = 'resolver'
-func.tags = ['resolvers', 'EthOwnedResolver']
+func.id = 'owned-resolver'
+func.tags = ['resolvers', 'OwnedResolver']
 func.dependencies = []
 
 export default func
