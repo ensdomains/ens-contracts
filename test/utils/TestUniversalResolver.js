@@ -245,12 +245,15 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.other')],
       )
 
-      await expect(
-        universalResolver['resolve(bytes,bytes)'](
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.other'),
           data,
-        ),
-      ).to.be.revertedWith('UniversalResolver: Resolver could not be found')
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('ResolverNotFound')
+      }
     })
 
     it('should return with revert data if resolver reverts', async () => {
@@ -282,14 +285,14 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.eth')],
       )
 
-      await expect(
-        universalResolver['resolve(bytes,bytes)'](
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.eth'),
           data,
-        ),
-      ).to.be.revertedWith(
-        'UniversalResolver: Wildcard on non-extended resolvers is not supported',
-      )
+        )
+      } catch (e) {
+        expect(e.errorName).to.equal('ResolverWildcardNotSupported')
+      }
     })
 
     it('should resolve a record if `supportsInterface` throws', async () => {
