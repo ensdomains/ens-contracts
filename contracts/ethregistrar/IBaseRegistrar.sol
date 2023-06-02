@@ -41,6 +41,18 @@ interface IBaseRegistrar is IERC721 {
         uint256 duration
     ) external returns (uint256);
 
+    /**
+     * @dev Register a name, without modifying the registry.
+     * @param id The token ID (keccak256 of the label).
+     * @param owner The address that should own the registration.
+     * @param duration Duration in seconds for the registration.
+     */
+    function registerOnly(
+        uint256 id,
+        address owner,
+        uint256 duration
+    ) external returns (uint256);
+
     function renew(uint256 id, uint256 duration) external returns (uint256);
 
     /**
