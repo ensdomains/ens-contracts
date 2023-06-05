@@ -3,6 +3,8 @@ pragma solidity >=0.8.4;
 import "../registry/ENS.sol";
 import "./IReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
+import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../root/Controllable.sol";
 
 abstract contract NameResolver {
@@ -13,11 +15,14 @@ bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000
 
 bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
+error InvalidSignature();
+
 // namehash('addr.reverse')
 
 contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     ENS public immutable ens;
     NameResolver public defaultResolver;
+    using ECDSA for bytes32;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(NameResolver indexed resolver);
@@ -93,6 +98,54 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     /**
      * @dev Transfers ownership of the reverse ENS record associated with the
      *      calling account.
+     * @param addr The reverse record to set
+     * @param owner The address to set as the owner of the reverse record in ENS.
+     * @param resolver The resolver of the reverse node
+     * @return The ENS node hash of the reverse record.
+     */
+    function claimForAddrWithSignature(
+        address addr,
+        address owner,
+        address resolver,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature
+    ) public override returns (bytes32) {
+        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 reverseNode = keccak256(
+            abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
+        );
+
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                IReverseRegistrar.claimForAddrWithSignature.selector,
+                addr,
+                owner,
+                resolver,
+                relayer,
+                signatureExpiry
+            )
+        );
+
+        bytes32 message = hash.toEthSignedMessageHash();
+
+        if (
+            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
+            relayer != msg.sender ||
+            signatureExpiry < block.timestamp ||
+            signatureExpiry > block.timestamp + 1 days
+        ) {
+            revert InvalidSignature();
+        }
+
+        emit ReverseClaimed(addr, reverseNode);
+        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
+        return reverseNode;
+    }
+
+    /**
+     * @dev Transfers ownership of the reverse ENS record associated with the
+     *      calling account.
      * @param owner The address to set as the owner of the reverse record in ENS.
      * @param resolver The address of the resolver to set; 0 to leave unchanged.
      * @return The ENS node hash of the reverse record.
@@ -138,6 +191,37 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         string memory name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddr(addr, owner, resolver);
+        NameResolver(resolver).setName(node, name);
+        return node;
+    }
+
+    /**
+     * @dev Sets the `name()` record for the reverse ENS record associated with
+     * the account provided. Updates the resolver to a designated resolver
+     * Only callable by controllers and authorised users
+     * @param addr The reverse record to set
+     * @param owner The owner of the reverse node
+     * @param resolver The resolver of the reverse node
+     * @param name The name to set for this address.
+     * @return The ENS node hash of the reverse record.
+     */
+    function setNameForAddrWithSignature(
+        address addr,
+        address owner,
+        address resolver,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature,
+        string memory name
+    ) public override returns (bytes32) {
+        bytes32 node = claimForAddrWithSignature(
+            addr,
+            owner,
+            resolver,
+            relayer,
+            signatureExpiry,
+            signature
+        );
         NameResolver(resolver).setName(node, name);
         return node;
     }

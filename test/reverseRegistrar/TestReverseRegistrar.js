@@ -20,11 +20,13 @@ function assertReverseClaimedEventEmitted(tx, addr, node) {
 }
 
 contract('ReverseRegistrar', function (accounts) {
-  let node, node2, node3, dummyOwnableReverseNode
+  let node, node2, node3, dummyOwnableReverseNode, signers
 
   let registrar, resolver, ens, nameWrapper, dummyOwnable, defaultResolver
 
   beforeEach(async () => {
+    signers = await ethers.getSigners()
+
     node = getReverseNode(accounts[0])
     node2 = getReverseNode(accounts[1])
     node3 = getReverseNode(accounts[2])
@@ -250,6 +252,88 @@ contract('ReverseRegistrar', function (accounts) {
         await resolver.name(dummyOwnableReverseNode),
         'dummyownable.eth',
       )
+    })
+  })
+
+  describe('claimForAddrWithSignature', () => {
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const funcId = ethers.utils
+        .id(
+          'claimForAddrWithSignature(address,address,address,address,uint256,bytes)',
+        )
+        .substring(0, 10)
+      const block = await ethers.provider.getBlock('latest')
+      const signatureExpiry = block.timestamp + 3600
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
+            [
+              funcId,
+              accounts[0],
+              accounts[1],
+              resolver.address,
+              accounts[2],
+              signatureExpiry,
+            ],
+          ),
+        ),
+      )
+
+      await registrar.claimForAddrWithSignature(
+        accounts[0],
+        accounts[1],
+        resolver.address,
+        accounts[2],
+        signatureExpiry,
+        signature,
+        {
+          from: accounts[2],
+        },
+      )
+      assert.equal(await ens.owner(node), accounts[1])
+    })
+  })
+
+  describe('setNameForAddrWithSignature', () => {
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const funcId = ethers.utils
+        .id(
+          'claimForAddrWithSignature(address,address,address,address,uint256,bytes)',
+        )
+        .substring(0, 10)
+      const block = await ethers.provider.getBlock('latest')
+      const signatureExpiry = block.timestamp + 3600
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
+            [
+              funcId,
+              accounts[0],
+              accounts[1],
+              resolver.address,
+              accounts[2],
+              signatureExpiry,
+            ],
+          ),
+        ),
+      )
+
+      await registrar.setNameForAddrWithSignature(
+        accounts[0],
+        accounts[1],
+        resolver.address,
+        accounts[2],
+        signatureExpiry,
+        signature,
+        'hello.eth',
+        {
+          from: accounts[2],
+        },
+      )
+      assert.equal(await ens.owner(node), accounts[1])
+      assert.equal(await resolver.name(node), 'hello.eth')
     })
   })
 
