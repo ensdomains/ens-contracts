@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
       default: 0,
     },
     owner: {
-      default: 0,
+      default: 1,
     },
   },
   external: {
