@@ -59,6 +59,7 @@ func.dependencies = [
   'registry',
   'wrapper',
   'LegacyPublicResolver',
+  'ExponentialPremiumPriceOracle',
   'ReverseRegistrar',
 ]
 
