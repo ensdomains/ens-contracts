@@ -33,7 +33,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.id = 'setupRegistrar'
-func.tags = ['ethregistrar', 'BaseRegistrarImplementation']
+func.tags = ['setupRegistrar']
 //Runs after the root is setup
 func.dependencies = ['setupRoot']
 
