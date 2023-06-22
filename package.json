@@ -38,7 +38,7 @@
     "envfile": "^6.17.0",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.6.1",
-    "hardhat": "^2.9.9",
+    "hardhat": "^2.16.0",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.11.10",

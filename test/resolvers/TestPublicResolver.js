@@ -103,6 +103,17 @@ contract('PublicResolver', function (accounts) {
       assert.equal(tx.logs[0].args.node, node)
       assert.equal(tx.logs[0].args.newVersion, 1)
     })
+
+    it('forbids clearing records if all locked', async () => {
+      var lockTx = await resolver.lockAll(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'AllRecordsLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
   })
 
   describe('addr', async () => {
@@ -242,6 +253,30 @@ contract('PublicResolver', function (accounts) {
           gas: 3000000,
           value: 1,
         }),
+      )
+    })
+
+    it('forbids setting addr if locked', async () => {
+      var lockTx = await resolver.lockAddr(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'AddrLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+          from: accounts[0],
+        }),
+      )
+    })
+
+    it('forbids clearing records if addr locked', async () => {
+      var lockTx = await resolver.lockAddr(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'AddrLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
       )
     })
   })
@@ -415,6 +450,28 @@ contract('PublicResolver', function (accounts) {
       await resolver.clearRecords(node)
       assert.equal(await resolver.name(node), '')
     })
+
+    it('forbids setting name if locked', async () => {
+      var lockTx = await resolver.lockName(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'NameLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setName(node, 'name2', { from: accounts[0] }),
+      )
+    })
+
+    it('forbids clearing records if name locked', async () => {
+      var lockTx = await resolver.lockName(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'NameLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
   })
 
   describe('pubkey', async () => {
@@ -533,6 +590,33 @@ contract('PublicResolver', function (accounts) {
         '0x0000000000000000000000000000000000000000000000000000000000000000',
       )
     })
+
+    it('forbids setting pubkey if locked', async () => {
+      var lockTx = await resolver.lockPubkey(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'PubkeyLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setPubkey(
+          node,
+          '0x1000000000000000000000000000000000000000000000000000000000000000',
+          '0x2000000000000000000000000000000000000000000000000000000000000000',
+          { from: accounts[0] },
+        ),
+      )
+    })
+
+    it('forbids clearing records if pubkey locked', async () => {
+      var lockTx = await resolver.lockPubkey(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'PubkeyLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
   })
 
   describe('ABI', async () => {
@@ -588,6 +672,28 @@ contract('PublicResolver', function (accounts) {
       result = await resolver.ABI(node, 0xffffffff)
       assert.equal(result[0], 0)
     })
+
+    it('forbids setting ABI if locked', async () => {
+      var lockTx = await resolver.lockABI(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'ABILocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setABI(node, 0x1, '0x666f6f', { from: accounts[0] }),
+      )
+    })
+
+    it('forbids clearing records if ABI locked', async () => {
+      var lockTx = await resolver.lockABI(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'ABILocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
   })
 
   describe('text', async () => {
@@ -635,6 +741,82 @@ contract('PublicResolver', function (accounts) {
       await basicSetText()
       await resolver.clearRecords(node)
       assert.equal(await resolver.text(node, 'url'), '')
+    })
+
+    it('forbids setting text if all locked', async () => {
+      var lockTx = await resolver.methods['lockText(bytes32)'](node, {
+        from: accounts[0],
+      })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'AllTextLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setText(node, 'url', url, { from: accounts[0] }),
+      )
+      await exceptions.expectFailure(
+        resolver.setText(node, 'test', 'val', { from: accounts[0] }),
+      )
+    })
+
+    it('forbids clearing records if all text locked', async () => {
+      var lockTx = await resolver.methods['lockText(bytes32)'](node, {
+        from: accounts[0],
+      })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'AllTextLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
+
+    it('permits setting other text if specific text locked', async () => {
+      var lockTx = await resolver.methods['lockText(bytes32,string)'](
+        node,
+        'url',
+        { from: accounts[0] },
+      )
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'TextLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+      assert.equal(lockTx.logs[0].args.key, 'url')
+
+      await resolver.setText(node, 'test', 'val', { from: accounts[0] })
+      assert.equal(await resolver.text(node, 'test'), 'val')
+    })
+
+    it('forbids setting specific text if all locked', async () => {
+      var lockTx = await resolver.methods['lockText(bytes32,string)'](
+        node,
+        'url',
+        { from: accounts[0] },
+      )
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'TextLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+      assert.equal(lockTx.logs[0].args.key, 'url')
+
+      await exceptions.expectFailure(
+        resolver.setText(node, 'url', url, { from: accounts[0] }),
+      )
+    })
+
+    it('forbids clearing records if specific text locked', async () => {
+      var lockTx = await resolver.methods['lockText(bytes32,string)'](
+        node,
+        'url',
+        { from: accounts[0] },
+      )
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'TextLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+      assert.equal(lockTx.logs[0].args.key, 'url')
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
     })
   })
 
@@ -731,6 +913,32 @@ contract('PublicResolver', function (accounts) {
       await basicSetContenthash()
       await resolver.clearRecords(node)
       assert.equal(await resolver.contenthash(node), null)
+    })
+
+    it('forbids setting contenthash if locked', async () => {
+      var lockTx = await resolver.lockContenthash(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'ContenthashLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setContenthash(
+          node,
+          '0x0000000000000000000000000000000000000000000000000000000000000001',
+          { from: accounts[0] },
+        ),
+      )
+    })
+
+    it('forbids clearing records if contenthash locked', async () => {
+      var lockTx = await resolver.lockContenthash(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'ContenthashLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
     })
   })
 
@@ -998,6 +1206,50 @@ contract('PublicResolver', function (accounts) {
       await resolver.clearRecords(node)
       assert.equal(await resolver.zonehash(node), null)
     })
+
+    it('forbids setting zonehash if locked', async () => {
+      var lockTx = await resolver.lockDNS(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'DNSLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setZonehash(
+          node,
+          '0x0000000000000000000000000000000000000000000000000000000000000001',
+          { from: accounts[0] },
+        ),
+      )
+    })
+
+    it('forbids setting dnsRecords if locked', async () => {
+      var lockTx = await resolver.lockDNS(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'DNSLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      // a.eth. 3600 IN A 4.5.6.7
+      const arec = '016103657468000001000100000e10000404050607'
+      // eth. 86400 IN SOA ns1.ethdns.xyz. hostmaster.test.eth. 2018061502 15620 1800 1814400 14400
+      const soarec =
+        '03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840'
+      const rec = '0x' + arec + soarec
+
+      await exceptions.expectFailure(
+        resolver.setDNSRecords(node, rec, { from: accounts[0] }),
+      )
+    })
+
+    it('forbids clearing records if DNS locked', async () => {
+      var lockTx = await resolver.lockDNS(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'DNSLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
+      )
+    })
   })
 
   describe('implementsInterface', async () => {
@@ -1092,6 +1344,30 @@ contract('PublicResolver', function (accounts) {
       assert.equal(
         await resolver.interfaceImplementer(node, '0x12345678'),
         '0x0000000000000000000000000000000000000000',
+      )
+    })
+
+    it('forbids setting interface if locked', async () => {
+      var lockTx = await resolver.lockInterface(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'InterfaceLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.setInterface(node, '0x12345678', resolver.address, {
+          from: accounts[0],
+        }),
+      )
+    })
+
+    it('forbids clearing records if interface locked', async () => {
+      var lockTx = await resolver.lockInterface(node, { from: accounts[0] })
+      assert.equal(lockTx.logs.length, 1)
+      assert.equal(lockTx.logs[0].event, 'InterfaceLocked')
+      assert.equal(lockTx.logs[0].args.node, node)
+
+      await exceptions.expectFailure(
+        resolver.clearRecords(node, { from: accounts[0] }),
       )
     })
   })

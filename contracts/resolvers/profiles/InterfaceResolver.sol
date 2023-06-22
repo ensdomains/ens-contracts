@@ -6,8 +6,13 @@ import "../ResolverBase.sol";
 import "./AddrResolver.sol";
 import "./IInterfaceResolver.sol";
 
+error InterfaceIsLocked();
+
 abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
     mapping(uint64 => mapping(bytes32 => mapping(bytes4 => address))) versionable_interfaces;
+    mapping(bytes32 => bool) interface_locks;
+
+    event InterfaceLocked(bytes32 indexed node);
 
     /**
      * Sets an interface associated with a name.
@@ -21,6 +26,9 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         bytes4 interfaceID,
         address implementer
     ) external virtual authorised(node) {
+        if (isInterfaceLocked(node)) {
+            revert InterfaceIsLocked();
+        }
         versionable_interfaces[recordVersions[node]][node][
             interfaceID
         ] = implementer;
@@ -73,6 +81,26 @@ abstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {
         }
 
         return a;
+    }
+
+    /**
+     * Returns true if the interfaces have been locked for this ENS node.
+     * @param node The ENS node to check.
+     */
+    function isInterfaceLocked(
+        bytes32 node
+    ) public view virtual returns (bool) {
+        return interface_locks[node] || isAllLocked(node);
+    }
+
+    /**
+     * Locks the interfaces for this ENS node.
+     * @param node The node to lock.
+     */
+    function lockInterface(bytes32 node) public virtual authorised(node) {
+        interface_locks[node] = true;
+        _setUnclearable(node);
+        emit InterfaceLocked(node);
     }
 
     function supportsInterface(

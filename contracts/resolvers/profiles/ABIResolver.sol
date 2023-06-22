@@ -4,8 +4,13 @@ pragma solidity >=0.8.4;
 import "./IABIResolver.sol";
 import "../ResolverBase.sol";
 
+error ABIIsLocked();
+
 abstract contract ABIResolver is IABIResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_abis;
+    mapping(bytes32 => bool) abi_locks;
+
+    event ABILocked(bytes32 indexed node);
 
     /**
      * Sets the ABI associated with an ENS node.
@@ -20,6 +25,10 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         uint256 contentType,
         bytes calldata data
     ) external virtual authorised(node) {
+        if (isABILocked(node)) {
+            revert ABIIsLocked();
+        }
+
         // Content types must be powers of 2
         require(((contentType - 1) & contentType) == 0);
 
@@ -57,6 +66,24 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
         }
 
         return (0, bytes(""));
+    }
+
+    /**
+     * Returns true if the ABI has been locked for this ENS node.
+     * @param node The ENS node to check.
+     */
+    function isABILocked(bytes32 node) public view virtual returns (bool) {
+        return abi_locks[node] || isAllLocked(node);
+    }
+
+    /**
+     * Locks the ABI for this ENS node.
+     * @param node The node to lock.
+     */
+    function lockABI(bytes32 node) public virtual authorised(node) {
+        abi_locks[node] = true;
+        _setUnclearable(node);
+        emit ABILocked(node);
     }
 
     function supportsInterface(

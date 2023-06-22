@@ -4,8 +4,13 @@ pragma solidity >=0.8.4;
 import "../ResolverBase.sol";
 import "./IContentHashResolver.sol";
 
+error ContenthashIsLocked();
+
 abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 => bytes)) versionable_hashes;
+    mapping(bytes32 => bool) contenthash_locks;
+
+    event ContenthashLocked(bytes32 indexed node);
 
     /**
      * Sets the contenthash associated with an ENS node.
@@ -17,6 +22,9 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         bytes32 node,
         bytes calldata hash
     ) external virtual authorised(node) {
+        if (isContenthashLocked(node)) {
+            revert ContenthashIsLocked();
+        }
         versionable_hashes[recordVersions[node]][node] = hash;
         emit ContenthashChanged(node, hash);
     }
@@ -30,6 +38,26 @@ abstract contract ContentHashResolver is IContentHashResolver, ResolverBase {
         bytes32 node
     ) external view virtual override returns (bytes memory) {
         return versionable_hashes[recordVersions[node]][node];
+    }
+
+    /**
+     * Returns true if the contenthash has been locked for this ENS node.
+     * @param node The ENS node to check.
+     */
+    function isContenthashLocked(
+        bytes32 node
+    ) public view virtual returns (bool) {
+        return contenthash_locks[node] || isAllLocked(node);
+    }
+
+    /**
+     * Locks the contenthash for this ENS node.
+     * @param node The node to lock.
+     */
+    function lockContenthash(bytes32 node) public virtual authorised(node) {
+        contenthash_locks[node] = true;
+        _setUnclearable(node);
+        emit ContenthashLocked(node);
     }
 
     function supportsInterface(
