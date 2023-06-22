@@ -20,6 +20,6 @@ contract OpenRenewalManager is ReverseClaimer {
         bytes32 labelhash,
         uint64 expiry
     ) public returns (uint64) {
-        nameWrapper.extendExpiry(parentNode, labelhash, expiry);
+        return nameWrapper.extendExpiry(parentNode, labelhash, expiry);
     }
 }
