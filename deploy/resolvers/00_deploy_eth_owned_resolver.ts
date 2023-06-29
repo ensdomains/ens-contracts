@@ -14,6 +14,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
   const ethOwnedResolver = await deploy('OwnedResolver', deployArgs)
 
+  if (!ethOwnedResolver.newlyDeployed) return
+
   const registry = await ethers.getContract('ENSRegistry', owner)
   const registrar = await ethers.getContract(
     'BaseRegistrarImplementation',
