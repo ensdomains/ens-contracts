@@ -34,7 +34,8 @@ contract('UniversalResolver', function (accounts) {
     reverseRegistrar,
     reverseNode,
     batchGateway,
-    dummyOldResolver
+    dummyOldResolver,
+    dummyRevertResolver
 
   before(async () => {
     batchGateway = (await ethers.getContractAt('BatchGateway', ZERO_ADDRESS))
@@ -79,6 +80,7 @@ contract('UniversalResolver', function (accounts) {
     ])
     dummyOffchainResolver = await deploy('DummyOffchainResolver')
     dummyOldResolver = await deploy('DummyOldResolver')
+    dummyRevertResolver = await deploy('DummyRevertResolver')
 
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('eth'), accounts[0], {
       from: accounts[0],
@@ -121,6 +123,12 @@ contract('UniversalResolver', function (accounts) {
       accounts[0],
       { from: accounts[0] },
     )
+    await ens.setSubnodeOwner(
+      namehash.hash('test.eth'),
+      sha3('revert-resolver'),
+      accounts[0],
+      { from: accounts[0] },
+    )
     let name = 'test.eth'
     for (let i = 0; i < 5; i += 1) {
       const parent = name
@@ -136,6 +144,11 @@ contract('UniversalResolver', function (accounts) {
     await ens.setResolver(
       namehash.hash('offchain.test.eth'),
       dummyOffchainResolver.address,
+      { from: accounts[0] },
+    )
+    await ens.setResolver(
+      namehash.hash('revert-resolver.test.eth'),
+      dummyRevertResolver.address,
       { from: accounts[0] },
     )
 
@@ -226,20 +239,60 @@ contract('UniversalResolver', function (accounts) {
       expect(ret).to.equal(accounts[1])
     })
 
+    it('should throw if a resolver is not set on the queried name', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('no-resolver.test.other')],
+      )
+
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('no-resolver.test.other'),
+          data,
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('ResolverNotFound')
+      }
+    })
+
+    it('should return with revert data if resolver reverts', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('revert-resolver.test.eth')],
+      )
+
+      const result = await universalResolver['resolve(bytes,bytes)'](
+        dns.hexEncodeName('revert-resolver.test.eth'),
+        data,
+      )
+      try {
+        publicResolver.interface.decodeFunctionResult(
+          'addr(bytes32)',
+          result['0'],
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('Error')
+        expect(e.errorSignature).to.equal('Error(string)')
+        expect(e.reason).to.equal('Not Supported')
+      }
+    })
+
     it('should throw if a resolver is not set on the queried name, and the found resolver does not support resolve()', async () => {
       const data = publicResolver.interface.encodeFunctionData(
         'addr(bytes32)',
         [namehash.hash('no-resolver.test.eth')],
       )
 
-      await expect(
-        universalResolver['resolve(bytes,bytes)'](
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.eth'),
           data,
-        ),
-      ).to.be.revertedWith(
-        'UniversalResolver: Wildcard on non-extended resolvers is not supported',
-      )
+        )
+      } catch (e) {
+        expect(e.errorName).to.equal('ResolverWildcardNotSupported')
+      }
     })
 
     it('should resolve a record if `supportsInterface` throws', async () => {

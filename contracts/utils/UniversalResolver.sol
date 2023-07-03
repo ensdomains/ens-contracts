@@ -20,6 +20,10 @@ error OffchainLookup(
     bytes extraData
 );
 
+error ResolverNotFound();
+
+error ResolverWildcardNotSupported();
+
 struct MulticallData {
     bytes name;
     bytes[] data;
@@ -150,7 +154,7 @@ contract UniversalResolver is ERC165, Ownable {
         (Resolver resolver, , uint256 finalOffset) = findResolver(name);
         resolverAddress = address(resolver);
         if (resolverAddress == address(0)) {
-            return (results, address(0));
+            revert ResolverNotFound();
         }
 
         bool isWildcard = finalOffset != 0;
@@ -434,7 +438,7 @@ contract UniversalResolver is ERC165, Ownable {
                     return (true, returnData, extraData, false);
                 }
             } else {
-                returnData = revertData;
+                returnData = bytes.concat(errorId, revertData);
                 return (false, returnData, extraData, false);
             }
         }
@@ -522,10 +526,9 @@ contract UniversalResolver is ERC165, Ownable {
         bool isCallback = multicallData.name.length == 0;
         bool hasExtendedResolver = _hasExtendedResolver(multicallData.resolver);
 
-        require(
-            !multicallData.isWildcard || hasExtendedResolver,
-            "UniversalResolver: Wildcard on non-extended resolvers is not supported"
-        );
+        if (multicallData.isWildcard && !hasExtendedResolver) {
+            revert ResolverWildcardNotSupported();
+        }
 
         for (uint256 i = 0; i < length; i++) {
             bytes memory item = multicallData.data[i];
