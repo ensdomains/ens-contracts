@@ -102,4 +102,34 @@ describe('HexUtils', () => {
       expect(valid).to.equal(false)
     })
   })
+
+  describe.only('Special cases for hexStringToBytes32()', () => {
+    const hex32Bytes =
+      '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da'
+    it('odd length 1', async () => {
+      await expect(HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes), 0, 63))
+        .to.be.reverted
+    })
+
+    it('odd length 2', async () => {
+      await expect(
+        HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes + '00'), 1, 64),
+      ).to.be.reverted
+    })
+
+    it('not enough length', async () => {
+      await expect(HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes), 0, 2))
+        .to.be.reverted
+    })
+
+    it('exceed length', async () => {
+      await expect(
+        HexUtils.hexStringToBytes32(
+          toUtf8Bytes(hex32Bytes + '1234'),
+          0,
+          64 + 4,
+        ),
+      ).to.be.reverted
+    })
+  })
 })
