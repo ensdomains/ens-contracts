@@ -7,7 +7,7 @@ import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 /**
- * @dev A proxy contract that wraps new registrar controllers to ensure they don't shorten the duration of registrations.
+ * @dev A proxy contract that wraps new registrar controllers to ensure they don't shorten the duration of registrations by causing an overflow.
  */
 contract ETHRegistrarControllerProxy {
     address public immutable controller;
@@ -68,7 +68,7 @@ contract ETHRegistrarAdmin is Ownable {
      */
     function deployControllerProxy(
         address controller
-    ) external returns (address) {
+    ) public returns (address) {
         address proxyAddress = getProxyAddress(controller);
         if (!proxyAddress.isContract()) {
             new ETHRegistrarControllerProxy{salt: bytes32(0)}(
@@ -84,6 +84,7 @@ contract ETHRegistrarAdmin is Ownable {
      * @param controller The controller contract to authorize.
      */
     function addController(address controller) external onlyOwner {
+        deployControllerProxy(controller);
         registrar.addController(getProxyAddress(controller));
     }
 
@@ -107,8 +108,8 @@ contract ETHRegistrarAdmin is Ownable {
                 keccak256(
                     abi.encodePacked(
                         type(ETHRegistrarControllerProxy).creationCode,
-                        controller,
-                        registrar
+                        uint256(uint160(controller)),
+                        uint256(uint160(address(registrar)))
                     )
                 )
             );

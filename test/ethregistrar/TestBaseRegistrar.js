@@ -2,6 +2,11 @@ const ENS = artifacts.require('./registry/ENSRegistry')
 const BaseRegistrar = artifacts.require(
   './registrar/BaseRegistrarImplementation',
 )
+const ETHRegistrarAdmin = artifacts.require('./registrar/ETHRegistrarAdmin')
+const ETHRegistrarControllerProxy = artifacts.require(
+  './registrar/ETHRegistrarControllerProxy',
+)
+const { expect } = require('chai')
 
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
@@ -21,19 +26,33 @@ contract('BaseRegistrar', function (accounts) {
 
   let ens
   let registrar
+  let admin
+  let controllerProxy
 
   before(async () => {
     ens = await ENS.new()
 
+    // Deploy the registrar
     registrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
       from: ownerAccount,
     })
-    await registrar.addController(controllerAccount, { from: ownerAccount })
+
+    // Deploy the admin contract and transfer ownership to it
+    admin = await ETHRegistrarAdmin.new(registrar.address)
+    await registrar.transferOwnership(admin.address)
+
+    // Create a new proxy for the controller
+    await admin.addController(controllerAccount, { from: ownerAccount })
+    controllerProxy = await ETHRegistrarControllerProxy.at(
+      await admin.getProxyAddress(controllerAccount),
+    )
+
+    // Set the registrar as owner of .eth
     await ens.setSubnodeOwner('0x0', sha3('eth'), registrar.address)
   })
 
   it('should allow new registrations', async () => {
-    var tx = await registrar.register(
+    var tx = await controllerProxy.register(
       sha3('newname'),
       registrantAccount,
       86400,
@@ -52,7 +71,7 @@ contract('BaseRegistrar', function (accounts) {
   })
 
   it('should allow registrations without updating the registry', async () => {
-    var tx = await registrar.registerOnly(
+    var tx = await controllerProxy.registerOnly(
       sha3('silentname'),
       registrantAccount,
       86400,
@@ -69,7 +88,9 @@ contract('BaseRegistrar', function (accounts) {
 
   it('should allow renewals', async () => {
     var oldExpires = await registrar.nameExpires(sha3('newname'))
-    await registrar.renew(sha3('newname'), 86400, { from: controllerAccount })
+    await controllerProxy.renew(sha3('newname'), 86400, {
+      from: controllerAccount,
+    })
     assert.equal(
       (await registrar.nameExpires(sha3('newname'))).toNumber(),
       oldExpires.add(toBN(86400)).toNumber(),
@@ -78,7 +99,7 @@ contract('BaseRegistrar', function (accounts) {
 
   it('should only allow the controller to register', async () => {
     await exceptions.expectFailure(
-      registrar.register(sha3('foo'), otherAccount, 86400, {
+      controllerProxy.register(sha3('foo'), otherAccount, 86400, {
         from: otherAccount,
       }),
     )
@@ -86,13 +107,13 @@ contract('BaseRegistrar', function (accounts) {
 
   it('should only allow the controller to renew', async () => {
     await exceptions.expectFailure(
-      registrar.renew(sha3('newname'), 86400, { from: otherAccount }),
+      controllerProxy.renew(sha3('newname'), 86400, { from: otherAccount }),
     )
   })
 
   it('should not permit registration of already registered names', async () => {
     await exceptions.expectFailure(
-      registrar.register(sha3('newname'), otherAccount, 86400, {
+      controllerProxy.register(sha3('newname'), otherAccount, 86400, {
         from: controllerAccount,
       }),
     )
@@ -101,7 +122,7 @@ contract('BaseRegistrar', function (accounts) {
 
   it('should not permit renewing a name that is not registered', async () => {
     await exceptions.expectFailure(
-      registrar.renew(sha3('name3'), 86400, { from: controllerAccount }),
+      controllerProxy.renew(sha3('name3'), 86400, { from: controllerAccount }),
     )
   })
 
@@ -180,7 +201,9 @@ contract('BaseRegistrar', function (accounts) {
   })
 
   it('should allow renewal during the grace period', async () => {
-    await registrar.renew(sha3('newname'), 86400, { from: controllerAccount })
+    await controllerProxy.renew(sha3('newname'), 86400, {
+      from: controllerAccount,
+    })
   })
 
   it('should allow registration of an expired domain', async () => {
@@ -188,20 +211,26 @@ contract('BaseRegistrar', function (accounts) {
     var expires = await registrar.nameExpires(sha3('newname'))
     var grace = await registrar.GRACE_PERIOD()
     await evm.advanceTime(expires.toNumber() - ts + grace.toNumber() + 3600)
+    await evm.mine()
 
-    try {
-      await registrar.ownerOf(sha3('newname'))
-      assert.fail('should throw an exception')
-    } catch (error) {}
+    await expect(registrar.ownerOf(sha3('newname'))).to.be.reverted
 
-    await registrar.register(sha3('newname'), otherAccount, 86400, {
+    await controllerProxy.register(sha3('newname'), otherAccount, 86400, {
       from: controllerAccount,
     })
     assert.equal(await registrar.ownerOf(sha3('newname')), otherAccount)
   })
 
   it('should allow the owner to set a resolver address', async () => {
-    await registrar.setResolver(accounts[1], { from: ownerAccount })
+    await admin.setResolver(accounts[1], { from: ownerAccount })
     assert.equal(await ens.resolver(namehash.hash('eth')), accounts[1])
+  })
+
+  it('should not allow renewals of longer than 365000000 days', async () => {
+    await expect(
+      controllerProxy.renew(sha3('newname'), 365000000 * 86400 + 1, {
+        from: controllerAccount,
+      }),
+    ).to.be.reverted
   })
 })
