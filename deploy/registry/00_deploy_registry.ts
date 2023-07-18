@@ -12,8 +12,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer, owner } = await getNamedAccounts()
 
   if (network.tags.legacy) {
+    console.log(deployer)
+    console.log(owner)
     const contract = await deploy('LegacyENSRegistry', {
-      from: deployer,
+      from: owner,
       args: [],
       log: true,
       contract: await deployments.getArtifact('ENSRegistry'),
@@ -22,7 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     const legacyRegistry = await ethers.getContract('LegacyENSRegistry')
 
     const rootTx = await legacyRegistry
-      .connect(await ethers.getSigner(deployer))
+      .connect(await ethers.getSigner(owner))
       .setOwner(ZERO_HASH, owner)
     console.log(`Setting owner of root node to owner (tx: ${rootTx.hash})`)
     await rootTx.wait()

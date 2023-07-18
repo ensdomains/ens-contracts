@@ -25,7 +25,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployArgs = {
     from: deployer,
-    args: [registry.address, registrar.address, metadata.address],
+    args: [
+      registry.address,
+      '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85',
+      metadata.address,
+    ],
     log: true,
   }
 
@@ -52,21 +56,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const artifact = await deployments.getArtifact('INameWrapper')
   const interfaceId = computeInterfaceId(new Interface(artifact.abi))
-  const providerWithEns = new ethers.providers.StaticJsonRpcProvider(
-    ethers.provider.connection.url,
-    { ...ethers.provider.network, ensAddress: registry.address },
-  )
-  const resolver = await providerWithEns.getResolver('eth')
-  if (resolver === null) {
+  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
+  if (resolver === ethers.constants.AddressZero) {
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for NameWrapper`,
     )
     return
   }
-  const resolverContract = await ethers.getContractAt(
-    'PublicResolver',
-    resolver.address,
-  )
+  const resolverContract = await ethers.getContractAt('OwnedResolver', resolver)
   const tx3 = await resolverContract.setInterface(
     ethers.utils.namehash('eth'),
     interfaceId,
@@ -81,10 +78,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 func.id = 'name-wrapper'
 func.tags = ['wrapper', 'NameWrapper']
 func.dependencies = [
-  'BaseRegistrarImplementation',
   'StaticMetadataService',
   'registry',
   'ReverseRegistrar',
+  'OwnedResolver',
 ]
 
 export default func

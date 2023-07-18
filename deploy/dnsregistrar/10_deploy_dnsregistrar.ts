@@ -40,6 +40,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['DNSRegistrar']
-func.dependencies = ['registry', 'dnssec-oracle', 'OffchainDNSResolver', 'Root']
+func.dependencies = [
+  'registry',
+  'dnssec-oracle',
+  'OffchainDNSResolver',
+  'Root',
+  'setupRoot',
+]
 
 export default func
