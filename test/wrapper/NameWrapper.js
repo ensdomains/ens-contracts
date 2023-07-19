@@ -9,7 +9,6 @@ const { shouldRespectConstraints } = require('./Constraints.behaviour')
 const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
 const { deploy } = require('../test-utils/contracts')
 const { EMPTY_BYTES32, EMPTY_ADDRESS } = require('../test-utils/constants')
-
 const abiCoder = new ethers.utils.AbiCoder()
 
 use(solidity)
@@ -53,6 +52,8 @@ describe('Name Wrapper', () => {
   let NameWrapper2
   let NameWrapperH
   let NameWrapperUpgraded
+  let NameWrappperAdmin
+  let NameWrapperControllerProxy
   let MetaDataservice
   let signers
   let accounts
@@ -139,6 +140,12 @@ describe('Name Wrapper', () => {
     NameWrapper2 = NameWrapper.connect(signers[1])
     NameWrapperH = NameWrapper.connect(signers[2])
     NameWrapper3 = NameWrapperH
+
+    NameWrapperAdmin = await deploy('NameWrapperAdmin', NameWrapper.address)
+    await NameWrapper.transferOwnership(NameWrapperAdmin.address)
+    NameWrapperControllerProxy = await ethers.getContractFactory(
+      'NameWrapperControllerProxy',
+    )
 
     NameWrapperUpgraded = await deploy(
       'UpgradedNameWrapperMock',
@@ -978,8 +985,11 @@ describe('Name Wrapper', () => {
 
       // Register from another address with registerAndWrap()
       await BaseRegistrar.addController(NameWrapper.address)
-      await NameWrapper.setController(account, account)
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperAdmin.addController(account)
+      const NameWrapperProxy = NameWrapperControllerProxy.attach(
+        await NameWrapperAdmin.getProxyAddress(account),
+      )
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account2,
         DAY,
@@ -1892,7 +1902,7 @@ describe('Name Wrapper', () => {
     it('Reverts if called by someone that is not the owner', async () => {
       // Attempt to attack the contract by setting the upgrade contract to themselves
       await expect(
-        NameWrapper2.setUpgradeContract(account2),
+        NameWrapperAdmin.connect(signers[2]).setUpgradeContract(account2),
       ).to.be.revertedWith('Ownable: caller is not the owner')
     })
     it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
@@ -1910,7 +1920,7 @@ describe('Name Wrapper', () => {
       ).to.equal(false)
 
       //set the upgradeContract of the NameWrapper contract
-      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+      await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
       expect(
         await BaseRegistrar.isApprovedForAll(
@@ -1927,7 +1937,7 @@ describe('Name Wrapper', () => {
     })
     it('Will setApprovalForAll for the old upgradeContract addresses in the registrar and registry to false', async () => {
       //set the upgradeContract of the NameWrapper contract
-      await NameWrapper.setUpgradeContract(DUMMY_ADDRESS)
+      await NameWrapperAdmin.setUpgradeContract(DUMMY_ADDRESS)
 
       expect(
         await BaseRegistrar.isApprovedForAll(
@@ -1940,7 +1950,7 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
 
       //set the upgradeContract of the NameWrapper contract
-      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+      await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
       expect(
         await BaseRegistrar.isApprovedForAll(
@@ -1967,7 +1977,7 @@ describe('Name Wrapper', () => {
     })
     it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
       //set the upgradeContract of the NameWrapper contract
-      await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+      await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
       expect(
         await BaseRegistrar.isApprovedForAll(
@@ -1983,7 +1993,7 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
 
       //set the upgradeContract of the NameWrapper contract
-      await NameWrapper.setUpgradeContract(ZERO_ADDRESS)
+      await NameWrapperAdmin.setUpgradeContract(ZERO_ADDRESS)
 
       expect(
         await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS),
@@ -2024,7 +2034,7 @@ describe('Name Wrapper', () => {
         )
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
           NameWrapperUpgraded.address,
@@ -2063,7 +2073,7 @@ describe('Name Wrapper', () => {
           NameWrapper.address,
         )
 
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper2.upgrade(encodedName, 0)
 
@@ -2106,13 +2116,13 @@ describe('Name Wrapper', () => {
           CAN_DO_EVERYTHING,
           EMPTY_ADDRESS,
         )
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         expect(await NameWrapper.upgradeContract()).to.equal(
           NameWrapperUpgraded.address,
         )
 
-        await NameWrapper.setUpgradeContract(EMPTY_ADDRESS)
+        await NameWrapperAdmin.setUpgradeContract(EMPTY_ADDRESS)
         await expect(NameWrapper.upgrade(encodedName, 0)).to.be.revertedWith(
           `CannotUpgrade()`,
         )
@@ -2132,7 +2142,7 @@ describe('Name Wrapper', () => {
         )
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const expectedExpiry = (await BaseRegistrar.nameExpires(labelHash)).add(
           GRACE_PERIOD,
@@ -2167,7 +2177,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
         )
 
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await NameWrapper.upgrade(encodedName, 0)
 
@@ -2192,7 +2202,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
         )
 
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await NameWrapper.upgrade(encodedName, 0)
 
@@ -2215,7 +2225,7 @@ describe('Name Wrapper', () => {
           EMPTY_ADDRESS,
         )
 
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const expectedExpiry = (await BaseRegistrar.nameExpires(labelHash)).add(
           GRACE_PERIOD,
@@ -2250,7 +2260,7 @@ describe('Name Wrapper', () => {
         )
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await expect(NameWrapper2.upgrade(encodedName, 0)).to.be.revertedWith(
           `Unauthorised("${nameHash}", "${account2}")`,
@@ -2288,7 +2298,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrapped).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper.upgrade(encodedName, 0)
 
@@ -2315,7 +2325,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrappedXYZ).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper2.upgrade(encodeName('to-upgrade.xyz'), 0)
 
@@ -2374,7 +2384,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrapped).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper.upgrade(encodeName(name), 0)
 
@@ -2415,7 +2425,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrapped).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await NameWrapper.upgrade(encodedName, 0)
 
@@ -2448,7 +2458,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrapped).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await NameWrapper.upgrade(encodedName, 0)
 
@@ -2485,7 +2495,7 @@ describe('Name Wrapper', () => {
         ).to.equal(account3)
 
         // set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper.upgrade(encodeName('to-upgrade.xyz'), '0x')
         expect(tx)
@@ -2513,7 +2523,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrappedXYZ).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         const tx = await NameWrapper.upgrade(
           encodeName('to-upgrade.xyz'),
@@ -2551,7 +2561,7 @@ describe('Name Wrapper', () => {
         expect(ownerOfWrappedXYZ).to.equal(account)
 
         //set the upgradeContract of the NameWrapper contract
-        await NameWrapper.setUpgradeContract(NameWrapperUpgraded.address)
+        await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         await expect(
           NameWrapper2.upgrade(encodeName('to-upgrade.xyz'), 0),
@@ -6066,14 +6076,18 @@ describe('Name Wrapper', () => {
     const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+    let NameWrapperProxy
 
     before(async () => {
       await BaseRegistrar.addController(NameWrapper.address)
-      await NameWrapper.setController(account, true)
+      await NameWrapperAdmin.addController(account)
+      NameWrapperProxy = NameWrapperControllerProxy.attach(
+        await NameWrapperAdmin.getProxyAddress(account),
+      )
     })
 
     it('should register and wrap names', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6091,7 +6105,7 @@ describe('Name Wrapper', () => {
     })
 
     it('allows specifying a resolver address', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6103,20 +6117,19 @@ describe('Name Wrapper', () => {
     })
 
     it('does not allow non controllers to register names', async () => {
-      await NameWrapper.setController(account, false)
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.connect(signers[2]).registerAndWrapETH2LD(
           label,
           account,
           86400,
           EMPTY_ADDRESS,
           CAN_DO_EVERYTHING,
         ),
-      ).to.be.revertedWith('Controllable: Caller is not a controller')
+      ).to.be.reverted
     })
 
     it('Transfers the wrapped token to the target address.', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account2,
         86400,
@@ -6128,7 +6141,7 @@ describe('Name Wrapper', () => {
 
     it('Does not allow wrapping with a target address of 0x0', async () => {
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.registerAndWrapETH2LD(
           label,
           EMPTY_ADDRESS,
           86400,
@@ -6140,7 +6153,7 @@ describe('Name Wrapper', () => {
 
     it('Does not allow wrapping with a target address of the wrapper contract address.', async () => {
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.registerAndWrapETH2LD(
           label,
           NameWrapper.address,
           86400,
@@ -6154,7 +6167,7 @@ describe('Name Wrapper', () => {
 
     it('Does not allows fuse to be burned if CANNOT_UNWRAP has not been burned.', async () => {
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.registerAndWrapETH2LD(
           label,
           account,
           86400,
@@ -6166,7 +6179,7 @@ describe('Name Wrapper', () => {
 
     it('Allows fuse to be burned if CANNOT_UNWRAP has been burned and expiry set', async () => {
       const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6178,7 +6191,7 @@ describe('Name Wrapper', () => {
     })
 
     it('automatically sets PARENT_CANNOT_CONTROL and IS_DOT_ETH', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6190,13 +6203,14 @@ describe('Name Wrapper', () => {
     })
 
     it('Errors when adding a number greater than uint16 for fuses', async () => {
-      const tx = await NameWrapper.populateTransaction.registerAndWrapETH2LD(
-        label,
-        account,
-        86400,
-        EMPTY_ADDRESS,
-        273,
-      )
+      const tx =
+        await NameWrapperProxy.populateTransaction.registerAndWrapETH2LD(
+          label,
+          account,
+          86400,
+          EMPTY_ADDRESS,
+          273,
+        )
 
       const rogueFuse = '40000' // 2 ** 18 in hex
       tx.data = tx.data.replace('00111', rogueFuse)
@@ -6227,7 +6241,7 @@ describe('Name Wrapper', () => {
 
     it('Will not wrap a name with an empty label', async () => {
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.registerAndWrapETH2LD(
           '',
           account,
           86400,
@@ -6242,7 +6256,7 @@ describe('Name Wrapper', () => {
         'yutaioxtcsbzrqhdjmltsdfkgomogohhcchjoslfhqgkuhduhxqsldnurwrrtoicvthwxytonpcidtnkbrhccaozdtoznedgkfkifsvjukxxpkcmgcjprankyzerzqpnuteuegtfhqgzcxqwttyfewbazhyilqhyffufxrookxrnjkmjniqpmntcbrowglgdpkslzechimsaonlcvjkhhvdvkvvuztihobmivifuqtvtwinljslusvhhbwhuhzty'
       expect(longString.length).to.equal(256)
       await expect(
-        NameWrapper.registerAndWrapETH2LD(
+        NameWrapperProxy.registerAndWrapETH2LD(
           longString,
           account,
           86400,
@@ -6253,7 +6267,7 @@ describe('Name Wrapper', () => {
     })
 
     it('emits Wrap event', async () => {
-      const tx = await NameWrapper.registerAndWrapETH2LD(
+      const tx = await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6274,7 +6288,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Emits TransferSingle event', async () => {
-      const tx = await NameWrapper.registerAndWrapETH2LD(
+      const tx = await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6283,7 +6297,13 @@ describe('Name Wrapper', () => {
       )
       await expect(tx)
         .to.emit(NameWrapper, 'TransferSingle')
-        .withArgs(account, EMPTY_ADDRESS, account, wrappedTokenId, 1)
+        .withArgs(
+          NameWrapperProxy.address,
+          EMPTY_ADDRESS,
+          account,
+          wrappedTokenId,
+          1,
+        )
     })
   })
 
@@ -6291,14 +6311,18 @@ describe('Name Wrapper', () => {
     const label = 'register'
     const labelHash = labelhash(label)
     const wrappedTokenId = namehash(label + '.eth')
+    let NameWrapperProxy
 
     before(async () => {
       await BaseRegistrar.addController(NameWrapper.address)
-      await NameWrapper.setController(account, true)
+      await NameWrapperAdmin.addController(account)
+      NameWrapperProxy = NameWrapperControllerProxy.attach(
+        await NameWrapperAdmin.getProxyAddress(account),
+      )
     })
 
     it('Renews names', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6306,14 +6330,14 @@ describe('Name Wrapper', () => {
         CAN_DO_EVERYTHING,
       )
       const expires = await BaseRegistrar.nameExpires(labelHash)
-      await NameWrapper.renew(labelHash, 86400)
+      await NameWrapperProxy.renew(labelHash, 86400)
       expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(
         expires.toNumber() + 86400,
       )
     })
 
     it('Renews names and can extend wrapper expiry', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         86400,
@@ -6322,7 +6346,7 @@ describe('Name Wrapper', () => {
       )
       const expires = await BaseRegistrar.nameExpires(labelHash)
       const expectedExpiry = expires.toNumber() + 86400
-      await NameWrapper.renew(labelHash, 86400)
+      await NameWrapperProxy.renew(labelHash, 86400)
       expect(await BaseRegistrar.nameExpires(labelHash)).to.equal(
         expires.toNumber() + 86400,
       )
@@ -6333,7 +6357,7 @@ describe('Name Wrapper', () => {
     })
 
     it('Renewing name less than required to unexpire it still has original owner/fuses', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label,
         account,
         DAY,
@@ -6351,7 +6375,7 @@ describe('Name Wrapper', () => {
       expect(expiryBefore).to.be.at.most(block1.timestamp + GRACE_PERIOD)
 
       //renew for less than the grace period
-      await NameWrapper.renew(labelHash, 1 * DAY)
+      await NameWrapperProxy.renew(labelHash, 1 * DAY)
 
       const [ownerAfter, fusesAfter, expiryAfter] = await NameWrapper.getData(
         wrappedTokenId,
@@ -6366,27 +6390,6 @@ describe('Name Wrapper', () => {
       )
       // still expired
       expect(expiryAfter).to.be.at.most(block1.timestamp + GRACE_PERIOD)
-    })
-  })
-
-  describe('Controllable', () => {
-    it('allows the owner to add and remove controllers', async () => {
-      const tx = await NameWrapper.setController(account, true)
-      expect(tx)
-        .to.emit(NameWrapper, 'ControllerChanged')
-        .withArgs(account, true)
-
-      const tx2 = await NameWrapper.setController(account, false)
-      expect(tx2)
-        .to.emit(NameWrapper, 'ControllerChanged')
-        .withArgs(account, false)
-    })
-
-    it('does not allow non-owners to add or remove controllers', async () => {
-      await NameWrapper.setController(account, true)
-
-      await expect(NameWrapper2.setController(account2, true)).to.be.reverted
-      await expect(NameWrapper2.setController(account, false)).to.be.reverted
     })
   })
 
@@ -6577,7 +6580,7 @@ describe('Name Wrapper', () => {
     })
 
     it('owner can set a new MetadataService', async () => {
-      await NameWrapper.setMetadataService(account2)
+      await NameWrapperAdmin.setMetadataService(account2)
       expect(await NameWrapper.metadataService()).to.equal(account2)
     })
 
@@ -7065,12 +7068,17 @@ describe('Name Wrapper', () => {
     const labelHash2 = labelhash('sub2')
     const wrappedTokenId2 = namehash('sub2.sub1.eth')
 
+    let NameWrapperProxy
+
     before(async () => {
       await BaseRegistrar.addController(NameWrapper.address)
-      await NameWrapper.setController(account, true)
+      await NameWrapperAdmin.addController(account)
+      NameWrapperProxy = NameWrapperControllerProxy.attach(
+        await NameWrapperAdmin.getProxyAddress(account),
+      )
     })
     it('Trying to burn child fuses when re-registering a name on the old controller reverts', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label1,
         hacker,
         1 * DAY,
@@ -7123,7 +7131,7 @@ describe('Name Wrapper', () => {
       ).to.be.revertedWith(`Unauthorised("${wrappedTokenId1}", "${hacker}")`)
     })
     it('Renewing a wrapped, but expired name .eth in the wrapper, but unexpired on the registrar resyncs expiry', async () => {
-      await NameWrapper.registerAndWrapETH2LD(
+      await NameWrapperProxy.registerAndWrapETH2LD(
         label1,
         account,
         1 * DAY,
@@ -7150,7 +7158,7 @@ describe('Name Wrapper', () => {
         NameWrapper.address,
       )
 
-      await NameWrapper.renew(labelHash1, 1)
+      await NameWrapperProxy.renew(labelHash1, 1)
 
       owner = await NameWrapper.ownerOf(wrappedTokenId1)
       let [, , expiry] = await NameWrapper.getData(wrappedTokenId1)
@@ -7165,6 +7173,11 @@ describe('Name Wrapper', () => {
   describe('TLD recovery', () => {
     it('Wraps a name which get stuck forever can be recovered by ROOT owner', async () => {
       expect(await NameWrapper.ownerOf(namehash('xyz'))).to.equal(EMPTY_ADDRESS)
+
+      await NameWrapperAdmin.addController(account)
+      const NameWrapperProxy = NameWrapperControllerProxy.attach(
+        await NameWrapperAdmin.getProxyAddress(account),
+      )
 
       await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrap(encodeName('xyz'), account, EMPTY_ADDRESS)

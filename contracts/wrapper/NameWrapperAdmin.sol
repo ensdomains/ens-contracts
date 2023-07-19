@@ -88,7 +88,7 @@ contract NameWrapperAdmin is Ownable {
      */
     function deployControllerProxy(
         address controller
-    ) external returns (address) {
+    ) public returns (address) {
         address proxyAddress = getProxyAddress(controller);
         if (!proxyAddress.isContract()) {
             new NameWrapperControllerProxy{salt: bytes32(0)}(
@@ -104,6 +104,7 @@ contract NameWrapperAdmin is Ownable {
      * @param controller The controller contract to authorize.
      */
     function addController(address controller) external onlyOwner {
+        deployControllerProxy(controller);
         Controllable(wrapper).setController(getProxyAddress(controller), true);
     }
 
@@ -127,8 +128,8 @@ contract NameWrapperAdmin is Ownable {
                 keccak256(
                     abi.encodePacked(
                         type(NameWrapperControllerProxy).creationCode,
-                        controller,
-                        wrapper
+                        uint256(uint160(controller)),
+                        uint256(uint160(wrapper))
                     )
                 )
             );
