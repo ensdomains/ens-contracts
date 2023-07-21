@@ -6391,6 +6391,19 @@ describe('Name Wrapper', () => {
       // still expired
       expect(expiryAfter).to.be.at.most(block1.timestamp + GRACE_PERIOD)
     })
+
+    it('should not allow renewals of longer than 365000000 days', async () => {
+      await NameWrapperProxy.registerAndWrapETH2LD(
+        label,
+        account,
+        86400,
+        EMPTY_ADDRESS,
+        CAN_DO_EVERYTHING,
+      )
+      await expect(
+        NameWrapperProxy.renew(wrappedTokenId, 365000000 * 86400 + 1),
+      ).to.be.reverted
+    })
   })
 
   describe('isWrapped(bytes32 node)', () => {
