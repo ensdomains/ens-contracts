@@ -3,6 +3,9 @@ pragma solidity ^0.8.17;
 
 import "./INameWrapper.sol";
 import "./Controllable.sol";
+import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
+import {BytesUtils} from "./BytesUtils.sol";
+import {ENS} from "../registry/ENS.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Create2} from "@openzeppelin/contracts/utils/Create2.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
@@ -70,13 +73,17 @@ contract NameWrapperControllerProxy {
  *      This was implemented in response to a vulnerability disclosure that would permit the DAO to appoint a malicious controller
  *      that shortens the registration period of affected ENS names. This contract exists to prevent that from happening.
  */
-contract NameWrapperAdmin is Ownable {
+contract NameWrapperAdmin is Ownable, INameWrapperUpgrade {
+    using BytesUtils for bytes;
     using Address for address;
 
-    address public immutable wrapper;
+    INameWrapper public immutable wrapper;
+    ENS public immutable ens;
+    INameWrapperUpgrade public upgradeContract;
 
     constructor(address _wrapper) {
-        wrapper = _wrapper;
+        wrapper = INameWrapper(_wrapper);
+        ens = wrapper.ens();
     }
 
     /**
@@ -93,7 +100,7 @@ contract NameWrapperAdmin is Ownable {
         if (!proxyAddress.isContract()) {
             new NameWrapperControllerProxy{salt: bytes32(0)}(
                 controller,
-                INameWrapper(wrapper)
+                wrapper
             );
         }
         return proxyAddress;
@@ -105,7 +112,10 @@ contract NameWrapperAdmin is Ownable {
      */
     function addController(address controller) external onlyOwner {
         deployControllerProxy(controller);
-        Controllable(wrapper).setController(getProxyAddress(controller), true);
+        Controllable(address(wrapper)).setController(
+            getProxyAddress(controller),
+            true
+        );
     }
 
     /**
@@ -113,7 +123,10 @@ contract NameWrapperAdmin is Ownable {
      * @param controller The controller contract to deauthorize.
      */
     function removeController(address controller) external onlyOwner {
-        Controllable(wrapper).setController(getProxyAddress(controller), false);
+        Controllable(address(wrapper)).setController(
+            getProxyAddress(controller),
+            false
+        );
     }
 
     /**
@@ -129,7 +142,7 @@ contract NameWrapperAdmin is Ownable {
                     abi.encodePacked(
                         type(NameWrapperControllerProxy).creationCode,
                         uint256(uint160(controller)),
-                        uint256(uint160(wrapper))
+                        uint256(uint160(address(wrapper)))
                     )
                 )
             );
@@ -142,7 +155,7 @@ contract NameWrapperAdmin is Ownable {
     function setMetadataService(
         IMetadataService _metadataService
     ) public onlyOwner {
-        INameWrapper(wrapper).setMetadataService(_metadataService);
+        wrapper.setMetadataService(_metadataService);
     }
 
     /**
@@ -153,7 +166,36 @@ contract NameWrapperAdmin is Ownable {
      */
     function setUpgradeContract(
         INameWrapperUpgrade _upgradeAddress
-    ) public onlyOwner {
-        INameWrapper(wrapper).setUpgradeContract(_upgradeAddress);
+    ) external onlyOwner {
+        if (address(upgradeContract) == address(0)) {
+            wrapper.setUpgradeContract(this);
+        }
+        upgradeContract = _upgradeAddress;
+        if (address(upgradeContract) == address(0)) {
+            wrapper.setUpgradeContract(INameWrapperUpgrade(address(0)));
+        }
+    }
+
+    function wrapFromUpgrade(
+        bytes calldata name,
+        address wrappedOwner,
+        uint32 fuses,
+        uint64 expiry,
+        address approved,
+        bytes calldata extraData
+    ) external {
+        require(msg.sender == address(wrapper));
+        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+            bytes32 node = name.namehash(0);
+            ens.setOwner(node, address(upgradeContract));
+        }
+        upgradeContract.wrapFromUpgrade(
+            name,
+            wrappedOwner,
+            fuses,
+            expiry,
+            approved,
+            extraData
+        );
     }
 }
