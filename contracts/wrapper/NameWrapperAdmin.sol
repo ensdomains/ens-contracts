@@ -78,11 +78,13 @@ contract NameWrapperAdmin is Ownable, INameWrapperUpgrade {
     using Address for address;
 
     INameWrapper public immutable wrapper;
+    IBaseRegistrar public immutable registrar;
     ENS public immutable ens;
     INameWrapperUpgrade public upgradeContract;
 
     constructor(address _wrapper) {
         wrapper = INameWrapper(_wrapper);
+        registrar = wrapper.registrar();
         ens = wrapper.ens();
     }
 
@@ -185,10 +187,17 @@ contract NameWrapperAdmin is Ownable, INameWrapperUpgrade {
         bytes calldata extraData
     ) external {
         require(msg.sender == address(wrapper));
+        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
+        bytes32 parentNode = name.namehash(offset);
+        bytes32 node = keccak256(abi.encodePacked(parentNode, labelhash));
         if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
-            bytes32 node = name.namehash(0);
-            ens.setOwner(node, address(upgradeContract));
+            registrar.transferFrom(
+                address(wrapper),
+                address(upgradeContract),
+                uint256(labelhash)
+            );
         }
+        ens.setOwner(node, address(upgradeContract));
         upgradeContract.wrapFromUpgrade(
             name,
             wrappedOwner,

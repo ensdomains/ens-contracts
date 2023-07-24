@@ -1905,102 +1905,38 @@ describe('Name Wrapper', () => {
         NameWrapperAdmin.connect(signers[2]).setUpgradeContract(account2),
       ).to.be.revertedWith('Ownable: caller is not the owner')
     })
-    it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
-      expect(
-        await BaseRegistrar.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(false)
-      expect(
-        await EnsRegistry.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(false)
-
+    it('Will set the admin as the upgrade contract when one is set', async () => {
       //set the upgradeContract of the NameWrapper contract
       await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
+      expect(await NameWrapper.upgradeContract()).to.equal(
+        NameWrapperAdmin.address,
+      )
+      expect(await NameWrapperAdmin.upgradeContract()).to.equal(
+        NameWrapperUpgraded.address,
+      )
       expect(
         await BaseRegistrar.isApprovedForAll(
           NameWrapper.address,
           NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
-      expect(
-        await EnsRegistry.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
-    })
-    it('Will setApprovalForAll for the old upgradeContract addresses in the registrar and registry to false', async () => {
-      //set the upgradeContract of the NameWrapper contract
-      await NameWrapperAdmin.setUpgradeContract(DUMMY_ADDRESS)
-
-      expect(
-        await BaseRegistrar.isApprovedForAll(
-          NameWrapper.address,
-          DUMMY_ADDRESS,
-        ),
-      ).to.equal(true)
-      expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS),
-      ).to.equal(true)
-
-      //set the upgradeContract of the NameWrapper contract
-      await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
-
-      expect(
-        await BaseRegistrar.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
-      expect(
-        await EnsRegistry.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
-
-      expect(
-        await BaseRegistrar.isApprovedForAll(
-          NameWrapper.address,
-          DUMMY_ADDRESS,
         ),
       ).to.equal(false)
       expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, DUMMY_ADDRESS),
+        await EnsRegistry.isApprovedForAll(
+          NameWrapper.address,
+          NameWrapperUpgraded.address,
+        ),
       ).to.equal(false)
     })
-    it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
+    it('Will unset the admin as the upgrade contract when the upgrade contract is removed', async () => {
       //set the upgradeContract of the NameWrapper contract
       await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
-
-      expect(
-        await BaseRegistrar.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
-      expect(
-        await EnsRegistry.isApprovedForAll(
-          NameWrapper.address,
-          NameWrapperUpgraded.address,
-        ),
-      ).to.equal(true)
 
       //set the upgradeContract of the NameWrapper contract
       await NameWrapperAdmin.setUpgradeContract(ZERO_ADDRESS)
 
-      expect(
-        await BaseRegistrar.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS),
-      ).to.equal(false)
-      expect(
-        await EnsRegistry.isApprovedForAll(NameWrapper.address, ZERO_ADDRESS),
-      ).to.equal(false)
+      expect(await NameWrapper.upgradeContract()).to.equal(ZERO_ADDRESS)
+      expect(await NameWrapperAdmin.upgradeContract()).to.equal(ZERO_ADDRESS)
     })
   })
 
@@ -2119,6 +2055,9 @@ describe('Name Wrapper', () => {
         await NameWrapperAdmin.setUpgradeContract(NameWrapperUpgraded.address)
 
         expect(await NameWrapper.upgradeContract()).to.equal(
+          NameWrapperAdmin.address,
+        )
+        expect(await NameWrapperAdmin.upgradeContract()).to.equal(
           NameWrapperUpgraded.address,
         )
 
