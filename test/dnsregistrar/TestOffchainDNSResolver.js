@@ -15,11 +15,12 @@ const DummyLegacyTextResolver = artifacts.require(
 const DNSSECImpl = artifacts.require('./DNSSECImpl')
 const namehash = require('eth-ens-namehash')
 const utils = require('./Helpers/Utils')
-const { exceptions } = require('@ensdomains/test-utils')
-const { assert, expect } = require('chai')
+const { expect } = require('chai')
 const { rootKeys, hexEncodeSignedSet } = require('../utils/dnsutils.js')
 const { ethers } = require('hardhat')
+const { deploy } = require('../test-utils/contracts')
 
+const OFFCHAIN_GATEWAY = 'https://localhost:8000/query'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 contract('OffchainDNSResolver', function (accounts) {
@@ -28,9 +29,9 @@ contract('OffchainDNSResolver', function (accounts) {
   var dnssec = null
   var suffixes = null
   var offchainResolver = null
+  var dummyResolver = null
   var ownedResolver = null
   var registrar = null
-  var now = Math.round(new Date().getTime() / 1000)
   const validityPeriod = 2419200
   const expiration = Date.now() / 1000 - 15 * 60 + validityPeriod
   const inception = Date.now() / 1000 - 15 * 60
@@ -80,9 +81,13 @@ contract('OffchainDNSResolver', function (accounts) {
     offchainResolver = await OffchainDNSResolver.new(
       ens.address,
       dnssec.address,
-      'https://localhost:8000/query',
+      OFFCHAIN_GATEWAY,
     )
     ownedResolver = await OwnedResolver.new()
+
+    await ethers.getContractFactory('DummyOffchainResolver')
+
+    dummyResolver = await deploy('DummyOffchainResolver')
 
     registrar = await DNSRegistrarContract.new(
       ZERO_ADDRESS, // Previous registrar
@@ -295,5 +300,17 @@ contract('OffchainDNSResolver', function (accounts) {
     expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal(
       'test',
     )
+  })
+
+  it('should return the correct result', async function () {
+    const name = 'test.test'
+    const pr = await PublicResolver.at(offchainResolver.address)
+    const callData = pr.contract.methods['addr(bytes32)'](
+      namehash.hash(name),
+    ).encodeABI()
+    console.log('dummyResolver.address', dummyResolver.address)
+    await expect(
+      doResolveCallback(name, [`ENS1 ${dummyResolver.address}`], callData),
+    ).to.be.revertedWith('InvalidOperation')
   })
 })
