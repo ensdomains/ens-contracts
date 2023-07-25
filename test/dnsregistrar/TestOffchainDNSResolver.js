@@ -280,9 +280,9 @@ contract('OffchainDNSResolver', function (accounts) {
       [`ENS1 ${resolver.address} foobie bletch`],
       callData,
     )
-    expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal(
-      'foobie bletch',
-    )
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['bytes', 'string'], result)[1],
+    ).to.equal('foobie bletch')
   })
 
   it('correctly resolves using legacy resolvers without resolve() support', async function () {

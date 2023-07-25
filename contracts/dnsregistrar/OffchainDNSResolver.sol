@@ -10,7 +10,6 @@ import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../utils/HexUtils.sol";
-import "hardhat/console.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
@@ -100,8 +99,6 @@ contract OffchainDNSResolver is IExtendedResolver {
                 iter.rdataOffset,
                 iter.nextOffset
             );
-
-            console.log("dnsresolver is %s", dnsresolver);
 
             // If we found a valid record, try to resolve it
             if (dnsresolver != address(0)) {
@@ -249,20 +246,16 @@ contract OffchainDNSResolver is IExtendedResolver {
         bytes memory data
     ) internal view returns (bytes memory) {
         if (target.isContract()) {
-            console.log("call from contract");
             bool result = LowLevelCallUtils.functionStaticCall(
                 address(target),
                 data
             );
-            console.log("result is %s", result);
             uint256 size = LowLevelCallUtils.returnDataSize();
-            console.log("size is %s", size);
             if (result) {
                 return LowLevelCallUtils.readReturnData(0, size);
             }
             // Failure
             if (size >= 4) {
-                console.log("target is %s", target);
                 bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
                 if (bytes4(errorId) == OffchainLookup.selector) {
                     // Offchain lookup. Decode the revert message and create our own that nests it.
@@ -281,8 +274,7 @@ contract OffchainDNSResolver is IExtendedResolver {
                             (address, string[], bytes, bytes4, bytes)
                         );
 
-                    console.log("sender is %s", sender);
-                    if (sender != target) {
+                    if (sender != msg.sender) {
                         revert InvalidOperation();
                     }
 
@@ -297,7 +289,6 @@ contract OffchainDNSResolver is IExtendedResolver {
             }
             LowLevelCallUtils.propagateRevert();
         } else {
-            console.log("call from not contract");
             string[] memory urls = new string[](1);
             urls[0] = gatewayURL;
 
