@@ -74,6 +74,9 @@ contract NameWrapperControllerProxy {
  *      that shortens the registration period of affected ENS names. This contract exists to prevent that from happening.
  */
 contract NameWrapperAdmin is Ownable, INameWrapperUpgrade {
+    bytes32 private constant ETH_NODE =
+        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+
     using BytesUtils for bytes;
     using Address for address;
 
@@ -190,7 +193,7 @@ contract NameWrapperAdmin is Ownable, INameWrapperUpgrade {
         (bytes32 labelhash, uint256 offset) = name.readLabel(0);
         bytes32 parentNode = name.namehash(offset);
         bytes32 node = keccak256(abi.encodePacked(parentNode, labelhash));
-        if (fuses & IS_DOT_ETH == IS_DOT_ETH) {
+        if (parentNode == ETH_NODE) {
             registrar.transferFrom(
                 address(wrapper),
                 address(upgradeContract),
