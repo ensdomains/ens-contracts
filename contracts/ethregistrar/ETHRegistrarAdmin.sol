@@ -46,7 +46,7 @@ contract ETHRegistrarControllerProxy {
 }
 
 /**
- * @dev Contract to act as the owner of the NameWrapper, permitting its owner to make certain changes with additional checks.
+ * @dev Contract to act as the owner of the ETHRegistrar, permitting its owner to make certain changes with additional checks.
  *      This was implemented in response to a vulnerability disclosure that would permit the DAO to appoint a malicious controller
  *      that shortens the registration period of affected ENS names. This contract exists to prevent that from happening.
  */
