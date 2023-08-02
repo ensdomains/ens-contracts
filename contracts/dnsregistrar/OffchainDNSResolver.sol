@@ -274,7 +274,7 @@ contract OffchainDNSResolver is IExtendedResolver {
                             (address, string[], bytes, bytes4, bytes)
                         );
 
-                    if (sender != msg.sender) {
+                    if (sender != target) {
                         revert InvalidOperation();
                     }
 

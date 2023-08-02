@@ -12,13 +12,15 @@ const DummyExtendedDNSSECResolver = artifacts.require(
 const DummyLegacyTextResolver = artifacts.require(
   './DummyLegacyTextResolver.sol',
 )
+const DummyNonCCIPAwareResolver = artifacts.require(
+  './DummyNonCCIPAwareResolver.sol',
+)
 const DNSSECImpl = artifacts.require('./DNSSECImpl')
 const namehash = require('eth-ens-namehash')
 const utils = require('./Helpers/Utils')
 const { expect } = require('chai')
 const { rootKeys, hexEncodeSignedSet } = require('../utils/dnsutils.js')
 const { ethers } = require('hardhat')
-const { deploy } = require('../test-utils/contracts')
 
 const OFFCHAIN_GATEWAY = 'https://localhost:8000/query'
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -85,9 +87,9 @@ contract('OffchainDNSResolver', function (accounts) {
     )
     ownedResolver = await OwnedResolver.new()
 
-    await ethers.getContractFactory('DummyOffchainResolver')
-
-    dummyResolver = await deploy('DummyOffchainResolver')
+    dummyResolver = await DummyNonCCIPAwareResolver.new(
+      offchainResolver.address,
+    )
 
     registrar = await DNSRegistrarContract.new(
       ZERO_ADDRESS, // Previous registrar
@@ -302,13 +304,12 @@ contract('OffchainDNSResolver', function (accounts) {
     )
   })
 
-  it('should return the correct result', async function () {
+  it('should prevent OffchainLookup error propagation from non-CCIP-aware contracts', async function () {
     const name = 'test.test'
     const pr = await PublicResolver.at(offchainResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    console.log('dummyResolver.address', dummyResolver.address)
     await expect(
       doResolveCallback(name, [`ENS1 ${dummyResolver.address}`], callData),
     ).to.be.revertedWith('InvalidOperation')
