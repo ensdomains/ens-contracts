@@ -252,7 +252,11 @@ contract OffchainDNSResolver is IExtendedResolver {
             );
             uint256 size = LowLevelCallUtils.returnDataSize();
             if (result) {
-                return LowLevelCallUtils.readReturnData(0, size);
+                bytes memory returnData = LowLevelCallUtils.readReturnData(
+                    0,
+                    size
+                );
+                return abi.decode(returnData, (bytes));
             }
             // Failure
             if (size >= 4) {
