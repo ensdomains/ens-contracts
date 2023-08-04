@@ -4,6 +4,7 @@ const IDNSGateway = artifacts.require('./IDNSGateway.sol')
 const SimplePublixSuffixList = artifacts.require('./SimplePublicSuffixList.sol')
 const DNSRegistrarContract = artifacts.require('./DNSRegistrar.sol')
 const OwnedResolver = artifacts.require('./OwnedResolver.sol')
+const ExtendedDNSResolver = artifacts.require('./ExtendedDNSResolver.sol')
 const OffchainDNSResolver = artifacts.require('./OffchainDNSResolver.sol')
 const PublicResolver = artifacts.require('./PublicResolver.sol')
 const DummyExtendedDNSSECResolver = artifacts.require(
@@ -269,7 +270,7 @@ contract('OffchainDNSResolver', function (accounts) {
     ).to.equal(testAddress)
   })
 
-  it('correctly handles extra data in the TXT record when calling a resolver that supports it', async function () {
+  it('correctly handles extra (string) data in the TXT record when calling a resolver that supports it', async function () {
     const name = 'test.test'
     const resolver = await DummyExtendedDNSSECResolver.new()
     const pr = await PublicResolver.at(resolver.address)
@@ -285,6 +286,82 @@ contract('OffchainDNSResolver', function (accounts) {
     expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal(
       'foobie bletch',
     )
+  })
+
+  it('correctly handles extra data in the TXT record when calling a resolver that supports address resolution', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const resolver = await ExtendedDNSResolver.new()
+    const pr = await PublicResolver.at(resolver.address)
+    const callData = pr.contract.methods['addr(bytes32)'](
+      namehash.hash(name),
+    ).encodeABI()
+    const result = await doResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} ${testAddress}`],
+      callData,
+    )
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
+    ).to.equal(testAddress)
+  })
+
+  it('correctly handles extra data in the TXT record when calling a resolver that supports address resolution with valid cointype', async function () {
+    const COIN_TYPE_ETH = 60
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const resolver = await ExtendedDNSResolver.new()
+    const pr = await PublicResolver.at(resolver.address)
+    const callData = pr.contract.methods['addr(bytes32,uint256)'](
+      namehash.hash(name),
+      COIN_TYPE_ETH,
+    ).encodeABI()
+    const result = await doResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} ${testAddress}`],
+      callData,
+    )
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
+    ).to.equal(testAddress)
+  })
+
+  it('handles extra data in the TXT record when calling a resolver that supports address resolution with invalid cointype', async function () {
+    const COIN_TYPE_BTC = 0
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const emptyAddress = '0x0000000000000000000000000000000000000000'
+    const resolver = await ExtendedDNSResolver.new()
+    const pr = await PublicResolver.at(resolver.address)
+    const callData = pr.contract.methods['addr(bytes32,uint256)'](
+      namehash.hash(name),
+      COIN_TYPE_BTC,
+    ).encodeABI()
+    const result = await doResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} ${testAddress}`],
+      callData,
+    )
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
+    ).to.equal(emptyAddress)
+  })
+
+  it('raise an error if extra (address) data in the TXT record is invalid', async function () {
+    const name = 'test.test'
+    const testAddress = '0xsmth'
+    const resolver = await ExtendedDNSResolver.new()
+    const pr = await PublicResolver.at(resolver.address)
+    const callData = pr.contract.methods['addr(bytes32)'](
+      namehash.hash(name),
+    ).encodeABI()
+    await expect(
+      doResolveCallback(
+        name,
+        [`ENS1 ${resolver.address} ${testAddress}`],
+        callData,
+      ),
+    ).to.be.revertedWith('InvalidAddressFormat')
   })
 
   it('correctly resolves using legacy resolvers without resolve() support', async function () {
