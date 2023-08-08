@@ -33,7 +33,7 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         ) {
             if (selector == IAddressResolver.addr.selector) {
                 (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));
-                if (coinType != COIN_TYPE_ETH) return abi.encode(address(0));
+                if (coinType != COIN_TYPE_ETH) return abi.encode("");
             }
             (address record, bool valid) = context.hexToAddress(
                 2,

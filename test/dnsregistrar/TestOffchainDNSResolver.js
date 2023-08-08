@@ -330,7 +330,6 @@ contract('OffchainDNSResolver', function (accounts) {
     const COIN_TYPE_BTC = 0
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
-    const emptyAddress = '0x0000000000000000000000000000000000000000'
     const resolver = await ExtendedDNSResolver.new()
     const pr = await PublicResolver.at(resolver.address)
     const callData = pr.contract.methods['addr(bytes32,uint256)'](
@@ -342,9 +341,9 @@ contract('OffchainDNSResolver', function (accounts) {
       [`ENS1 ${resolver.address} ${testAddress}`],
       callData,
     )
-    expect(
-      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
-    ).to.equal(emptyAddress)
+    expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal(
+      '',
+    )
   })
 
   it('raise an error if extra (address) data in the TXT record is invalid', async function () {
