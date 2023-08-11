@@ -88,7 +88,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1300,
+            runs: 1200,
           },
         },
       },
@@ -126,7 +126,7 @@ const config: HardhatUserConfig = {
       default: 0,
     },
     owner: {
-      default: 0,
+      default: 1,
     },
   },
   external: {
