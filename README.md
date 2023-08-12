@@ -167,6 +167,36 @@ yarn test
 yarn pub
 ```
 
-### Release flow
+## Release flow
 
-Smart contract development tends to take a long release cycle. To prevent unnecessary dependency conflicts, please create a feature branch (`features/$BRNACH_NAME`) and raise a PR against the feature branch. The feature branch must be merged into master only after the smart contracts are deployed to the Ethereum mainnet.
+1. Create a `feature` branch from `staging` branch
+2. Make code updates
+3. Ensure you are synced up with `staging`
+4. Code should now be in a state where you think it can be deployed to production
+5. Create a "Release Candidate" [release](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) on GitHub. This will be of the form `v1.2.3-RC0`. This tagged commit is now subject to our bug bounty.
+6. Have the tagged commit audited if necessary
+7. If changes are required, make the changes and then once ready for review create another GitHub release with an incremented RC value `v1.2.3-RC0` -> `v.1.2.3-RC1`. Repeat as necessary.
+8. Deploy to testnet. Commit build artifacts to `feature` branch. You now MUST merge this branch into `staging` branch.
+9. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts. 
+10. If any further changes are needed, you can either make them on the existing feature branch that is in sync or create a new branch, and follow steps 1 -> 9. Repeat as necessary.
+11. Make Deployment to mainnet from `staging`. Commit build artifacts. You now MUST merge this branch into `main`.
+12. Create GitHub release of the form `v1.2.3-mainnet` from the commit that has the new deployment artifacts.
+
+### Emergency release process
+
+1. Branch from `main`, make fixes, deploy to testnet (can skip), deploy to mainnet
+2. Merge changes back into `main` and `staging` immediately after deploy
+3. Create GitHub releases, if you didn't deploy to testnet in step 1, do it now
+
+### Notes
+
+- `staging` branch and `main` branch should start off in sync
+- `staging` is intended to be a practice `main`. Only code that is intended to be released to `main` can be merged to `staging`. Consequently:
+    - Feature branches will be long-lived  
+    - Feature branches must be kept in sync with `staging`
+    - Audits are conducted on feature branches
+- All code that is on `staging` and `main` should be deployed to testnet and mainnet respectively i.e. these branches should not have any undeployed code
+- It is preferable to not edit the same file on different feature branches.
+- Code on `staging` and `main` will always be a subset of what is deployed, as smart contracts cannot be undeployed.
+- Release candidates, `staging` and `main` branch are subject to our bug bounty
+- Releases follow semantic versioning and should contain a description of changes with developers being the intended audience
