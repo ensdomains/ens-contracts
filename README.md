@@ -177,7 +177,7 @@ yarn pub
 6. Have the tagged commit audited if necessary
 7. If changes are required, make the changes and then once ready for review create another GitHub release with an incremented RC value `v1.2.3-RC0` -> `v.1.2.3-RC1`. Repeat as necessary.
 8. Deploy to testnet. Commit build artifacts to `feature` branch. You now MUST merge this branch into `staging` branch.
-9. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts. 
+9. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts.
 10. If any further changes are needed, you can either make them on the existing feature branch that is in sync or create a new branch, and follow steps 1 -> 9. Repeat as necessary.
 11. Make Deployment to mainnet from `staging`. Commit build artifacts. You now MUST merge this branch into `main`.
 12. Create GitHub release of the form `v1.2.3-mainnet` from the commit that has the new deployment artifacts.
@@ -192,9 +192,9 @@ yarn pub
 
 - `staging` branch and `main` branch should start off in sync
 - `staging` is intended to be a practice `main`. Only code that is intended to be released to `main` can be merged to `staging`. Consequently:
-    - Feature branches will be long-lived  
-    - Feature branches must be kept in sync with `staging`
-    - Audits are conducted on feature branches
+  - Feature branches will be long-lived
+  - Feature branches must be kept in sync with `staging`
+  - Audits are conducted on feature branches
 - All code that is on `staging` and `main` should be deployed to testnet and mainnet respectively i.e. these branches should not have any undeployed code
 - It is preferable to not edit the same file on different feature branches.
 - Code on `staging` and `main` will always be a subset of what is deployed, as smart contracts cannot be undeployed.
