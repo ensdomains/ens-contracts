@@ -1,7 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
-import "./IReverseRegistrar.sol";
+import "./IL2ReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -19,7 +19,7 @@ error InvalidSignature();
 
 // namehash('addr.reverse')
 
-contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
+contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     ENS public immutable ens;
     NameResolver public defaultResolver;
     using ECDSA for bytes32;
@@ -141,13 +141,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @return The ENS node hash of the reverse record.
      */
     function setName(string memory name) public override returns (bytes32) {
-        return
-            setNameForAddr(
-                msg.sender,
-                msg.sender,
-                address(defaultResolver),
-                name
-            );
+        return setNameForAddr(msg.sender, msg.sender, name);
     }
 
     /**
@@ -156,18 +150,16 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * Only callable by controllers and authorised users
      * @param addr The reverse record to set
      * @param owner The owner of the reverse node
-     * @param resolver The resolver of the reverse node
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddr(
         address addr,
         address owner,
-        address resolver,
         string memory name
     ) public override returns (bytes32) {
-        bytes32 node = _claimForAddr(addr, owner, resolver);
-        NameResolver(resolver).setName(node, name);
+        bytes32 node = _claimForAddr(addr, owner, address(defaultResolver));
+        NameResolver(address(defaultResolver)).setName(node, name);
         return node;
     }
 
@@ -177,14 +169,12 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * Only callable by controllers and authorised users
      * @param addr The reverse record to set
      * @param owner The owner of the reverse node
-     * @param resolver The resolver of the reverse node
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddrWithSignature(
         address addr,
         address owner,
-        address resolver,
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature,
@@ -193,12 +183,12 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         bytes32 node = _claimForAddrWithSignature(
             addr,
             owner,
-            resolver,
+            address(defaultResolver),
             relayer,
             signatureExpiry,
             signature
         );
-        NameResolver(resolver).setName(node, name);
+        NameResolver(defaultResolver).setName(node, name);
         return node;
     }
 
