@@ -24,6 +24,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
 func.id = 'metadata'
 func.tags = ['wrapper', 'StaticMetadataService']
-func.dependencies = []
+// technically not a dep, but we want to make sure it's deployed first for the consistent address
+func.dependencies = ['BaseRegistrarImplementation']
 
 export default func

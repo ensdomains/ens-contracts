@@ -1,0 +1,1470 @@
+{
+  "address": "0x15222A1C2Bf3A4c24eAd1634B8Ee399fd95c3aaf",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "uint256",
+          "name": "contentType",
+          "type": "uint256"
+        }
+      ],
+      "name": "ABIChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "a",
+          "type": "address"
+        }
+      ],
+      "name": "AddrChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "coinType",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "newAddress",
+          "type": "bytes"
+        }
+      ],
+      "name": "AddressChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "hash",
+          "type": "bytes"
+        }
+      ],
+      "name": "ContenthashChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "name",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "resource",
+          "type": "uint16"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "record",
+          "type": "bytes"
+        }
+      ],
+      "name": "DNSRecordChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "name",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint16",
+          "name": "resource",
+          "type": "uint16"
+        }
+      ],
+      "name": "DNSRecordDeleted",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "lastzonehash",
+          "type": "bytes"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "zonehash",
+          "type": "bytes"
+        }
+      ],
+      "name": "DNSZonehashChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes4",
+          "name": "interfaceID",
+          "type": "bytes4"
+        },
+        {
+          "indexed": false,
+          "internalType": "address",
+          "name": "implementer",
+          "type": "address"
+        }
+      ],
+      "name": "InterfaceChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "name": "NameChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "x",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "bytes32",
+          "name": "y",
+          "type": "bytes32"
+        }
+      ],
+      "name": "PubkeyChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": true,
+          "internalType": "string",
+          "name": "indexedKey",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "indexed": false,
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "TextChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint64",
+          "name": "newVersion",
+          "type": "uint64"
+        }
+      ],
+      "name": "VersionChanged",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "contentTypes",
+          "type": "uint256"
+        }
+      ],
+      "name": "ABI",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "addr",
+      "outputs": [
+        {
+          "internalType": "address payable",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coinType",
+          "type": "uint256"
+        }
+      ],
+      "name": "addr",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "clearRecords",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "contenthash",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "name",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint16",
+          "name": "resource",
+          "type": "uint16"
+        }
+      ],
+      "name": "dnsRecord",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "name",
+          "type": "bytes32"
+        }
+      ],
+      "name": "hasDNSRecords",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes4",
+          "name": "interfaceID",
+          "type": "bytes4"
+        }
+      ],
+      "name": "interfaceImplementer",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "name",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "pubkey",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "x",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "y",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "name": "recordVersions",
+      "outputs": [
+        {
+          "internalType": "uint64",
+          "name": "",
+          "type": "uint64"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "contentType",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "setABI",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint256",
+          "name": "coinType",
+          "type": "uint256"
+        },
+        {
+          "internalType": "bytes",
+          "name": "a",
+          "type": "bytes"
+        }
+      ],
+      "name": "setAddr",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "address",
+          "name": "a",
+          "type": "address"
+        }
+      ],
+      "name": "setAddr",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "hash",
+          "type": "bytes"
+        }
+      ],
+      "name": "setContenthash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        }
+      ],
+      "name": "setDNSRecords",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes4",
+          "name": "interfaceID",
+          "type": "bytes4"
+        },
+        {
+          "internalType": "address",
+          "name": "implementer",
+          "type": "address"
+        }
+      ],
+      "name": "setInterface",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "newName",
+          "type": "string"
+        }
+      ],
+      "name": "setName",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "x",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "y",
+          "type": "bytes32"
+        }
+      ],
+      "name": "setPubkey",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        },
+        {
+          "internalType": "string",
+          "name": "value",
+          "type": "string"
+        }
+      ],
+      "name": "setText",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "bytes",
+          "name": "hash",
+          "type": "bytes"
+        }
+      ],
+      "name": "setZonehash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceID",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "key",
+          "type": "string"
+        }
+      ],
+      "name": "text",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "zonehash",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xdbd6176317ff46ffb2a7f4e627c92ad9334f2363b354725fc8a91663cffc9e42",
+  "receipt": {
+    "to": null,
+    "from": "0x4Fe4e666Be5752f1FdD210F4Ab5DE2Cc26e3E0e8",
+    "contractAddress": "0x15222A1C2Bf3A4c24eAd1634B8Ee399fd95c3aaf",
+    "transactionIndex": 100,
+    "gasUsed": "2349764",
+    "logsBloom": "0x00000000000000000008000000000000000000000000200000800000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000020000000000000000000800000001000000000000000000000000400000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000040008000000000000000000000000020000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xa1c5cb305cb936f0ecda7c3be41307c024b6fa9c69e420b4d5d02a26c1922969",
+    "transactionHash": "0xdbd6176317ff46ffb2a7f4e627c92ad9334f2363b354725fc8a91663cffc9e42",
+    "logs": [
+      {
+        "transactionIndex": 100,
+        "blockNumber": 3790128,
+        "transactionHash": "0xdbd6176317ff46ffb2a7f4e627c92ad9334f2363b354725fc8a91663cffc9e42",
+        "address": "0x15222A1C2Bf3A4c24eAd1634B8Ee399fd95c3aaf",
+        "topics": [
+          "0x8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e0",
+          "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "0x0000000000000000000000004fe4e666be5752f1fdd210f4ab5de2cc26e3e0e8"
+        ],
+        "data": "0x",
+        "logIndex": 193,
+        "blockHash": "0xa1c5cb305cb936f0ecda7c3be41307c024b6fa9c69e420b4d5d02a26c1922969"
+      }
+    ],
+    "blockNumber": 3790128,
+    "cumulativeGasUsed": "11479488",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 2,
+  "solcInputHash": "e04502f562d98d0455f6c1c453418cdd",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"contentType\",\"type\":\"uint256\"}],\"name\":\"ABIChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"a\",\"type\":\"address\"}],\"name\":\"AddrChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"coinType\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"newAddress\",\"type\":\"bytes\"}],\"name\":\"AddressChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"hash\",\"type\":\"bytes\"}],\"name\":\"ContenthashChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"name\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"resource\",\"type\":\"uint16\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"record\",\"type\":\"bytes\"}],\"name\":\"DNSRecordChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"name\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint16\",\"name\":\"resource\",\"type\":\"uint16\"}],\"name\":\"DNSRecordDeleted\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"lastzonehash\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"zonehash\",\"type\":\"bytes\"}],\"name\":\"DNSZonehashChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"bytes4\",\"name\":\"interfaceID\",\"type\":\"bytes4\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"implementer\",\"type\":\"address\"}],\"name\":\"InterfaceChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"}],\"name\":\"NameChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"x\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"bytes32\",\"name\":\"y\",\"type\":\"bytes32\"}],\"name\":\"PubkeyChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":true,\"internalType\":\"string\",\"name\":\"indexedKey\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"key\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"value\",\"type\":\"string\"}],\"name\":\"TextChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint64\",\"name\":\"newVersion\",\"type\":\"uint64\"}],\"name\":\"VersionChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"contentTypes\",\"type\":\"uint256\"}],\"name\":\"ABI\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"addr\",\"outputs\":[{\"internalType\":\"address payable\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"coinType\",\"type\":\"uint256\"}],\"name\":\"addr\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"clearRecords\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"contenthash\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"},{\"internalType\":\"uint16\",\"name\":\"resource\",\"type\":\"uint16\"}],\"name\":\"dnsRecord\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"name\",\"type\":\"bytes32\"}],\"name\":\"hasDNSRecords\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes4\",\"name\":\"interfaceID\",\"type\":\"bytes4\"}],\"name\":\"interfaceImplementer\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"name\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"pubkey\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"x\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"y\",\"type\":\"bytes32\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"name\":\"recordVersions\",\"outputs\":[{\"internalType\":\"uint64\",\"name\":\"\",\"type\":\"uint64\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"resolve\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"contentType\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"setABI\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"coinType\",\"type\":\"uint256\"},{\"internalType\":\"bytes\",\"name\":\"a\",\"type\":\"bytes\"}],\"name\":\"setAddr\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"address\",\"name\":\"a\",\"type\":\"address\"}],\"name\":\"setAddr\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"hash\",\"type\":\"bytes\"}],\"name\":\"setContenthash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"}],\"name\":\"setDNSRecords\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes4\",\"name\":\"interfaceID\",\"type\":\"bytes4\"},{\"internalType\":\"address\",\"name\":\"implementer\",\"type\":\"address\"}],\"name\":\"setInterface\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"newName\",\"type\":\"string\"}],\"name\":\"setName\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"x\",\"type\":\"bytes32\"},{\"internalType\":\"bytes32\",\"name\":\"y\",\"type\":\"bytes32\"}],\"name\":\"setPubkey\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"key\",\"type\":\"string\"},{\"internalType\":\"string\",\"name\":\"value\",\"type\":\"string\"}],\"name\":\"setText\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"bytes\",\"name\":\"hash\",\"type\":\"bytes\"}],\"name\":\"setZonehash\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceID\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"string\",\"name\":\"key\",\"type\":\"string\"}],\"name\":\"text\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"zonehash\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"ABI(bytes32,uint256)\":{\"params\":{\"contentTypes\":\"A bitwise OR of the ABI formats accepted by the caller.\",\"node\":\"The ENS node to query\"},\"returns\":{\"_0\":\"contentType The content type of the return value\",\"_1\":\"data The ABI data\"}},\"addr(bytes32)\":{\"params\":{\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated address.\"}},\"clearRecords(bytes32)\":{\"params\":{\"node\":\"The node to update.\"}},\"contenthash(bytes32)\":{\"params\":{\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated contenthash.\"}},\"dnsRecord(bytes32,bytes32,uint16)\":{\"params\":{\"name\":\"the keccak-256 hash of the fully-qualified name for which to fetch the record\",\"node\":\"the namehash of the node for which to fetch the record\",\"resource\":\"the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types\"},\"returns\":{\"_0\":\"the DNS record in wire format if present, otherwise empty\"}},\"hasDNSRecords(bytes32,bytes32)\":{\"params\":{\"name\":\"the namehash of the node for which to check the records\",\"node\":\"the namehash of the node for which to check the records\"}},\"interfaceImplementer(bytes32,bytes4)\":{\"params\":{\"interfaceID\":\"The EIP 165 interface ID to check for.\",\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The address that implements this interface, or 0 if the interface is unsupported.\"}},\"name(bytes32)\":{\"params\":{\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated name.\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"pubkey(bytes32)\":{\"params\":{\"node\":\"The ENS node to query\"},\"returns\":{\"x\":\"The X coordinate of the curve point for the public key.\",\"y\":\"The Y coordinate of the curve point for the public key.\"}},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner.\"},\"setABI(bytes32,uint256,bytes)\":{\"params\":{\"contentType\":\"The content type of the ABI\",\"data\":\"The ABI data.\",\"node\":\"The node to update.\"}},\"setAddr(bytes32,address)\":{\"params\":{\"a\":\"The address to set.\",\"node\":\"The node to update.\"}},\"setContenthash(bytes32,bytes)\":{\"params\":{\"hash\":\"The contenthash to set\",\"node\":\"The node to update.\"}},\"setDNSRecords(bytes32,bytes)\":{\"params\":{\"data\":\"the DNS wire format records to set\",\"node\":\"the namehash of the node for which to set the records\"}},\"setInterface(bytes32,bytes4,address)\":{\"params\":{\"implementer\":\"The address of a contract that implements this interface for this node.\",\"interfaceID\":\"The EIP 165 interface ID.\",\"node\":\"The node to update.\"}},\"setName(bytes32,string)\":{\"params\":{\"node\":\"The node to update.\"}},\"setPubkey(bytes32,bytes32,bytes32)\":{\"params\":{\"node\":\"The ENS node to query\",\"x\":\"the X coordinate of the curve point for the public key.\",\"y\":\"the Y coordinate of the curve point for the public key.\"}},\"setText(bytes32,string,string)\":{\"params\":{\"key\":\"The key to set.\",\"node\":\"The node to update.\",\"value\":\"The text data value to set.\"}},\"setZonehash(bytes32,bytes)\":{\"params\":{\"hash\":\"The zonehash to set\",\"node\":\"The node to update.\"}},\"text(bytes32,string)\":{\"params\":{\"key\":\"The text data key to query.\",\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated text data.\"}},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"zonehash(bytes32)\":{\"params\":{\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated contenthash.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"ABI(bytes32,uint256)\":{\"notice\":\"Returns the ABI associated with an ENS node. Defined in EIP205.\"},\"addr(bytes32)\":{\"notice\":\"Returns the address associated with an ENS node.\"},\"clearRecords(bytes32)\":{\"notice\":\"Increments the record version associated with an ENS node. May only be called by the owner of that node in the ENS registry.\"},\"contenthash(bytes32)\":{\"notice\":\"Returns the contenthash associated with an ENS node.\"},\"dnsRecord(bytes32,bytes32,uint16)\":{\"notice\":\"Obtain a DNS record.\"},\"hasDNSRecords(bytes32,bytes32)\":{\"notice\":\"Check if a given node has records.\"},\"interfaceImplementer(bytes32,bytes4)\":{\"notice\":\"Returns the address of a contract that implements the specified interface for this name. If an implementer has not been set for this interfaceID and name, the resolver will query the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that contract implements EIP165 and returns `true` for the specified interfaceID, its address will be returned.\"},\"name(bytes32)\":{\"notice\":\"Returns the name associated with an ENS node, for reverse records. Defined in EIP181.\"},\"pubkey(bytes32)\":{\"notice\":\"Returns the SECP256k1 public key associated with an ENS node. Defined in EIP 619.\"},\"setABI(bytes32,uint256,bytes)\":{\"notice\":\"Sets the ABI associated with an ENS node. Nodes may have one ABI of each content type. To remove an ABI, set it to the empty string.\"},\"setAddr(bytes32,address)\":{\"notice\":\"Sets the address associated with an ENS node. May only be called by the owner of that node in the ENS registry.\"},\"setContenthash(bytes32,bytes)\":{\"notice\":\"Sets the contenthash associated with an ENS node. May only be called by the owner of that node in the ENS registry.\"},\"setDNSRecords(bytes32,bytes)\":{\"notice\":\"Set one or more DNS records.  Records are supplied in wire-format. Records with the same node/name/resource must be supplied one after the other to ensure the data is updated correctly. For example, if the data was supplied:     a.example.com IN A 1.2.3.4     a.example.com IN A 5.6.7.8     www.example.com IN CNAME a.example.com. then this would store the two A records for a.example.com correctly as a single RRSET, however if the data was supplied:     a.example.com IN A 1.2.3.4     www.example.com IN CNAME a.example.com.     a.example.com IN A 5.6.7.8 then this would store the first A record, the CNAME, then the second A record which would overwrite the first.\"},\"setInterface(bytes32,bytes4,address)\":{\"notice\":\"Sets an interface associated with a name. Setting the address to 0 restores the default behaviour of querying the contract at `addr()` for interface support.\"},\"setName(bytes32,string)\":{\"notice\":\"Sets the name associated with an ENS node, for reverse records. May only be called by the owner of that node in the ENS registry.\"},\"setPubkey(bytes32,bytes32,bytes32)\":{\"notice\":\"Sets the SECP256k1 public key associated with an ENS node.\"},\"setText(bytes32,string,string)\":{\"notice\":\"Sets the text data associated with an ENS node and key. May only be called by the owner of that node in the ENS registry.\"},\"setZonehash(bytes32,bytes)\":{\"notice\":\"setZonehash sets the hash for the zone. May only be called by the owner of that node in the ENS registry.\"},\"text(bytes32,string)\":{\"notice\":\"Returns the text data associated with an ENS node and key.\"},\"zonehash(bytes32)\":{\"notice\":\"zonehash obtains the hash for the zone.\"}},\"notice\":\"A simple resolver anyone can use; only allows the owner of a node to set its address.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/resolvers/OwnedResolver.sol\":\"OwnedResolver\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1200},\"remappings\":[]},\"sources\":{\"@ensdomains/buffer/contracts/Buffer.sol\":{\"content\":\"// SPDX-License-Identifier: BSD-2-Clause\\npragma solidity ^0.8.4;\\n\\n/**\\n* @dev A library for working with mutable byte buffers in Solidity.\\n*\\n* Byte buffers are mutable and expandable, and provide a variety of primitives\\n* for appending to them. At any time you can fetch a bytes object containing the\\n* current contents of the buffer. The bytes object should not be stored between\\n* operations, as it may change due to resizing of the buffer.\\n*/\\nlibrary Buffer {\\n    /**\\n    * @dev Represents a mutable buffer. Buffers have a current value (buf) and\\n    *      a capacity. The capacity may be longer than the current value, in\\n    *      which case it can be extended without the need to allocate more memory.\\n    */\\n    struct buffer {\\n        bytes buf;\\n        uint capacity;\\n    }\\n\\n    /**\\n    * @dev Initializes a buffer with an initial capacity.\\n    * @param buf The buffer to initialize.\\n    * @param capacity The number of bytes of space to allocate the buffer.\\n    * @return The buffer, for chaining.\\n    */\\n    function init(buffer memory buf, uint capacity) internal pure returns(buffer memory) {\\n        if (capacity % 32 != 0) {\\n            capacity += 32 - (capacity % 32);\\n        }\\n        // Allocate space for the buffer data\\n        buf.capacity = capacity;\\n        assembly {\\n            let ptr := mload(0x40)\\n            mstore(buf, ptr)\\n            mstore(ptr, 0)\\n            let fpm := add(32, add(ptr, capacity))\\n            if lt(fpm, ptr) {\\n                revert(0, 0)\\n            }\\n            mstore(0x40, fpm)\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n    * @dev Initializes a new buffer from an existing bytes object.\\n    *      Changes to the buffer may mutate the original value.\\n    * @param b The bytes object to initialize the buffer with.\\n    * @return A new buffer.\\n    */\\n    function fromBytes(bytes memory b) internal pure returns(buffer memory) {\\n        buffer memory buf;\\n        buf.buf = b;\\n        buf.capacity = b.length;\\n        return buf;\\n    }\\n\\n    function resize(buffer memory buf, uint capacity) private pure {\\n        bytes memory oldbuf = buf.buf;\\n        init(buf, capacity);\\n        append(buf, oldbuf);\\n    }\\n\\n    /**\\n    * @dev Sets buffer length to 0.\\n    * @param buf The buffer to truncate.\\n    * @return The original buffer, for chaining..\\n    */\\n    function truncate(buffer memory buf) internal pure returns (buffer memory) {\\n        assembly {\\n            let bufptr := mload(buf)\\n            mstore(bufptr, 0)\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n    * @dev Appends len bytes of a byte string to a buffer. Resizes if doing so would exceed\\n    *      the capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @param len The number of bytes to copy.\\n    * @return The original buffer, for chaining.\\n    */\\n    function append(buffer memory buf, bytes memory data, uint len) internal pure returns(buffer memory) {\\n        require(len <= data.length);\\n\\n        uint off = buf.buf.length;\\n        uint newCapacity = off + len;\\n        if (newCapacity > buf.capacity) {\\n            resize(buf, newCapacity * 2);\\n        }\\n\\n        uint dest;\\n        uint src;\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Length of existing buffer data\\n            let buflen := mload(bufptr)\\n            // Start address = buffer address + offset + sizeof(buffer length)\\n            dest := add(add(bufptr, 32), off)\\n            // Update buffer length if we're extending it\\n            if gt(newCapacity, buflen) {\\n                mstore(bufptr, newCapacity)\\n            }\\n            src := add(data, 32)\\n        }\\n\\n        // Copy word-length chunks while possible\\n        for (; len >= 32; len -= 32) {\\n            assembly {\\n                mstore(dest, mload(src))\\n            }\\n            dest += 32;\\n            src += 32;\\n        }\\n\\n        // Copy remaining bytes\\n        unchecked {\\n            uint mask = (256 ** (32 - len)) - 1;\\n            assembly {\\n                let srcpart := and(mload(src), not(mask))\\n                let destpart := and(mload(dest), mask)\\n                mstore(dest, or(destpart, srcpart))\\n            }\\n        }\\n\\n        return buf;\\n    }\\n\\n    /**\\n    * @dev Appends a byte string to a buffer. Resizes if doing so would exceed\\n    *      the capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @return The original buffer, for chaining.\\n    */\\n    function append(buffer memory buf, bytes memory data) internal pure returns (buffer memory) {\\n        return append(buf, data, data.length);\\n    }\\n\\n    /**\\n    * @dev Appends a byte to the buffer. Resizes if doing so would exceed the\\n    *      capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @return The original buffer, for chaining.\\n    */\\n    function appendUint8(buffer memory buf, uint8 data) internal pure returns(buffer memory) {\\n        uint off = buf.buf.length;\\n        uint offPlusOne = off + 1;\\n        if (off >= buf.capacity) {\\n            resize(buf, offPlusOne * 2);\\n        }\\n\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Address = buffer address + sizeof(buffer length) + off\\n            let dest := add(add(bufptr, off), 32)\\n            mstore8(dest, data)\\n            // Update buffer length if we extended it\\n            if gt(offPlusOne, mload(bufptr)) {\\n                mstore(bufptr, offPlusOne)\\n            }\\n        }\\n\\n        return buf;\\n    }\\n\\n    /**\\n    * @dev Appends len bytes of bytes32 to a buffer. Resizes if doing so would\\n    *      exceed the capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @param len The number of bytes to write (left-aligned).\\n    * @return The original buffer, for chaining.\\n    */\\n    function append(buffer memory buf, bytes32 data, uint len) private pure returns(buffer memory) {\\n        uint off = buf.buf.length;\\n        uint newCapacity = len + off;\\n        if (newCapacity > buf.capacity) {\\n            resize(buf, newCapacity * 2);\\n        }\\n\\n        unchecked {\\n            uint mask = (256 ** len) - 1;\\n            // Right-align data\\n            data = data >> (8 * (32 - len));\\n            assembly {\\n                // Memory address of the buffer data\\n                let bufptr := mload(buf)\\n                // Address = buffer address + sizeof(buffer length) + newCapacity\\n                let dest := add(bufptr, newCapacity)\\n                mstore(dest, or(and(mload(dest), not(mask)), data))\\n                // Update buffer length if we extended it\\n                if gt(newCapacity, mload(bufptr)) {\\n                    mstore(bufptr, newCapacity)\\n                }\\n            }\\n        }\\n        return buf;\\n    }\\n\\n    /**\\n    * @dev Appends a bytes20 to the buffer. Resizes if doing so would exceed\\n    *      the capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @return The original buffer, for chhaining.\\n    */\\n    function appendBytes20(buffer memory buf, bytes20 data) internal pure returns (buffer memory) {\\n        return append(buf, bytes32(data), 20);\\n    }\\n\\n    /**\\n    * @dev Appends a bytes32 to the buffer. Resizes if doing so would exceed\\n    *      the capacity of the buffer.\\n    * @param buf The buffer to append to.\\n    * @param data The data to append.\\n    * @return The original buffer, for chaining.\\n    */\\n    function appendBytes32(buffer memory buf, bytes32 data) internal pure returns (buffer memory) {\\n        return append(buf, data, 32);\\n    }\\n\\n    /**\\n     * @dev Appends a byte to the end of the buffer. Resizes if doing so would\\n     *      exceed the capacity of the buffer.\\n     * @param buf The buffer to append to.\\n     * @param data The data to append.\\n     * @param len The number of bytes to write (right-aligned).\\n     * @return The original buffer.\\n     */\\n    function appendInt(buffer memory buf, uint data, uint len) internal pure returns(buffer memory) {\\n        uint off = buf.buf.length;\\n        uint newCapacity = len + off;\\n        if (newCapacity > buf.capacity) {\\n            resize(buf, newCapacity * 2);\\n        }\\n\\n        uint mask = (256 ** len) - 1;\\n        assembly {\\n            // Memory address of the buffer data\\n            let bufptr := mload(buf)\\n            // Address = buffer address + sizeof(buffer length) + newCapacity\\n            let dest := add(bufptr, newCapacity)\\n            mstore(dest, or(and(mload(dest), not(mask)), data))\\n            // Update buffer length if we extended it\\n            if gt(newCapacity, mload(bufptr)) {\\n                mstore(bufptr, newCapacity)\\n            }\\n        }\\n        return buf;\\n    }\\n}\\n\",\"keccak256\":\"0xd6dd3b0b327288f8e1b711a609f4040fea602e2ad4bba9febdf2f33b4e56eb0c\",\"license\":\"BSD-2-Clause\"},\"@openzeppelin/contracts/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.7.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions anymore. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby removing any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xa94b34880e3c1b0b931662cb1c09e5dfa6662f31cba80e07c5ee71cd135c9673\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/ERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/introspection/ERC165.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"./IERC165.sol\\\";\\n\\n/**\\n * @dev Implementation of the {IERC165} interface.\\n *\\n * Contracts that want to implement ERC165 should inherit from this contract and override {supportsInterface} to check\\n * for the additional interface id that will be supported. For example:\\n *\\n * ```solidity\\n * function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n *     return interfaceId == type(MyInterface).interfaceId || super.supportsInterface(interfaceId);\\n * }\\n * ```\\n *\\n * Alternatively, {ERC165Storage} provides an easier to use but more expensive implementation.\\n */\\nabstract contract ERC165 is IERC165 {\\n    /**\\n     * @dev See {IERC165-supportsInterface}.\\n     */\\n    function supportsInterface(bytes4 interfaceId) public view virtual override returns (bool) {\\n        return interfaceId == type(IERC165).interfaceId;\\n    }\\n}\\n\",\"keccak256\":\"0xd10975de010d89fd1c78dc5e8a9a7e7f496198085c151648f20cba166b32582b\",\"license\":\"MIT\"},\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[EIP].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x447a5f3ddc18419d41ff92b3773fb86471b1db25773e07f877f548918a185bf1\",\"license\":\"MIT\"},\"contracts/dnssec-oracle/BytesUtils.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nlibrary BytesUtils {\\n    error OffsetOutOfBoundsError(uint256 offset, uint256 length);\\n\\n    /*\\n     * @dev Returns the keccak-256 hash of a byte range.\\n     * @param self The byte string to hash.\\n     * @param offset The position to start hashing at.\\n     * @param len The number of bytes to hash.\\n     * @return The hash of the byte range.\\n     */\\n    function keccak(\\n        bytes memory self,\\n        uint256 offset,\\n        uint256 len\\n    ) internal pure returns (bytes32 ret) {\\n        require(offset + len <= self.length);\\n        assembly {\\n            ret := keccak256(add(add(self, 32), offset), len)\\n        }\\n    }\\n\\n    /*\\n     * @dev Returns a positive number if `other` comes lexicographically after\\n     *      `self`, a negative number if it comes before, or zero if the\\n     *      contents of the two bytes are equal.\\n     * @param self The first bytes to compare.\\n     * @param other The second bytes to compare.\\n     * @return The result of the comparison.\\n     */\\n    function compare(\\n        bytes memory self,\\n        bytes memory other\\n    ) internal pure returns (int256) {\\n        return compare(self, 0, self.length, other, 0, other.length);\\n    }\\n\\n    /*\\n     * @dev Returns a positive number if `other` comes lexicographically after\\n     *      `self`, a negative number if it comes before, or zero if the\\n     *      contents of the two bytes are equal. Comparison is done per-rune,\\n     *      on unicode codepoints.\\n     * @param self The first bytes to compare.\\n     * @param offset The offset of self.\\n     * @param len    The length of self.\\n     * @param other The second bytes to compare.\\n     * @param otheroffset The offset of the other string.\\n     * @param otherlen    The length of the other string.\\n     * @return The result of the comparison.\\n     */\\n    function compare(\\n        bytes memory self,\\n        uint256 offset,\\n        uint256 len,\\n        bytes memory other,\\n        uint256 otheroffset,\\n        uint256 otherlen\\n    ) internal pure returns (int256) {\\n        if (offset + len > self.length) {\\n            revert OffsetOutOfBoundsError(offset + len, self.length);\\n        }\\n        if (otheroffset + otherlen > other.length) {\\n            revert OffsetOutOfBoundsError(otheroffset + otherlen, other.length);\\n        }\\n\\n        uint256 shortest = len;\\n        if (otherlen < len) shortest = otherlen;\\n\\n        uint256 selfptr;\\n        uint256 otherptr;\\n\\n        assembly {\\n            selfptr := add(self, add(offset, 32))\\n            otherptr := add(other, add(otheroffset, 32))\\n        }\\n        for (uint256 idx = 0; idx < shortest; idx += 32) {\\n            uint256 a;\\n            uint256 b;\\n            assembly {\\n                a := mload(selfptr)\\n                b := mload(otherptr)\\n            }\\n            if (a != b) {\\n                // Mask out irrelevant bytes and check again\\n                uint256 mask;\\n                if (shortest - idx >= 32) {\\n                    mask = type(uint256).max;\\n                } else {\\n                    mask = ~(2 ** (8 * (idx + 32 - shortest)) - 1);\\n                }\\n                int256 diff = int256(a & mask) - int256(b & mask);\\n                if (diff != 0) return diff;\\n            }\\n            selfptr += 32;\\n            otherptr += 32;\\n        }\\n\\n        return int256(len) - int256(otherlen);\\n    }\\n\\n    /*\\n     * @dev Returns true if the two byte ranges are equal.\\n     * @param self The first byte range to compare.\\n     * @param offset The offset into the first byte range.\\n     * @param other The second byte range to compare.\\n     * @param otherOffset The offset into the second byte range.\\n     * @param len The number of bytes to compare\\n     * @return True if the byte ranges are equal, false otherwise.\\n     */\\n    function equals(\\n        bytes memory self,\\n        uint256 offset,\\n        bytes memory other,\\n        uint256 otherOffset,\\n        uint256 len\\n    ) internal pure returns (bool) {\\n        return keccak(self, offset, len) == keccak(other, otherOffset, len);\\n    }\\n\\n    /*\\n     * @dev Returns true if the two byte ranges are equal with offsets.\\n     * @param self The first byte range to compare.\\n     * @param offset The offset into the first byte range.\\n     * @param other The second byte range to compare.\\n     * @param otherOffset The offset into the second byte range.\\n     * @return True if the byte ranges are equal, false otherwise.\\n     */\\n    function equals(\\n        bytes memory self,\\n        uint256 offset,\\n        bytes memory other,\\n        uint256 otherOffset\\n    ) internal pure returns (bool) {\\n        return\\n            keccak(self, offset, self.length - offset) ==\\n            keccak(other, otherOffset, other.length - otherOffset);\\n    }\\n\\n    /*\\n     * @dev Compares a range of 'self' to all of 'other' and returns True iff\\n     *      they are equal.\\n     * @param self The first byte range to compare.\\n     * @param offset The offset into the first byte range.\\n     * @param other The second byte range to compare.\\n     * @return True if the byte ranges are equal, false otherwise.\\n     */\\n    function equals(\\n        bytes memory self,\\n        uint256 offset,\\n        bytes memory other\\n    ) internal pure returns (bool) {\\n        return\\n            self.length == offset + other.length &&\\n            equals(self, offset, other, 0, other.length);\\n    }\\n\\n    /*\\n     * @dev Returns true if the two byte ranges are equal.\\n     * @param self The first byte range to compare.\\n     * @param other The second byte range to compare.\\n     * @return True if the byte ranges are equal, false otherwise.\\n     */\\n    function equals(\\n        bytes memory self,\\n        bytes memory other\\n    ) internal pure returns (bool) {\\n        return\\n            self.length == other.length &&\\n            equals(self, 0, other, 0, self.length);\\n    }\\n\\n    /*\\n     * @dev Returns the 8-bit number at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes\\n     * @return The specified 8 bits of the string, interpreted as an integer.\\n     */\\n    function readUint8(\\n        bytes memory self,\\n        uint256 idx\\n    ) internal pure returns (uint8 ret) {\\n        return uint8(self[idx]);\\n    }\\n\\n    /*\\n     * @dev Returns the 16-bit number at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes\\n     * @return The specified 16 bits of the string, interpreted as an integer.\\n     */\\n    function readUint16(\\n        bytes memory self,\\n        uint256 idx\\n    ) internal pure returns (uint16 ret) {\\n        require(idx + 2 <= self.length);\\n        assembly {\\n            ret := and(mload(add(add(self, 2), idx)), 0xFFFF)\\n        }\\n    }\\n\\n    /*\\n     * @dev Returns the 32-bit number at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes\\n     * @return The specified 32 bits of the string, interpreted as an integer.\\n     */\\n    function readUint32(\\n        bytes memory self,\\n        uint256 idx\\n    ) internal pure returns (uint32 ret) {\\n        require(idx + 4 <= self.length);\\n        assembly {\\n            ret := and(mload(add(add(self, 4), idx)), 0xFFFFFFFF)\\n        }\\n    }\\n\\n    /*\\n     * @dev Returns the 32 byte value at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes\\n     * @return The specified 32 bytes of the string.\\n     */\\n    function readBytes32(\\n        bytes memory self,\\n        uint256 idx\\n    ) internal pure returns (bytes32 ret) {\\n        require(idx + 32 <= self.length);\\n        assembly {\\n            ret := mload(add(add(self, 32), idx))\\n        }\\n    }\\n\\n    /*\\n     * @dev Returns the 32 byte value at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes\\n     * @return The specified 32 bytes of the string.\\n     */\\n    function readBytes20(\\n        bytes memory self,\\n        uint256 idx\\n    ) internal pure returns (bytes20 ret) {\\n        require(idx + 20 <= self.length);\\n        assembly {\\n            ret := and(\\n                mload(add(add(self, 32), idx)),\\n                0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000000000000000000000\\n            )\\n        }\\n    }\\n\\n    /*\\n     * @dev Returns the n byte value at the specified index of self.\\n     * @param self The byte string.\\n     * @param idx The index into the bytes.\\n     * @param len The number of bytes.\\n     * @return The specified 32 bytes of the string.\\n     */\\n    function readBytesN(\\n        bytes memory self,\\n        uint256 idx,\\n        uint256 len\\n    ) internal pure returns (bytes32 ret) {\\n        require(len <= 32);\\n        require(idx + len <= self.length);\\n        assembly {\\n            let mask := not(sub(exp(256, sub(32, len)), 1))\\n            ret := and(mload(add(add(self, 32), idx)), mask)\\n        }\\n    }\\n\\n    function memcpy(uint256 dest, uint256 src, uint256 len) private pure {\\n        // Copy word-length chunks while possible\\n        for (; len >= 32; len -= 32) {\\n            assembly {\\n                mstore(dest, mload(src))\\n            }\\n            dest += 32;\\n            src += 32;\\n        }\\n\\n        // Copy remaining bytes\\n        unchecked {\\n            uint256 mask = (256 ** (32 - len)) - 1;\\n            assembly {\\n                let srcpart := and(mload(src), not(mask))\\n                let destpart := and(mload(dest), mask)\\n                mstore(dest, or(destpart, srcpart))\\n            }\\n        }\\n    }\\n\\n    /*\\n     * @dev Copies a substring into a new byte string.\\n     * @param self The byte string to copy from.\\n     * @param offset The offset to start copying at.\\n     * @param len The number of bytes to copy.\\n     */\\n    function substring(\\n        bytes memory self,\\n        uint256 offset,\\n        uint256 len\\n    ) internal pure returns (bytes memory) {\\n        require(offset + len <= self.length);\\n\\n        bytes memory ret = new bytes(len);\\n        uint256 dest;\\n        uint256 src;\\n\\n        assembly {\\n            dest := add(ret, 32)\\n            src := add(add(self, 32), offset)\\n        }\\n        memcpy(dest, src, len);\\n\\n        return ret;\\n    }\\n\\n    // Maps characters from 0x30 to 0x7A to their base32 values.\\n    // 0xFF represents invalid characters in that range.\\n    bytes constant base32HexTable =\\n        hex\\\"00010203040506070809FFFFFFFFFFFFFF0A0B0C0D0E0F101112131415161718191A1B1C1D1E1FFFFFFFFFFFFFFFFFFFFF0A0B0C0D0E0F101112131415161718191A1B1C1D1E1F\\\";\\n\\n    /**\\n     * @dev Decodes unpadded base32 data of up to one word in length.\\n     * @param self The data to decode.\\n     * @param off Offset into the string to start at.\\n     * @param len Number of characters to decode.\\n     * @return The decoded data, left aligned.\\n     */\\n    function base32HexDecodeWord(\\n        bytes memory self,\\n        uint256 off,\\n        uint256 len\\n    ) internal pure returns (bytes32) {\\n        require(len <= 52);\\n\\n        uint256 ret = 0;\\n        uint8 decoded;\\n        for (uint256 i = 0; i < len; i++) {\\n            bytes1 char = self[off + i];\\n            require(char >= 0x30 && char <= 0x7A);\\n            decoded = uint8(base32HexTable[uint256(uint8(char)) - 0x30]);\\n            require(decoded <= 0x20);\\n            if (i == len - 1) {\\n                break;\\n            }\\n            ret = (ret << 5) | decoded;\\n        }\\n\\n        uint256 bitlen = len * 5;\\n        if (len % 8 == 0) {\\n            // Multiple of 8 characters, no padding\\n            ret = (ret << 5) | decoded;\\n        } else if (len % 8 == 2) {\\n            // Two extra characters - 1 byte\\n            ret = (ret << 3) | (decoded >> 2);\\n            bitlen -= 2;\\n        } else if (len % 8 == 4) {\\n            // Four extra characters - 2 bytes\\n            ret = (ret << 1) | (decoded >> 4);\\n            bitlen -= 4;\\n        } else if (len % 8 == 5) {\\n            // Five extra characters - 3 bytes\\n            ret = (ret << 4) | (decoded >> 1);\\n            bitlen -= 1;\\n        } else if (len % 8 == 7) {\\n            // Seven extra characters - 4 bytes\\n            ret = (ret << 2) | (decoded >> 3);\\n            bitlen -= 3;\\n        } else {\\n            revert();\\n        }\\n\\n        return bytes32(ret << (256 - bitlen));\\n    }\\n\\n    /**\\n     * @dev Finds the first occurrence of the byte `needle` in `self`.\\n     * @param self The string to search\\n     * @param off The offset to start searching at\\n     * @param len The number of bytes to search\\n     * @param needle The byte to search for\\n     * @return The offset of `needle` in `self`, or 2**256-1 if it was not found.\\n     */\\n    function find(\\n        bytes memory self,\\n        uint256 off,\\n        uint256 len,\\n        bytes1 needle\\n    ) internal pure returns (uint256) {\\n        for (uint256 idx = off; idx < off + len; idx++) {\\n            if (self[idx] == needle) {\\n                return idx;\\n            }\\n        }\\n        return type(uint256).max;\\n    }\\n}\\n\",\"keccak256\":\"0x4f10902639b85a17ae10745264feff322e793bfb1bc130a9a90efa7dda47c6cc\"},\"contracts/dnssec-oracle/RRUtils.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nimport \\\"./BytesUtils.sol\\\";\\nimport \\\"@ensdomains/buffer/contracts/Buffer.sol\\\";\\n\\n/**\\n * @dev RRUtils is a library that provides utilities for parsing DNS resource records.\\n */\\nlibrary RRUtils {\\n    using BytesUtils for *;\\n    using Buffer for *;\\n\\n    /**\\n     * @dev Returns the number of bytes in the DNS name at 'offset' in 'self'.\\n     * @param self The byte array to read a name from.\\n     * @param offset The offset to start reading at.\\n     * @return The length of the DNS name at 'offset', in bytes.\\n     */\\n    function nameLength(\\n        bytes memory self,\\n        uint256 offset\\n    ) internal pure returns (uint256) {\\n        uint256 idx = offset;\\n        while (true) {\\n            assert(idx < self.length);\\n            uint256 labelLen = self.readUint8(idx);\\n            idx += labelLen + 1;\\n            if (labelLen == 0) {\\n                break;\\n            }\\n        }\\n        return idx - offset;\\n    }\\n\\n    /**\\n     * @dev Returns a DNS format name at the specified offset of self.\\n     * @param self The byte array to read a name from.\\n     * @param offset The offset to start reading at.\\n     * @return ret The name.\\n     */\\n    function readName(\\n        bytes memory self,\\n        uint256 offset\\n    ) internal pure returns (bytes memory ret) {\\n        uint256 len = nameLength(self, offset);\\n        return self.substring(offset, len);\\n    }\\n\\n    /**\\n     * @dev Returns the number of labels in the DNS name at 'offset' in 'self'.\\n     * @param self The byte array to read a name from.\\n     * @param offset The offset to start reading at.\\n     * @return The number of labels in the DNS name at 'offset', in bytes.\\n     */\\n    function labelCount(\\n        bytes memory self,\\n        uint256 offset\\n    ) internal pure returns (uint256) {\\n        uint256 count = 0;\\n        while (true) {\\n            assert(offset < self.length);\\n            uint256 labelLen = self.readUint8(offset);\\n            offset += labelLen + 1;\\n            if (labelLen == 0) {\\n                break;\\n            }\\n            count += 1;\\n        }\\n        return count;\\n    }\\n\\n    uint256 constant RRSIG_TYPE = 0;\\n    uint256 constant RRSIG_ALGORITHM = 2;\\n    uint256 constant RRSIG_LABELS = 3;\\n    uint256 constant RRSIG_TTL = 4;\\n    uint256 constant RRSIG_EXPIRATION = 8;\\n    uint256 constant RRSIG_INCEPTION = 12;\\n    uint256 constant RRSIG_KEY_TAG = 16;\\n    uint256 constant RRSIG_SIGNER_NAME = 18;\\n\\n    struct SignedSet {\\n        uint16 typeCovered;\\n        uint8 algorithm;\\n        uint8 labels;\\n        uint32 ttl;\\n        uint32 expiration;\\n        uint32 inception;\\n        uint16 keytag;\\n        bytes signerName;\\n        bytes data;\\n        bytes name;\\n    }\\n\\n    function readSignedSet(\\n        bytes memory data\\n    ) internal pure returns (SignedSet memory self) {\\n        self.typeCovered = data.readUint16(RRSIG_TYPE);\\n        self.algorithm = data.readUint8(RRSIG_ALGORITHM);\\n        self.labels = data.readUint8(RRSIG_LABELS);\\n        self.ttl = data.readUint32(RRSIG_TTL);\\n        self.expiration = data.readUint32(RRSIG_EXPIRATION);\\n        self.inception = data.readUint32(RRSIG_INCEPTION);\\n        self.keytag = data.readUint16(RRSIG_KEY_TAG);\\n        self.signerName = readName(data, RRSIG_SIGNER_NAME);\\n        self.data = data.substring(\\n            RRSIG_SIGNER_NAME + self.signerName.length,\\n            data.length - RRSIG_SIGNER_NAME - self.signerName.length\\n        );\\n    }\\n\\n    function rrs(\\n        SignedSet memory rrset\\n    ) internal pure returns (RRIterator memory) {\\n        return iterateRRs(rrset.data, 0);\\n    }\\n\\n    /**\\n     * @dev An iterator over resource records.\\n     */\\n    struct RRIterator {\\n        bytes data;\\n        uint256 offset;\\n        uint16 dnstype;\\n        uint16 class;\\n        uint32 ttl;\\n        uint256 rdataOffset;\\n        uint256 nextOffset;\\n    }\\n\\n    /**\\n     * @dev Begins iterating over resource records.\\n     * @param self The byte string to read from.\\n     * @param offset The offset to start reading at.\\n     * @return ret An iterator object.\\n     */\\n    function iterateRRs(\\n        bytes memory self,\\n        uint256 offset\\n    ) internal pure returns (RRIterator memory ret) {\\n        ret.data = self;\\n        ret.nextOffset = offset;\\n        next(ret);\\n    }\\n\\n    /**\\n     * @dev Returns true iff there are more RRs to iterate.\\n     * @param iter The iterator to check.\\n     * @return True iff the iterator has finished.\\n     */\\n    function done(RRIterator memory iter) internal pure returns (bool) {\\n        return iter.offset >= iter.data.length;\\n    }\\n\\n    /**\\n     * @dev Moves the iterator to the next resource record.\\n     * @param iter The iterator to advance.\\n     */\\n    function next(RRIterator memory iter) internal pure {\\n        iter.offset = iter.nextOffset;\\n        if (iter.offset >= iter.data.length) {\\n            return;\\n        }\\n\\n        // Skip the name\\n        uint256 off = iter.offset + nameLength(iter.data, iter.offset);\\n\\n        // Read type, class, and ttl\\n        iter.dnstype = iter.data.readUint16(off);\\n        off += 2;\\n        iter.class = iter.data.readUint16(off);\\n        off += 2;\\n        iter.ttl = iter.data.readUint32(off);\\n        off += 4;\\n\\n        // Read the rdata\\n        uint256 rdataLength = iter.data.readUint16(off);\\n        off += 2;\\n        iter.rdataOffset = off;\\n        iter.nextOffset = off + rdataLength;\\n    }\\n\\n    /**\\n     * @dev Returns the name of the current record.\\n     * @param iter The iterator.\\n     * @return A new bytes object containing the owner name from the RR.\\n     */\\n    function name(RRIterator memory iter) internal pure returns (bytes memory) {\\n        return\\n            iter.data.substring(\\n                iter.offset,\\n                nameLength(iter.data, iter.offset)\\n            );\\n    }\\n\\n    /**\\n     * @dev Returns the rdata portion of the current record.\\n     * @param iter The iterator.\\n     * @return A new bytes object containing the RR's RDATA.\\n     */\\n    function rdata(\\n        RRIterator memory iter\\n    ) internal pure returns (bytes memory) {\\n        return\\n            iter.data.substring(\\n                iter.rdataOffset,\\n                iter.nextOffset - iter.rdataOffset\\n            );\\n    }\\n\\n    uint256 constant DNSKEY_FLAGS = 0;\\n    uint256 constant DNSKEY_PROTOCOL = 2;\\n    uint256 constant DNSKEY_ALGORITHM = 3;\\n    uint256 constant DNSKEY_PUBKEY = 4;\\n\\n    struct DNSKEY {\\n        uint16 flags;\\n        uint8 protocol;\\n        uint8 algorithm;\\n        bytes publicKey;\\n    }\\n\\n    function readDNSKEY(\\n        bytes memory data,\\n        uint256 offset,\\n        uint256 length\\n    ) internal pure returns (DNSKEY memory self) {\\n        self.flags = data.readUint16(offset + DNSKEY_FLAGS);\\n        self.protocol = data.readUint8(offset + DNSKEY_PROTOCOL);\\n        self.algorithm = data.readUint8(offset + DNSKEY_ALGORITHM);\\n        self.publicKey = data.substring(\\n            offset + DNSKEY_PUBKEY,\\n            length - DNSKEY_PUBKEY\\n        );\\n    }\\n\\n    uint256 constant DS_KEY_TAG = 0;\\n    uint256 constant DS_ALGORITHM = 2;\\n    uint256 constant DS_DIGEST_TYPE = 3;\\n    uint256 constant DS_DIGEST = 4;\\n\\n    struct DS {\\n        uint16 keytag;\\n        uint8 algorithm;\\n        uint8 digestType;\\n        bytes digest;\\n    }\\n\\n    function readDS(\\n        bytes memory data,\\n        uint256 offset,\\n        uint256 length\\n    ) internal pure returns (DS memory self) {\\n        self.keytag = data.readUint16(offset + DS_KEY_TAG);\\n        self.algorithm = data.readUint8(offset + DS_ALGORITHM);\\n        self.digestType = data.readUint8(offset + DS_DIGEST_TYPE);\\n        self.digest = data.substring(offset + DS_DIGEST, length - DS_DIGEST);\\n    }\\n\\n    function isSubdomainOf(\\n        bytes memory self,\\n        bytes memory other\\n    ) internal pure returns (bool) {\\n        uint256 off = 0;\\n        uint256 counts = labelCount(self, 0);\\n        uint256 othercounts = labelCount(other, 0);\\n\\n        while (counts > othercounts) {\\n            off = progress(self, off);\\n            counts--;\\n        }\\n\\n        return self.equals(off, other, 0);\\n    }\\n\\n    function compareNames(\\n        bytes memory self,\\n        bytes memory other\\n    ) internal pure returns (int256) {\\n        if (self.equals(other)) {\\n            return 0;\\n        }\\n\\n        uint256 off;\\n        uint256 otheroff;\\n        uint256 prevoff;\\n        uint256 otherprevoff;\\n        uint256 counts = labelCount(self, 0);\\n        uint256 othercounts = labelCount(other, 0);\\n\\n        // Keep removing labels from the front of the name until both names are equal length\\n        while (counts > othercounts) {\\n            prevoff = off;\\n            off = progress(self, off);\\n            counts--;\\n        }\\n\\n        while (othercounts > counts) {\\n            otherprevoff = otheroff;\\n            otheroff = progress(other, otheroff);\\n            othercounts--;\\n        }\\n\\n        // Compare the last nonequal labels to each other\\n        while (counts > 0 && !self.equals(off, other, otheroff)) {\\n            prevoff = off;\\n            off = progress(self, off);\\n            otherprevoff = otheroff;\\n            otheroff = progress(other, otheroff);\\n            counts -= 1;\\n        }\\n\\n        if (off == 0) {\\n            return -1;\\n        }\\n        if (otheroff == 0) {\\n            return 1;\\n        }\\n\\n        return\\n            self.compare(\\n                prevoff + 1,\\n                self.readUint8(prevoff),\\n                other,\\n                otherprevoff + 1,\\n                other.readUint8(otherprevoff)\\n            );\\n    }\\n\\n    /**\\n     * @dev Compares two serial numbers using RFC1982 serial number math.\\n     */\\n    function serialNumberGte(\\n        uint32 i1,\\n        uint32 i2\\n    ) internal pure returns (bool) {\\n        unchecked {\\n            return int32(i1) - int32(i2) >= 0;\\n        }\\n    }\\n\\n    function progress(\\n        bytes memory body,\\n        uint256 off\\n    ) internal pure returns (uint256) {\\n        return off + 1 + body.readUint8(off);\\n    }\\n\\n    /**\\n     * @dev Computes the keytag for a chunk of data.\\n     * @param data The data to compute a keytag for.\\n     * @return The computed key tag.\\n     */\\n    function computeKeytag(bytes memory data) internal pure returns (uint16) {\\n        /* This function probably deserves some explanation.\\n         * The DNSSEC keytag function is a checksum that relies on summing up individual bytes\\n         * from the input string, with some mild bitshifting. Here's a Naive solidity implementation:\\n         *\\n         *     function computeKeytag(bytes memory data) internal pure returns (uint16) {\\n         *         uint ac;\\n         *         for (uint i = 0; i < data.length; i++) {\\n         *             ac += i & 1 == 0 ? uint16(data.readUint8(i)) << 8 : data.readUint8(i);\\n         *         }\\n         *         return uint16(ac + (ac >> 16));\\n         *     }\\n         *\\n         * The EVM, with its 256 bit words, is exceedingly inefficient at doing byte-by-byte operations;\\n         * the code above, on reasonable length inputs, consumes over 100k gas. But we can make the EVM's\\n         * large words work in our favour.\\n         *\\n         * The code below works by treating the input as a series of 256 bit words. It first masks out\\n         * even and odd bytes from each input word, adding them to two separate accumulators `ac1` and `ac2`.\\n         * The bytes are separated by empty bytes, so as long as no individual sum exceeds 2^16-1, we're\\n         * effectively summing 16 different numbers with each EVM ADD opcode.\\n         *\\n         * Once it's added up all the inputs, it has to add all the 16 bit values in `ac1` and `ac2` together.\\n         * It does this using the same trick - mask out every other value, shift to align them, add them together.\\n         * After the first addition on both accumulators, there's enough room to add the two accumulators together,\\n         * and the remaining sums can be done just on ac1.\\n         */\\n        unchecked {\\n            require(data.length <= 8192, \\\"Long keys not permitted\\\");\\n            uint256 ac1;\\n            uint256 ac2;\\n            for (uint256 i = 0; i < data.length + 31; i += 32) {\\n                uint256 word;\\n                assembly {\\n                    word := mload(add(add(data, 32), i))\\n                }\\n                if (i + 32 > data.length) {\\n                    uint256 unused = 256 - (data.length - i) * 8;\\n                    word = (word >> unused) << unused;\\n                }\\n                ac1 +=\\n                    (word &\\n                        0xFF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00) >>\\n                    8;\\n                ac2 += (word &\\n                    0x00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF00FF);\\n            }\\n            ac1 =\\n                (ac1 &\\n                    0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF) +\\n                ((ac1 &\\n                    0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >>\\n                    16);\\n            ac2 =\\n                (ac2 &\\n                    0x0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF) +\\n                ((ac2 &\\n                    0xFFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000FFFF0000) >>\\n                    16);\\n            ac1 = (ac1 << 8) + ac2;\\n            ac1 =\\n                (ac1 &\\n                    0x00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF) +\\n                ((ac1 &\\n                    0xFFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000FFFFFFFF00000000) >>\\n                    32);\\n            ac1 =\\n                (ac1 &\\n                    0x0000000000000000FFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF) +\\n                ((ac1 &\\n                    0xFFFFFFFFFFFFFFFF0000000000000000FFFFFFFFFFFFFFFF0000000000000000) >>\\n                    64);\\n            ac1 =\\n                (ac1 &\\n                    0x00000000000000000000000000000000FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF) +\\n                (ac1 >> 128);\\n            ac1 += (ac1 >> 16) & 0xFFFF;\\n            return uint16(ac1);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x4dd68a6efd7c38f6b0e95ca0c056ecb74f88583da650b1a8639e6e78be36fede\"},\"contracts/resolvers/OwnedResolver.sol\":{\"content\":\"pragma solidity >=0.8.4;\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\nimport \\\"./profiles/ABIResolver.sol\\\";\\nimport \\\"./profiles/AddrResolver.sol\\\";\\nimport \\\"./profiles/ContentHashResolver.sol\\\";\\nimport \\\"./profiles/DNSResolver.sol\\\";\\nimport \\\"./profiles/InterfaceResolver.sol\\\";\\nimport \\\"./profiles/NameResolver.sol\\\";\\nimport \\\"./profiles/PubkeyResolver.sol\\\";\\nimport \\\"./profiles/TextResolver.sol\\\";\\nimport \\\"./profiles/ExtendedResolver.sol\\\";\\n\\n/**\\n * A simple resolver anyone can use; only allows the owner of a node to set its\\n * address.\\n */\\ncontract OwnedResolver is\\n    Ownable,\\n    ABIResolver,\\n    AddrResolver,\\n    ContentHashResolver,\\n    DNSResolver,\\n    InterfaceResolver,\\n    NameResolver,\\n    PubkeyResolver,\\n    TextResolver,\\n    ExtendedResolver\\n{\\n    function isAuthorised(bytes32) internal view override returns (bool) {\\n        return msg.sender == owner();\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    )\\n        public\\n        view\\n        virtual\\n        override(\\n            ABIResolver,\\n            AddrResolver,\\n            ContentHashResolver,\\n            DNSResolver,\\n            InterfaceResolver,\\n            NameResolver,\\n            PubkeyResolver,\\n            TextResolver\\n        )\\n        returns (bool)\\n    {\\n        return super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x598216380f029db0101c75ebb00a7ccc04bd26c738537238d7f67d9e35603e8b\"},\"contracts/resolvers/ResolverBase.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"@openzeppelin/contracts/utils/introspection/ERC165.sol\\\";\\nimport \\\"./profiles/IVersionableResolver.sol\\\";\\n\\nabstract contract ResolverBase is ERC165, IVersionableResolver {\\n    mapping(bytes32 => uint64) public recordVersions;\\n\\n    function isAuthorised(bytes32 node) internal view virtual returns (bool);\\n\\n    modifier authorised(bytes32 node) {\\n        require(isAuthorised(node));\\n        _;\\n    }\\n\\n    /**\\n     * Increments the record version associated with an ENS node.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     */\\n    function clearRecords(bytes32 node) public virtual authorised(node) {\\n        recordVersions[node]++;\\n        emit VersionChanged(node, recordVersions[node]);\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IVersionableResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x893049fffd6feee06d7acef1680f6e26505bedff62a9f7a17e921c0ba2f66307\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/ABIResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"./IABIResolver.sol\\\";\\nimport \\\"../ResolverBase.sol\\\";\\n\\nabstract contract ABIResolver is IABIResolver, ResolverBase {\\n    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_abis;\\n\\n    /**\\n     * Sets the ABI associated with an ENS node.\\n     * Nodes may have one ABI of each content type. To remove an ABI, set it to\\n     * the empty string.\\n     * @param node The node to update.\\n     * @param contentType The content type of the ABI\\n     * @param data The ABI data.\\n     */\\n    function setABI(\\n        bytes32 node,\\n        uint256 contentType,\\n        bytes calldata data\\n    ) external virtual authorised(node) {\\n        // Content types must be powers of 2\\n        require(((contentType - 1) & contentType) == 0);\\n\\n        versionable_abis[recordVersions[node]][node][contentType] = data;\\n        emit ABIChanged(node, contentType);\\n    }\\n\\n    /**\\n     * Returns the ABI associated with an ENS node.\\n     * Defined in EIP205.\\n     * @param node The ENS node to query\\n     * @param contentTypes A bitwise OR of the ABI formats accepted by the caller.\\n     * @return contentType The content type of the return value\\n     * @return data The ABI data\\n     */\\n    function ABI(\\n        bytes32 node,\\n        uint256 contentTypes\\n    ) external view virtual override returns (uint256, bytes memory) {\\n        mapping(uint256 => bytes) storage abiset = versionable_abis[\\n            recordVersions[node]\\n        ][node];\\n\\n        for (\\n            uint256 contentType = 1;\\n            contentType <= contentTypes;\\n            contentType <<= 1\\n        ) {\\n            if (\\n                (contentType & contentTypes) != 0 &&\\n                abiset[contentType].length > 0\\n            ) {\\n                return (contentType, abiset[contentType]);\\n            }\\n        }\\n\\n        return (0, bytes(\\\"\\\"));\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IABIResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x2da96d7750786afe3be019fc6ff768e2d98a5e61d360bd92d8d7bc3c7c1dcc27\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/AddrResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./IAddrResolver.sol\\\";\\nimport \\\"./IAddressResolver.sol\\\";\\n\\nabstract contract AddrResolver is\\n    IAddrResolver,\\n    IAddressResolver,\\n    ResolverBase\\n{\\n    uint256 private constant COIN_TYPE_ETH = 60;\\n\\n    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;\\n\\n    /**\\n     * Sets the address associated with an ENS node.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     * @param a The address to set.\\n     */\\n    function setAddr(\\n        bytes32 node,\\n        address a\\n    ) external virtual authorised(node) {\\n        setAddr(node, COIN_TYPE_ETH, addressToBytes(a));\\n    }\\n\\n    /**\\n     * Returns the address associated with an ENS node.\\n     * @param node The ENS node to query.\\n     * @return The associated address.\\n     */\\n    function addr(\\n        bytes32 node\\n    ) public view virtual override returns (address payable) {\\n        bytes memory a = addr(node, COIN_TYPE_ETH);\\n        if (a.length == 0) {\\n            return payable(0);\\n        }\\n        return bytesToAddress(a);\\n    }\\n\\n    function setAddr(\\n        bytes32 node,\\n        uint256 coinType,\\n        bytes memory a\\n    ) public virtual authorised(node) {\\n        emit AddressChanged(node, coinType, a);\\n        if (coinType == COIN_TYPE_ETH) {\\n            emit AddrChanged(node, bytesToAddress(a));\\n        }\\n        versionable_addresses[recordVersions[node]][node][coinType] = a;\\n    }\\n\\n    function addr(\\n        bytes32 node,\\n        uint256 coinType\\n    ) public view virtual override returns (bytes memory) {\\n        return versionable_addresses[recordVersions[node]][node][coinType];\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IAddrResolver).interfaceId ||\\n            interfaceID == type(IAddressResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n\\n    function bytesToAddress(\\n        bytes memory b\\n    ) internal pure returns (address payable a) {\\n        require(b.length == 20);\\n        assembly {\\n            a := div(mload(add(b, 32)), exp(256, 12))\\n        }\\n    }\\n\\n    function addressToBytes(address a) internal pure returns (bytes memory b) {\\n        b = new bytes(20);\\n        assembly {\\n            mstore(add(b, 32), mul(a, exp(256, 12)))\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x7f6ebb3144530a02db03379f33ade869c8408eceed36dfbd751aaff198735b55\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/ContentHashResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./IContentHashResolver.sol\\\";\\n\\nabstract contract ContentHashResolver is IContentHashResolver, ResolverBase {\\n    mapping(uint64 => mapping(bytes32 => bytes)) versionable_hashes;\\n\\n    /**\\n     * Sets the contenthash associated with an ENS node.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     * @param hash The contenthash to set\\n     */\\n    function setContenthash(\\n        bytes32 node,\\n        bytes calldata hash\\n    ) external virtual authorised(node) {\\n        versionable_hashes[recordVersions[node]][node] = hash;\\n        emit ContenthashChanged(node, hash);\\n    }\\n\\n    /**\\n     * Returns the contenthash associated with an ENS node.\\n     * @param node The ENS node to query.\\n     * @return The associated contenthash.\\n     */\\n    function contenthash(\\n        bytes32 node\\n    ) external view virtual override returns (bytes memory) {\\n        return versionable_hashes[recordVersions[node]][node];\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IContentHashResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0xc9755bfb77985375ded880ecab5af41f2b9e8280f30d3e523fe5042ea59f93ea\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/DNSResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"../../dnssec-oracle/RRUtils.sol\\\";\\nimport \\\"./IDNSRecordResolver.sol\\\";\\nimport \\\"./IDNSZoneResolver.sol\\\";\\n\\nabstract contract DNSResolver is\\n    IDNSRecordResolver,\\n    IDNSZoneResolver,\\n    ResolverBase\\n{\\n    using RRUtils for *;\\n    using BytesUtils for bytes;\\n\\n    // Zone hashes for the domains.\\n    // A zone hash is an EIP-1577 content hash in binary format that should point to a\\n    // resource containing a single zonefile.\\n    // node => contenthash\\n    mapping(uint64 => mapping(bytes32 => bytes)) private versionable_zonehashes;\\n\\n    // The records themselves.  Stored as binary RRSETs\\n    // node => version => name => resource => data\\n    mapping(uint64 => mapping(bytes32 => mapping(bytes32 => mapping(uint16 => bytes))))\\n        private versionable_records;\\n\\n    // Count of number of entries for a given name.  Required for DNS resolvers\\n    // when resolving wildcards.\\n    // node => version => name => number of records\\n    mapping(uint64 => mapping(bytes32 => mapping(bytes32 => uint16)))\\n        private versionable_nameEntriesCount;\\n\\n    /**\\n     * Set one or more DNS records.  Records are supplied in wire-format.\\n     * Records with the same node/name/resource must be supplied one after the\\n     * other to ensure the data is updated correctly. For example, if the data\\n     * was supplied:\\n     *     a.example.com IN A 1.2.3.4\\n     *     a.example.com IN A 5.6.7.8\\n     *     www.example.com IN CNAME a.example.com.\\n     * then this would store the two A records for a.example.com correctly as a\\n     * single RRSET, however if the data was supplied:\\n     *     a.example.com IN A 1.2.3.4\\n     *     www.example.com IN CNAME a.example.com.\\n     *     a.example.com IN A 5.6.7.8\\n     * then this would store the first A record, the CNAME, then the second A\\n     * record which would overwrite the first.\\n     *\\n     * @param node the namehash of the node for which to set the records\\n     * @param data the DNS wire format records to set\\n     */\\n    function setDNSRecords(\\n        bytes32 node,\\n        bytes calldata data\\n    ) external virtual authorised(node) {\\n        uint16 resource = 0;\\n        uint256 offset = 0;\\n        bytes memory name;\\n        bytes memory value;\\n        bytes32 nameHash;\\n        uint64 version = recordVersions[node];\\n        // Iterate over the data to add the resource records\\n        for (\\n            RRUtils.RRIterator memory iter = data.iterateRRs(0);\\n            !iter.done();\\n            iter.next()\\n        ) {\\n            if (resource == 0) {\\n                resource = iter.dnstype;\\n                name = iter.name();\\n                nameHash = keccak256(abi.encodePacked(name));\\n                value = bytes(iter.rdata());\\n            } else {\\n                bytes memory newName = iter.name();\\n                if (resource != iter.dnstype || !name.equals(newName)) {\\n                    setDNSRRSet(\\n                        node,\\n                        name,\\n                        resource,\\n                        data,\\n                        offset,\\n                        iter.offset - offset,\\n                        value.length == 0,\\n                        version\\n                    );\\n                    resource = iter.dnstype;\\n                    offset = iter.offset;\\n                    name = newName;\\n                    nameHash = keccak256(name);\\n                    value = bytes(iter.rdata());\\n                }\\n            }\\n        }\\n        if (name.length > 0) {\\n            setDNSRRSet(\\n                node,\\n                name,\\n                resource,\\n                data,\\n                offset,\\n                data.length - offset,\\n                value.length == 0,\\n                version\\n            );\\n        }\\n    }\\n\\n    /**\\n     * Obtain a DNS record.\\n     * @param node the namehash of the node for which to fetch the record\\n     * @param name the keccak-256 hash of the fully-qualified name for which to fetch the record\\n     * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types\\n     * @return the DNS record in wire format if present, otherwise empty\\n     */\\n    function dnsRecord(\\n        bytes32 node,\\n        bytes32 name,\\n        uint16 resource\\n    ) public view virtual override returns (bytes memory) {\\n        return versionable_records[recordVersions[node]][node][name][resource];\\n    }\\n\\n    /**\\n     * Check if a given node has records.\\n     * @param node the namehash of the node for which to check the records\\n     * @param name the namehash of the node for which to check the records\\n     */\\n    function hasDNSRecords(\\n        bytes32 node,\\n        bytes32 name\\n    ) public view virtual returns (bool) {\\n        return (versionable_nameEntriesCount[recordVersions[node]][node][\\n            name\\n        ] != 0);\\n    }\\n\\n    /**\\n     * setZonehash sets the hash for the zone.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     * @param hash The zonehash to set\\n     */\\n    function setZonehash(\\n        bytes32 node,\\n        bytes calldata hash\\n    ) external virtual authorised(node) {\\n        uint64 currentRecordVersion = recordVersions[node];\\n        bytes memory oldhash = versionable_zonehashes[currentRecordVersion][\\n            node\\n        ];\\n        versionable_zonehashes[currentRecordVersion][node] = hash;\\n        emit DNSZonehashChanged(node, oldhash, hash);\\n    }\\n\\n    /**\\n     * zonehash obtains the hash for the zone.\\n     * @param node The ENS node to query.\\n     * @return The associated contenthash.\\n     */\\n    function zonehash(\\n        bytes32 node\\n    ) external view virtual override returns (bytes memory) {\\n        return versionable_zonehashes[recordVersions[node]][node];\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IDNSRecordResolver).interfaceId ||\\n            interfaceID == type(IDNSZoneResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n\\n    function setDNSRRSet(\\n        bytes32 node,\\n        bytes memory name,\\n        uint16 resource,\\n        bytes memory data,\\n        uint256 offset,\\n        uint256 size,\\n        bool deleteRecord,\\n        uint64 version\\n    ) private {\\n        bytes32 nameHash = keccak256(name);\\n        bytes memory rrData = data.substring(offset, size);\\n        if (deleteRecord) {\\n            if (\\n                versionable_records[version][node][nameHash][resource].length !=\\n                0\\n            ) {\\n                versionable_nameEntriesCount[version][node][nameHash]--;\\n            }\\n            delete (versionable_records[version][node][nameHash][resource]);\\n            emit DNSRecordDeleted(node, name, resource);\\n        } else {\\n            if (\\n                versionable_records[version][node][nameHash][resource].length ==\\n                0\\n            ) {\\n                versionable_nameEntriesCount[version][node][nameHash]++;\\n            }\\n            versionable_records[version][node][nameHash][resource] = rrData;\\n            emit DNSRecordChanged(node, name, resource, rrData);\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0x7233e4d2edca222ce6e1cdb07adf127ab52ecaea599fa5369971a7b28dbc59ac\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/ExtendedResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.4;\\n\\ncontract ExtendedResolver {\\n    function resolve(\\n        bytes memory /* name */,\\n        bytes memory data\\n    ) external view returns (bytes memory) {\\n        (bool success, bytes memory result) = address(this).staticcall(data);\\n        if (success) {\\n            return result;\\n        } else {\\n            // Revert with the reason provided by the call\\n            assembly {\\n                revert(add(result, 0x20), mload(result))\\n            }\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xd0e5c93ac9f4d21a0278282e2a32a9c5606a0053ce4781773b7faade57a4a54e\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IABIResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IABIResolver {\\n    event ABIChanged(bytes32 indexed node, uint256 indexed contentType);\\n\\n    /**\\n     * Returns the ABI associated with an ENS node.\\n     * Defined in EIP205.\\n     * @param node The ENS node to query\\n     * @param contentTypes A bitwise OR of the ABI formats accepted by the caller.\\n     * @return contentType The content type of the return value\\n     * @return data The ABI data\\n     */\\n    function ABI(\\n        bytes32 node,\\n        uint256 contentTypes\\n    ) external view returns (uint256, bytes memory);\\n}\\n\",\"keccak256\":\"0x85b373d02d19374fe570af407f459768285704bf7f30ab17c30eabfb5a10e4c3\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IAddrResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\n/**\\n * Interface for the legacy (ETH-only) addr function.\\n */\\ninterface IAddrResolver {\\n    event AddrChanged(bytes32 indexed node, address a);\\n\\n    /**\\n     * Returns the address associated with an ENS node.\\n     * @param node The ENS node to query.\\n     * @return The associated address.\\n     */\\n    function addr(bytes32 node) external view returns (address payable);\\n}\\n\",\"keccak256\":\"0x2ad7f2fc60ebe0f93745fe70247f6a854f66af732483fda2a3c5e055614445e8\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IAddressResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\n/**\\n * Interface for the new (multicoin) addr function.\\n */\\ninterface IAddressResolver {\\n    event AddressChanged(\\n        bytes32 indexed node,\\n        uint256 coinType,\\n        bytes newAddress\\n    );\\n\\n    function addr(\\n        bytes32 node,\\n        uint256 coinType\\n    ) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0x411447c1e90c51e09702815a85ec725ffbbe37cf96e8cc4d2a8bd4ad8a59d73e\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IContentHashResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IContentHashResolver {\\n    event ContenthashChanged(bytes32 indexed node, bytes hash);\\n\\n    /**\\n     * Returns the contenthash associated with an ENS node.\\n     * @param node The ENS node to query.\\n     * @return The associated contenthash.\\n     */\\n    function contenthash(bytes32 node) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0xd95cd77684ba5752c428d7dceb4ecc6506ac94f4fbb910489637eb68dcd8e366\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IDNSRecordResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IDNSRecordResolver {\\n    // DNSRecordChanged is emitted whenever a given node/name/resource's RRSET is updated.\\n    event DNSRecordChanged(\\n        bytes32 indexed node,\\n        bytes name,\\n        uint16 resource,\\n        bytes record\\n    );\\n    // DNSRecordDeleted is emitted whenever a given node/name/resource's RRSET is deleted.\\n    event DNSRecordDeleted(bytes32 indexed node, bytes name, uint16 resource);\\n\\n    /**\\n     * Obtain a DNS record.\\n     * @param node the namehash of the node for which to fetch the record\\n     * @param name the keccak-256 hash of the fully-qualified name for which to fetch the record\\n     * @param resource the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types\\n     * @return the DNS record in wire format if present, otherwise empty\\n     */\\n    function dnsRecord(\\n        bytes32 node,\\n        bytes32 name,\\n        uint16 resource\\n    ) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0xcfa52200edd337f2c6c5bf402352600584da033b21323603e53de33051a3e25d\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IDNSZoneResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IDNSZoneResolver {\\n    // DNSZonehashChanged is emitted whenever a given node's zone hash is updated.\\n    event DNSZonehashChanged(\\n        bytes32 indexed node,\\n        bytes lastzonehash,\\n        bytes zonehash\\n    );\\n\\n    /**\\n     * zonehash obtains the hash for the zone.\\n     * @param node The ENS node to query.\\n     * @return The associated contenthash.\\n     */\\n    function zonehash(bytes32 node) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0xca1b3a16e7005533f2800a3e66fcdccf7c574deac7913d8c810f40aec1d58dc0\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IInterfaceResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IInterfaceResolver {\\n    event InterfaceChanged(\\n        bytes32 indexed node,\\n        bytes4 indexed interfaceID,\\n        address implementer\\n    );\\n\\n    /**\\n     * Returns the address of a contract that implements the specified interface for this name.\\n     * If an implementer has not been set for this interfaceID and name, the resolver will query\\n     * the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that\\n     * contract implements EIP165 and returns `true` for the specified interfaceID, its address\\n     * will be returned.\\n     * @param node The ENS node to query.\\n     * @param interfaceID The EIP 165 interface ID to check for.\\n     * @return The address that implements this interface, or 0 if the interface is unsupported.\\n     */\\n    function interfaceImplementer(\\n        bytes32 node,\\n        bytes4 interfaceID\\n    ) external view returns (address);\\n}\\n\",\"keccak256\":\"0x390321fb58f7b927df9562450981e74b4be3907e7c09df321fd3b7409b63ae28\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/INameResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface INameResolver {\\n    event NameChanged(bytes32 indexed node, string name);\\n\\n    /**\\n     * Returns the name associated with an ENS node, for reverse records.\\n     * Defined in EIP181.\\n     * @param node The ENS node to query.\\n     * @return The associated name.\\n     */\\n    function name(bytes32 node) external view returns (string memory);\\n}\\n\",\"keccak256\":\"0x9ec392b612447b1acbdc01114f2da2837a658d3f3157f60a99c5269f0b623346\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IPubkeyResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IPubkeyResolver {\\n    event PubkeyChanged(bytes32 indexed node, bytes32 x, bytes32 y);\\n\\n    /**\\n     * Returns the SECP256k1 public key associated with an ENS node.\\n     * Defined in EIP 619.\\n     * @param node The ENS node to query\\n     * @return x The X coordinate of the curve point for the public key.\\n     * @return y The Y coordinate of the curve point for the public key.\\n     */\\n    function pubkey(bytes32 node) external view returns (bytes32 x, bytes32 y);\\n}\\n\",\"keccak256\":\"0x69748947093dd2fda9ddcebd0adf19a6d1e7600df1d4b1462a0417156caddca7\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/ITextResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface ITextResolver {\\n    event TextChanged(\\n        bytes32 indexed node,\\n        string indexed indexedKey,\\n        string key,\\n        string value\\n    );\\n\\n    /**\\n     * Returns the text data associated with an ENS node and key.\\n     * @param node The ENS node to query.\\n     * @param key The text data key to query.\\n     * @return The associated text data.\\n     */\\n    function text(\\n        bytes32 node,\\n        string calldata key\\n    ) external view returns (string memory);\\n}\\n\",\"keccak256\":\"0x7c5debb3c42cd9f5de2274ea7aa053f238608314b62db441c40e31cea2543fd5\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IVersionableResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface IVersionableResolver {\\n    event VersionChanged(bytes32 indexed node, uint64 newVersion);\\n\\n    function recordVersions(bytes32 node) external view returns (uint64);\\n}\\n\",\"keccak256\":\"0xd0d09596f20c57bafb2ffa8521a8c57120e9af6c6b194f9c689d4da56f91a57c\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/InterfaceResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"@openzeppelin/contracts/utils/introspection/IERC165.sol\\\";\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./AddrResolver.sol\\\";\\nimport \\\"./IInterfaceResolver.sol\\\";\\n\\nabstract contract InterfaceResolver is IInterfaceResolver, AddrResolver {\\n    mapping(uint64 => mapping(bytes32 => mapping(bytes4 => address))) versionable_interfaces;\\n\\n    /**\\n     * Sets an interface associated with a name.\\n     * Setting the address to 0 restores the default behaviour of querying the contract at `addr()` for interface support.\\n     * @param node The node to update.\\n     * @param interfaceID The EIP 165 interface ID.\\n     * @param implementer The address of a contract that implements this interface for this node.\\n     */\\n    function setInterface(\\n        bytes32 node,\\n        bytes4 interfaceID,\\n        address implementer\\n    ) external virtual authorised(node) {\\n        versionable_interfaces[recordVersions[node]][node][\\n            interfaceID\\n        ] = implementer;\\n        emit InterfaceChanged(node, interfaceID, implementer);\\n    }\\n\\n    /**\\n     * Returns the address of a contract that implements the specified interface for this name.\\n     * If an implementer has not been set for this interfaceID and name, the resolver will query\\n     * the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that\\n     * contract implements EIP165 and returns `true` for the specified interfaceID, its address\\n     * will be returned.\\n     * @param node The ENS node to query.\\n     * @param interfaceID The EIP 165 interface ID to check for.\\n     * @return The address that implements this interface, or 0 if the interface is unsupported.\\n     */\\n    function interfaceImplementer(\\n        bytes32 node,\\n        bytes4 interfaceID\\n    ) external view virtual override returns (address) {\\n        address implementer = versionable_interfaces[recordVersions[node]][\\n            node\\n        ][interfaceID];\\n        if (implementer != address(0)) {\\n            return implementer;\\n        }\\n\\n        address a = addr(node);\\n        if (a == address(0)) {\\n            return address(0);\\n        }\\n\\n        (bool success, bytes memory returnData) = a.staticcall(\\n            abi.encodeWithSignature(\\n                \\\"supportsInterface(bytes4)\\\",\\n                type(IERC165).interfaceId\\n            )\\n        );\\n        if (!success || returnData.length < 32 || returnData[31] == 0) {\\n            // EIP 165 not supported by target\\n            return address(0);\\n        }\\n\\n        (success, returnData) = a.staticcall(\\n            abi.encodeWithSignature(\\\"supportsInterface(bytes4)\\\", interfaceID)\\n        );\\n        if (!success || returnData.length < 32 || returnData[31] == 0) {\\n            // Specified interface not supported by target\\n            return address(0);\\n        }\\n\\n        return a;\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IInterfaceResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x820ec60183e7a49a4ee399cf4708acb776725c8e4ad275d1f316c152eace0a59\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/NameResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./INameResolver.sol\\\";\\n\\nabstract contract NameResolver is INameResolver, ResolverBase {\\n    mapping(uint64 => mapping(bytes32 => string)) versionable_names;\\n\\n    /**\\n     * Sets the name associated with an ENS node, for reverse records.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     */\\n    function setName(\\n        bytes32 node,\\n        string calldata newName\\n    ) external virtual authorised(node) {\\n        versionable_names[recordVersions[node]][node] = newName;\\n        emit NameChanged(node, newName);\\n    }\\n\\n    /**\\n     * Returns the name associated with an ENS node, for reverse records.\\n     * Defined in EIP181.\\n     * @param node The ENS node to query.\\n     * @return The associated name.\\n     */\\n    function name(\\n        bytes32 node\\n    ) external view virtual override returns (string memory) {\\n        return versionable_names[recordVersions[node]][node];\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(INameResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x52d0bbb8f9dd33fae471ef2f5f6b3118b221954e5bb7ba724885d4562e75b8e2\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/PubkeyResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./IPubkeyResolver.sol\\\";\\n\\nabstract contract PubkeyResolver is IPubkeyResolver, ResolverBase {\\n    struct PublicKey {\\n        bytes32 x;\\n        bytes32 y;\\n    }\\n\\n    mapping(uint64 => mapping(bytes32 => PublicKey)) versionable_pubkeys;\\n\\n    /**\\n     * Sets the SECP256k1 public key associated with an ENS node.\\n     * @param node The ENS node to query\\n     * @param x the X coordinate of the curve point for the public key.\\n     * @param y the Y coordinate of the curve point for the public key.\\n     */\\n    function setPubkey(\\n        bytes32 node,\\n        bytes32 x,\\n        bytes32 y\\n    ) external virtual authorised(node) {\\n        versionable_pubkeys[recordVersions[node]][node] = PublicKey(x, y);\\n        emit PubkeyChanged(node, x, y);\\n    }\\n\\n    /**\\n     * Returns the SECP256k1 public key associated with an ENS node.\\n     * Defined in EIP 619.\\n     * @param node The ENS node to query\\n     * @return x The X coordinate of the curve point for the public key.\\n     * @return y The Y coordinate of the curve point for the public key.\\n     */\\n    function pubkey(\\n        bytes32 node\\n    ) external view virtual override returns (bytes32 x, bytes32 y) {\\n        uint64 currentRecordVersion = recordVersions[node];\\n        return (\\n            versionable_pubkeys[currentRecordVersion][node].x,\\n            versionable_pubkeys[currentRecordVersion][node].y\\n        );\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(IPubkeyResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0x1a1f10a0e40520c998a9296fc81c092c81521e05a784e9bd9ee44cc4c62c8c78\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/TextResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\nimport \\\"../ResolverBase.sol\\\";\\nimport \\\"./ITextResolver.sol\\\";\\n\\nabstract contract TextResolver is ITextResolver, ResolverBase {\\n    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;\\n\\n    /**\\n     * Sets the text data associated with an ENS node and key.\\n     * May only be called by the owner of that node in the ENS registry.\\n     * @param node The node to update.\\n     * @param key The key to set.\\n     * @param value The text data value to set.\\n     */\\n    function setText(\\n        bytes32 node,\\n        string calldata key,\\n        string calldata value\\n    ) external virtual authorised(node) {\\n        versionable_texts[recordVersions[node]][node][key] = value;\\n        emit TextChanged(node, key, key, value);\\n    }\\n\\n    /**\\n     * Returns the text data associated with an ENS node and key.\\n     * @param node The ENS node to query.\\n     * @param key The text data key to query.\\n     * @return The associated text data.\\n     */\\n    function text(\\n        bytes32 node,\\n        string calldata key\\n    ) external view virtual override returns (string memory) {\\n        return versionable_texts[recordVersions[node]][node][key];\\n    }\\n\\n    function supportsInterface(\\n        bytes4 interfaceID\\n    ) public view virtual override returns (bool) {\\n        return\\n            interfaceID == type(ITextResolver).interfaceId ||\\n            super.supportsInterface(interfaceID);\\n    }\\n}\\n\",\"keccak256\":\"0xf9bedd807add38136779d84083ac2fa4f8c92d017c9e1a72fbc9003fa5074379\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b5061001a3361001f565b61006f565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b61292b8061007e6000396000f3fe608060405234801561001057600080fd5b50600436106101c45760003560e01c8063715018a6116100f9578063c869023311610097578063d700ff3311610071578063d700ff3314610450578063e59d895d14610493578063f1cb7e06146104a6578063f2fde38b146104b957600080fd5b8063c8690233146103d0578063ce3decdc1461042a578063d5fa2b001461043d57600080fd5b80638da5cb5b116100d35780638da5cb5b146103865780639061b92314610397578063a8fa5682146103aa578063bc1c58d1146103bd57600080fd5b8063715018a61461035857806377372213146103605780638b95dd711461037357600080fd5b80633603d7581161016657806359d1d43c1161014057806359d1d43c146102ff5780635c98042b1461031f578063623195b014610332578063691f34311461034557600080fd5b80633603d7581461028b5780633b3b57de1461029e5780634cbf6ba4146102b157600080fd5b8063124a319c116101a2578063124a319c146102195780632203ab561461024457806329cd62ea14610265578063304e6ade1461027857600080fd5b806301ffc9a7146101c95780630af179d7146101f157806310f13a8c14610206575b600080fd5b6101dc6101d736600461205c565b6104cc565b60405190151581526020015b60405180910390f35b6102046101ff3660046120b9565b6104dd565b005b610204610214366004612105565b6106ef565b61022c61022736600461217f565b6107c4565b6040516001600160a01b0390911681526020016101e8565b6102576102523660046121ab565b610a72565b6040516101e892919061221d565b610204610273366004612236565b610baa565b6102046102863660046120b9565b610c52565b610204610299366004612262565b610cd6565b61022c6102ac366004612262565b610d81565b6101dc6102bf3660046121ab565b60008281526001602090815260408083205467ffffffffffffffff1683526007825280832094835293815283822092825291909152205461ffff16151590565b61031261030d3660046120b9565b610db3565b6040516101e8919061227b565b61031261032d366004612262565b610e95565b61020461034036600461228e565b610f56565b610312610353366004612262565b610ffb565b610204611037565b61020461036e3660046120b9565b61104b565b610204610381366004612384565b6110cf565b6000546001600160a01b031661022c565b6103126103a53660046123d4565b6111b7565b6103126103b8366004612438565b611230565b6103126103cb366004612262565b611280565b6104156103de366004612262565b60008181526001602081815260408084205467ffffffffffffffff168452600a825280842094845293905291902080549101549091565b604080519283526020830191909152016101e8565b6102046104383660046120b9565b6112bc565b61020461044b36600461248f565b611407565b61047a61045e366004612262565b60016020526000908152604090205467ffffffffffffffff1681565b60405167ffffffffffffffff90911681526020016101e8565b6102046104a13660046124b2565b611434565b6103126104b43660046121ab565b6114f0565b6102046104c73660046124ee565b6115ba565b60006104d78261164f565b92915050565b60005483906001600160a01b031633146104f657600080fd5b6000848152600160209081526040808320548151601f870184900484028101840190925285825283926060928392859267ffffffffffffffff90911691839161055e9183918d908d9081908401838280828437600092019190915250929392505061168d9050565b90505b80515160208201511015610688578661ffff166000036105c6578060400151965061058b816116ee565b94508460405160200161059e9190612509565b6040516020818303038152906040528051906020012092506105bf8161170f565b935061067a565b60006105d1826116ee565b9050816040015161ffff168861ffff161415806105f557506105f3868261172b565b155b15610678576106518c878a8e8e8080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250505060208801518d915061064890829061253b565b8b51158a611749565b8160400151975081602001519650809550858051906020012093506106758261170f565b94505b505b610683816119b6565b610561565b508351156106e3576106e38a85888c8c8080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152508c92506106da91508290508f61253b565b89511588611749565b50505050505050505050565b60005485906001600160a01b0316331461070857600080fd5b60008681526001602090815260408083205467ffffffffffffffff168352600b82528083208984529091529081902090518491849161074a908990899061254e565b908152602001604051809103902091826107659291906125e6565b50848460405161077692919061254e565b6040518091039020867f448bc014f1536726cf8d54ff3d6481ed3cbc683c2591ca204274009afa09b1a1878787876040516107b494939291906126cf565b60405180910390a3505050505050565b60008281526001602090815260408083205467ffffffffffffffff1683526008825280832085845282528083206001600160e01b0319851684529091528120546001600160a01b0316801561081a5790506104d7565b600061082585610d81565b90506001600160a01b038116610840576000925050506104d7565b6040516301ffc9a760e01b602482015260009081906001600160a01b0384169060440160408051601f198184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff166301ffc9a760e01b179052516108ad9190612509565b600060405180830381855afa9150503d80600081146108e8576040519150601f19603f3d011682016040523d82523d6000602084013e6108ed565b606091505b5091509150811580610900575060208151105b80610942575080601f8151811061091957610919612701565b01602001517fff0000000000000000000000000000000000000000000000000000000000000016155b156109545760009450505050506104d7565b6040516001600160e01b0319871660248201526001600160a01b0384169060440160408051601f198184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff166301ffc9a760e01b179052516109bf9190612509565b600060405180830381855afa9150503d80600081146109fa576040519150601f19603f3d011682016040523d82523d6000602084013e6109ff565b606091505b509092509050811580610a13575060208151105b80610a55575080601f81518110610a2c57610a2c612701565b01602001517fff0000000000000000000000000000000000000000000000000000000000000016155b15610a675760009450505050506104d7565b509095945050505050565b60008281526001602081815260408084205467ffffffffffffffff1684526002825280842086855290915282206060915b848111610b8a5780851615801590610ad3575060008181526020839052604081208054610acf9061255e565b9050115b15610b825780826000838152602001908152602001600020808054610af79061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610b239061255e565b8015610b705780601f10610b4557610100808354040283529160200191610b70565b820191906000526020600020905b815481529060010190602001808311610b5357829003601f168201915b50505050509050935093505050610ba3565b60011b610aa3565b5060006040518060200160405280600081525092509250505b9250929050565b60005483906001600160a01b03163314610bc357600080fd5b6040805180820182528481526020808201858152600088815260018084528582205467ffffffffffffffff168252600a84528582208a835290935284902092518355519101555184907f1d6f5e03d3f63eb58751986629a5439baee5079ff04f345becb66e23eb154e4690610c449086908690918252602082015260400190565b60405180910390a250505050565b60005483906001600160a01b03163314610c6b57600080fd5b60008481526001602090815260408083205467ffffffffffffffff168352600482528083208784529091529020610ca38385836125e6565b50837fe379c1624ed7e714cc0937528a32359d69d5281337765313dba4e081b72d75788484604051610c44929190612717565b60005481906001600160a01b03163314610cef57600080fd5b6000828152600160205260408120805467ffffffffffffffff1691610d138361272b565b82546101009290920a67ffffffffffffffff8181021990931691831602179091556000848152600160209081526040918290205491519190921681528492507fc6621ccb8f3f5a04bb6502154b2caf6adf5983fe76dfef1cfc9c42e3579db444910160405180910390a25050565b600080610d8f83603c6114f0565b90508051600003610da35750600092915050565b610dac81611a9e565b9392505050565b60008381526001602090815260408083205467ffffffffffffffff168352600b825280832086845290915290819020905160609190610df5908590859061254e565b90815260200160405180910390208054610e0e9061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610e3a9061255e565b8015610e875780601f10610e5c57610100808354040283529160200191610e87565b820191906000526020600020905b815481529060010190602001808311610e6a57829003601f168201915b505050505090509392505050565b60008181526001602090815260408083205467ffffffffffffffff168352600582528083208484529091529020805460609190610ed19061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610efd9061255e565b8015610f4a5780601f10610f1f57610100808354040283529160200191610f4a565b820191906000526020600020905b815481529060010190602001808311610f2d57829003601f168201915b50505050509050919050565b60005484906001600160a01b03163314610f6f57600080fd5b83610f7b60018261253b565b1615610f8657600080fd5b60008581526001602090815260408083205467ffffffffffffffff1683526002825280832088845282528083208784529091529020610fc68385836125e6565b50604051849086907faa121bbeef5f32f5961a2a28966e769023910fc9479059ee3495d4c1a696efe390600090a35050505050565b60008181526001602090815260408083205467ffffffffffffffff168352600982528083208484529091529020805460609190610ed19061255e565b61103f611ac6565b6110496000611b20565b565b60005483906001600160a01b0316331461106457600080fd5b60008481526001602090815260408083205467ffffffffffffffff16835260098252808320878452909152902061109c8385836125e6565b50837fb7d29e911041e8d9b843369e890bcb72c9388692ba48b65ac54e7214c4c348f78484604051610c44929190612717565b60005483906001600160a01b031633146110e857600080fd5b837f65412581168e88a1e60c6459d7f44ae83ad0832e670826c05a4e2476b57af752848460405161111a92919061221d565b60405180910390a2603c830361117157837f52d7d861f09ab3d26239d492e8968629f95e9e318cf0b73bfddc441522a15fd261115584611a9e565b6040516001600160a01b03909116815260200160405180910390a25b60008481526001602090815260408083205467ffffffffffffffff16835260038252808320878452825280832086845290915290206111b08382612752565b5050505050565b6060600080306001600160a01b0316846040516111d49190612509565b600060405180830381855afa9150503d806000811461120f576040519150601f19603f3d011682016040523d82523d6000602084013e611214565b606091505b509150915081156112285791506104d79050565b805160208201fd5b60008381526001602090815260408083205467ffffffffffffffff168352600682528083208684528252808320858452825280832061ffff851684529091529020805460609190610e0e9061255e565b60008181526001602090815260408083205467ffffffffffffffff168352600482528083208484529091529020805460609190610ed19061255e565b60005483906001600160a01b031633146112d557600080fd5b60008481526001602090815260408083205467ffffffffffffffff1680845260058352818420888552909252822080549192916113119061255e565b80601f016020809104026020016040519081016040528092919081815260200182805461133d9061255e565b801561138a5780601f1061135f5761010080835404028352916020019161138a565b820191906000526020600020905b81548152906001019060200180831161136d57829003601f168201915b5050505067ffffffffffffffff841660009081526005602090815260408083208b845290915290209192506113c290508587836125e6565b50857f8f15ed4b723ef428f250961da8315675b507046737e19319fc1a4d81bfe87f858287876040516113f793929190612812565b60405180910390a2505050505050565b60005482906001600160a01b0316331461142057600080fd5b61142f83603c61038185611b7d565b505050565b60005483906001600160a01b0316331461144d57600080fd5b60008481526001602090815260408083205467ffffffffffffffff1683526008825280832087845282528083206001600160e01b0319871680855290835292819020805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b038716908117909155905190815286917f7c69f06bea0bdef565b709e93a147836b0063ba2dd89f02d0b7e8d931e6a6daa910160405180910390a350505050565b60008281526001602090815260408083205467ffffffffffffffff16835260038252808320858452825280832084845290915290208054606091906115349061255e565b80601f01602080910402602001604051908101604052809291908181526020018280546115609061255e565b80156115ad5780601f10611582576101008083540402835291602001916115ad565b820191906000526020600020905b81548152906001019060200180831161159057829003601f168201915b5050505050905092915050565b6115c2611ac6565b6001600160a01b0381166116435760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084015b60405180910390fd5b61164c81611b20565b50565b60006001600160e01b031982167f59d1d43c0000000000000000000000000000000000000000000000000000000014806104d757506104d782611bb6565b6116db6040518060e001604052806060815260200160008152602001600061ffff168152602001600061ffff168152602001600063ffffffff16815260200160008152602001600081525090565b82815260c081018290526104d7816119b6565b602081015181516060916104d7916117069082611bf4565b84519190611c56565b60a081015160c08201516060916104d79161170690829061253b565b600081518351148015610dac5750610dac8360008460008751611ccd565b86516020880120600061175d878787611c56565b905083156118875767ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902080546117a89061255e565b1590506118075767ffffffffffffffff831660009081526007602090815260408083208d845282528083208584529091528120805461ffff16916117eb83612842565b91906101000a81548161ffff021916908361ffff160217905550505b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152812061184891611ff1565b897f03528ed0c2a3ebc993b12ce3c16bb382f9c7d88ef7d8a1bf290eaf35955a12078a8a60405161187a929190612860565b60405180910390a26106e3565b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902080546118ca9061255e565b905060000361192b5767ffffffffffffffff831660009081526007602090815260408083208d845282528083208584529091528120805461ffff169161190f83612886565b91906101000a81548161ffff021916908361ffff160217905550505b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902061196d8282612752565b50897f52a608b3303a48862d07a73d82fa221318c0027fbbcfb1b2329bface3f19ff2b8a8a846040516119a29392919061289d565b60405180910390a250505050505050505050565b60c081015160208201819052815151116119cd5750565b60006119e182600001518360200151611bf4565b82602001516119f091906128cc565b82519091506119ff9082611cf0565b61ffff166040830152611a136002826128cc565b8251909150611a229082611cf0565b61ffff166060830152611a366002826128cc565b8251909150611a459082611d18565b63ffffffff166080830152611a5b6004826128cc565b8251909150600090611a6d9083611cf0565b61ffff169050611a7e6002836128cc565b60a084018190529150611a9181836128cc565b60c0909301929092525050565b60008151601414611aae57600080fd5b50602001516c01000000000000000000000000900490565b6000546001600160a01b031633146110495760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161163a565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6040805160148082528183019092526060916020820181803683375050506c010000000000000000000000009290920260208301525090565b60006001600160e01b031982167fc86902330000000000000000000000000000000000000000000000000000000014806104d757506104d782611d42565b6000815b83518110611c0857611c086128df565b6000611c148583611d80565b60ff169050611c248160016128cc565b611c2e90836128cc565b915080600003611c3e5750611c44565b50611bf8565b611c4e838261253b565b949350505050565b8251606090611c6583856128cc565b1115611c7057600080fd5b60008267ffffffffffffffff811115611c8b57611c8b6122e1565b6040519080825280601f01601f191660200182016040528015611cb5576020820181803683370190505b50905060208082019086860101610a67828287611da4565b6000611cda848484611dfa565b611ce5878785611dfa565b149695505050505050565b8151600090611d008360026128cc565b1115611d0b57600080fd5b50016002015161ffff1690565b8151600090611d288360046128cc565b1115611d3357600080fd5b50016004015163ffffffff1690565b60006001600160e01b031982167f691f34310000000000000000000000000000000000000000000000000000000014806104d757506104d782611e1e565b6000828281518110611d9457611d94612701565b016020015160f81c905092915050565b60208110611ddc5781518352611dbb6020846128cc565b9250611dc86020836128cc565b9150611dd560208261253b565b9050611da4565b905182516020929092036101000a6000190180199091169116179052565b8251600090611e0983856128cc565b1115611e1457600080fd5b5091016020012090565b60006001600160e01b031982167f124a319c0000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167fa8fa5682000000000000000000000000000000000000000000000000000000001480611eba57506001600160e01b031982167f5c98042b00000000000000000000000000000000000000000000000000000000145b806104d757506104d78260006001600160e01b031982167fbc1c58d10000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167f3b3b57de000000000000000000000000000000000000000000000000000000001480611f6057506001600160e01b031982167ff1cb7e0600000000000000000000000000000000000000000000000000000000145b806104d757506104d78260006001600160e01b031982167f2203ab560000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167fd700ff330000000000000000000000000000000000000000000000000000000014806104d757506301ffc9a760e01b6001600160e01b03198316146104d7565b508054611ffd9061255e565b6000825580601f1061200d575050565b601f01602090049060005260206000209081019061164c91905b8082111561203b5760008155600101612027565b5090565b80356001600160e01b03198116811461205757600080fd5b919050565b60006020828403121561206e57600080fd5b610dac8261203f565b60008083601f84011261208957600080fd5b50813567ffffffffffffffff8111156120a157600080fd5b602083019150836020828501011115610ba357600080fd5b6000806000604084860312156120ce57600080fd5b83359250602084013567ffffffffffffffff8111156120ec57600080fd5b6120f886828701612077565b9497909650939450505050565b60008060008060006060868803121561211d57600080fd5b85359450602086013567ffffffffffffffff8082111561213c57600080fd5b61214889838a01612077565b9096509450604088013591508082111561216157600080fd5b5061216e88828901612077565b969995985093965092949392505050565b6000806040838503121561219257600080fd5b823591506121a26020840161203f565b90509250929050565b600080604083850312156121be57600080fd5b50508035926020909101359150565b60005b838110156121e85781810151838201526020016121d0565b50506000910152565b600081518084526122098160208601602086016121cd565b601f01601f19169290920160200192915050565b828152604060208201526000611c4e60408301846121f1565b60008060006060848603121561224b57600080fd5b505081359360208301359350604090920135919050565b60006020828403121561227457600080fd5b5035919050565b602081526000610dac60208301846121f1565b600080600080606085870312156122a457600080fd5b8435935060208501359250604085013567ffffffffffffffff8111156122c957600080fd5b6122d587828801612077565b95989497509550505050565b634e487b7160e01b600052604160045260246000fd5b600082601f83011261230857600080fd5b813567ffffffffffffffff80821115612323576123236122e1565b604051601f8301601f19908116603f0116810190828211818310171561234b5761234b6122e1565b8160405283815286602085880101111561236457600080fd5b836020870160208301376000602085830101528094505050505092915050565b60008060006060848603121561239957600080fd5b8335925060208401359150604084013567ffffffffffffffff8111156123be57600080fd5b6123ca868287016122f7565b9150509250925092565b600080604083850312156123e757600080fd5b823567ffffffffffffffff808211156123ff57600080fd5b61240b868387016122f7565b9350602085013591508082111561242157600080fd5b5061242e858286016122f7565b9150509250929050565b60008060006060848603121561244d57600080fd5b8335925060208401359150604084013561ffff8116811461246d57600080fd5b809150509250925092565b80356001600160a01b038116811461205757600080fd5b600080604083850312156124a257600080fd5b823591506121a260208401612478565b6000806000606084860312156124c757600080fd5b833592506124d76020850161203f565b91506124e560408501612478565b90509250925092565b60006020828403121561250057600080fd5b610dac82612478565b6000825161251b8184602087016121cd565b9190910192915050565b634e487b7160e01b600052601160045260246000fd5b818103818111156104d7576104d7612525565b8183823760009101908152919050565b600181811c9082168061257257607f821691505b60208210810361259257634e487b7160e01b600052602260045260246000fd5b50919050565b601f82111561142f57600081815260208120601f850160051c810160208610156125bf5750805b601f850160051c820191505b818110156125de578281556001016125cb565b505050505050565b67ffffffffffffffff8311156125fe576125fe6122e1565b6126128361260c835461255e565b83612598565b6000601f841160018114612646576000851561262e5750838201355b600019600387901b1c1916600186901b1783556111b0565b600083815260209020601f19861690835b828110156126775786850135825560209485019460019092019101612657565b50868210156126945760001960f88860031b161c19848701351681555b505060018560011b0183555050505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b6040815260006126e36040830186886126a6565b82810360208401526126f68185876126a6565b979650505050505050565b634e487b7160e01b600052603260045260246000fd5b602081526000611c4e6020830184866126a6565b600067ffffffffffffffff80831681810361274857612748612525565b6001019392505050565b815167ffffffffffffffff81111561276c5761276c6122e1565b6127808161277a845461255e565b84612598565b602080601f8311600181146127b5576000841561279d5750858301515b600019600386901b1c1916600185901b1785556125de565b600085815260208120601f198616915b828110156127e4578886015182559484019460019091019084016127c5565b50858210156128025787850151600019600388901b60f8161c191681555b5050505050600190811b01905550565b60408152600061282560408301866121f1565b82810360208401526128388185876126a6565b9695505050505050565b600061ffff82168061285657612856612525565b6000190192915050565b60408152600061287360408301856121f1565b905061ffff831660208301529392505050565b600061ffff80831681810361274857612748612525565b6060815260006128b060608301866121f1565b61ffff85166020840152828103604084015261283881856121f1565b808201808211156104d7576104d7612525565b634e487b7160e01b600052600160045260246000fdfea2646970667358221220d63de109e6c80b38d1403d6423ad4efae0eced77107190ecf76f02ee79060a1864736f6c63430008110033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106101c45760003560e01c8063715018a6116100f9578063c869023311610097578063d700ff3311610071578063d700ff3314610450578063e59d895d14610493578063f1cb7e06146104a6578063f2fde38b146104b957600080fd5b8063c8690233146103d0578063ce3decdc1461042a578063d5fa2b001461043d57600080fd5b80638da5cb5b116100d35780638da5cb5b146103865780639061b92314610397578063a8fa5682146103aa578063bc1c58d1146103bd57600080fd5b8063715018a61461035857806377372213146103605780638b95dd711461037357600080fd5b80633603d7581161016657806359d1d43c1161014057806359d1d43c146102ff5780635c98042b1461031f578063623195b014610332578063691f34311461034557600080fd5b80633603d7581461028b5780633b3b57de1461029e5780634cbf6ba4146102b157600080fd5b8063124a319c116101a2578063124a319c146102195780632203ab561461024457806329cd62ea14610265578063304e6ade1461027857600080fd5b806301ffc9a7146101c95780630af179d7146101f157806310f13a8c14610206575b600080fd5b6101dc6101d736600461205c565b6104cc565b60405190151581526020015b60405180910390f35b6102046101ff3660046120b9565b6104dd565b005b610204610214366004612105565b6106ef565b61022c61022736600461217f565b6107c4565b6040516001600160a01b0390911681526020016101e8565b6102576102523660046121ab565b610a72565b6040516101e892919061221d565b610204610273366004612236565b610baa565b6102046102863660046120b9565b610c52565b610204610299366004612262565b610cd6565b61022c6102ac366004612262565b610d81565b6101dc6102bf3660046121ab565b60008281526001602090815260408083205467ffffffffffffffff1683526007825280832094835293815283822092825291909152205461ffff16151590565b61031261030d3660046120b9565b610db3565b6040516101e8919061227b565b61031261032d366004612262565b610e95565b61020461034036600461228e565b610f56565b610312610353366004612262565b610ffb565b610204611037565b61020461036e3660046120b9565b61104b565b610204610381366004612384565b6110cf565b6000546001600160a01b031661022c565b6103126103a53660046123d4565b6111b7565b6103126103b8366004612438565b611230565b6103126103cb366004612262565b611280565b6104156103de366004612262565b60008181526001602081815260408084205467ffffffffffffffff168452600a825280842094845293905291902080549101549091565b604080519283526020830191909152016101e8565b6102046104383660046120b9565b6112bc565b61020461044b36600461248f565b611407565b61047a61045e366004612262565b60016020526000908152604090205467ffffffffffffffff1681565b60405167ffffffffffffffff90911681526020016101e8565b6102046104a13660046124b2565b611434565b6103126104b43660046121ab565b6114f0565b6102046104c73660046124ee565b6115ba565b60006104d78261164f565b92915050565b60005483906001600160a01b031633146104f657600080fd5b6000848152600160209081526040808320548151601f870184900484028101840190925285825283926060928392859267ffffffffffffffff90911691839161055e9183918d908d9081908401838280828437600092019190915250929392505061168d9050565b90505b80515160208201511015610688578661ffff166000036105c6578060400151965061058b816116ee565b94508460405160200161059e9190612509565b6040516020818303038152906040528051906020012092506105bf8161170f565b935061067a565b60006105d1826116ee565b9050816040015161ffff168861ffff161415806105f557506105f3868261172b565b155b15610678576106518c878a8e8e8080601f016020809104026020016040519081016040528093929190818152602001838380828437600092019190915250505060208801518d915061064890829061253b565b8b51158a611749565b8160400151975081602001519650809550858051906020012093506106758261170f565b94505b505b610683816119b6565b610561565b508351156106e3576106e38a85888c8c8080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152508c92506106da91508290508f61253b565b89511588611749565b50505050505050505050565b60005485906001600160a01b0316331461070857600080fd5b60008681526001602090815260408083205467ffffffffffffffff168352600b82528083208984529091529081902090518491849161074a908990899061254e565b908152602001604051809103902091826107659291906125e6565b50848460405161077692919061254e565b6040518091039020867f448bc014f1536726cf8d54ff3d6481ed3cbc683c2591ca204274009afa09b1a1878787876040516107b494939291906126cf565b60405180910390a3505050505050565b60008281526001602090815260408083205467ffffffffffffffff1683526008825280832085845282528083206001600160e01b0319851684529091528120546001600160a01b0316801561081a5790506104d7565b600061082585610d81565b90506001600160a01b038116610840576000925050506104d7565b6040516301ffc9a760e01b602482015260009081906001600160a01b0384169060440160408051601f198184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff166301ffc9a760e01b179052516108ad9190612509565b600060405180830381855afa9150503d80600081146108e8576040519150601f19603f3d011682016040523d82523d6000602084013e6108ed565b606091505b5091509150811580610900575060208151105b80610942575080601f8151811061091957610919612701565b01602001517fff0000000000000000000000000000000000000000000000000000000000000016155b156109545760009450505050506104d7565b6040516001600160e01b0319871660248201526001600160a01b0384169060440160408051601f198184030181529181526020820180517bffffffffffffffffffffffffffffffffffffffffffffffffffffffff166301ffc9a760e01b179052516109bf9190612509565b600060405180830381855afa9150503d80600081146109fa576040519150601f19603f3d011682016040523d82523d6000602084013e6109ff565b606091505b509092509050811580610a13575060208151105b80610a55575080601f81518110610a2c57610a2c612701565b01602001517fff0000000000000000000000000000000000000000000000000000000000000016155b15610a675760009450505050506104d7565b509095945050505050565b60008281526001602081815260408084205467ffffffffffffffff1684526002825280842086855290915282206060915b848111610b8a5780851615801590610ad3575060008181526020839052604081208054610acf9061255e565b9050115b15610b825780826000838152602001908152602001600020808054610af79061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610b239061255e565b8015610b705780601f10610b4557610100808354040283529160200191610b70565b820191906000526020600020905b815481529060010190602001808311610b5357829003601f168201915b50505050509050935093505050610ba3565b60011b610aa3565b5060006040518060200160405280600081525092509250505b9250929050565b60005483906001600160a01b03163314610bc357600080fd5b6040805180820182528481526020808201858152600088815260018084528582205467ffffffffffffffff168252600a84528582208a835290935284902092518355519101555184907f1d6f5e03d3f63eb58751986629a5439baee5079ff04f345becb66e23eb154e4690610c449086908690918252602082015260400190565b60405180910390a250505050565b60005483906001600160a01b03163314610c6b57600080fd5b60008481526001602090815260408083205467ffffffffffffffff168352600482528083208784529091529020610ca38385836125e6565b50837fe379c1624ed7e714cc0937528a32359d69d5281337765313dba4e081b72d75788484604051610c44929190612717565b60005481906001600160a01b03163314610cef57600080fd5b6000828152600160205260408120805467ffffffffffffffff1691610d138361272b565b82546101009290920a67ffffffffffffffff8181021990931691831602179091556000848152600160209081526040918290205491519190921681528492507fc6621ccb8f3f5a04bb6502154b2caf6adf5983fe76dfef1cfc9c42e3579db444910160405180910390a25050565b600080610d8f83603c6114f0565b90508051600003610da35750600092915050565b610dac81611a9e565b9392505050565b60008381526001602090815260408083205467ffffffffffffffff168352600b825280832086845290915290819020905160609190610df5908590859061254e565b90815260200160405180910390208054610e0e9061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610e3a9061255e565b8015610e875780601f10610e5c57610100808354040283529160200191610e87565b820191906000526020600020905b815481529060010190602001808311610e6a57829003601f168201915b505050505090509392505050565b60008181526001602090815260408083205467ffffffffffffffff168352600582528083208484529091529020805460609190610ed19061255e565b80601f0160208091040260200160405190810160405280929190818152602001828054610efd9061255e565b8015610f4a5780601f10610f1f57610100808354040283529160200191610f4a565b820191906000526020600020905b815481529060010190602001808311610f2d57829003601f168201915b50505050509050919050565b60005484906001600160a01b03163314610f6f57600080fd5b83610f7b60018261253b565b1615610f8657600080fd5b60008581526001602090815260408083205467ffffffffffffffff1683526002825280832088845282528083208784529091529020610fc68385836125e6565b50604051849086907faa121bbeef5f32f5961a2a28966e769023910fc9479059ee3495d4c1a696efe390600090a35050505050565b60008181526001602090815260408083205467ffffffffffffffff168352600982528083208484529091529020805460609190610ed19061255e565b61103f611ac6565b6110496000611b20565b565b60005483906001600160a01b0316331461106457600080fd5b60008481526001602090815260408083205467ffffffffffffffff16835260098252808320878452909152902061109c8385836125e6565b50837fb7d29e911041e8d9b843369e890bcb72c9388692ba48b65ac54e7214c4c348f78484604051610c44929190612717565b60005483906001600160a01b031633146110e857600080fd5b837f65412581168e88a1e60c6459d7f44ae83ad0832e670826c05a4e2476b57af752848460405161111a92919061221d565b60405180910390a2603c830361117157837f52d7d861f09ab3d26239d492e8968629f95e9e318cf0b73bfddc441522a15fd261115584611a9e565b6040516001600160a01b03909116815260200160405180910390a25b60008481526001602090815260408083205467ffffffffffffffff16835260038252808320878452825280832086845290915290206111b08382612752565b5050505050565b6060600080306001600160a01b0316846040516111d49190612509565b600060405180830381855afa9150503d806000811461120f576040519150601f19603f3d011682016040523d82523d6000602084013e611214565b606091505b509150915081156112285791506104d79050565b805160208201fd5b60008381526001602090815260408083205467ffffffffffffffff168352600682528083208684528252808320858452825280832061ffff851684529091529020805460609190610e0e9061255e565b60008181526001602090815260408083205467ffffffffffffffff168352600482528083208484529091529020805460609190610ed19061255e565b60005483906001600160a01b031633146112d557600080fd5b60008481526001602090815260408083205467ffffffffffffffff1680845260058352818420888552909252822080549192916113119061255e565b80601f016020809104026020016040519081016040528092919081815260200182805461133d9061255e565b801561138a5780601f1061135f5761010080835404028352916020019161138a565b820191906000526020600020905b81548152906001019060200180831161136d57829003601f168201915b5050505067ffffffffffffffff841660009081526005602090815260408083208b845290915290209192506113c290508587836125e6565b50857f8f15ed4b723ef428f250961da8315675b507046737e19319fc1a4d81bfe87f858287876040516113f793929190612812565b60405180910390a2505050505050565b60005482906001600160a01b0316331461142057600080fd5b61142f83603c61038185611b7d565b505050565b60005483906001600160a01b0316331461144d57600080fd5b60008481526001602090815260408083205467ffffffffffffffff1683526008825280832087845282528083206001600160e01b0319871680855290835292819020805473ffffffffffffffffffffffffffffffffffffffff19166001600160a01b038716908117909155905190815286917f7c69f06bea0bdef565b709e93a147836b0063ba2dd89f02d0b7e8d931e6a6daa910160405180910390a350505050565b60008281526001602090815260408083205467ffffffffffffffff16835260038252808320858452825280832084845290915290208054606091906115349061255e565b80601f01602080910402602001604051908101604052809291908181526020018280546115609061255e565b80156115ad5780601f10611582576101008083540402835291602001916115ad565b820191906000526020600020905b81548152906001019060200180831161159057829003601f168201915b5050505050905092915050565b6115c2611ac6565b6001600160a01b0381166116435760405162461bcd60e51b815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f646472657373000000000000000000000000000000000000000000000000000060648201526084015b60405180910390fd5b61164c81611b20565b50565b60006001600160e01b031982167f59d1d43c0000000000000000000000000000000000000000000000000000000014806104d757506104d782611bb6565b6116db6040518060e001604052806060815260200160008152602001600061ffff168152602001600061ffff168152602001600063ffffffff16815260200160008152602001600081525090565b82815260c081018290526104d7816119b6565b602081015181516060916104d7916117069082611bf4565b84519190611c56565b60a081015160c08201516060916104d79161170690829061253b565b600081518351148015610dac5750610dac8360008460008751611ccd565b86516020880120600061175d878787611c56565b905083156118875767ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902080546117a89061255e565b1590506118075767ffffffffffffffff831660009081526007602090815260408083208d845282528083208584529091528120805461ffff16916117eb83612842565b91906101000a81548161ffff021916908361ffff160217905550505b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152812061184891611ff1565b897f03528ed0c2a3ebc993b12ce3c16bb382f9c7d88ef7d8a1bf290eaf35955a12078a8a60405161187a929190612860565b60405180910390a26106e3565b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902080546118ca9061255e565b905060000361192b5767ffffffffffffffff831660009081526007602090815260408083208d845282528083208584529091528120805461ffff169161190f83612886565b91906101000a81548161ffff021916908361ffff160217905550505b67ffffffffffffffff831660009081526006602090815260408083208d84528252808320858452825280832061ffff8c168452909152902061196d8282612752565b50897f52a608b3303a48862d07a73d82fa221318c0027fbbcfb1b2329bface3f19ff2b8a8a846040516119a29392919061289d565b60405180910390a250505050505050505050565b60c081015160208201819052815151116119cd5750565b60006119e182600001518360200151611bf4565b82602001516119f091906128cc565b82519091506119ff9082611cf0565b61ffff166040830152611a136002826128cc565b8251909150611a229082611cf0565b61ffff166060830152611a366002826128cc565b8251909150611a459082611d18565b63ffffffff166080830152611a5b6004826128cc565b8251909150600090611a6d9083611cf0565b61ffff169050611a7e6002836128cc565b60a084018190529150611a9181836128cc565b60c0909301929092525050565b60008151601414611aae57600080fd5b50602001516c01000000000000000000000000900490565b6000546001600160a01b031633146110495760405162461bcd60e51b815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e6572604482015260640161163a565b600080546001600160a01b0383811673ffffffffffffffffffffffffffffffffffffffff19831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6040805160148082528183019092526060916020820181803683375050506c010000000000000000000000009290920260208301525090565b60006001600160e01b031982167fc86902330000000000000000000000000000000000000000000000000000000014806104d757506104d782611d42565b6000815b83518110611c0857611c086128df565b6000611c148583611d80565b60ff169050611c248160016128cc565b611c2e90836128cc565b915080600003611c3e5750611c44565b50611bf8565b611c4e838261253b565b949350505050565b8251606090611c6583856128cc565b1115611c7057600080fd5b60008267ffffffffffffffff811115611c8b57611c8b6122e1565b6040519080825280601f01601f191660200182016040528015611cb5576020820181803683370190505b50905060208082019086860101610a67828287611da4565b6000611cda848484611dfa565b611ce5878785611dfa565b149695505050505050565b8151600090611d008360026128cc565b1115611d0b57600080fd5b50016002015161ffff1690565b8151600090611d288360046128cc565b1115611d3357600080fd5b50016004015163ffffffff1690565b60006001600160e01b031982167f691f34310000000000000000000000000000000000000000000000000000000014806104d757506104d782611e1e565b6000828281518110611d9457611d94612701565b016020015160f81c905092915050565b60208110611ddc5781518352611dbb6020846128cc565b9250611dc86020836128cc565b9150611dd560208261253b565b9050611da4565b905182516020929092036101000a6000190180199091169116179052565b8251600090611e0983856128cc565b1115611e1457600080fd5b5091016020012090565b60006001600160e01b031982167f124a319c0000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167fa8fa5682000000000000000000000000000000000000000000000000000000001480611eba57506001600160e01b031982167f5c98042b00000000000000000000000000000000000000000000000000000000145b806104d757506104d78260006001600160e01b031982167fbc1c58d10000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167f3b3b57de000000000000000000000000000000000000000000000000000000001480611f6057506001600160e01b031982167ff1cb7e0600000000000000000000000000000000000000000000000000000000145b806104d757506104d78260006001600160e01b031982167f2203ab560000000000000000000000000000000000000000000000000000000014806104d757506104d78260006001600160e01b031982167fd700ff330000000000000000000000000000000000000000000000000000000014806104d757506301ffc9a760e01b6001600160e01b03198316146104d7565b508054611ffd9061255e565b6000825580601f1061200d575050565b601f01602090049060005260206000209081019061164c91905b8082111561203b5760008155600101612027565b5090565b80356001600160e01b03198116811461205757600080fd5b919050565b60006020828403121561206e57600080fd5b610dac8261203f565b60008083601f84011261208957600080fd5b50813567ffffffffffffffff8111156120a157600080fd5b602083019150836020828501011115610ba357600080fd5b6000806000604084860312156120ce57600080fd5b83359250602084013567ffffffffffffffff8111156120ec57600080fd5b6120f886828701612077565b9497909650939450505050565b60008060008060006060868803121561211d57600080fd5b85359450602086013567ffffffffffffffff8082111561213c57600080fd5b61214889838a01612077565b9096509450604088013591508082111561216157600080fd5b5061216e88828901612077565b969995985093965092949392505050565b6000806040838503121561219257600080fd5b823591506121a26020840161203f565b90509250929050565b600080604083850312156121be57600080fd5b50508035926020909101359150565b60005b838110156121e85781810151838201526020016121d0565b50506000910152565b600081518084526122098160208601602086016121cd565b601f01601f19169290920160200192915050565b828152604060208201526000611c4e60408301846121f1565b60008060006060848603121561224b57600080fd5b505081359360208301359350604090920135919050565b60006020828403121561227457600080fd5b5035919050565b602081526000610dac60208301846121f1565b600080600080606085870312156122a457600080fd5b8435935060208501359250604085013567ffffffffffffffff8111156122c957600080fd5b6122d587828801612077565b95989497509550505050565b634e487b7160e01b600052604160045260246000fd5b600082601f83011261230857600080fd5b813567ffffffffffffffff80821115612323576123236122e1565b604051601f8301601f19908116603f0116810190828211818310171561234b5761234b6122e1565b8160405283815286602085880101111561236457600080fd5b836020870160208301376000602085830101528094505050505092915050565b60008060006060848603121561239957600080fd5b8335925060208401359150604084013567ffffffffffffffff8111156123be57600080fd5b6123ca868287016122f7565b9150509250925092565b600080604083850312156123e757600080fd5b823567ffffffffffffffff808211156123ff57600080fd5b61240b868387016122f7565b9350602085013591508082111561242157600080fd5b5061242e858286016122f7565b9150509250929050565b60008060006060848603121561244d57600080fd5b8335925060208401359150604084013561ffff8116811461246d57600080fd5b809150509250925092565b80356001600160a01b038116811461205757600080fd5b600080604083850312156124a257600080fd5b823591506121a260208401612478565b6000806000606084860312156124c757600080fd5b833592506124d76020850161203f565b91506124e560408501612478565b90509250925092565b60006020828403121561250057600080fd5b610dac82612478565b6000825161251b8184602087016121cd565b9190910192915050565b634e487b7160e01b600052601160045260246000fd5b818103818111156104d7576104d7612525565b8183823760009101908152919050565b600181811c9082168061257257607f821691505b60208210810361259257634e487b7160e01b600052602260045260246000fd5b50919050565b601f82111561142f57600081815260208120601f850160051c810160208610156125bf5750805b601f850160051c820191505b818110156125de578281556001016125cb565b505050505050565b67ffffffffffffffff8311156125fe576125fe6122e1565b6126128361260c835461255e565b83612598565b6000601f841160018114612646576000851561262e5750838201355b600019600387901b1c1916600186901b1783556111b0565b600083815260209020601f19861690835b828110156126775786850135825560209485019460019092019101612657565b50868210156126945760001960f88860031b161c19848701351681555b505060018560011b0183555050505050565b81835281816020850137506000828201602090810191909152601f909101601f19169091010190565b6040815260006126e36040830186886126a6565b82810360208401526126f68185876126a6565b979650505050505050565b634e487b7160e01b600052603260045260246000fd5b602081526000611c4e6020830184866126a6565b600067ffffffffffffffff80831681810361274857612748612525565b6001019392505050565b815167ffffffffffffffff81111561276c5761276c6122e1565b6127808161277a845461255e565b84612598565b602080601f8311600181146127b5576000841561279d5750858301515b600019600386901b1c1916600185901b1785556125de565b600085815260208120601f198616915b828110156127e4578886015182559484019460019091019084016127c5565b50858210156128025787850151600019600388901b60f8161c191681555b5050505050600190811b01905550565b60408152600061282560408301866121f1565b82810360208401526128388185876126a6565b9695505050505050565b600061ffff82168061285657612856612525565b6000190192915050565b60408152600061287360408301856121f1565b905061ffff831660208301529392505050565b600061ffff80831681810361274857612748612525565b6060815260006128b060608301866121f1565b61ffff85166020840152828103604084015261283881856121f1565b808201808211156104d7576104d7612525565b634e487b7160e01b600052600160045260246000fdfea2646970667358221220d63de109e6c80b38d1403d6423ad4efae0eced77107190ecf76f02ee79060a1864736f6c63430008110033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "ABI(bytes32,uint256)": {
+        "params": {
+          "contentTypes": "A bitwise OR of the ABI formats accepted by the caller.",
+          "node": "The ENS node to query"
+        },
+        "returns": {
+          "_0": "contentType The content type of the return value",
+          "_1": "data The ABI data"
+        }
+      },
+      "addr(bytes32)": {
+        "params": {
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The associated address."
+        }
+      },
+      "clearRecords(bytes32)": {
+        "params": {
+          "node": "The node to update."
+        }
+      },
+      "contenthash(bytes32)": {
+        "params": {
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The associated contenthash."
+        }
+      },
+      "dnsRecord(bytes32,bytes32,uint16)": {
+        "params": {
+          "name": "the keccak-256 hash of the fully-qualified name for which to fetch the record",
+          "node": "the namehash of the node for which to fetch the record",
+          "resource": "the ID of the resource as per https://en.wikipedia.org/wiki/List_of_DNS_record_types"
+        },
+        "returns": {
+          "_0": "the DNS record in wire format if present, otherwise empty"
+        }
+      },
+      "hasDNSRecords(bytes32,bytes32)": {
+        "params": {
+          "name": "the namehash of the node for which to check the records",
+          "node": "the namehash of the node for which to check the records"
+        }
+      },
+      "interfaceImplementer(bytes32,bytes4)": {
+        "params": {
+          "interfaceID": "The EIP 165 interface ID to check for.",
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The address that implements this interface, or 0 if the interface is unsupported."
+        }
+      },
+      "name(bytes32)": {
+        "params": {
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The associated name."
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "pubkey(bytes32)": {
+        "params": {
+          "node": "The ENS node to query"
+        },
+        "returns": {
+          "x": "The X coordinate of the curve point for the public key.",
+          "y": "The Y coordinate of the curve point for the public key."
+        }
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions anymore. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby removing any functionality that is only available to the owner."
+      },
+      "setABI(bytes32,uint256,bytes)": {
+        "params": {
+          "contentType": "The content type of the ABI",
+          "data": "The ABI data.",
+          "node": "The node to update."
+        }
+      },
+      "setAddr(bytes32,address)": {
+        "params": {
+          "a": "The address to set.",
+          "node": "The node to update."
+        }
+      },
+      "setContenthash(bytes32,bytes)": {
+        "params": {
+          "hash": "The contenthash to set",
+          "node": "The node to update."
+        }
+      },
+      "setDNSRecords(bytes32,bytes)": {
+        "params": {
+          "data": "the DNS wire format records to set",
+          "node": "the namehash of the node for which to set the records"
+        }
+      },
+      "setInterface(bytes32,bytes4,address)": {
+        "params": {
+          "implementer": "The address of a contract that implements this interface for this node.",
+          "interfaceID": "The EIP 165 interface ID.",
+          "node": "The node to update."
+        }
+      },
+      "setName(bytes32,string)": {
+        "params": {
+          "node": "The node to update."
+        }
+      },
+      "setPubkey(bytes32,bytes32,bytes32)": {
+        "params": {
+          "node": "The ENS node to query",
+          "x": "the X coordinate of the curve point for the public key.",
+          "y": "the Y coordinate of the curve point for the public key."
+        }
+      },
+      "setText(bytes32,string,string)": {
+        "params": {
+          "key": "The key to set.",
+          "node": "The node to update.",
+          "value": "The text data value to set."
+        }
+      },
+      "setZonehash(bytes32,bytes)": {
+        "params": {
+          "hash": "The zonehash to set",
+          "node": "The node to update."
+        }
+      },
+      "text(bytes32,string)": {
+        "params": {
+          "key": "The text data key to query.",
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The associated text data."
+        }
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      },
+      "zonehash(bytes32)": {
+        "params": {
+          "node": "The ENS node to query."
+        },
+        "returns": {
+          "_0": "The associated contenthash."
+        }
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {
+      "ABI(bytes32,uint256)": {
+        "notice": "Returns the ABI associated with an ENS node. Defined in EIP205."
+      },
+      "addr(bytes32)": {
+        "notice": "Returns the address associated with an ENS node."
+      },
+      "clearRecords(bytes32)": {
+        "notice": "Increments the record version associated with an ENS node. May only be called by the owner of that node in the ENS registry."
+      },
+      "contenthash(bytes32)": {
+        "notice": "Returns the contenthash associated with an ENS node."
+      },
+      "dnsRecord(bytes32,bytes32,uint16)": {
+        "notice": "Obtain a DNS record."
+      },
+      "hasDNSRecords(bytes32,bytes32)": {
+        "notice": "Check if a given node has records."
+      },
+      "interfaceImplementer(bytes32,bytes4)": {
+        "notice": "Returns the address of a contract that implements the specified interface for this name. If an implementer has not been set for this interfaceID and name, the resolver will query the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that contract implements EIP165 and returns `true` for the specified interfaceID, its address will be returned."
+      },
+      "name(bytes32)": {
+        "notice": "Returns the name associated with an ENS node, for reverse records. Defined in EIP181."
+      },
+      "pubkey(bytes32)": {
+        "notice": "Returns the SECP256k1 public key associated with an ENS node. Defined in EIP 619."
+      },
+      "setABI(bytes32,uint256,bytes)": {
+        "notice": "Sets the ABI associated with an ENS node. Nodes may have one ABI of each content type. To remove an ABI, set it to the empty string."
+      },
+      "setAddr(bytes32,address)": {
+        "notice": "Sets the address associated with an ENS node. May only be called by the owner of that node in the ENS registry."
+      },
+      "setContenthash(bytes32,bytes)": {
+        "notice": "Sets the contenthash associated with an ENS node. May only be called by the owner of that node in the ENS registry."
+      },
+      "setDNSRecords(bytes32,bytes)": {
+        "notice": "Set one or more DNS records.  Records are supplied in wire-format. Records with the same node/name/resource must be supplied one after the other to ensure the data is updated correctly. For example, if the data was supplied:     a.example.com IN A 1.2.3.4     a.example.com IN A 5.6.7.8     www.example.com IN CNAME a.example.com. then this would store the two A records for a.example.com correctly as a single RRSET, however if the data was supplied:     a.example.com IN A 1.2.3.4     www.example.com IN CNAME a.example.com.     a.example.com IN A 5.6.7.8 then this would store the first A record, the CNAME, then the second A record which would overwrite the first."
+      },
+      "setInterface(bytes32,bytes4,address)": {
+        "notice": "Sets an interface associated with a name. Setting the address to 0 restores the default behaviour of querying the contract at `addr()` for interface support."
+      },
+      "setName(bytes32,string)": {
+        "notice": "Sets the name associated with an ENS node, for reverse records. May only be called by the owner of that node in the ENS registry."
+      },
+      "setPubkey(bytes32,bytes32,bytes32)": {
+        "notice": "Sets the SECP256k1 public key associated with an ENS node."
+      },
+      "setText(bytes32,string,string)": {
+        "notice": "Sets the text data associated with an ENS node and key. May only be called by the owner of that node in the ENS registry."
+      },
+      "setZonehash(bytes32,bytes)": {
+        "notice": "setZonehash sets the hash for the zone. May only be called by the owner of that node in the ENS registry."
+      },
+      "text(bytes32,string)": {
+        "notice": "Returns the text data associated with an ENS node and key."
+      },
+      "zonehash(bytes32)": {
+        "notice": "zonehash obtains the hash for the zone."
+      }
+    },
+    "notice": "A simple resolver anyone can use; only allows the owner of a node to set its address.",
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 444,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 15571,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "recordVersions",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_bytes32,t_uint64)"
+      },
+      {
+        "astId": 15665,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_abis",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_uint256,t_bytes_storage)))"
+      },
+      {
+        "astId": 15819,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_addresses",
+        "offset": 0,
+        "slot": "3",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_uint256,t_bytes_storage)))"
+      },
+      {
+        "astId": 16010,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_hashes",
+        "offset": 0,
+        "slot": "4",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_bytes_storage))"
+      },
+      {
+        "astId": 16100,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_zonehashes",
+        "offset": 0,
+        "slot": "5",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_bytes_storage))"
+      },
+      {
+        "astId": 16110,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_records",
+        "offset": 0,
+        "slot": "6",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage))))"
+      },
+      {
+        "astId": 16118,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_nameEntriesCount",
+        "offset": 0,
+        "slot": "7",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes32,t_uint16)))"
+      },
+      {
+        "astId": 16856,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_interfaces",
+        "offset": 0,
+        "slot": "8",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes4,t_address)))"
+      },
+      {
+        "astId": 17048,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_names",
+        "offset": 0,
+        "slot": "9",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_string_storage))"
+      },
+      {
+        "astId": 17135,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_pubkeys",
+        "offset": 0,
+        "slot": "10",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_struct(PublicKey)17128_storage))"
+      },
+      {
+        "astId": 17238,
+        "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+        "label": "versionable_texts",
+        "offset": 0,
+        "slot": "11",
+        "type": "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_string_memory_ptr,t_string_storage)))"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bytes32": {
+        "encoding": "inplace",
+        "label": "bytes32",
+        "numberOfBytes": "32"
+      },
+      "t_bytes4": {
+        "encoding": "inplace",
+        "label": "bytes4",
+        "numberOfBytes": "4"
+      },
+      "t_bytes_storage": {
+        "encoding": "bytes",
+        "label": "bytes",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_bytes32,t_bytes_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => bytes)",
+        "numberOfBytes": "32",
+        "value": "t_bytes_storage"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage)))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(bytes32 => mapping(uint16 => bytes)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage))"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_bytes32,t_uint16))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(bytes32 => uint16))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_uint16)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_bytes4,t_address))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(bytes4 => address))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes4,t_address)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_string_memory_ptr,t_string_storage))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(string => string))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_string_memory_ptr,t_string_storage)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(uint16 => bytes))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_uint16,t_bytes_storage)"
+      },
+      "t_mapping(t_bytes32,t_mapping(t_uint256,t_bytes_storage))": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => mapping(uint256 => bytes))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_uint256,t_bytes_storage)"
+      },
+      "t_mapping(t_bytes32,t_string_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => string)",
+        "numberOfBytes": "32",
+        "value": "t_string_storage"
+      },
+      "t_mapping(t_bytes32,t_struct(PublicKey)17128_storage)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => struct PubkeyResolver.PublicKey)",
+        "numberOfBytes": "32",
+        "value": "t_struct(PublicKey)17128_storage"
+      },
+      "t_mapping(t_bytes32,t_uint16)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => uint16)",
+        "numberOfBytes": "32",
+        "value": "t_uint16"
+      },
+      "t_mapping(t_bytes32,t_uint64)": {
+        "encoding": "mapping",
+        "key": "t_bytes32",
+        "label": "mapping(bytes32 => uint64)",
+        "numberOfBytes": "32",
+        "value": "t_uint64"
+      },
+      "t_mapping(t_bytes4,t_address)": {
+        "encoding": "mapping",
+        "key": "t_bytes4",
+        "label": "mapping(bytes4 => address)",
+        "numberOfBytes": "32",
+        "value": "t_address"
+      },
+      "t_mapping(t_string_memory_ptr,t_string_storage)": {
+        "encoding": "mapping",
+        "key": "t_string_memory_ptr",
+        "label": "mapping(string => string)",
+        "numberOfBytes": "32",
+        "value": "t_string_storage"
+      },
+      "t_mapping(t_uint16,t_bytes_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint16",
+        "label": "mapping(uint16 => bytes)",
+        "numberOfBytes": "32",
+        "value": "t_bytes_storage"
+      },
+      "t_mapping(t_uint256,t_bytes_storage)": {
+        "encoding": "mapping",
+        "key": "t_uint256",
+        "label": "mapping(uint256 => bytes)",
+        "numberOfBytes": "32",
+        "value": "t_bytes_storage"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_bytes_storage))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => bytes))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_bytes_storage)"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage))))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => mapping(bytes32 => mapping(uint16 => bytes))))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_bytes32,t_mapping(t_uint16,t_bytes_storage)))"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes32,t_uint16)))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => mapping(bytes32 => uint16)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_bytes32,t_uint16))"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_bytes4,t_address)))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => mapping(bytes4 => address)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_bytes4,t_address))"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_string_memory_ptr,t_string_storage)))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => mapping(string => string)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_string_memory_ptr,t_string_storage))"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_mapping(t_uint256,t_bytes_storage)))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes)))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_mapping(t_uint256,t_bytes_storage))"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_string_storage))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => string))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_string_storage)"
+      },
+      "t_mapping(t_uint64,t_mapping(t_bytes32,t_struct(PublicKey)17128_storage))": {
+        "encoding": "mapping",
+        "key": "t_uint64",
+        "label": "mapping(uint64 => mapping(bytes32 => struct PubkeyResolver.PublicKey))",
+        "numberOfBytes": "32",
+        "value": "t_mapping(t_bytes32,t_struct(PublicKey)17128_storage)"
+      },
+      "t_string_memory_ptr": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_string_storage": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      },
+      "t_struct(PublicKey)17128_storage": {
+        "encoding": "inplace",
+        "label": "struct PubkeyResolver.PublicKey",
+        "members": [
+          {
+            "astId": 17125,
+            "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+            "label": "x",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_bytes32"
+          },
+          {
+            "astId": 17127,
+            "contract": "contracts/resolvers/OwnedResolver.sol:OwnedResolver",
+            "label": "y",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_bytes32"
+          }
+        ],
+        "numberOfBytes": "64"
+      },
+      "t_uint16": {
+        "encoding": "inplace",
+        "label": "uint16",
+        "numberOfBytes": "2"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      },
+      "t_uint64": {
+        "encoding": "inplace",
+        "label": "uint64",
+        "numberOfBytes": "8"
+      }
+    }
+  }
+}
