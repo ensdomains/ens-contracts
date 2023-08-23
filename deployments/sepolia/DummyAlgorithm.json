@@ -1,0 +1,71 @@
+{
+  "address": "0x9f71e0eb3DdaD8187638ba5893Df04a87b463329",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "name": "verify",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x42f391e4991f7d2a2a3aaae45c6700a74856845ea383aa03bc139e0d0ce9d397",
+  "receipt": {
+    "to": null,
+    "from": "0x4Fe4e666Be5752f1FdD210F4Ab5DE2Cc26e3E0e8",
+    "contractAddress": "0x9f71e0eb3DdaD8187638ba5893Df04a87b463329",
+    "transactionIndex": 125,
+    "gasUsed": "134217",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x2c10cef6db1a05e518f5031fc3323469beb0b07d68a737f5da0f50cf5d324f8e",
+    "transactionHash": "0x42f391e4991f7d2a2a3aaae45c6700a74856845ea383aa03bc139e0d0ce9d397",
+    "logs": [],
+    "blockNumber": 4141618,
+    "cumulativeGasUsed": "12587290",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "e04502f562d98d0455f6c1c453418cdd",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"verify\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements a dummy DNSSEC (signing) algorithm that approves all      signatures, for testing.\",\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol\":\"DummyAlgorithm\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1200},\"remappings\":[]},\"sources\":{\"contracts/dnssec-oracle/algorithms/Algorithm.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\n/**\\n * @dev An interface for contracts implementing a DNSSEC (signing) algorithm.\\n */\\ninterface Algorithm {\\n    /**\\n     * @dev Verifies a signature.\\n     * @param key The public key to verify with.\\n     * @param data The signed data to verify.\\n     * @param signature The signature to verify.\\n     * @return True iff the signature is valid.\\n     */\\n    function verify(\\n        bytes calldata key,\\n        bytes calldata data,\\n        bytes calldata signature\\n    ) external view virtual returns (bool);\\n}\\n\",\"keccak256\":\"0xaf6825f9852c69f8e36540821d067b4550dd2263497af9d645309b6a0c457ba6\"},\"contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nimport \\\"./Algorithm.sol\\\";\\n\\n/**\\n * @dev Implements a dummy DNSSEC (signing) algorithm that approves all\\n *      signatures, for testing.\\n */\\ncontract DummyAlgorithm is Algorithm {\\n    function verify(\\n        bytes calldata,\\n        bytes calldata,\\n        bytes calldata\\n    ) external view override returns (bool) {\\n        return true;\\n    }\\n}\\n\",\"keccak256\":\"0x0df474d4178b1659d2869aefe90ee6680b966d9432c5b28ef388134ea6d67b58\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b50610177806100206000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063de8f50a114610030575b600080fd5b61004a61003e3660046100a7565b60019695505050505050565b604051901515815260200160405180910390f35b60008083601f84011261007057600080fd5b50813567ffffffffffffffff81111561008857600080fd5b6020830191508360208285010111156100a057600080fd5b9250929050565b600080600080600080606087890312156100c057600080fd5b863567ffffffffffffffff808211156100d857600080fd5b6100e48a838b0161005e565b909850965060208901359150808211156100fd57600080fd5b6101098a838b0161005e565b9096509450604089013591508082111561012257600080fd5b5061012f89828a0161005e565b979a969950949750929593949250505056fea26469706673582212201d6169f54d5644e6220fe6e528677b0fc01f94f6ab546738c10ff226848cce1b64736f6c63430008110033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c8063de8f50a114610030575b600080fd5b61004a61003e3660046100a7565b60019695505050505050565b604051901515815260200160405180910390f35b60008083601f84011261007057600080fd5b50813567ffffffffffffffff81111561008857600080fd5b6020830191508360208285010111156100a057600080fd5b9250929050565b600080600080600080606087890312156100c057600080fd5b863567ffffffffffffffff808211156100d857600080fd5b6100e48a838b0161005e565b909850965060208901359150808211156100fd57600080fd5b6101098a838b0161005e565b9096509450604089013591508082111561012257600080fd5b5061012f89828a0161005e565b979a969950949750929593949250505056fea26469706673582212201d6169f54d5644e6220fe6e528677b0fc01f94f6ab546738c10ff226848cce1b64736f6c63430008110033",
+  "devdoc": {
+    "details": "Implements a dummy DNSSEC (signing) algorithm that approves all      signatures, for testing.",
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}
