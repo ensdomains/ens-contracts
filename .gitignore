@@ -8,3 +8,12 @@ node_modules
 build
 forge-cache
 out
+#certora 
+.certora_internal*
+.certora*
+certora-logs/*
+certora_debug_log.txt
+resource_errors.json
+.last_confs
+.vscode/*
+soljson*

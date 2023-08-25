@@ -1,0 +1,153 @@
+--- ../contracts/wrapper/NameWrapper.sol	2023-02-01 10:06:45.570552100 +0200
++++ 	2023-02-01 10:15:33.770400900 +0200
+@@ -1,17 +1,17 @@
+ //SPDX-License-Identifier: MIT
+ pragma solidity ~0.8.17;
+ 
+-import {ERC1155Fuse, IERC165} from "./ERC1155Fuse.sol";
+-import {Controllable} from "./Controllable.sol";
+-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+-import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
+-import {IMetadataService} from "./IMetadataService.sol";
+-import {ENS} from "../registry/ENS.sol";
+-import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
++import {ERC1155Fuse, IERC165} from "../../contracts/wrapper/ERC1155Fuse.sol";
++import {Controllable} from "../../contracts/wrapper/Controllable.sol";
++import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "../../contracts/wrapper/INameWrapper.sol";
++import {INameWrapperUpgrade} from "../../contracts/wrapper/INameWrapperUpgrade.sol";
++import {IMetadataService} from "../../contracts/wrapper/IMetadataService.sol";
++import {ENS} from "../../contracts/registry/ENS.sol";
++import {IBaseRegistrar} from "../../contracts/ethregistrar/IBaseRegistrar.sol";
+ import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+-import {BytesUtils} from "./BytesUtils.sol";
+-import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
++import {BytesUtils} from "../harness/BytesUtilsHarness.sol";
++import {ERC20Recoverable} from "../../contracts/utils/ERC20Recoverable.sol";
+ 
+ error Unauthorised(bytes32 node, address addr);
+ error IncompatibleParent();
+@@ -35,8 +35,8 @@
+ {
+     using BytesUtils for bytes;
+ 
+-    ENS public immutable override ens;
+-    IBaseRegistrar public immutable override registrar;
++    ENS public override ens; // Certora: removed 'immutable'
++    IBaseRegistrar public override registrar; // Certora: removed 'immutable'
+     IMetadataService public override metadataService;
+     mapping(bytes32 => bytes) public override names;
+     string public constant name = "NameWrapper";
+@@ -48,7 +48,6 @@
+         0x4f5b812789fc606be1b3b16908db13fc7a9adf7ca72641f84d75b47069d3d7f0;
+     bytes32 private constant ROOT_NODE =
+         0x0000000000000000000000000000000000000000000000000000000000000000;
+-
+     INameWrapperUpgrade public upgradeContract;
+     uint64 private constant MAX_EXPIRY = type(uint64).max;
+ 
+@@ -227,7 +226,7 @@
+         address wrappedOwner,
+         uint16 ownerControlledFuses,
+         address resolver
+-    ) public override {
++    ) public virtual override {
+         uint256 tokenId = uint256(keccak256(bytes(label)));
+         address registrant = registrar.ownerOf(tokenId);
+         if (
+@@ -319,7 +318,6 @@
+      * @param wrappedOwner Owner of the name in this contract
+      * @param resolver Resolver contract
+      */
+-
+     function wrap(
+         bytes calldata name,
+         address wrappedOwner,
+@@ -469,7 +467,7 @@
+         string calldata label,
+         address wrappedOwner,
+         address resolver
+-    ) public {
++    ) public virtual {
+         bytes32 labelhash = keccak256(bytes(label));
+         bytes32 node = _makeNode(ETH_NODE, labelhash);
+         (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
+@@ -504,7 +502,7 @@
+         string calldata label,
+         address wrappedOwner,
+         address resolver
+-    ) public {
++    ) public virtual {
+         bytes32 labelhash = keccak256(bytes(label));
+         bytes32 node = _makeNode(parentNode, labelhash);
+         (address currentOwner, uint32 fuses, uint64 expiry) = _prepareUpgrade(
+@@ -591,7 +589,8 @@
+         address owner,
+         uint32 fuses,
+         uint64 expiry
+-    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
++    // Certora : moved modifier to harness contract
++    ) public virtual returns (bytes32 node) {
+         bytes32 labelhash = keccak256(bytes(label));
+         node = _makeNode(parentNode, labelhash);
+         _checkCanCallSetSubnodeOwner(parentNode, node);
+@@ -627,7 +626,8 @@
+         uint64 ttl,
+         uint32 fuses,
+         uint64 expiry
+-    ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
++    // Certora : moved modifier to harness
++    ) public virtual returns (bytes32 node) {
+         bytes32 labelhash = keccak256(bytes(label));
+         node = _makeNode(parentNode, labelhash);
+         _checkCanCallSetSubnodeOwner(parentNode, node);
+@@ -735,7 +735,7 @@
+     }
+ 
+     /**
+-     * @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
++     * @notice Check whether a canCallSetSubnodeOwnername can call setSubnodeOwner/setSubnodeRecord
+      * @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
+      *      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
+      *      replacing a subdomain. If either conditions are true, then it is possible to call
+@@ -855,6 +855,7 @@
+                 revert OperationProhibited(bytes32(id));
+             }
+         }
++        return true;
+     }
+ 
+     function _clearOwnerAndFuses(
+@@ -873,7 +874,7 @@
+     }
+ 
+     function _makeNode(bytes32 node, bytes32 labelhash)
+-        private
++        internal
+         pure
+         returns (bytes32)
+     {
+--- ../contracts/wrapper/mocks/UpgradedNameWrapperMock.sol	2022-12-19 10:33:11.665301400 +0200
++++ ./munged/UpgradedNameWrapperMock.sol	2023-02-01 10:06:14.124027400 +0200
+@@ -1,13 +1,13 @@
+ //SPDX-License-Identifier: MIT
+ pragma solidity ^0.8.4;
+-import "../INameWrapper.sol";
+-import "../../registry/ENS.sol";
+-import "../../ethregistrar/IBaseRegistrar.sol";
+-
+-contract UpgradedNameWrapperMock {
+-    address public immutable oldNameWrapper;
+-    ENS public immutable ens;
+-    IBaseRegistrar public immutable registrar;
++import "../../contracts/wrapper/INameWrapperUpgrade.sol";
++import "../../contracts/registry/ENS.sol";
++import "../../contracts/ethregistrar/IBaseRegistrar.sol";
++
++contract UpgradedNameWrapperMock is INameWrapperUpgrade {
++    address public oldNameWrapper;
++    ENS public ens;
++    IBaseRegistrar public registrar;
+ 
+     constructor(
+         address _oldNameWrapper,
