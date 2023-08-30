@@ -33,7 +33,7 @@ interface IDNSGateway {
 uint16 constant CLASS_INET = 1;
 uint16 constant TYPE_TXT = 16;
 
-contract OffchainDNSResolver is IExtendedResolver {
+contract OffchainDNSResolver is IExtendedResolver, IERC165 {
     using RRUtils for *;
     using Address for address;
     using BytesUtils for bytes;
@@ -49,6 +49,12 @@ contract OffchainDNSResolver is IExtendedResolver {
         ens = _ens;
         oracle = _oracle;
         gatewayURL = _gatewayURL;
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override returns (bool) {
+        return interfaceId == type(IExtendedResolver).interfaceId;
     }
 
     function resolve(
