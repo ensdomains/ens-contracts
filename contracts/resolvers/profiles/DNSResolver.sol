@@ -6,6 +6,8 @@ import "../../dnssec-oracle/RRUtils.sol";
 import "./IDNSRecordResolver.sol";
 import "./IDNSZoneResolver.sol";
 
+error DNSIsLocked();
+
 abstract contract DNSResolver is
     IDNSRecordResolver,
     IDNSZoneResolver,
@@ -31,6 +33,10 @@ abstract contract DNSResolver is
     mapping(uint64 => mapping(bytes32 => mapping(bytes32 => uint16)))
         private versionable_nameEntriesCount;
 
+    mapping(bytes32 => bool) dns_locks;
+
+    event DNSLocked(bytes32 indexed node);
+
     /**
      * Set one or more DNS records.  Records are supplied in wire-format.
      * Records with the same node/name/resource must be supplied one after the
@@ -54,6 +60,9 @@ abstract contract DNSResolver is
         bytes32 node,
         bytes calldata data
     ) external virtual authorised(node) {
+        if (isDNSLocked(node)) {
+            revert DNSIsLocked();
+        }
         uint16 resource = 0;
         uint256 offset = 0;
         bytes memory name;
@@ -145,6 +154,9 @@ abstract contract DNSResolver is
         bytes32 node,
         bytes calldata hash
     ) external virtual authorised(node) {
+        if (isDNSLocked(node)) {
+            revert DNSIsLocked();
+        }
         uint64 currentRecordVersion = recordVersions[node];
         bytes memory oldhash = versionable_zonehashes[currentRecordVersion][
             node
@@ -162,6 +174,24 @@ abstract contract DNSResolver is
         bytes32 node
     ) external view virtual override returns (bytes memory) {
         return versionable_zonehashes[recordVersions[node]][node];
+    }
+
+    /**
+     * Returns true if the DNS records have been locked for this ENS node.
+     * @param node The ENS node to check.
+     */
+    function isDNSLocked(bytes32 node) public view virtual returns (bool) {
+        return dns_locks[node] || isAllLocked(node);
+    }
+
+    /**
+     * Locks the DNS records for this ENS node.
+     * @param node The node to lock.
+     */
+    function lockDNS(bytes32 node) public virtual authorised(node) {
+        dns_locks[node] = true;
+        _setUnclearable(node);
+        emit DNSLocked(node);
     }
 
     function supportsInterface(

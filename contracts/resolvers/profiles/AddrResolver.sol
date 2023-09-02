@@ -5,6 +5,8 @@ import "../ResolverBase.sol";
 import "./IAddrResolver.sol";
 import "./IAddressResolver.sol";
 
+error AddrIsLocked();
+
 abstract contract AddrResolver is
     IAddrResolver,
     IAddressResolver,
@@ -13,6 +15,9 @@ abstract contract AddrResolver is
     uint256 private constant COIN_TYPE_ETH = 60;
 
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
+    mapping(bytes32 => bool) addr_locks;
+
+    event AddrLocked(bytes32 indexed node);
 
     /**
      * Sets the address associated with an ENS node.
@@ -47,6 +52,9 @@ abstract contract AddrResolver is
         uint256 coinType,
         bytes memory a
     ) public virtual authorised(node) {
+        if (isAddrLocked(node)) {
+            revert AddrIsLocked();
+        }
         emit AddressChanged(node, coinType, a);
         if (coinType == COIN_TYPE_ETH) {
             emit AddrChanged(node, bytesToAddress(a));
@@ -59,6 +67,24 @@ abstract contract AddrResolver is
         uint256 coinType
     ) public view virtual override returns (bytes memory) {
         return versionable_addresses[recordVersions[node]][node][coinType];
+    }
+
+    /**
+     * Returns true if addresses have been locked for this ENS node.
+     * @param node The ENS node to check.
+     */
+    function isAddrLocked(bytes32 node) public view virtual returns (bool) {
+        return addr_locks[node] || isAllLocked(node);
+    }
+
+    /**
+     * Locks the addresses for this ENS node.
+     * @param node The node to lock.
+     */
+    function lockAddr(bytes32 node) public virtual authorised(node) {
+        addr_locks[node] = true;
+        _setUnclearable(node);
+        emit AddrLocked(node);
     }
 
     function supportsInterface(
