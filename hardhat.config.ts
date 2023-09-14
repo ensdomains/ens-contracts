@@ -17,6 +17,7 @@ const exec = promisify(_exec)
 // hardhat actions
 import './tasks/accounts'
 import './tasks/archive_scan'
+import './tasks/interface'
 import './tasks/save'
 import './tasks/seed'
 
