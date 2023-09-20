@@ -176,7 +176,8 @@ yarn pub
 5. Create a "Release Candidate" [release](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) on GitHub. This will be of the form `v1.2.3-RC0`. This tagged commit is now subject to our bug bounty.
 6. Have the tagged commit audited if necessary
 7. If changes are required, make the changes and then once ready for review create another GitHub release with an incremented RC value `v1.2.3-RC0` -> `v.1.2.3-RC1`. Repeat as necessary.
-8. Deploy to testnet. Commit build artifacts to `feature` branch. You now MUST merge this branch into `staging` branch.
+8. Deploy to testnet. Open a pull request to merge the deploy artifacts into 
+the `feature` branch. Get someone to review and approve the deployment and then merge. You now MUST merge this branch into `staging` branch.
 9. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts.
 10. If any further changes are needed, you can either make them on the existing feature branch that is in sync or create a new branch, and follow steps 1 -> 9. Repeat as necessary.
 11. Make Deployment to mainnet from `staging`. Commit build artifacts. You now MUST merge this branch into `main`.
