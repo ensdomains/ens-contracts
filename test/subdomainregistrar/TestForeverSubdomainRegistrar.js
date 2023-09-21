@@ -15,6 +15,8 @@ const labelhash = (label) => utils.keccak256(utils.toUtf8Bytes(label))
 const ROOT_NODE =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
+const GRACE_PERIOD = 86400 * 90
+
 const EMPTY_BYTES32 =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 const EMPTY_ADDRESS = '0x0000000000000000000000000000000000000000'
@@ -33,7 +35,8 @@ describe('Forever Subdomain registrar', () => {
   let BaseRegistrar
   let NameWrapper
   let MetaDataservice
-  let PublicResolver
+  let FixedPricer
+  let FixedPricerFree
   let Erc20
   let Erc20WithAccount2
   let Erc20WithAccount3
@@ -41,6 +44,7 @@ describe('Forever Subdomain registrar', () => {
   let account
   let account2
   let result
+  let parentDuration
 
   //constants
   const node = namehash('test.eth')
@@ -55,10 +59,17 @@ describe('Forever Subdomain registrar', () => {
 
     EnsRegistry = await deploy('ENSRegistry')
 
+    console.log('ENSRegistry deployed at: ', EnsRegistry.address)
+
     BaseRegistrar = await deploy(
       'BaseRegistrarImplementation',
       EnsRegistry.address,
       namehash('eth'),
+    )
+
+    console.log(
+      'BaseRegistrarImplementation deployed at: ',
+      BaseRegistrar.address,
     )
 
     await BaseRegistrar.addController(account)
@@ -76,6 +87,8 @@ describe('Forever Subdomain registrar', () => {
       EnsRegistry.address,
     )
 
+    console.log('ReverseRegistrar deployed at: ', ReverseRegistrar.address)
+
     await EnsRegistry.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
     await EnsRegistry.setSubnodeOwner(
       namehash('reverse'),
@@ -90,6 +103,8 @@ describe('Forever Subdomain registrar', () => {
       MetaDataservice.address,
     )
 
+    console.log('NameWrapper deployed at: ', NameWrapper.address)
+
     NameWrapper2 = NameWrapper.connect(signers[1])
 
     await BaseRegistrar.addController(NameWrapper.address)
@@ -103,9 +118,13 @@ describe('Forever Subdomain registrar', () => {
       ReverseRegistrar.address,
     )
 
+    console.log('PublicResolver deployed at: ', PublicResolver.address)
+
     Erc20 = await deploy('MockERC20', 'ENS Token', 'ENS', [account2])
     Erc20WithAccount2 = Erc20.connect(signers[1])
     Erc20WithAccount3 = Erc20.connect(signers[2])
+
+    console.log('MockERC20 deployed at: ', Erc20.address)
 
     // setup .eth
     await EnsRegistry.setSubnodeOwner(
@@ -131,8 +150,17 @@ describe('Forever Subdomain registrar', () => {
       NameWrapper.address,
     )
 
+    console.log(
+      'ForeverSubdomainRegistrar deployed at: ',
+      SubdomainRegistrar.address,
+    )
+
     SubdomainRegistrar2 = SubdomainRegistrar.connect(signers[1])
     SubdomainRegistrar3 = SubdomainRegistrar.connect(signers[2])
+
+    FixedPricer = await deploy('FixedPricer', 1, EMPTY_ADDRESS)
+    FixedPricerERC20 = await deploy('FixedPricer', 1, Erc20.address)
+    FixedPricerFree = await deploy('FixedPricer', 0, EMPTY_ADDRESS)
   })
 
   beforeEach(async () => {
@@ -144,7 +172,7 @@ describe('Forever Subdomain registrar', () => {
 
   describe('setupDomain()', () => {
     beforeEach(async () => {
-      const parentDuration = 86400 * 2
+      parentDuration = 86400 * 2
       await BaseRegistrar.register(labelhash('test'), account, parentDuration)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD(
@@ -159,17 +187,22 @@ describe('Forever Subdomain registrar', () => {
 
     it('should emit an event when a domain is setup', async () => {
       await expect(
-        SubdomainRegistrar.setupDomain(node, Erc20.address, 1, account, true),
+        SubdomainRegistrar.setupDomain(
+          node,
+          FixedPricer.address,
+          account,
+          true,
+        ),
       )
         .to.emit(SubdomainRegistrar, 'NameSetup')
-        .withArgs(node, Erc20.address, 1, account, true)
+        .withArgs(node, FixedPricer.address, account, true)
     })
   })
 
   describe('register', () => {
     let parentExpiry
+
     beforeEach(async () => {
-      const parentDuration = 86400 * 2
       await BaseRegistrar.register(labelhash('test'), account, parentDuration)
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
       await NameWrapper.wrapETH2LD(
@@ -182,8 +215,7 @@ describe('Forever Subdomain registrar', () => {
       expect(await NameWrapper.ownerOf(node)).to.equal(account)
       await SubdomainRegistrar.setupDomain(
         node,
-        Erc20.address,
-        1,
+        FixedPricerERC20.address,
         account,
         true,
       )
@@ -191,13 +223,18 @@ describe('Forever Subdomain registrar', () => {
     })
     it('should allow subdomains to be created', async () => {
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
-      const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
-        .registrationFee
+
+      const [, fee] = await FixedPricerERC20.price(
+        namehash('test.eth'),
+        'subname',
+        0,
+      )
 
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
       )
+
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -206,24 +243,30 @@ describe('Forever Subdomain registrar', () => {
         0,
         [],
       )
+
       const balanceAfter = await Erc20WithAccount2.balanceOf(account2)
       expect(balanceBefore.sub(balanceAfter)).to.equal(fee)
       const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
 
       expect(owner).to.equal(account2)
-      expect(expiry).to.equal(parentExpiry)
+      expect(expiry).to.equal(parentExpiry - GRACE_PERIOD)
       expect(fuses).to.equal(CAN_EXTEND_EXPIRY | PARENT_CANNOT_CONTROL)
     })
 
     it('should not allow subdomains to be registerd over another domain', async () => {
       const balanceBefore = await Erc20WithAccount2.balanceOf(account2)
-      const fee = (await SubdomainRegistrar.names(namehash('test.eth')))
-        .registrationFee
+
+      const [, fee] = await FixedPricerERC20.price(
+        namehash('test.eth'),
+        'subname',
+        0,
+      )
 
       await Erc20WithAccount2.approve(
         SubdomainRegistrar.address,
         ethers.constants.MaxUint256,
       )
+
       await SubdomainRegistrar2.register(
         node,
         'subname',
@@ -237,7 +280,7 @@ describe('Forever Subdomain registrar', () => {
       const [owner, fuses, expiry] = await NameWrapper.getData(subNode)
 
       expect(owner).to.equal(account2)
-      expect(expiry).to.equal(parentExpiry)
+      expect(expiry).to.equal(parentExpiry - GRACE_PERIOD)
       expect(fuses).to.equal(CAN_EXTEND_EXPIRY | PARENT_CANNOT_CONTROL)
 
       await expect(

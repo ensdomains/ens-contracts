@@ -10,14 +10,14 @@ interface IForeverSubdomainRegistrar {
     //     bool active
     // ) external;
 
-    // function register(
-    //     bytes32 parentNode,
-    //     string calldata label,
-    //     address newOwner,
-    //     address resolver,
-    //     uint16 ownerControlledfuses,
-    //     bytes[] calldata records
-    // ) external payable;
+    function register(
+        bytes32 parentNode,
+        string calldata label,
+        address newOwner,
+        address resolver,
+        uint16 ownerControlledfuses,
+        bytes[] calldata records
+    ) external payable;
 
     function available(bytes32 node) external view returns (bool);
 }

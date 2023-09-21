@@ -6,4 +6,4 @@ The Base Registrar allows registration of names indiscriminately by simply allow
 
 ## Pricing
 
-All names that are setup will include a pricer, which is a contract that implements the `ISubnamePricer` interface. This takes the parentNode, the label as a string and a duration. All or none of these can be used to generate the correct price for a subname.
+All names that are setup will include a pricer, which is a contract that implements the `ISubnamePricer` interface. This takes the parentNode, the label as a string and a duration. All or none of these can be used to generate the correct price for a subname. An ERC20 address of 0x000... can represent pure ETH without having to deal with approvals.

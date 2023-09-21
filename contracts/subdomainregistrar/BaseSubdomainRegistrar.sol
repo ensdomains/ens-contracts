@@ -4,6 +4,7 @@ import {INameWrapper, PARENT_CANNOT_CONTROL, IS_DOT_ETH} from "../wrapper/INameW
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -36,7 +37,7 @@ abstract contract BaseSubdomainRegistrar {
         bool active
     );
 
-    uint64 private GRACE_PERIOD = 90 days;
+    uint64 internal GRACE_PERIOD = 90 days;
 
     constructor(address _wrapper) {
         wrapper = INameWrapper(_wrapper);
@@ -118,10 +119,10 @@ abstract contract BaseSubdomainRegistrar {
         string calldata label,
         address newOwner,
         address resolver,
-        uint16 fuses,
+        uint32 fuses,
         uint64 duration,
         bytes[] calldata records
-    ) public payable {
+    ) internal {
         if (!names[parentNode].active) {
             revert ParentNameNotSetup(parentNode);
         }
@@ -252,6 +253,8 @@ abstract contract BaseSubdomainRegistrar {
         }
 
         if (duration + block.timestamp > parentExpiry) {
+            console.log(duration + block.timestamp);
+            console.log(parentExpiry);
             revert DurationTooLong(parentNode);
         }
     }
