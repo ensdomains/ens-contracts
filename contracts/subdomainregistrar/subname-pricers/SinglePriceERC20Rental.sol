@@ -18,5 +18,6 @@ contract SinglePriceERC20Rental is ISubnamePricer {
     ) public view virtual returns (address erc20Token, uint256 price) {
         price = registrationFee * duration;
         erc20Token = token;
+        return (erc20Token, price);
     }
 }

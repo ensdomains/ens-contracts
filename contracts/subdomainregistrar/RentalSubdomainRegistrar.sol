@@ -28,6 +28,26 @@ contract RentalSubdomainRegistrar is
         return super.available(node);
     }
 
+    function register(
+        bytes32 parentNode,
+        string calldata label,
+        address newOwner,
+        address resolver,
+        uint16 fuses,
+        uint64 duration,
+        bytes[] calldata records
+    ) public payable {
+        super.register(
+            parentNode,
+            label,
+            newOwner,
+            resolver,
+            PARENT_CANNOT_CONTROL | uint32(fuses),
+            duration,
+            records
+        );
+    }
+
     function renew(
         bytes32 parentNode,
         string calldata label,

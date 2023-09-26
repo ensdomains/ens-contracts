@@ -4,7 +4,6 @@ import {INameWrapper, PARENT_CANNOT_CONTROL, IS_DOT_ETH} from "../wrapper/INameW
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 error Unavailable();
 error Unauthorised(bytes32 node);
@@ -93,6 +92,10 @@ abstract contract BaseSubdomainRegistrar {
             labels.length != addresses.length || labels.length != records.length
         ) {
             revert DataMissing();
+        }
+
+        if (!names[parentNode].active) {
+            revert ParentNameNotSetup(parentNode);
         }
 
         _checkParent(parentNode, duration);
@@ -203,7 +206,7 @@ abstract contract BaseSubdomainRegistrar {
         for (uint256 i = 0; i < labels.length; i++) {
             (address token, uint256 price) = pricer.price(
                 parentNode,
-                labels[0],
+                labels[i],
                 duration
             );
             IERC20(token).transferFrom(
@@ -253,8 +256,6 @@ abstract contract BaseSubdomainRegistrar {
         }
 
         if (duration + block.timestamp > parentExpiry) {
-            console.log(duration + block.timestamp);
-            console.log(parentExpiry);
             revert DurationTooLong(parentNode);
         }
     }

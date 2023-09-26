@@ -8,7 +8,6 @@ import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155
 import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
 import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
-import "hardhat/console.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
 
