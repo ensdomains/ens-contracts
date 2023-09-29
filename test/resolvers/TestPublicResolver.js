@@ -12,7 +12,10 @@ const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 
-const { exceptions } = require('../test-utils')
+const {
+  exceptions,
+  dns: { nameToHex },
+} = require('../test-utils')
 
 contract('PublicResolver', function (accounts) {
   let node
@@ -750,15 +753,15 @@ contract('PublicResolver', function (accounts) {
       await resolver.setDNSRecords(node, rec, { from: accounts[0] })
 
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('a.eth.')), 1),
         '0x016103657468000001000100000e10000401020304',
       )
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('b.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('b.eth.')), 1),
         '0x016203657468000001000100000e10000402030405016203657468000001000100000e10000403040506',
       )
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
+        await resolver.dnsRecord(node, sha3(nameToHex('eth.')), 6),
         '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbd00003d0400000708001baf8000003840',
       )
     }
@@ -775,11 +778,11 @@ contract('PublicResolver', function (accounts) {
       await resolver.setDNSRecords(node, rec, { from: accounts[0] })
 
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('a.eth.')), 1),
         '0x016103657468000001000100000e10000404050607',
       )
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
+        await resolver.dnsRecord(node, sha3(nameToHex('eth.')), 6),
         '0x03657468000006000100015180003a036e733106657468646e730378797a000a686f73746d6173746572057465737431036574680078492cbe00003d0400000708001baf8000003840',
       )
     })
@@ -794,15 +797,15 @@ contract('PublicResolver', function (accounts) {
       // Initial check
       var hasEntries = await resolver.hasDNSRecords(
         node,
-        sha3(dnsName('c.eth.')),
+        sha3(nameToHex('c.eth.')),
       )
       assert.equal(hasEntries, true)
-      hasEntries = await resolver.hasDNSRecords(node, sha3(dnsName('d.eth.')))
+      hasEntries = await resolver.hasDNSRecords(node, sha3(nameToHex('d.eth.')))
       assert.equal(hasEntries, false)
 
       // Update with no new data makes no difference
       await resolver.setDNSRecords(node, rec, { from: accounts[0] })
-      hasEntries = await resolver.hasDNSRecords(node, sha3(dnsName('c.eth.')))
+      hasEntries = await resolver.hasDNSRecords(node, sha3(nameToHex('c.eth.')))
       assert.equal(hasEntries, true)
 
       // c.eth. 3600 IN A
@@ -812,7 +815,7 @@ contract('PublicResolver', function (accounts) {
       await resolver.setDNSRecords(node, rec2, { from: accounts[0] })
 
       // Removal returns to 0
-      hasEntries = await resolver.hasDNSRecords(node, sha3(dnsName('c.eth.')))
+      hasEntries = await resolver.hasDNSRecords(node, sha3(nameToHex('c.eth.')))
       assert.equal(hasEntries, false)
     })
 
@@ -824,7 +827,7 @@ contract('PublicResolver', function (accounts) {
       await resolver.setDNSRecords(node, rec, { from: accounts[0] })
 
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('e.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('e.eth.')), 1),
         '0x016503657468000001000100000e10000401020304',
       )
     })
@@ -980,15 +983,15 @@ contract('PublicResolver', function (accounts) {
       await basicSetDNSRecords()
       await resolver.clearRecords(node)
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('a.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('a.eth.')), 1),
         null,
       )
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('b.eth.')), 1),
+        await resolver.dnsRecord(node, sha3(nameToHex('b.eth.')), 1),
         null,
       )
       assert.equal(
-        await resolver.dnsRecord(node, sha3(dnsName('eth.')), 6),
+        await resolver.dnsRecord(node, sha3(nameToHex('eth.')), 6),
         null,
       )
     })
@@ -1332,29 +1335,3 @@ contract('PublicResolver', function (accounts) {
     })
   })
 })
-
-function dnsName(name) {
-  // strip leading and trailing .
-  const n = name.replace(/^\.|\.$/gm, '')
-
-  var bufLen = n === '' ? 1 : n.length + 2
-  var buf = Buffer.allocUnsafe(bufLen)
-
-  offset = 0
-  if (n.length) {
-    const list = n.split('.')
-    for (let i = 0; i < list.length; i++) {
-      const len = buf.write(list[i], offset + 1)
-      buf[offset] = len
-      offset += len + 1
-    }
-  }
-  buf[offset++] = 0
-  return (
-    '0x' +
-    buf.reduce(
-      (output, elem) => output + ('0' + elem.toString(16)).slice(-2),
-      '',
-    )
-  )
-}
