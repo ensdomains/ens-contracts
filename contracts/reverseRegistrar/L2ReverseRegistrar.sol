@@ -6,8 +6,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../root/Controllable.sol";
-import "./profiles/NameResolver.sol";
-import "./profiles/TextResolver.sol";
+import "./profiles/L2NameResolver.sol";
+import "./profiles/L2TextResolver.sol";
 import "./profiles/L2ReverseResolverBase.sol";
 
 error InvalidSignature();
@@ -16,13 +16,13 @@ contract L2ReverseRegistrar is
     Ownable,
     IL2ReverseRegistrar,
     L2ReverseResolverBase,
-    NameResolver,
-    TextResolver
+    L2NameResolver,
+    L2TextResolver
 {
     using ECDSA for bytes32;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
-    event DefaultResolverChanged(NameResolver indexed resolver);
+    event DefaultResolverChanged(L2NameResolver indexed resolver);
 
     /**
      * @dev Constructor
@@ -142,8 +142,8 @@ contract L2ReverseRegistrar is
         bytes4 interfaceID
     )
         public
-        pure
-        override(NameResolver, TextResolver, L2ReverseResolverBase)
+        view
+        override(L2NameResolver, L2TextResolver, L2ReverseResolverBase)
         returns (bool)
     {
         return

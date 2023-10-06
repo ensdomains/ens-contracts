@@ -4,7 +4,7 @@ pragma solidity >=0.8.4;
 import "./L2ReverseResolverBase.sol";
 import "../../resolvers/profiles/ITextResolver.sol";
 
-abstract contract TextResolver is ITextResolver, L2ReverseResolverBase {
+abstract contract L2TextResolver is ITextResolver, L2ReverseResolverBase {
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
 
     /**

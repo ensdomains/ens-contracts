@@ -4,7 +4,7 @@ pragma solidity >=0.8.4;
 import "./L2ReverseResolverBase.sol";
 import "../../resolvers/profiles/INameResolver.sol";
 
-abstract contract NameResolver is INameResolver, L2ReverseResolverBase {
+abstract contract L2NameResolver is INameResolver, L2ReverseResolverBase {
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
     /**
