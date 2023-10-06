@@ -3,12 +3,6 @@ pragma solidity >=0.8.4;
 interface IL2ReverseRegistrar {
     function setName(string memory name) external returns (bytes32);
 
-    function setNameForAddr(
-        address addr,
-        address owner,
-        string memory name
-    ) external returns (bytes32);
-
     function setNameForAddrWithSignature(
         address addr,
         address owner,

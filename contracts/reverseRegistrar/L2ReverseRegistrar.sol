@@ -100,20 +100,11 @@ contract L2ReverseRegistrar is
         return setNameForAddr(msg.sender, msg.sender, name);
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the account provided. Updates the resolver to a designated resolver
-     * Only callable by controllers and authorised users
-     * @param addr The reverse record to set
-     * @param owner The owner of the reverse node
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
     function setNameForAddr(
         address addr,
         address owner,
         string memory name
-    ) public override returns (bytes32) {
+    ) internal returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 node = keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
         _setName(node, name);
