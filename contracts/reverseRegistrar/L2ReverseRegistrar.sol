@@ -6,22 +6,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../root/Controllable.sol";
-
-abstract contract NameResolver {
-    function setName(bytes32 node, string memory name) public virtual;
-}
-
-bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000000000000000;
-
-bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
+import "./profiles/NameResolver.sol";
+import "./profiles/TextResolver.sol";
+import "./profiles/L2ReverseResolverBase.sol";
 
 error InvalidSignature();
 
-// namehash('addr.reverse')
-
-contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
-    ENS public immutable ens;
-    NameResolver public defaultResolver;
+contract L2ReverseRegistrar is
+    Ownable,
+    IL2ReverseRegistrar,
+    L2ReverseResolverBase,
+    NameResolver,
+    TextResolver
+{
     using ECDSA for bytes32;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
@@ -29,38 +26,19 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
 
     /**
      * @dev Constructor
-     * @param ensAddr The address of the ENS registry.
      */
-    constructor(ENS ensAddr) {
-        ens = ensAddr;
+    constructor(bytes32 L2ReverseNode) L2ReverseResolverBase(L2ReverseNode) {}
 
-        // Assign ownership of the reverse record to our deployer
-        ReverseRegistrar oldRegistrar = ReverseRegistrar(
-            ensAddr.owner(ADDR_REVERSE_NODE)
-        );
-        if (address(oldRegistrar) != address(0x0)) {
-            oldRegistrar.claim(msg.sender);
-        }
-    }
-
-    modifier authorised(address addr) {
-        require(
-            addr == msg.sender ||
-                controllers[msg.sender] ||
-                ens.isApprovedForAll(addr, msg.sender) ||
-                ownsContract(addr),
-            "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
-        );
+    modifier authorised(address addr) override(L2ReverseResolverBase) {
+        isAuthorised(addr);
         _;
     }
 
-    function setDefaultResolver(address resolver) public override onlyOwner {
+    function isAuthorised(address addr) internal view override returns (bool) {
         require(
-            address(resolver) != address(0),
-            "ReverseRegistrar: Resolver address must not be 0"
+            addr == msg.sender || ownsContract(addr),
+            "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
         );
-        defaultResolver = NameResolver(resolver);
-        emit DefaultResolverChanged(NameResolver(resolver));
     }
 
     /**
@@ -71,46 +49,26 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @param resolver The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
-    function _claimForAddr(
+    function setNameForAddrWithSignature(
         address addr,
         address owner,
-        address resolver
-    ) internal override authorised(addr) returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
-        );
-        emit ReverseClaimed(addr, reverseNode);
-        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
-        return reverseNode;
-    }
-
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param addr The reverse record to set
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
-    function _claimForAddrWithSignature(
-        address addr,
-        address owner,
+        string memory name,
         address resolver,
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature
-    ) internal override returns (bytes32) {
+    ) public override returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
-            abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
+            abi.encodePacked(L2_REVERSE_NODE, labelHash)
         );
 
         bytes32 hash = keccak256(
             abi.encodePacked(
-                IReverseRegistrar.claimForAddrWithSignature.selector,
+                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
                 addr,
                 owner,
+                name,
                 resolver,
                 relayer,
                 signatureExpiry
@@ -128,15 +86,13 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
             revert InvalidSignature();
         }
 
-        emit ReverseClaimed(addr, reverseNode);
-        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
+        _setName(reverseNode, name);
         return reverseNode;
     }
 
     /**
      * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the calling account. First updates the resolver to the default reverse
-     * resolver if necessary.
+     * the calling account.
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
@@ -158,37 +114,9 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address owner,
         string memory name
     ) public override returns (bytes32) {
-        bytes32 node = _claimForAddr(addr, owner, address(defaultResolver));
-        NameResolver(address(defaultResolver)).setName(node, name);
-        return node;
-    }
-
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the account provided. Updates the resolver to a designated resolver
-     * Only callable by controllers and authorised users
-     * @param addr The reverse record to set
-     * @param owner The owner of the reverse node
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
-    function setNameForAddrWithSignature(
-        address addr,
-        address owner,
-        address relayer,
-        uint256 signatureExpiry,
-        bytes memory signature,
-        string memory name
-    ) public override returns (bytes32) {
-        bytes32 node = _claimForAddrWithSignature(
-            addr,
-            owner,
-            address(defaultResolver),
-            relayer,
-            signatureExpiry,
-            signature
-        );
-        NameResolver(defaultResolver).setName(node, name);
+        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 node = keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
+        _setName(node, name);
         return node;
     }
 
@@ -197,37 +125,9 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @param addr The address to hash
      * @return The ENS node hash.
      */
-    function node(address addr) public pure override returns (bytes32) {
+    function node(address addr) public view override returns (bytes32) {
         return
-            keccak256(
-                abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr))
-            );
-    }
-
-    /**
-     * @dev An optimised function to compute the sha3 of the lower-case
-     *      hexadecimal representation of an Ethereum address.
-     * @param addr The address to hash
-     * @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
-     *         input address.
-     */
-    function sha3HexAddress(address addr) private pure returns (bytes32 ret) {
-        assembly {
-            for {
-                let i := 40
-            } gt(i, 0) {
-
-            } {
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-            }
-
-            ret := keccak256(0, 40)
-        }
+            keccak256(abi.encodePacked(L2_REVERSE_NODE, sha3HexAddress(addr)));
     }
 
     function ownsContract(address addr) internal view returns (bool) {
@@ -236,5 +136,18 @@ contract L2ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         } catch {
             return false;
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceID
+    )
+        public
+        pure
+        override(NameResolver, TextResolver, L2ReverseResolverBase)
+        returns (bool)
+    {
+        return
+            interfaceID == type(IL2ReverseRegistrar).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
