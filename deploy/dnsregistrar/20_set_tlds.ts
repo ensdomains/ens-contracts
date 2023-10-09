@@ -1261,6 +1261,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const signer = await ethers.getSigner(owner)
 
+  console.log('Running setTLDs')
+
   let transactions: any[] = []
   const registrar = await ethers.getContract('DNSRegistrar', signer)
   const registry = await ethers.getContract('ENSRegistry', signer)
@@ -1279,7 +1281,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 }
 
-func.tags = ['dnsregistrar']
+func.tags = ['DNSRegistrar']
 func.dependencies = ['registry', 'dnssec-oracle']
+func.runAtTheEnd = true
 
 export default func
