@@ -77,6 +77,8 @@ contract L2ReverseRegistrar is
 
         bytes32 message = hash.toEthSignedMessageHash();
 
+        // TODO - check if addr owns the contract
+
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
             relayer != msg.sender ||
