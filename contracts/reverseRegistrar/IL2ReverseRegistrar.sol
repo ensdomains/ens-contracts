@@ -5,9 +5,7 @@ interface IL2ReverseRegistrar {
 
     function setNameForAddrWithSignature(
         address addr,
-        address owner,
         string memory name,
-        address resolver,
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature

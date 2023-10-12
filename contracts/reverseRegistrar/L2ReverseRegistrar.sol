@@ -24,6 +24,8 @@ contract L2ReverseRegistrar is
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(L2NameResolver indexed resolver);
 
+    uint256 constant EXPIRY = 1 days;
+
     /**
      * @dev Constructor
      */
@@ -42,18 +44,17 @@ contract L2ReverseRegistrar is
     }
 
     /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
+     * @dev sets the name for an addr using a signature
      * @param addr The reverse record to set
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The resolver of the reverse node
+     * @param name The name of the reverse record
+     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
+     * @param signatureExpiry The resolver of the reverse node
+     * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddrWithSignature(
         address addr,
-        address owner,
         string memory name,
-        address resolver,
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature
@@ -67,9 +68,7 @@ contract L2ReverseRegistrar is
             abi.encodePacked(
                 IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
                 addr,
-                owner,
                 name,
-                resolver,
                 relayer,
                 signatureExpiry
             )
@@ -77,13 +76,11 @@ contract L2ReverseRegistrar is
 
         bytes32 message = hash.toEthSignedMessageHash();
 
-        // TODO - check if addr owns the contract
-
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            relayer != msg.sender ||
+            (relayer != address(0) && relayer != msg.sender) ||
             signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + 1 days
+            signatureExpiry > block.timestamp + EXPIRY
         ) {
             revert InvalidSignature();
         }
@@ -93,13 +90,76 @@ contract L2ReverseRegistrar is
     }
 
     /**
+     * @dev sets the name for a contract that is owned by a SCW using a signature
+     * @param addr The reverse record to set
+     * @param name The name of the reverse record
+     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
+     * @param signatureExpiry The resolver of the reverse node
+     * @param signature The resolver of the reverse node
+     * @return The ENS node hash of the reverse record.
+     */
+    function setNameForAddrWithSignature(
+        address addr,
+        address smartContractWallet,
+        string memory name,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature
+    ) public returns (bytes32) {
+        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 reverseNode = keccak256(
+            abi.encodePacked(L2_REVERSE_NODE, labelHash)
+        );
+
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+                addr,
+                name,
+                relayer,
+                signatureExpiry
+            )
+        );
+
+        bytes32 message = hash.toEthSignedMessageHash();
+
+        if (
+            ownsContract(smartContractWallet) &&
+            SignatureChecker.isValidERC1271SignatureNow(
+                smartContractWallet,
+                message,
+                signature
+            )
+        ) {
+            _setName(reverseNode, name);
+            return reverseNode;
+        }
+
+        revert InvalidSignature();
+    }
+
+    /**
      * @dev Sets the `name()` record for the reverse ENS record associated with
      * the calling account.
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
     function setName(string memory name) public override returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(msg.sender);
+        return setNameForAddr(msg.sender, name);
+    }
+
+    /**
+     * @dev Sets the `name()` record for the reverse ENS record associated with
+     * the addr provided account.
+     * @param name The name to set for this address.
+     * @return The ENS node hash of the reverse record.
+     */
+
+    function setNameForAddr(
+        address addr,
+        string memory name
+    ) public authorised(addr) returns (bytes32) {
+        bytes32 labelHash = sha3HexAddress(addr);
         bytes32 node = keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
         _setName(node, name);
         return node;
