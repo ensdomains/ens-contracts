@@ -99,15 +99,7 @@ contract L2ReverseRegistrar is
      * @return The ENS node hash of the reverse record.
      */
     function setName(string memory name) public override returns (bytes32) {
-        return setNameForAddr(msg.sender, msg.sender, name);
-    }
-
-    function setNameForAddr(
-        address addr,
-        address owner,
-        string memory name
-    ) internal returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = sha3HexAddress(msg.sender);
         bytes32 node = keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
         _setName(node, name);
         return node;

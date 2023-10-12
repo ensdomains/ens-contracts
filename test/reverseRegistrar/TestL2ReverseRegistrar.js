@@ -19,5 +19,17 @@ describe('L2ReverseRegistrar', function () {
     expect(l2ReverseRegistrar.address).to.not.equal(0)
   })
 
-  // Add more tests here
+  //write all my tests for me
+  it('should set the name record for the calling account', async function () {
+    const name = 'myname.eth'
+    const tx = await l2ReverseRegistrar.setName(name)
+    await tx.wait()
+
+    const node = await l2ReverseRegistrar.node(
+      await ethers.provider.getSigner().getAddress(),
+    )
+    const actualName = await l2ReverseRegistrar.name(node)
+
+    expect(actualName).to.equal(name)
+  })
 })
