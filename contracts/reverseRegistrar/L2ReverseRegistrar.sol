@@ -59,10 +59,7 @@ contract L2ReverseRegistrar is
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2_REVERSE_NODE, labelHash)
-        );
+        bytes32 node = _getNamehash(addr);
 
         bytes32 hash = keccak256(
             abi.encodePacked(
@@ -85,8 +82,8 @@ contract L2ReverseRegistrar is
             revert InvalidSignature();
         }
 
-        _setName(reverseNode, name);
-        return reverseNode;
+        _setName(node, name);
+        return node;
     }
 
     /**
@@ -107,14 +104,13 @@ contract L2ReverseRegistrar is
         uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(contractAddr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2_REVERSE_NODE, labelHash)
-        );
+        bytes32 node = _getNamehash(contractAddr);
 
         bytes32 hash = keccak256(
             abi.encodePacked(
-                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+                IL2ReverseRegistrar
+                    .setNameForAddrWithSignatureAndOwnable
+                    .selector,
                 contractAddr,
                 owner,
                 name,
@@ -133,8 +129,8 @@ contract L2ReverseRegistrar is
                 signature
             )
         ) {
-            _setName(reverseNode, name);
-            return reverseNode;
+            _setName(node, name);
+            return node;
         }
 
         revert InvalidSignature();
@@ -161,9 +157,137 @@ contract L2ReverseRegistrar is
         address addr,
         string memory name
     ) public authorised(addr) returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
-        bytes32 node = keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
+        bytes32 node = _getNamehash(addr);
         _setName(node, name);
+        return node;
+    }
+
+    /**
+     * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
+     * @param addr The reverse record to set
+     * @param key The key of the text record
+     * @param value The value of the text record
+     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
+     * @param signatureExpiry The resolver of the reverse node
+     * @param signature The resolver of the reverse node
+     * @return The ENS node hash of the reverse record.
+     */
+    function setTextForAddrWithSignature(
+        address addr,
+        string calldata key,
+        string calldata value,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature
+    ) public override returns (bytes32) {
+        bytes32 node = _getNamehash(addr);
+
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                IL2ReverseRegistrar.setTextForAddrWithSignature.selector,
+                addr,
+                key,
+                value,
+                relayer,
+                signatureExpiry
+            )
+        );
+
+        bytes32 message = hash.toEthSignedMessageHash();
+
+        if (
+            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
+            (relayer != address(0) && relayer != msg.sender) ||
+            signatureExpiry < block.timestamp ||
+            signatureExpiry > block.timestamp + EXPIRY
+        ) {
+            revert InvalidSignature();
+        }
+
+        _setText(node, key, value);
+        return node;
+    }
+
+    /**
+     * @dev Sets the name for a contract that is owned by a SCW using a signature
+     * @param contractAddr The reverse node to set
+     * @param owner The owner of the contract (via Ownable)
+     * @param key The name of the reverse record
+     * @param value The name of the reverse record
+     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
+     * @param signatureExpiry The resolver of the reverse node
+     * @param signature The signature of an address that will return true on isValidSignature for the owner
+     * @return The ENS node hash of the reverse record.
+     */
+    function setTextForAddrWithSignatureAndOwnable(
+        address contractAddr,
+        address owner,
+        string calldata key,
+        string calldata value,
+        address relayer,
+        uint256 signatureExpiry,
+        bytes memory signature
+    ) public returns (bytes32) {
+        bytes32 node = _getNamehash(contractAddr);
+
+        bytes32 hash = keccak256(
+            abi.encodePacked(
+                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+                contractAddr,
+                owner,
+                key,
+                value,
+                relayer,
+                signatureExpiry
+            )
+        );
+
+        bytes32 message = hash.toEthSignedMessageHash();
+
+        if (
+            ownsContract(contractAddr, owner) &&
+            SignatureChecker.isValidERC1271SignatureNow(
+                owner,
+                message,
+                signature
+            )
+        ) {
+            _setText(node, key, value);
+            return node;
+        }
+
+        revert InvalidSignature();
+    }
+
+    /**
+     * @dev Sets the `name()` record for the reverse ENS record associated with
+     * the calling account.
+     * @param key The key for this text record.
+     * @param value The value to set for this text record.
+     * @return The ENS node hash of the reverse record.
+     */
+    function setText(
+        string calldata key,
+        string calldata value
+    ) public override returns (bytes32) {
+        return setTextForAddr(msg.sender, key, value);
+    }
+
+    /**
+     * @dev Sets the `text(key)` record for the reverse ENS record associated with
+     * the addr provided account.
+     * @param key The key for this text record.
+     * @param value The value to set for this text record.
+     * @return The ENS node hash of the reverse record.
+     */
+
+    function setTextForAddr(
+        address addr,
+        string calldata key,
+        string calldata value
+    ) public override authorised(addr) returns (bytes32) {
+        bytes32 node = _getNamehash(addr);
+        _setText(node, key, value);
         return node;
     }
 
@@ -186,6 +310,11 @@ contract L2ReverseRegistrar is
         } catch {
             return false;
         }
+    }
+
+    function _getNamehash(address addr) internal view returns (bytes32) {
+        bytes32 labelHash = sha3HexAddress(addr);
+        return keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
     }
 
     function supportsInterface(

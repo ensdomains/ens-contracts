@@ -7,26 +7,13 @@ import "../../resolvers/profiles/ITextResolver.sol";
 abstract contract L2TextResolver is ITextResolver, L2ReverseResolverBase {
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
 
-    /**
-     * Sets the text data associated with an ENS node and key.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     * @param key The key to set.
-     * @param value The text data value to set.
-     */
-    function setText(
-        address addr,
+    function _setText(
+        bytes32 node,
         string calldata key,
         string calldata value
-    ) external authorised(addr) {
-        bytes32 labelHash = sha3HexAddress(addr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2_REVERSE_NODE, labelHash)
-        );
-        versionable_texts[recordVersions[reverseNode]][reverseNode][
-            key
-        ] = value;
-        emit TextChanged(reverseNode, key, key, value);
+    ) internal {
+        versionable_texts[recordVersions[node]][node][key] = value;
+        emit TextChanged(node, key, key, value);
     }
 
     /**

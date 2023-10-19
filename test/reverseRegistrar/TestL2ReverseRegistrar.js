@@ -13,6 +13,8 @@ describe('L2ReverseRegistrar', function () {
   let account2
   let setNameForAddrWithSignatureFuncSig =
     'setNameForAddrWithSignature(address,string,address,uint256,bytes)'
+  let setNameForAddrWithSignatureAndOwnableFuncSig =
+    'setNameForAddrWithSignatureAndOwnable(address,address,string,address,uint256,bytes)'
 
   before(async function () {
     signers = await ethers.getSigners()
@@ -122,7 +124,7 @@ describe('L2ReverseRegistrar', function () {
       const node = await L2ReverseRegistrar.node(MockOwnable.address)
       assert.equal(await L2ReverseRegistrar.name(node), '')
       const funcId = ethers.utils
-        .id(setNameForAddrWithSignatureFuncSig)
+        .id(setNameForAddrWithSignatureAndOwnableFuncSig)
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
