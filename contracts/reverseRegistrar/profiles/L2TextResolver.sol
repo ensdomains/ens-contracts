@@ -18,7 +18,7 @@ abstract contract L2TextResolver is ITextResolver, L2ReverseResolverBase {
         address addr,
         string calldata key,
         string calldata value
-    ) external virtual authorised(addr) {
+    ) external authorised(addr) {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(L2_REVERSE_NODE, labelHash)
