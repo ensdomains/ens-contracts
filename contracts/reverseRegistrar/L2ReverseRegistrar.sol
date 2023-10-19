@@ -232,7 +232,9 @@ contract L2ReverseRegistrar is
 
         bytes32 hash = keccak256(
             abi.encodePacked(
-                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+                IL2ReverseRegistrar
+                    .setTextForAddrWithSignatureAndOwnable
+                    .selector,
                 contractAddr,
                 owner,
                 key,
