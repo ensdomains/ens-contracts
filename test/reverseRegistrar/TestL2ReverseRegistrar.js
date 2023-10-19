@@ -4,8 +4,10 @@ const { namehash } = require('../test-utils/ens')
 const { EMPTY_ADDRESS } = require('../test-utils/constants')
 
 describe('L2ReverseRegistrar', function () {
-  let l2ReverseRegistrar
-  let l2ReverseRegistrarWithAccount2
+  let L2ReverseRegistrar
+  let L2ReverseRegistrarWithAccount2
+  let MockSmartContractWallet
+  let MockOwnable
   let signers
   let account
   let account2
@@ -17,32 +19,44 @@ describe('L2ReverseRegistrar', function () {
     account = await signers[0].getAddress()
     account2 = await signers[1].getAddress()
 
-    const L2ReverseRegistrar = await ethers.getContractFactory(
+    const L2ReverseRegistrarFactory = await ethers.getContractFactory(
       'L2ReverseRegistrar',
     )
-    l2ReverseRegistrar = await L2ReverseRegistrar.deploy(
+    L2ReverseRegistrar = await L2ReverseRegistrarFactory.deploy(
       namehash('optimism.reverse'),
     )
 
-    l2ReverseRegistrarWithAccount2 = l2ReverseRegistrar.connect(signers[1])
+    const MockSmartContractWalletFactory = await ethers.getContractFactory(
+      'MockSmartContractWallet',
+    )
+    MockSmartContractWallet = await MockSmartContractWalletFactory.deploy(
+      account,
+    )
 
-    await l2ReverseRegistrar.deployed()
+    const MockOwnableFactory = await ethers.getContractFactory('MockOwnable')
+    MockOwnable = await MockOwnableFactory.deploy(
+      MockSmartContractWallet.address,
+    )
+
+    L2ReverseRegistrarWithAccount2 = L2ReverseRegistrar.connect(signers[1])
+
+    await L2ReverseRegistrar.deployed()
   })
 
   it('should deploy the contract', async function () {
-    expect(l2ReverseRegistrar.address).to.not.equal(0)
+    expect(L2ReverseRegistrar.address).to.not.equal(0)
   })
 
   //write all my tests for me
   it('should set the name record for the calling account', async function () {
     const name = 'myname.eth'
-    const tx = await l2ReverseRegistrar.setName(name)
+    const tx = await L2ReverseRegistrar.setName(name)
     await tx.wait()
 
-    const node = await l2ReverseRegistrar.node(
+    const node = await L2ReverseRegistrar.node(
       await ethers.provider.getSigner().getAddress(),
     )
-    const actualName = await l2ReverseRegistrar.name(node)
+    const actualName = await L2ReverseRegistrar.name(node)
     expect(actualName).to.equal(name)
   })
 
@@ -63,7 +77,7 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await l2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
+      await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
         account,
         'hello.eth',
         EMPTY_ADDRESS,
@@ -71,8 +85,8 @@ describe('L2ReverseRegistrar', function () {
         signature,
       )
 
-      const node = await l2ReverseRegistrar.node(account)
-      assert.equal(await l2ReverseRegistrar.name(node), 'hello.eth')
+      const node = await L2ReverseRegistrar.node(account)
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
     })
 
     it('reverts if signature parameters do not match', async () => {
@@ -92,7 +106,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        l2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
+        L2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
           account,
           'notthesamename.eth',
           EMPTY_ADDRESS,
@@ -100,6 +114,47 @@ describe('L2ReverseRegistrar', function () {
           signature,
         ),
       ).to.be.revertedWith(`InvalidSignature()`)
+    })
+  })
+
+  describe('setNameForAddrWithSignatureAndOwnable', function () {
+    it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
+      const node = await L2ReverseRegistrar.node(MockOwnable.address)
+      assert.equal(await L2ReverseRegistrar.name(node), '')
+      const funcId = ethers.utils
+        .id(setNameForAddrWithSignatureFuncSig)
+        .substring(0, 10)
+
+      const block = await ethers.provider.getBlock('latest')
+      const signatureExpiry = block.timestamp + 3600
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'address', 'string', 'address', 'uint256'],
+            [
+              funcId,
+              MockOwnable.address,
+              MockSmartContractWallet.address,
+              'ownable.eth',
+              EMPTY_ADDRESS,
+              signatureExpiry,
+            ],
+          ),
+        ),
+      )
+
+      await L2ReverseRegistrarWithAccount2[
+        'setNameForAddrWithSignatureAndOwnable'
+      ](
+        MockOwnable.address,
+        MockSmartContractWallet.address,
+        'ownable.eth',
+        EMPTY_ADDRESS,
+        signatureExpiry,
+        signature,
+      )
+
+      assert.equal(await L2ReverseRegistrar.name(node), 'ownable.eth')
     })
   })
 })

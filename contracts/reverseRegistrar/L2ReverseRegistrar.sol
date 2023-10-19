@@ -38,7 +38,7 @@ contract L2ReverseRegistrar is
 
     function isAuthorised(address addr) internal view override returns (bool) {
         require(
-            addr == msg.sender || ownsContract(addr),
+            addr == msg.sender || ownsContract(addr, msg.sender),
             "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
         );
     }
@@ -91,22 +91,22 @@ contract L2ReverseRegistrar is
 
     /**
      * @dev sets the name for a contract that is owned by a SCW using a signature
-     * @param addr The reverse record to set
+     * @param contractAddr The reverse record to set
      * @param name The name of the reverse record
      * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
      * @param signatureExpiry The resolver of the reverse node
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
-    function setNameForAddrWithSignature(
-        address addr,
-        address smartContractWallet,
+    function setNameForAddrWithSignatureAndOwnable(
+        address contractAddr,
+        address owner,
         string memory name,
         address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = sha3HexAddress(contractAddr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(L2_REVERSE_NODE, labelHash)
         );
@@ -114,7 +114,8 @@ contract L2ReverseRegistrar is
         bytes32 hash = keccak256(
             abi.encodePacked(
                 IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
-                addr,
+                contractAddr,
+                owner,
                 name,
                 relayer,
                 signatureExpiry
@@ -124,9 +125,9 @@ contract L2ReverseRegistrar is
         bytes32 message = hash.toEthSignedMessageHash();
 
         if (
-            ownsContract(smartContractWallet) &&
+            ownsContract(contractAddr, owner) &&
             SignatureChecker.isValidERC1271SignatureNow(
-                smartContractWallet,
+                owner,
                 message,
                 signature
             )
@@ -175,9 +176,12 @@ contract L2ReverseRegistrar is
             keccak256(abi.encodePacked(L2_REVERSE_NODE, sha3HexAddress(addr)));
     }
 
-    function ownsContract(address addr) internal view returns (bool) {
-        try Ownable(addr).owner() returns (address owner) {
-            return owner == msg.sender;
+    function ownsContract(
+        address contractAddr,
+        address addr
+    ) internal view returns (bool) {
+        try Ownable(contractAddr).owner() returns (address owner) {
+            return owner == addr;
         } catch {
             return false;
         }
