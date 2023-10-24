@@ -20,11 +20,10 @@ contract L2ReverseRegistrar is
     L2TextResolver
 {
     using ECDSA for bytes32;
+    mapping(bytes32 => uint256) public lastUpdated;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(L2NameResolver indexed resolver);
-
-    uint256 constant EXPIRY = 1 days;
 
     /**
      * @dev Constructor
@@ -47,14 +46,14 @@ contract L2ReverseRegistrar is
      * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
      * @param addr The reverse record to set
      * @param name The name of the reverse record
-     * @param signatureExpiry The resolver of the reverse node
+     * @param inceptionDate Date from when this signature is valid from
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddrWithSignature(
         address addr,
         string memory name,
-        uint256 signatureExpiry,
+        uint256 inceptionDate,
         bytes memory signature
     ) public override returns (bytes32) {
         bytes32 node = _getNamehash(addr);
@@ -64,7 +63,7 @@ contract L2ReverseRegistrar is
                 IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
                 addr,
                 name,
-                signatureExpiry
+                inceptionDate
             )
         );
 
@@ -72,13 +71,13 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + EXPIRY
+            inceptionDate <= lastUpdated[node]
         ) {
             revert InvalidSignature();
         }
 
         _setName(node, name);
+        _setLastUpdated(node, inceptionDate);
         return node;
     }
 
@@ -87,7 +86,7 @@ contract L2ReverseRegistrar is
      * @param contractAddr The reverse node to set
      * @param owner The owner of the contract (via Ownable)
      * @param name The name of the reverse record
-     * @param signatureExpiry The resolver of the reverse node
+     * @param inceptionDate Date from when this signature is valid from
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
      */
@@ -95,7 +94,7 @@ contract L2ReverseRegistrar is
         address contractAddr,
         address owner,
         string memory name,
-        uint256 signatureExpiry,
+        uint256 inceptionDate,
         bytes memory signature
     ) public returns (bytes32) {
         bytes32 node = _getNamehash(contractAddr);
@@ -108,7 +107,7 @@ contract L2ReverseRegistrar is
                 contractAddr,
                 owner,
                 name,
-                signatureExpiry
+                inceptionDate
             )
         );
 
@@ -120,7 +119,8 @@ contract L2ReverseRegistrar is
                 owner,
                 message,
                 signature
-            )
+            ) &&
+            inceptionDate > lastUpdated[node]
         ) {
             _setName(node, name);
             return node;
@@ -160,7 +160,7 @@ contract L2ReverseRegistrar is
      * @param addr The reverse record to set
      * @param key The key of the text record
      * @param value The value of the text record
-     * @param signatureExpiry The resolver of the reverse node
+     * @param inceptionDate Date from when this signature is valid from
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
@@ -168,7 +168,7 @@ contract L2ReverseRegistrar is
         address addr,
         string calldata key,
         string calldata value,
-        uint256 signatureExpiry,
+        uint256 inceptionDate,
         bytes memory signature
     ) public override returns (bytes32) {
         bytes32 node = _getNamehash(addr);
@@ -179,7 +179,7 @@ contract L2ReverseRegistrar is
                 addr,
                 key,
                 value,
-                signatureExpiry
+                inceptionDate
             )
         );
 
@@ -187,8 +187,7 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + EXPIRY
+            inceptionDate <= lastUpdated[node]
         ) {
             revert InvalidSignature();
         }
@@ -203,7 +202,7 @@ contract L2ReverseRegistrar is
      * @param owner The owner of the contract (via Ownable)
      * @param key The name of the reverse record
      * @param value The name of the reverse record
-     * @param signatureExpiry The resolver of the reverse node
+     * @param inceptionDate Date from when this signature is valid from
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
      */
@@ -212,7 +211,7 @@ contract L2ReverseRegistrar is
         address owner,
         string calldata key,
         string calldata value,
-        uint256 signatureExpiry,
+        uint256 inceptionDate,
         bytes memory signature
     ) public returns (bytes32) {
         bytes32 node = _getNamehash(contractAddr);
@@ -226,7 +225,7 @@ contract L2ReverseRegistrar is
                 owner,
                 key,
                 value,
-                signatureExpiry
+                inceptionDate
             )
         );
 
@@ -238,7 +237,8 @@ contract L2ReverseRegistrar is
                 owner,
                 message,
                 signature
-            )
+            ) &&
+            inceptionDate > lastUpdated[node]
         ) {
             _setText(node, key, value);
             return node;
@@ -276,6 +276,7 @@ contract L2ReverseRegistrar is
     ) public override authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
         _setText(node, key, value);
+        _setLastUpdated(node, block.timestamp);
         return node;
     }
 
@@ -303,6 +304,10 @@ contract L2ReverseRegistrar is
     function _getNamehash(address addr) internal view returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
         return keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
+    }
+
+    function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
+        lastUpdated[node] = inceptionDate;
     }
 
     function supportsInterface(
