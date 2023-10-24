@@ -47,7 +47,6 @@ contract L2ReverseRegistrar is
      * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
      * @param addr The reverse record to set
      * @param name The name of the reverse record
-     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
      * @param signatureExpiry The resolver of the reverse node
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
@@ -55,7 +54,6 @@ contract L2ReverseRegistrar is
     function setNameForAddrWithSignature(
         address addr,
         string memory name,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
@@ -66,7 +64,6 @@ contract L2ReverseRegistrar is
                 IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
                 addr,
                 name,
-                relayer,
                 signatureExpiry
             )
         );
@@ -75,7 +72,6 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            (relayer != address(0) && relayer != msg.sender) ||
             signatureExpiry < block.timestamp ||
             signatureExpiry > block.timestamp + EXPIRY
         ) {
@@ -91,7 +87,6 @@ contract L2ReverseRegistrar is
      * @param contractAddr The reverse node to set
      * @param owner The owner of the contract (via Ownable)
      * @param name The name of the reverse record
-     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
      * @param signatureExpiry The resolver of the reverse node
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
@@ -100,7 +95,6 @@ contract L2ReverseRegistrar is
         address contractAddr,
         address owner,
         string memory name,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
@@ -114,7 +108,6 @@ contract L2ReverseRegistrar is
                 contractAddr,
                 owner,
                 name,
-                relayer,
                 signatureExpiry
             )
         );
@@ -167,7 +160,6 @@ contract L2ReverseRegistrar is
      * @param addr The reverse record to set
      * @param key The key of the text record
      * @param value The value of the text record
-     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
      * @param signatureExpiry The resolver of the reverse node
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
@@ -176,7 +168,6 @@ contract L2ReverseRegistrar is
         address addr,
         string calldata key,
         string calldata value,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
@@ -188,7 +179,6 @@ contract L2ReverseRegistrar is
                 addr,
                 key,
                 value,
-                relayer,
                 signatureExpiry
             )
         );
@@ -197,7 +187,6 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            (relayer != address(0) && relayer != msg.sender) ||
             signatureExpiry < block.timestamp ||
             signatureExpiry > block.timestamp + EXPIRY
         ) {
@@ -214,7 +203,6 @@ contract L2ReverseRegistrar is
      * @param owner The owner of the contract (via Ownable)
      * @param key The name of the reverse record
      * @param value The name of the reverse record
-     * @param relayer The relayer of the transaction. Can be address(0) if the user does not want to restrict
      * @param signatureExpiry The resolver of the reverse node
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
@@ -224,7 +212,6 @@ contract L2ReverseRegistrar is
         address owner,
         string calldata key,
         string calldata value,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
@@ -239,7 +226,6 @@ contract L2ReverseRegistrar is
                 owner,
                 key,
                 value,
-                relayer,
                 signatureExpiry
             )
         );

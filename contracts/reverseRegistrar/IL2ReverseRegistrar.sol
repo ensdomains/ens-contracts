@@ -11,7 +11,6 @@ interface IL2ReverseRegistrar {
     function setNameForAddrWithSignature(
         address addr,
         string memory name,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) external returns (bytes32);
@@ -20,7 +19,6 @@ interface IL2ReverseRegistrar {
         address contractAddr,
         address owner,
         string memory name,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) external returns (bytes32);
@@ -40,7 +38,6 @@ interface IL2ReverseRegistrar {
         address addr,
         string calldata key,
         string calldata value,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) external returns (bytes32);
@@ -50,7 +47,6 @@ interface IL2ReverseRegistrar {
         address owner,
         string calldata key,
         string calldata value,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) external returns (bytes32);

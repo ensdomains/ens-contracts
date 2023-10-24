@@ -12,13 +12,13 @@ describe('L2ReverseRegistrar', function () {
   let account
   let account2
   let setNameForAddrWithSignatureFuncSig =
-    'setNameForAddrWithSignature(address,string,address,uint256,bytes)'
+    'setNameForAddrWithSignature(address,string,uint256,bytes)'
   let setNameForAddrWithSignatureAndOwnableFuncSig =
-    'setNameForAddrWithSignatureAndOwnable(address,address,string,address,uint256,bytes)'
+    'setNameForAddrWithSignatureAndOwnable(address,address,string,uint256,bytes)'
   let setTextForAddrWithSignatureFuncSig =
-    'setTextForAddrWithSignature(address,string,string,address,uint256,bytes)'
+    'setTextForAddrWithSignature(address,string,string,uint256,bytes)'
   let setTextForAddrWithSignatureAndOwnableFuncSig =
-    'setTextForAddrWithSignatureAndOwnable(address,address,string,string,address,uint256,bytes)'
+    'setTextForAddrWithSignatureAndOwnable(address,address,string,string,uint256,bytes)'
 
   before(async function () {
     signers = await ethers.getSigners()
@@ -85,8 +85,8 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'address', 'uint256'],
-            [funcId, account, 'hello.eth', EMPTY_ADDRESS, signatureExpiry],
+            ['bytes4', 'address', 'string', 'uint256'],
+            [funcId, account, 'hello.eth', signatureExpiry],
           ),
         ),
       )
@@ -94,7 +94,6 @@ describe('L2ReverseRegistrar', function () {
       await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
         account,
         'hello.eth',
-        EMPTY_ADDRESS,
         signatureExpiry,
         signature,
       )
@@ -113,8 +112,8 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'address', 'uint256'],
-            [funcId, account, 'hello.eth', EMPTY_ADDRESS, signatureExpiry],
+            ['bytes4', 'address', 'string', 'uint256'],
+            [funcId, account, 'hello.eth', signatureExpiry],
           ),
         ),
       )
@@ -123,7 +122,6 @@ describe('L2ReverseRegistrar', function () {
         L2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
           account,
           'notthesamename.eth',
-          EMPTY_ADDRESS,
           signatureExpiry,
           signature,
         ),
@@ -144,13 +142,12 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'address', 'string', 'address', 'uint256'],
+            ['bytes4', 'address', 'address', 'string', 'uint256'],
             [
               funcId,
               MockOwnable.address,
               MockSmartContractWallet.address,
               'ownable.eth',
-              EMPTY_ADDRESS,
               signatureExpiry,
             ],
           ),
@@ -163,7 +160,6 @@ describe('L2ReverseRegistrar', function () {
         MockOwnable.address,
         MockSmartContractWallet.address,
         'ownable.eth',
-        EMPTY_ADDRESS,
         signatureExpiry,
         signature,
       )
@@ -198,15 +194,8 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'address', 'uint256'],
-            [
-              funcId,
-              account,
-              'url',
-              'http://ens.domains',
-              EMPTY_ADDRESS,
-              signatureExpiry,
-            ],
+            ['bytes4', 'address', 'string', 'string', 'uint256'],
+            [funcId, account, 'url', 'http://ens.domains', signatureExpiry],
           ),
         ),
       )
@@ -215,7 +204,6 @@ describe('L2ReverseRegistrar', function () {
         account,
         'url',
         'http://ens.domains',
-        EMPTY_ADDRESS,
         signatureExpiry,
         signature,
       )
@@ -229,7 +217,7 @@ describe('L2ReverseRegistrar', function () {
 
     it('reverts if signature parameters do not match', async () => {
       const funcId = ethers.utils
-        .id(setNameForAddrWithSignatureFuncSig)
+        .id(setTextForAddrWithSignatureFuncSig)
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
@@ -237,15 +225,8 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'address', 'uint256'],
-            [
-              funcId,
-              account,
-              'url',
-              'http://ens.domains',
-              EMPTY_ADDRESS,
-              signatureExpiry,
-            ],
+            ['bytes4', 'address', 'string', 'string', 'uint256'],
+            [funcId, account, 'url', 'http://ens.domains', signatureExpiry],
           ),
         ),
       )
@@ -255,7 +236,6 @@ describe('L2ReverseRegistrar', function () {
           account,
           'url',
           'http://some.other.url.com',
-          EMPTY_ADDRESS,
           signatureExpiry,
           signature,
         ),
@@ -276,22 +256,13 @@ describe('L2ReverseRegistrar', function () {
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
-            [
-              'bytes4',
-              'address',
-              'address',
-              'string',
-              'string',
-              'address',
-              'uint256',
-            ],
+            ['bytes4', 'address', 'address', 'string', 'string', 'uint256'],
             [
               funcId,
               MockOwnable.address,
               MockSmartContractWallet.address,
               'url',
               'http://ens.domains',
-              EMPTY_ADDRESS,
               signatureExpiry,
             ],
           ),
@@ -305,7 +276,6 @@ describe('L2ReverseRegistrar', function () {
         MockSmartContractWallet.address,
         'url',
         'http://ens.domains',
-        EMPTY_ADDRESS,
         signatureExpiry,
         signature,
       )
