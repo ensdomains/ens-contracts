@@ -28,6 +28,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
   const nameWrapper = await ethers.getContract('NameWrapper', owner)
+  const ethOwnedResolver = await ethers.getContract('OwnedResolver', owner)
 
   const deployArgs = {
     from: deployer,
@@ -76,24 +77,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const artifact = await deployments.getArtifact('IETHRegistrarController')
   const interfaceId = computeInterfaceId(new Interface(artifact.abi))
-  const provider = new ethers.providers.StaticJsonRpcProvider(
-    ethers.provider.connection.url,
-    {
-      ...ethers.provider.network,
-      ensAddress: (await ethers.getContract('ENSRegistry')).address,
-    },
-  )
-  const resolver = await provider.getResolver('eth')
-  if (resolver === null) {
+
+  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
+  if (resolver === ethers.constants.AddressZero) {
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
     )
     return
   }
-  const resolverContract = await ethers.getContractAt(
-    'PublicResolver',
-    resolver.address,
-  )
+  const resolverContract = await ethers.getContractAt('OwnedResolver', resolver)
   const tx3 = await resolverContract.setInterface(
     ethers.utils.namehash('eth'),
     interfaceId,
@@ -112,6 +104,7 @@ func.dependencies = [
   'ExponentialPremiumPriceOracle',
   'ReverseRegistrar',
   'NameWrapper',
+  'OwnedResolver',
 ]
 
 export default func
