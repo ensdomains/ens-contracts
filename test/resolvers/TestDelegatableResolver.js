@@ -212,6 +212,7 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(tx.logs[0].event, 'Approval')
       assert.equal(tx.logs[0].args.node, node)
       assert.equal(tx.logs[0].args.operator, operator)
+      assert.equal(tx.logs[0].args.name, encodedname)
       assert.equal(tx.logs[0].args.approved, true)
     })
   })

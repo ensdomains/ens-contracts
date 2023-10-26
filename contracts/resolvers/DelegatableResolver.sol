@@ -32,6 +32,7 @@ contract DelegatableResolver is
     event Approval(
         bytes32 indexed node,
         address indexed operator,
+        bytes name,
         bool approved
     );
 
@@ -42,10 +43,6 @@ contract DelegatableResolver is
     //node => (delegate => isAuthorised)
     mapping(bytes32 => mapping(address => bool)) operators;
 
-    // function approve(bytes32 node, address operator, bool approved) authorised(node){
-    //      operators[node][operator] = approved;
-    //      // Add event
-    // }
     function getAuthorizedNode(
         bytes memory name,
         uint256 offset,
@@ -78,7 +75,7 @@ contract DelegatableResolver is
         // TODO throw custom error with the node info
         require(authorized, "caller cannot authorise");
         operators[node][operator] = approved;
-        emit Approval(node, operator, approved);
+        emit Approval(node, operator, name, approved);
     }
 
     // Usage
