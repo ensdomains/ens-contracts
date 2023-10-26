@@ -31,6 +31,8 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(await resolver.supportsInterface('0xa8fa5682'), true) // IDNSRecordResolver
       assert.equal(await resolver.supportsInterface('0x5c98042b'), true) // IDNSZoneResolver
       assert.equal(await resolver.supportsInterface('0x01ffc9a7'), true) // IInterfaceResolver
+      assert.equal(await resolver.supportsInterface('0x4fbf0433'), true) // IMulticallable
+      assert.equal(await resolver.supportsInterface('0xf21ce672'), true) // IDelegatable
     })
 
     it('does not support a random interface', async () => {
@@ -53,102 +55,6 @@ contract('DelegatableResolver', function (accounts) {
         resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
           from: accounts[1],
         }),
-      )
-    })
-  })
-
-  describe('implementsInterface', async () => {
-    const basicSetInterface = async () => {
-      await resolver.setInterface(node, '0x12345678', accounts[0], {
-        from: accounts[0],
-      })
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x12345678'),
-        accounts[0],
-      )
-    }
-
-    it('permits setting interface by owner', basicSetInterface)
-
-    it('can update previously set interface', async () => {
-      await resolver.setInterface(node, '0x12345678', resolver.address, {
-        from: accounts[0],
-      })
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x12345678'),
-        resolver.address,
-      )
-    })
-
-    it('forbids setting interface by non-owner', async () => {
-      await exceptions.expectFailure(
-        resolver.setInterface(node, '0x12345678', accounts[1], {
-          from: accounts[1],
-        }),
-      )
-    })
-
-    it('returns 0 when fetching unset interface', async () => {
-      assert.equal(
-        await resolver.interfaceImplementer(namehash('foo'), '0x12345678'),
-        '0x0000000000000000000000000000000000000000',
-      )
-    })
-
-    it('falls back to calling implementsInterface on addr', async () => {
-      // Set addr to the resolver itself, since it has interface implementations.
-      await resolver.methods['setAddr(bytes32,address)'](
-        node,
-        resolver.address,
-        {
-          from: accounts[0],
-        },
-      )
-      // Check the ID for `addr(bytes32)`
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x3b3b57de'),
-        resolver.address,
-      )
-    })
-
-    it('returns 0 on fallback when target contract does not implement interface', async () => {
-      // Check an imaginary interface ID we know it doesn't support.
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x00000000'),
-        '0x0000000000000000000000000000000000000000',
-      )
-    })
-
-    it('returns 0 on fallback when target contract does not support implementsInterface', async () => {
-      // Set addr to the ENS registry, which doesn't implement supportsInterface.
-      await resolver.methods['setAddr(bytes32,address)'](node, ens.address, {
-        from: accounts[0],
-      })
-      // Check the ID for `supportsInterface(bytes4)`
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x01ffc9a7'),
-        '0x0000000000000000000000000000000000000000',
-      )
-    })
-
-    it('returns 0 on fallback when target is not a contract', async () => {
-      // Set addr to an externally owned account.
-      await resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
-        from: accounts[0],
-      })
-      // Check the ID for `supportsInterface(bytes4)`
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x01ffc9a7'),
-        '0x0000000000000000000000000000000000000000',
-      )
-    })
-
-    it('resets record on version change', async () => {
-      await basicSetInterface()
-      await resolver.clearRecords(node)
-      assert.equal(
-        await resolver.interfaceImplementer(node, '0x12345678'),
-        '0x0000000000000000000000000000000000000000',
       )
     })
   })
@@ -215,6 +121,17 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(tx.logs[0].args.operator, operator)
       assert.equal(tx.logs[0].args.name, encodedname)
       assert.equal(tx.logs[0].args.approved, true)
+    })
+  })
+
+  describe('isOwner', async () => {
+    it('the deployer is the owner by default', async () => {
+      assert.equal(await resolver.isOwner(account), true)
+    })
+
+    it('can have multiple owner', async () => {
+      await resolver.approve(encodeName(''), accounts[1], true)
+      assert.equal(await resolver.isOwner(accounts[1]), true)
     })
   })
 

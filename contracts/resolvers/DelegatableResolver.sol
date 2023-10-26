@@ -10,6 +10,7 @@ import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./profiles/ExtendedResolver.sol";
 import "./Multicallable.sol";
+import "./IDelegatableResolver.sol";
 
 /**
  * A delegated resolver that allows for the resolver owner to add an operator to update records of a node on behalf of the owner.
@@ -115,6 +116,8 @@ contract DelegatableResolver is
         )
         returns (bool)
     {
-        return super.supportsInterface(interfaceID);
+        return
+            interfaceID == type(IDelegatableResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
