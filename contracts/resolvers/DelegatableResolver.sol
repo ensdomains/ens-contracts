@@ -12,7 +12,7 @@ import "./profiles/ExtendedResolver.sol";
 import "./Multicallable.sol";
 
 /**
- * A simple resolver anyone can use; only allows the owner of a node to set its
+ * A delegated resolver that allows for the resolver owner to add an operator to update records of a node on behalf of the owner.
  * address.
  */
 contract DelegatableResolver is
@@ -28,6 +28,7 @@ contract DelegatableResolver is
     ExtendedResolver
 {
     using BytesUtils for bytes;
+
     // Logged when an operator is added or removed.
     event Approval(
         bytes32 indexed node,
@@ -43,6 +44,9 @@ contract DelegatableResolver is
     //node => (delegate => isAuthorised)
     mapping(bytes32 => mapping(address => bool)) operators;
 
+    /**
+     * @dev Check to see if the operator has been approved by the owner for the node.
+     */
     function getAuthorizedNode(
         bytes memory name,
         uint256 offset,
@@ -62,6 +66,9 @@ contract DelegatableResolver is
         return (node, authorized || operators[node][operator]);
     }
 
+    /**
+     * @dev Approve an operator to be able to updated records on a node.
+     */
     function approve(
         bytes memory name,
         address operator,
@@ -77,19 +84,6 @@ contract DelegatableResolver is
         operators[node][operator] = approved;
         emit Approval(node, operator, name, approved);
     }
-
-    // Usage
-    // basenode = namehash('onl2.eth')
-    // - l2: l2resolver = DelegatableResolver.deploy(ownerAddress)
-    // - l1: l1resolver.setVerfierForNode(......, l2resolver)
-    // - l1: registry.setResolver(......, l1resolver.address)
-    // - l2: subnameregistrar = SubnameRegistar.deploy
-    // base = bytes32(0)
-    // name = encodename('onl2.eth')
-    // - l2: DelegatableResolver.approve(name, subnameregistrar, true)
-    // - l2: subnameregistrar.register('makoto')
-    // subname = encodename('makoto.onl2.eth')
-    //    - lDelegatableResolver.approve(subname, owner, true)
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
         return isOwner(msg.sender) || operators[node][msg.sender];
