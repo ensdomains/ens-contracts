@@ -2,6 +2,7 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const { encodeName, namehash } = require('../test-utils/ens')
 const { exceptions } = require('../test-utils')
+const { expect } = require('chai')
 
 contract('DelegatableResolver', function (accounts) {
   let node, encodedname
@@ -200,9 +201,9 @@ contract('DelegatableResolver', function (accounts) {
     })
 
     it('does not allow non owner to approve', async () => {
-      await exceptions.expectFailure(
+      await expect(
         resolver.approve(encodedname, accounts[1], true, { from: accounts[1] }),
-      )
+      ).to.be.revertedWith('NotAuthorized')
     })
 
     it('emits an Approval log', async () => {

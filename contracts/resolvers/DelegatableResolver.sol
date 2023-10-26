@@ -37,6 +37,8 @@ contract DelegatableResolver is
         bool approved
     );
 
+    error NotAuthorized(bytes32 node);
+
     constructor(address owner) {
         operators[bytes32(0)][owner] = true;
     }
@@ -79,8 +81,9 @@ contract DelegatableResolver is
             0,
             msg.sender
         );
-        // TODO throw custom error with the node info
-        require(authorized, "caller cannot authorise");
+        if (!authorized) {
+            revert NotAuthorized(node);
+        }
         operators[node][operator] = approved;
         emit Approval(node, operator, name, approved);
     }
