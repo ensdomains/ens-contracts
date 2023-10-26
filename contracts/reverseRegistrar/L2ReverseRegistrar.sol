@@ -71,7 +71,8 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            inceptionDate <= lastUpdated[node]
+            inceptionDate <= lastUpdated[node] ||
+            inceptionDate < block.timestamp
         ) {
             revert InvalidSignature();
         }
@@ -120,7 +121,8 @@ contract L2ReverseRegistrar is
                 message,
                 signature
             ) &&
-            inceptionDate > lastUpdated[node]
+            inceptionDate > lastUpdated[node] &&
+            inceptionDate >= block.timestamp
         ) {
             _setName(node, name);
             return node;
@@ -187,7 +189,8 @@ contract L2ReverseRegistrar is
 
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            inceptionDate <= lastUpdated[node]
+            inceptionDate <= lastUpdated[node] ||
+            inceptionDate < block.timestamp
         ) {
             revert InvalidSignature();
         }
@@ -238,7 +241,8 @@ contract L2ReverseRegistrar is
                 message,
                 signature
             ) &&
-            inceptionDate > lastUpdated[node]
+            inceptionDate > lastUpdated[node] &&
+            inceptionDate >= block.timestamp
         ) {
             _setText(node, key, value);
             return node;
