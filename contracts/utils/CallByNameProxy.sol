@@ -8,7 +8,7 @@ import {BytesUtils} from "../wrapper/BytesUtils.sol";
 
 error AddressNotFound();
 
-contract ContractResolverProxy is ERC165 {
+contract CallByNameProxy is ERC165 {
     using BytesUtils for bytes;
 
     UniversalResolverNoMulticall public immutable ur;

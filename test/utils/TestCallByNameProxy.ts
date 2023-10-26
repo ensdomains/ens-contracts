@@ -11,10 +11,10 @@ const hexEncodeName = (name: string) =>
 
 const labelhash = (label: string) => solidityKeccak256(['string'], [label])
 
-contract('ContractResolverProxy', (accounts) => {
+contract('CallByNameProxy', (accounts) => {
   let ensRegistry: Contract
   let universalResolver: Contract
-  let contractResolverProxy: Contract
+  let callByNameProxy: Contract
   let ownedResolver: Contract
 
   beforeEach(async () => {
@@ -22,9 +22,7 @@ contract('ContractResolverProxy', (accounts) => {
     const UniversalResolver = await ethers.getContractFactory(
       'UniversalResolverNoMulticall',
     )
-    const ContractResolverProxy = await ethers.getContractFactory(
-      'ContractResolverProxy',
-    )
+    const CallByNameProxy = await ethers.getContractFactory('CallByNameProxy')
     const OwnedResolver = await ethers.getContractFactory('OwnedResolver')
 
     ensRegistry = await ENSRegistry.deploy()
@@ -33,10 +31,8 @@ contract('ContractResolverProxy', (accounts) => {
     universalResolver = await UniversalResolver.deploy(ensRegistry.address)
     await universalResolver.deployed()
 
-    contractResolverProxy = await ContractResolverProxy.deploy(
-      universalResolver.address,
-    )
-    await contractResolverProxy.deployed()
+    callByNameProxy = await CallByNameProxy.deploy(universalResolver.address)
+    await callByNameProxy.deployed()
 
     ownedResolver = await OwnedResolver.deploy()
     await ownedResolver.deployed()
@@ -79,7 +75,7 @@ contract('ContractResolverProxy', (accounts) => {
     const data = ensRegistry.interface.encodeFunctionData('owner', [
       namehash('registry.ens.eth'),
     ])
-    const result = await contractResolverProxy.resolve(
+    const result = await callByNameProxy.resolve(
       hexEncodeName('registry.ens.eth'),
       data,
     )
