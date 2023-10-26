@@ -9,12 +9,14 @@ import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./profiles/ExtendedResolver.sol";
+import "./Multicallable.sol";
 
 /**
  * A simple resolver anyone can use; only allows the owner of a node to set its
  * address.
  */
 contract DelegatableResolver is
+    Multicallable,
     ABIResolver,
     AddrResolver,
     ContentHashResolver,
@@ -26,6 +28,12 @@ contract DelegatableResolver is
     ExtendedResolver
 {
     using BytesUtils for bytes;
+    // Logged when an operator is added or removed.
+    event Approval(
+        bytes32 indexed node,
+        address indexed operator,
+        bool approved
+    );
 
     constructor(address owner) {
         operators[bytes32(0)][owner] = true;
@@ -42,7 +50,7 @@ contract DelegatableResolver is
         bytes memory name,
         uint256 offset,
         address operator
-    ) internal returns (bytes32 node, bool authorized) {
+    ) public view returns (bytes32 node, bool authorized) {
         uint256 len = name.readUint8(offset);
         node = bytes32(0);
         if (len > 0) {
@@ -70,7 +78,7 @@ contract DelegatableResolver is
         // TODO throw custom error with the node info
         require(authorized, "caller cannot authorise");
         operators[node][operator] = approved;
-        // Add event
+        emit Approval(node, operator, approved);
     }
 
     // Usage
@@ -87,8 +95,11 @@ contract DelegatableResolver is
     //    - lDelegatableResolver.approve(subname, owner, true)
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
-        // return msg.sender == owner();
-        return operators[node][msg.sender];
+        return isOwner(msg.sender) || operators[node][msg.sender];
+    }
+
+    function isOwner(address addr) public view returns (bool) {
+        return operators[bytes32(0)][addr];
     }
 
     function supportsInterface(
@@ -98,6 +109,7 @@ contract DelegatableResolver is
         view
         virtual
         override(
+            Multicallable,
             ABIResolver,
             AddrResolver,
             ContentHashResolver,
