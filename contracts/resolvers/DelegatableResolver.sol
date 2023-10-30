@@ -49,8 +49,13 @@ contract DelegatableResolver is
     //node => (delegate => isAuthorised)
     mapping(bytes32 => mapping(address => bool)) operators;
 
-    /**
-     * @dev Check to see if the operator has been approved by the owner for the node.
+    /*
+     * Check to see if the operator has been approved by the owner for the node.
+     * @param name The ENS node to query
+     * @param offset The offset of the label to query recursively. Start from the 0 position and kepp adding the length of each label as it traverse. The function exits when len is 0.
+     * @param operator The address of the operator to query
+     * @return node The node of the name passed as an argument
+     * @return authorized The boolean state of whether the operator is approved to update record of the name
      */
     function getAuthorizedNode(
         bytes memory name,

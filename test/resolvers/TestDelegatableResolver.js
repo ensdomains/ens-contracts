@@ -60,11 +60,35 @@ contract('DelegatableResolver', function (accounts) {
         }),
       )
     })
+
+    it('forbids approving wrong node', async () => {
+      encodedname = encodeName('a.b.c.eth')
+      const wrongnode = namehash('d.b.c.eth')
+      await resolver.approve(encodedname, operator, true, { from: owner })
+      await exceptions.expectFailure(
+        resolver.methods['setAddr(bytes32,address)'](wrongnode, operator, {
+          from: operator,
+        }),
+      )
+    })
   })
 
   describe('authorisations', async () => {
     it('owner is the owner', async () => {
       assert.equal(await resolver.owner(), owner)
+    })
+
+    it('owner is ahtorised to update any names', async () => {
+      assert.equal(
+        (await resolver.getAuthorizedNode(encodeName('a.b.c'), 0, owner))
+          .authorized,
+        true,
+      )
+      assert.equal(
+        (await resolver.getAuthorizedNode(encodeName('x.y.z'), 0, owner))
+          .authorized,
+        true,
+      )
     })
 
     it('approves multiple users', async () => {
@@ -92,6 +116,28 @@ contract('DelegatableResolver', function (accounts) {
           from: operator,
         },
       )
+    })
+
+    it('only approves the subname and not its parent', async () => {
+      const subname = '1234.123'
+      const parentname = 'b.c.eth'
+      await resolver.approve(encodeName(subname), operator, true, {
+        from: owner,
+      })
+      const result = await resolver.getAuthorizedNode(
+        encodeName(subname),
+        0,
+        operator,
+      )
+      assert.equal(result.node, namehash(subname))
+      assert.equal(result.authorized, true)
+      const result2 = await resolver.getAuthorizedNode(
+        encodeName(parentname),
+        0,
+        operator,
+      )
+      assert.equal(result2.node, namehash(parentname))
+      assert.equal(result2.authorized, false)
     })
 
     it('approves users to make changes', async () => {
