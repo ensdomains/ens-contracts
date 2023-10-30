@@ -7,7 +7,6 @@ import {ClonesWithImmutableArgs} from "clones-with-immutable-args/src/ClonesWith
 /**
  * A resolver factory that creates a dedicated resolver for each user
  */
-
 contract DelegatableResolverFactory {
     using ClonesWithImmutableArgs for address;
 
