@@ -4,6 +4,10 @@ pragma solidity ^0.8.17;
 import "./DelegatableResolver.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/src/ClonesWithImmutableArgs.sol";
 
+/**
+ * A resolver factory that creates a dedicated resolver for each user
+ */
+
 contract DelegatableResolverFactory {
     using ClonesWithImmutableArgs for address;
 
@@ -14,16 +18,26 @@ contract DelegatableResolverFactory {
         implementation = implementation_;
     }
 
+    /*
+     * Create the unique address unique to the owner
+     * @param address The address of the resolver owner
+     * @return address The address of the newly created Resolver
+     */
     function createClone2(
-        address param1
+        address owner
     ) external returns (DelegatableResolver clone) {
-        bytes memory data = abi.encodePacked(param1);
+        bytes memory data = abi.encodePacked(owner);
         clone = DelegatableResolver(address(implementation).clone2(data));
-        emit newDelegatableResolver(address(clone), param1);
+        emit newDelegatableResolver(address(clone), owner);
     }
 
-    function predictAddress(address param1) external returns (address clone) {
-        bytes memory data = abi.encodePacked(param1);
+    /*
+     * Returns the unique address unique to the owner
+     * @param address The address of the resolver owner
+     * @return address The address of the newly created Resolver
+     */
+    function predictAddress(address owner) external returns (address clone) {
+        bytes memory data = abi.encodePacked(owner);
         clone = address(implementation).predictAddress(data);
     }
 }

@@ -69,6 +69,17 @@ contract('DelegatableResolver', function (accounts) {
       const result = tx.logs[0].args.resolver
       assert.equal(await factory.predictAddress.call(operator), result)
     })
+
+    it('emits an event', async () => {
+      const tx = await factory.createClone2(operator)
+      console.log(tx.logs)
+      const log = tx.logs[0]
+      assert.equal(log.owner, operator)
+    })
+
+    it('does not allow duplicate contracts', async () => {
+      await expect(factory.createClone2(owner)).to.be.revertedWith('CreateFail')
+    })
   })
 
   describe('addr', async () => {

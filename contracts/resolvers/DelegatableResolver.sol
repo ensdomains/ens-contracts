@@ -97,6 +97,10 @@ contract DelegatableResolver is
         emit Approval(node, operator, name, approved);
     }
 
+    /*
+     * Returns the owner address passed set by the Factory
+     * @return address The owner address
+     */
     function owner() public view returns (address) {
         return _getArgAddress(0);
     }
