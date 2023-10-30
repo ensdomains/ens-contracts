@@ -1,5 +1,4 @@
 pragma solidity >=0.8.4;
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./profiles/ABIResolver.sol";
 import "./profiles/AddrResolver.sol";
 import "./profiles/ContentHashResolver.sol";
@@ -11,13 +10,14 @@ import "./profiles/TextResolver.sol";
 import "./profiles/ExtendedResolver.sol";
 import "./Multicallable.sol";
 import "./IDelegatableResolver.sol";
+import {Clone} from "clones-with-immutable-args/src/Clone.sol";
 
 /**
  * A delegated resolver that allows the resolver owner to add an operator to update records of a node on behalf of the owner.
  * address.
  */
 contract DelegatableResolver is
-    Ownable,
+    Clone,
     Multicallable,
     ABIResolver,
     AddrResolver,
@@ -40,11 +40,6 @@ contract DelegatableResolver is
     );
 
     error NotAuthorized(bytes32 node);
-
-    constructor(address owner) {
-        operators[bytes32(0)][owner] = true;
-        transferOwnership(owner);
-    }
 
     //node => (delegate => isAuthorised)
     mapping(bytes32 => mapping(address => bool)) operators;
@@ -73,6 +68,12 @@ contract DelegatableResolver is
             );
             node = keccak256(abi.encodePacked(node, label));
         }
+        if (node == bytes32(0)) {
+            return (
+                node,
+                authorized || operators[node][operator] || owner() == operator
+            );
+        }
         return (node, authorized || operators[node][operator]);
     }
 
@@ -94,6 +95,10 @@ contract DelegatableResolver is
         }
         operators[node][operator] = approved;
         emit Approval(node, operator, name, approved);
+    }
+
+    function owner() public view returns (address) {
+        return _getArgAddress(0);
     }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
