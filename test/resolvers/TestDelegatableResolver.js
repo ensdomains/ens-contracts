@@ -63,6 +63,10 @@ contract('DelegatableResolver', function (accounts) {
   })
 
   describe('authorisations', async () => {
+    it('owner is the owner', async () => {
+      assert.equal(await resolver.owner(), owner)
+    })
+
     it('approves multiple users', async () => {
       await resolver.approve(encodedname, operator, true, { from: owner })
       await resolver.approve(encodedname, operator2, true, { from: owner })
