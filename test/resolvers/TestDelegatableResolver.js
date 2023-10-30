@@ -1,12 +1,12 @@
-const ENS = artifacts.require('./registry/ENSRegistry.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const { encodeName, namehash } = require('../test-utils/ens')
 const { exceptions } = require('../test-utils')
 const { expect } = require('chai')
 
 contract('DelegatableResolver', function (accounts) {
-  let node, encodedname
-  let ens, resolver
+  let node
+  let encodedname
+  let resolver
   let account
   let signers
 
@@ -15,7 +15,6 @@ contract('DelegatableResolver', function (accounts) {
     account = await signers[0].getAddress()
     node = namehash('eth')
     encodedname = encodeName('eth')
-    ens = await ENS.new()
     resolver = await DelegatableResolver.new(account)
   })
 
@@ -42,11 +41,9 @@ contract('DelegatableResolver', function (accounts) {
 
   describe('addr', async () => {
     it('permits setting address by owner', async () => {
-      var tx = await resolver.methods['setAddr(bytes32,address)'](
-        node,
-        accounts[1],
-        { from: accounts[0] },
-      )
+      await resolver.methods['setAddr(bytes32,address)'](node, accounts[1], {
+        from: accounts[0],
+      })
       assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
     })
 
@@ -97,8 +94,12 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(await resolver.addr(node), accounts[1])
     })
 
-    it('approves to be cleared', async () => {
-      await resolver.approve(encodedname, accounts[1], false)
+    it('approves to be revoked', async () => {
+      await resolver.approve(encodedname, accounts[1], true)
+      resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
+        from: accounts[1],
+      }),
+        await resolver.approve(encodedname, accounts[1], false)
       await exceptions.expectFailure(
         resolver.methods['setAddr(bytes32,address)'](node, accounts[0], {
           from: accounts[1],
@@ -131,6 +132,7 @@ contract('DelegatableResolver', function (accounts) {
 
     it('can have multiple owner', async () => {
       await resolver.approve(encodeName(''), accounts[1], true)
+      assert.equal(await resolver.isOwner(accounts[0]), true)
       assert.equal(await resolver.isOwner(accounts[1]), true)
     })
   })
