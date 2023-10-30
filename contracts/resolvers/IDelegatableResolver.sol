@@ -13,6 +13,4 @@ interface IDelegatableResolver {
         uint256 offset,
         address operator
     ) external returns (bytes32 node, bool authorized);
-
-    function isOwner(address addr) external returns (bool);
 }

@@ -1,4 +1,5 @@
 pragma solidity >=0.8.4;
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./profiles/ABIResolver.sol";
 import "./profiles/AddrResolver.sol";
 import "./profiles/ContentHashResolver.sol";
@@ -12,10 +13,11 @@ import "./Multicallable.sol";
 import "./IDelegatableResolver.sol";
 
 /**
- * A delegated resolver that allows for the resolver owner to add an operator to update records of a node on behalf of the owner.
+ * A delegated resolver that allows the resolver owner to add an operator to update records of a node on behalf of the owner.
  * address.
  */
 contract DelegatableResolver is
+    Ownable,
     Multicallable,
     ABIResolver,
     AddrResolver,
@@ -41,6 +43,7 @@ contract DelegatableResolver is
 
     constructor(address owner) {
         operators[bytes32(0)][owner] = true;
+        transferOwnership(owner);
     }
 
     //node => (delegate => isAuthorised)
@@ -89,11 +92,7 @@ contract DelegatableResolver is
     }
 
     function isAuthorised(bytes32 node) internal view override returns (bool) {
-        return isOwner(msg.sender) || operators[node][msg.sender];
-    }
-
-    function isOwner(address addr) public view returns (bool) {
-        return operators[bytes32(0)][addr];
+        return msg.sender == owner() || operators[node][msg.sender];
     }
 
     function supportsInterface(
