@@ -64,10 +64,6 @@ contract('DelegatableResolver', function (accounts) {
   })
 
   describe('factory', async () => {
-    it('owner must be set', async () => {
-      await expect(impl.owner()).to.be.revertedWith('Owner is not set')
-    })
-
     it('predicts address', async () => {
       const tx = await factory.create(operator)
       const result = tx.logs[0].args.resolver

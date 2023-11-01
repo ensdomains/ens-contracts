@@ -101,7 +101,6 @@ contract DelegatableResolver is
      * @return address The owner address
      */
     function owner() public view returns (address) {
-        require(_getArgAddress(0) != address(0), "Owner is not set");
         return _getArgAddress(0);
     }
 
