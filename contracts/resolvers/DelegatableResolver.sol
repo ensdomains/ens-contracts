@@ -67,8 +67,7 @@ contract DelegatableResolver is
                 operator
             );
             node = keccak256(abi.encodePacked(node, label));
-        }
-        if (node == bytes32(0)) {
+        } else {
             return (
                 node,
                 authorized || operators[node][operator] || owner() == operator

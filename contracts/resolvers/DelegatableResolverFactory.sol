@@ -12,10 +12,10 @@ contract DelegatableResolverFactory {
     using ClonesWithImmutableArgs for address;
 
     DelegatableResolver public implementation;
-    event newDelegatableResolver(address indexed resolver, address owner);
+    event NewDelegatableResolver(address resolver, address owner);
 
     constructor(DelegatableResolver implementation_) {
-        implementation = implementation_;
+        implementation = _implementation;
     }
 
     /*
@@ -23,7 +23,7 @@ contract DelegatableResolverFactory {
      * @param address The address of the resolver owner
      * @return address The address of the newly created Resolver
      */
-    function createClone2(
+    function create(
         address owner
     ) external returns (DelegatableResolver clone) {
         bytes memory data = abi.encodePacked(owner);
