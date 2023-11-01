@@ -30,7 +30,7 @@ contract('DelegatableResolver', function (accounts) {
     encodedname = encodeName('eth')
     impl = await DelegatableResolver.new()
     factory = await DelegatableResolverFactory.new(impl.address)
-    const tx = await factory.createClone2(owner)
+    const tx = await factory.create(owner)
     const result = tx.logs[0].args.resolver
     resolver = await (await ethers.getContractFactory('DelegatableResolver'))
       .attach(result)
@@ -69,20 +69,19 @@ contract('DelegatableResolver', function (accounts) {
     })
 
     it('predicts address', async () => {
-      const tx = await factory.createClone2(operator)
+      const tx = await factory.create(operator)
       const result = tx.logs[0].args.resolver
       assert.equal(await factory.predictAddress.call(operator), result)
     })
 
     it('emits an event', async () => {
-      const tx = await factory.createClone2(operator)
-      console.log(tx.logs)
+      const tx = await factory.create(operator)
       const log = tx.logs[0]
-      assert.equal(log.owner, operator)
+      assert.equal(log.args.owner, operator)
     })
 
     it('does not allow duplicate contracts', async () => {
-      await expect(factory.createClone2(owner)).to.be.revertedWith('CreateFail')
+      await expect(factory.create(owner)).to.be.revertedWith('CreateFail')
     })
   })
 

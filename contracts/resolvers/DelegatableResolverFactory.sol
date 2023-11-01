@@ -14,7 +14,7 @@ contract DelegatableResolverFactory {
     DelegatableResolver public implementation;
     event NewDelegatableResolver(address resolver, address owner);
 
-    constructor(DelegatableResolver implementation_) {
+    constructor(DelegatableResolver _implementation) {
         implementation = _implementation;
     }
 
@@ -28,7 +28,7 @@ contract DelegatableResolverFactory {
     ) external returns (DelegatableResolver clone) {
         bytes memory data = abi.encodePacked(owner);
         clone = DelegatableResolver(address(implementation).clone2(data));
-        emit newDelegatableResolver(address(clone), owner);
+        emit NewDelegatableResolver(address(clone), owner);
     }
 
     /*
