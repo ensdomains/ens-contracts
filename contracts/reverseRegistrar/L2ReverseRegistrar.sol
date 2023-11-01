@@ -5,25 +5,24 @@ import "./IL2ReverseRegistrar.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import "../resolvers/profiles/ITextResolver.sol";
+import "../resolvers/profiles/INameResolver.sol";
 import "../root/Controllable.sol";
-import "./profiles/L2NameResolver.sol";
-import "./profiles/L2TextResolver.sol";
-import "./profiles/L2ReverseResolverBase.sol";
+import "./L2ReverseResolverBase.sol";
 
 error InvalidSignature();
 
 contract L2ReverseRegistrar is
     Ownable,
+    ITextResolver,
+    INameResolver,
     IL2ReverseRegistrar,
-    L2ReverseResolverBase,
-    L2NameResolver,
-    L2TextResolver
+    L2ReverseResolverBase
 {
     using ECDSA for bytes32;
     mapping(bytes32 => uint256) public lastUpdated;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
-    event DefaultResolverChanged(L2NameResolver indexed resolver);
 
     /**
      * @dev Constructor
@@ -284,6 +283,55 @@ contract L2ReverseRegistrar is
         return node;
     }
 
+    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
+
+    function _setText(
+        bytes32 node,
+        string calldata key,
+        string calldata value
+    ) internal {
+        versionable_texts[recordVersions[node]][node][key] = value;
+        emit TextChanged(node, key, key, value);
+    }
+
+    /**
+     * Returns the text data associated with an ENS node and key.
+     * @param node The ENS node to query.
+     * @param key The text data key to query.
+     * @return The associated text data.
+     */
+    function text(
+        bytes32 node,
+        string calldata key
+    ) external view virtual override returns (string memory) {
+        return versionable_texts[recordVersions[node]][node][key];
+    }
+
+    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
+
+    /**
+     * Sets the name associated with an ENS node, for reverse records.
+     * May only be called by the owner of that node in the ENS registry.
+     * @param node The node to update.
+     * @param newName name record
+     */
+    function _setName(bytes32 node, string memory newName) internal virtual {
+        versionable_names[recordVersions[node]][node] = newName;
+        emit NameChanged(node, newName);
+    }
+
+    /**
+     * Returns the name associated with an ENS node, for reverse records.
+     * Defined in EIP181.
+     * @param node The ENS node to query.
+     * @return The associated name.
+     */
+    function name(
+        bytes32 node
+    ) external view virtual override returns (string memory) {
+        return versionable_names[recordVersions[node]][node];
+    }
+
     /**
      * @dev Returns the node hash for a given account's reverse records.
      * @param addr The address to hash
@@ -316,14 +364,11 @@ contract L2ReverseRegistrar is
 
     function supportsInterface(
         bytes4 interfaceID
-    )
-        public
-        view
-        override(L2NameResolver, L2TextResolver, L2ReverseResolverBase)
-        returns (bool)
-    {
+    ) public view override(L2ReverseResolverBase) returns (bool) {
         return
             interfaceID == type(IL2ReverseRegistrar).interfaceId ||
+            interfaceID == type(ITextResolver).interfaceId ||
+            interfaceID == type(INameResolver).interfaceId ||
             super.supportsInterface(interfaceID);
     }
 }

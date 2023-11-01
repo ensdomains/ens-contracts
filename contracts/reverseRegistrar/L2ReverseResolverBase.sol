@@ -2,7 +2,7 @@
 pragma solidity >=0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "../../resolvers/profiles/IVersionableResolver.sol";
+import "../resolvers/profiles/IVersionableResolver.sol";
 
 abstract contract L2ReverseResolverBase is ERC165 {
     mapping(bytes32 => uint64) internal recordVersions;
