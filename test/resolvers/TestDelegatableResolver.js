@@ -80,12 +80,12 @@ contract('DelegatableResolver', function (accounts) {
 
     it('owner is ahtorised to update any names', async () => {
       assert.equal(
-        (await resolver.getAuthorizedNode(encodeName('a.b.c'), 0, owner))
+        (await resolver.getAuthorisedNode(encodeName('a.b.c'), 0, owner))
           .authorized,
         true,
       )
       assert.equal(
-        (await resolver.getAuthorizedNode(encodeName('x.y.z'), 0, owner))
+        (await resolver.getAuthorisedNode(encodeName('x.y.z'), 0, owner))
           .authorized,
         true,
       )
@@ -94,11 +94,11 @@ contract('DelegatableResolver', function (accounts) {
     it('approves multiple users', async () => {
       await resolver.approve(encodedname, operator, true, { from: owner })
       await resolver.approve(encodedname, operator2, true, { from: owner })
-      const result = await resolver.getAuthorizedNode(encodedname, 0, operator)
+      const result = await resolver.getAuthorisedNode(encodedname, 0, operator)
       assert.equal(result.node, node)
       assert.equal(result.authorized, true)
       assert.equal(
-        (await resolver.getAuthorizedNode(encodedname, 0, operator2))
+        (await resolver.getAuthorisedNode(encodedname, 0, operator2))
           .authorized,
         true,
       )
@@ -124,14 +124,14 @@ contract('DelegatableResolver', function (accounts) {
       await resolver.approve(encodeName(subname), operator, true, {
         from: owner,
       })
-      const result = await resolver.getAuthorizedNode(
+      const result = await resolver.getAuthorisedNode(
         encodeName(subname),
         0,
         operator,
       )
       assert.equal(result.node, namehash(subname))
       assert.equal(result.authorized, true)
-      const result2 = await resolver.getAuthorizedNode(
+      const result2 = await resolver.getAuthorisedNode(
         encodeName(parentname),
         0,
         operator,

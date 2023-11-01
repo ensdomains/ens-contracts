@@ -57,7 +57,7 @@ contract DelegatableResolver is
      * @return node The node of the name passed as an argument
      * @return authorized The boolean state of whether the operator is approved to update record of the name
      */
-    function getAuthorizedNode(
+    function getAuthorisedNode(
         bytes memory name,
         uint256 offset,
         address operator
@@ -66,7 +66,7 @@ contract DelegatableResolver is
         node = bytes32(0);
         if (len > 0) {
             bytes32 label = name.keccak(offset + 1, len);
-            (node, authorized) = getAuthorizedNode(
+            (node, authorized) = getAuthorisedNode(
                 name,
                 offset + len + 1,
                 operator
@@ -84,7 +84,7 @@ contract DelegatableResolver is
         address operator,
         bool approved
     ) external {
-        (bytes32 node, bool authorized) = getAuthorizedNode(
+        (bytes32 node, bool authorized) = getAuthorisedNode(
             name,
             0,
             msg.sender
