@@ -1,3 +1,6 @@
+const DelegatableResolverFactory = artifacts.require(
+  'DelegatableResolverFactory.sol',
+)
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const { encodeName, namehash } = require('../test-utils/ens')
 const { exceptions } = require('../test-utils')
@@ -6,22 +9,37 @@ const { expect } = require('chai')
 contract('DelegatableResolver', function (accounts) {
   let node
   let encodedname
-  let resolver
+  let resolver, operatorResolver
   let signers
   let deployer
-  let owner
-  let operator
-  let operator2
+  let owner, ownerSigner
+  let operator, operatorSigner
+  let operator2, operator2Signer
+  let impl
 
   beforeEach(async () => {
     signers = await ethers.getSigners()
-    deployer = await signers[0].getAddress()
-    owner = await signers[1].getAddress()
-    operator = await signers[2].getAddress()
-    operator2 = await signers[3].getAddress()
+    deployer = await signers[0]
+    ownerSigner = await signers[1]
+    owner = await ownerSigner.getAddress()
+    operatorSigner = await signers[2]
+    operator = await operatorSigner.getAddress()
+    operator2Signer = await signers[3]
+    operator2 = await operator2Signer.getAddress()
     node = namehash('eth')
     encodedname = encodeName('eth')
-    resolver = await DelegatableResolver.new(owner)
+    impl = await DelegatableResolver.new()
+    factory = await DelegatableResolverFactory.new(impl.address)
+    const tx = await factory.create(owner)
+    const result = tx.logs[0].args.resolver
+    resolver = await (await ethers.getContractFactory('DelegatableResolver'))
+      .attach(result)
+      .connect(ownerSigner)
+    operatorResolver = await (
+      await ethers.getContractFactory('DelegatableResolver')
+    )
+      .attach(result)
+      .connect(operatorSigner)
   })
 
   describe('supportsInterface function', async () => {
@@ -37,7 +55,7 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(await resolver.supportsInterface('0x5c98042b'), true) // IDNSZoneResolver
       assert.equal(await resolver.supportsInterface('0x01ffc9a7'), true) // IInterfaceResolver
       assert.equal(await resolver.supportsInterface('0x4fbf0433'), true) // IMulticallable
-      assert.equal(await resolver.supportsInterface('0xdd48591c'), true) // IDelegatable
+      assert.equal(await resolver.supportsInterface('0x8295fc20'), true) // IDelegatable
     })
 
     it('does not support a random interface', async () => {
@@ -45,30 +63,45 @@ contract('DelegatableResolver', function (accounts) {
     })
   })
 
+  describe('factory', async () => {
+    it('predicts address', async () => {
+      const tx = await factory.create(operator)
+      const result = tx.logs[0].args.resolver
+      assert.equal(await factory.predictAddress.call(operator), result)
+    })
+
+    it('emits an event', async () => {
+      const tx = await factory.create(operator)
+      const log = tx.logs[0]
+      assert.equal(log.args.owner, operator)
+    })
+
+    it('does not allow duplicate contracts', async () => {
+      await expect(factory.create(owner)).to.be.revertedWith('CreateFail')
+    })
+  })
+
   describe('addr', async () => {
     it('permits setting address by owner', async () => {
-      await resolver.methods['setAddr(bytes32,address)'](node, operator, {
-        from: owner,
-      })
-      assert.equal(await resolver.methods['addr(bytes32)'](node), operator)
+      await resolver.functions['setAddr(bytes32,address)'](node, operator)
+      assert.equal(await resolver.functions['addr(bytes32)'](node), operator)
     })
 
     it('forbids setting new address by non-owners', async () => {
       await exceptions.expectFailure(
-        resolver.methods['setAddr(bytes32,address)'](node, operator, {
-          from: operator,
-        }),
+        operatorResolver.functions['setAddr(bytes32,address)'](node, operator),
       )
     })
 
     it('forbids approving wrong node', async () => {
       encodedname = encodeName('a.b.c.eth')
       const wrongnode = namehash('d.b.c.eth')
-      await resolver.approve(encodedname, operator, true, { from: owner })
+      await resolver.approve(encodedname, operator, true)
       await exceptions.expectFailure(
-        resolver.methods['setAddr(bytes32,address)'](wrongnode, operator, {
-          from: operator,
-        }),
+        operatorResolver.functions['setAddr(bytes32,address)'](
+          wrongnode,
+          operator,
+        ),
       )
     })
   })
@@ -92,8 +125,8 @@ contract('DelegatableResolver', function (accounts) {
     })
 
     it('approves multiple users', async () => {
-      await resolver.approve(encodedname, operator, true, { from: owner })
-      await resolver.approve(encodedname, operator2, true, { from: owner })
+      await resolver.approve(encodedname, operator, true)
+      await resolver.approve(encodedname, operator2, true)
       const result = await resolver.getAuthorisedNode(encodedname, 0, operator)
       assert.equal(result.node, node)
       assert.equal(result.authorized, true)
@@ -106,24 +139,17 @@ contract('DelegatableResolver', function (accounts) {
 
     it('approves subnames', async () => {
       const subname = 'a.b.c.eth'
-      await resolver.approve(encodeName(subname), operator, true, {
-        from: owner,
-      })
-      await resolver.methods['setAddr(bytes32,address)'](
+      await resolver.approve(encodeName(subname), operator, true)
+      await operatorResolver.functions['setAddr(bytes32,address)'](
         namehash(subname),
         operator,
-        {
-          from: operator,
-        },
       )
     })
 
     it('only approves the subname and not its parent', async () => {
       const subname = '1234.123'
       const parentname = 'b.c.eth'
-      await resolver.approve(encodeName(subname), operator, true, {
-        from: owner,
-      })
+      await resolver.approve(encodeName(subname), operator, true)
       const result = await resolver.getAuthorisedNode(
         encodeName(subname),
         0,
@@ -141,42 +167,41 @@ contract('DelegatableResolver', function (accounts) {
     })
 
     it('approves users to make changes', async () => {
-      await resolver.approve(encodedname, operator, true, { from: owner })
-      await resolver.methods['setAddr(bytes32,address)'](node, operator, {
-        from: operator,
-      })
-      assert.equal(await resolver.addr(node), operator)
+      await resolver.approve(encodedname, operator, true)
+      await operatorResolver.functions['setAddr(bytes32,address)'](
+        node,
+        operator,
+      )
+      console.log('resolver.functions', resolver.functions['addr(bytes32)'])
+      assert.equal(await resolver.functions['addr(bytes32)'](node), operator)
     })
 
     it('approves to be revoked', async () => {
-      await resolver.approve(encodedname, operator, true, { from: owner })
-      resolver.methods['setAddr(bytes32,address)'](node, operator2, {
-        from: operator,
-      }),
-        await resolver.approve(encodedname, operator, false, { from: owner })
+      await resolver.approve(encodedname, operator, true)
+      operatorResolver.functions['setAddr(bytes32,address)'](node, operator2)
+      await resolver.approve(encodedname, operator, false)
       await exceptions.expectFailure(
-        resolver.methods['setAddr(bytes32,address)'](node, operator2, {
-          from: operator,
-        }),
+        operatorResolver.functions['setAddr(bytes32,address)'](node, operator2),
       )
     })
 
     it('does not allow non owner to approve', async () => {
       await expect(
-        resolver.approve(encodedname, operator, true, { from: operator }),
+        operatorResolver.approve(encodedname, operator, true),
       ).to.be.revertedWith('NotAuthorized')
     })
 
     it('emits an Approval log', async () => {
-      var tx = await resolver.approve(encodedname, operator, true, {
-        from: owner,
-      })
-      assert.equal(tx.logs.length, 1)
-      assert.equal(tx.logs[0].event, 'Approval')
-      assert.equal(tx.logs[0].args.node, node)
-      assert.equal(tx.logs[0].args.operator, operator)
-      assert.equal(tx.logs[0].args.name, encodedname)
-      assert.equal(tx.logs[0].args.approved, true)
+      var tx = await (
+        await resolver.approve(encodedname, operator, true)
+      ).wait()
+      const event = tx.events[0]
+      const args = event.args
+      assert.equal(event.event, 'Approval')
+      assert.equal(args.node, node)
+      assert.equal(args.operator, operator)
+      assert.equal(args.name, encodedname)
+      assert.equal(args.approved, true)
     })
   })
 })
