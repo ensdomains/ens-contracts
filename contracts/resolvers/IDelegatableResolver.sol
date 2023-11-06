@@ -8,9 +8,11 @@ interface IDelegatableResolver {
         bool approved
     ) external;
 
-    function getAuthorizedNode(
+    function getAuthorisedNode(
         bytes memory name,
         uint256 offset,
         address operator
     ) external returns (bytes32 node, bool authorized);
+
+    function owner() external view returns (address);
 }

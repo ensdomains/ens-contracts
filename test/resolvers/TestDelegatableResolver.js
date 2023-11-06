@@ -30,7 +30,7 @@ contract('DelegatableResolver', function (accounts) {
     encodedname = encodeName('eth')
     impl = await DelegatableResolver.new()
     factory = await DelegatableResolverFactory.new(impl.address)
-    const tx = await factory.createClone2(owner)
+    const tx = await factory.create(owner)
     const result = tx.logs[0].args.resolver
     resolver = await (await ethers.getContractFactory('DelegatableResolver'))
       .attach(result)
@@ -55,7 +55,7 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(await resolver.supportsInterface('0x5c98042b'), true) // IDNSZoneResolver
       assert.equal(await resolver.supportsInterface('0x01ffc9a7'), true) // IInterfaceResolver
       assert.equal(await resolver.supportsInterface('0x4fbf0433'), true) // IMulticallable
-      assert.equal(await resolver.supportsInterface('0xdd48591c'), true) // IDelegatable
+      assert.equal(await resolver.supportsInterface('0x8295fc20'), true) // IDelegatable
     })
 
     it('does not support a random interface', async () => {
@@ -64,25 +64,20 @@ contract('DelegatableResolver', function (accounts) {
   })
 
   describe('factory', async () => {
-    it('owner must be set', async () => {
-      await expect(impl.owner()).to.be.revertedWith('Owner is not set')
-    })
-
     it('predicts address', async () => {
-      const tx = await factory.createClone2(operator)
+      const tx = await factory.create(operator)
       const result = tx.logs[0].args.resolver
       assert.equal(await factory.predictAddress.call(operator), result)
     })
 
     it('emits an event', async () => {
-      const tx = await factory.createClone2(operator)
-      console.log(tx.logs)
+      const tx = await factory.create(operator)
       const log = tx.logs[0]
-      assert.equal(log.owner, operator)
+      assert.equal(log.args.owner, operator)
     })
 
     it('does not allow duplicate contracts', async () => {
-      await expect(factory.createClone2(owner)).to.be.revertedWith('CreateFail')
+      await expect(factory.create(owner)).to.be.revertedWith('CreateFail')
     })
   })
 
@@ -118,12 +113,12 @@ contract('DelegatableResolver', function (accounts) {
 
     it('owner is ahtorised to update any names', async () => {
       assert.equal(
-        (await resolver.getAuthorizedNode(encodeName('a.b.c'), 0, owner))
+        (await resolver.getAuthorisedNode(encodeName('a.b.c'), 0, owner))
           .authorized,
         true,
       )
       assert.equal(
-        (await resolver.getAuthorizedNode(encodeName('x.y.z'), 0, owner))
+        (await resolver.getAuthorisedNode(encodeName('x.y.z'), 0, owner))
           .authorized,
         true,
       )
@@ -132,11 +127,11 @@ contract('DelegatableResolver', function (accounts) {
     it('approves multiple users', async () => {
       await resolver.approve(encodedname, operator, true)
       await resolver.approve(encodedname, operator2, true)
-      const result = await resolver.getAuthorizedNode(encodedname, 0, operator)
+      const result = await resolver.getAuthorisedNode(encodedname, 0, operator)
       assert.equal(result.node, node)
       assert.equal(result.authorized, true)
       assert.equal(
-        (await resolver.getAuthorizedNode(encodedname, 0, operator2))
+        (await resolver.getAuthorisedNode(encodedname, 0, operator2))
           .authorized,
         true,
       )
@@ -155,14 +150,14 @@ contract('DelegatableResolver', function (accounts) {
       const subname = '1234.123'
       const parentname = 'b.c.eth'
       await resolver.approve(encodeName(subname), operator, true)
-      const result = await resolver.getAuthorizedNode(
+      const result = await resolver.getAuthorisedNode(
         encodeName(subname),
         0,
         operator,
       )
       assert.equal(result.node, namehash(subname))
       assert.equal(result.authorized, true)
-      const result2 = await resolver.getAuthorizedNode(
+      const result2 = await resolver.getAuthorisedNode(
         encodeName(parentname),
         0,
         operator,

@@ -7,14 +7,15 @@ import {ClonesWithImmutableArgs} from "clones-with-immutable-args/src/ClonesWith
 /**
  * A resolver factory that creates a dedicated resolver for each user
  */
+
 contract DelegatableResolverFactory {
     using ClonesWithImmutableArgs for address;
 
     DelegatableResolver public implementation;
-    event newDelegatableResolver(address indexed resolver, address owner);
+    event NewDelegatableResolver(address resolver, address owner);
 
-    constructor(DelegatableResolver implementation_) {
-        implementation = implementation_;
+    constructor(DelegatableResolver _implementation) {
+        implementation = _implementation;
     }
 
     /*
@@ -22,12 +23,12 @@ contract DelegatableResolverFactory {
      * @param address The address of the resolver owner
      * @return address The address of the newly created Resolver
      */
-    function createClone2(
+    function create(
         address owner
     ) external returns (DelegatableResolver clone) {
         bytes memory data = abi.encodePacked(owner);
         clone = DelegatableResolver(address(implementation).clone2(data));
-        emit newDelegatableResolver(address(clone), owner);
+        emit NewDelegatableResolver(address(clone), owner);
     }
 
     /*
