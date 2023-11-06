@@ -9,10 +9,12 @@ import "../resolvers/profiles/ITextResolver.sol";
 import "../resolvers/profiles/INameResolver.sol";
 import "../root/Controllable.sol";
 import "./L2ReverseResolverBase.sol";
+import "../resolvers/Multicallable.sol";
 
 error InvalidSignature();
 
 contract L2ReverseRegistrar is
+    Multicallable,
     Ownable,
     ITextResolver,
     INameResolver,
@@ -21,6 +23,8 @@ contract L2ReverseRegistrar is
 {
     using ECDSA for bytes32;
     mapping(bytes32 => uint256) public lastUpdated;
+    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
+    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
@@ -283,8 +287,6 @@ contract L2ReverseRegistrar is
         return node;
     }
 
-    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
-
     function _setText(
         bytes32 node,
         string calldata key,
@@ -306,8 +308,6 @@ contract L2ReverseRegistrar is
     ) external view virtual override returns (string memory) {
         return versionable_texts[recordVersions[node]][node][key];
     }
-
-    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
 
     /**
      * Sets the name associated with an ENS node, for reverse records.
@@ -364,7 +364,12 @@ contract L2ReverseRegistrar is
 
     function supportsInterface(
         bytes4 interfaceID
-    ) public view override(L2ReverseResolverBase) returns (bool) {
+    )
+        public
+        view
+        override(L2ReverseResolverBase, Multicallable)
+        returns (bool)
+    {
         return
             interfaceID == type(IL2ReverseRegistrar).interfaceId ||
             interfaceID == type(ITextResolver).interfaceId ||

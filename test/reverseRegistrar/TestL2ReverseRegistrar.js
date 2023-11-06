@@ -286,4 +286,53 @@ describe('L2ReverseRegistrar', function () {
       )
     })
   })
+
+  describe('setTextForAddrWithSignatureAndOwnable', function () {
+    it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
+      const node = await L2ReverseRegistrar.node(MockOwnable.address)
+      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+      const funcId1 = ethers.utils
+        .id(setTextForAddrWithSignatureFuncSig)
+        .substring(0, 10)
+
+      const funcId2 = ethers.utils
+        .id(setNameForAddrWithSignatureFuncSig)
+        .substring(0, 10)
+
+      const block = await ethers.provider.getBlock('latest')
+      const inceptionDate = block.timestamp
+      const signature1 = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'string', 'uint256'],
+            [funcId1, account, 'url', 'http://ens.domains', inceptionDate],
+          ),
+        ),
+      )
+      const signature2 = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'uint256'],
+            [funcId2, account, 'hello.eth', inceptionDate],
+          ),
+        ),
+      )
+
+      const calls = [
+        L2ReverseRegistrar.interface.encodeFunctionData(
+          'setTextForAddrWithSignature',
+          [account, 'url', 'http://ens.domains', inceptionDate, signature1],
+        ),
+      ]
+
+      await L2ReverseRegistrar.multicall(calls)
+
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://ens.domains',
+      )
+
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+    })
+  })
 })
