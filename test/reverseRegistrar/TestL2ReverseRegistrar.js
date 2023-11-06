@@ -287,10 +287,33 @@ describe('L2ReverseRegistrar', function () {
     })
   })
 
-  describe('setTextForAddrWithSignatureAndOwnable', function () {
-    it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
-      const node = await L2ReverseRegistrar.node(MockOwnable.address)
-      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+  describe('Multicallable', function () {
+    it('setText() + setName()', async () => {
+      const node = await L2ReverseRegistrar.node(account)
+
+      const calls = [
+        L2ReverseRegistrar.interface.encodeFunctionData('setText', [
+          'url',
+          'http://multicall.xyz',
+        ]),
+        L2ReverseRegistrar.interface.encodeFunctionData('setName', [
+          'hello.eth',
+        ]),
+      ]
+
+      await L2ReverseRegistrar.multicall(calls)
+
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://multicall.xyz',
+      )
+
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+    })
+
+    it('setTextForAddrWithSignature()', async () => {
+      const node = await L2ReverseRegistrar.node(account)
+      assert.equal(await L2ReverseRegistrar.text(node, 'randomKey'), '')
       const funcId1 = ethers.utils
         .id(setTextForAddrWithSignatureFuncSig)
         .substring(0, 10)
@@ -300,20 +323,23 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const inceptionDate = block.timestamp
+      const signatureExpiry = block.timestamp + 3600
+
+      console.log('signatureExpiry', signatureExpiry)
       const signature1 = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
             ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId1, account, 'url', 'http://ens.domains', inceptionDate],
+            [funcId1, account, 'url', 'http://ens.domains', signatureExpiry],
           ),
         ),
       )
+
       const signature2 = await signers[0].signMessage(
         ethers.utils.arrayify(
           ethers.utils.solidityKeccak256(
             ['bytes4', 'address', 'string', 'uint256'],
-            [funcId2, account, 'hello.eth', inceptionDate],
+            [funcId2, account, 'hello.eth', signatureExpiry],
           ),
         ),
       )
@@ -321,11 +347,17 @@ describe('L2ReverseRegistrar', function () {
       const calls = [
         L2ReverseRegistrar.interface.encodeFunctionData(
           'setTextForAddrWithSignature',
-          [account, 'url', 'http://ens.domains', inceptionDate, signature1],
+          [account, 'url', 'http://ens.domains', signatureExpiry, signature1],
+        ),
+        L2ReverseRegistrar.interface.encodeFunctionData(
+          'setNameForAddrWithSignature',
+          [account, 'hello.eth', signatureExpiry, signature2],
         ),
       ]
 
-      await L2ReverseRegistrar.multicall(calls)
+      const tx = await L2ReverseRegistrar.multicall(calls)
+
+      console.log(tx.blockNumber)
 
       assert.equal(
         await L2ReverseRegistrar.text(node, 'url'),
