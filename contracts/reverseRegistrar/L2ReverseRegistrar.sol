@@ -193,12 +193,13 @@ contract L2ReverseRegistrar is
         if (
             !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
             inceptionDate <= lastUpdated[node] ||
-            inceptionDate < block.timestamp
+            inceptionDate > block.timestamp
         ) {
             revert InvalidSignature();
         }
 
         _setText(node, key, value);
+        _setLastUpdated(node, inceptionDate);
         return node;
     }
 
