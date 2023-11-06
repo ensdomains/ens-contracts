@@ -57,8 +57,8 @@
   "dependencies": {
     "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
-    "clones-with-immutable-args": "Arachnid/clones-with-immutable-args#feature/create2",
     "@openzeppelin/contracts": "4.9.3",
+    "clones-with-immutable-args": "Arachnid/clones-with-immutable-args#feature/create2",
     "dns-packet": "^5.3.0"
   },
   "directories": {
