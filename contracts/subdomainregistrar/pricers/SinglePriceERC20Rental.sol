@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
-import {ISubnamePricer} from "./ISubnamePricer.sol";
+import {ISubdomainPricer} from "./ISubdomainPricer.sol";
 
-contract FixedPricer is ISubnamePricer {
+contract SinglePriceERC20Rental is ISubdomainPricer {
     uint256 public registrationFee; // per second
     address public token;
 
@@ -14,9 +14,10 @@ contract FixedPricer is ISubnamePricer {
     function price(
         bytes32,
         string calldata,
-        uint256
+        uint256 duration
     ) public view virtual returns (address erc20Token, uint256 price) {
-        price = registrationFee;
+        price = registrationFee * duration;
         erc20Token = token;
+        return (erc20Token, price);
     }
 }

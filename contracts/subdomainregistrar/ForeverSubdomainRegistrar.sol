@@ -7,7 +7,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IForeverSubdomainRegistrar} from "./IForeverSubdomainRegistrar.sol";
-import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
+import {ISubdomainPricer} from "./pricers/ISubdomainPricer.sol";
 
 error ParentNameNotSetup(bytes32 parentNode);
 
@@ -45,6 +45,15 @@ contract ForeverSubdomainRegistrar is
             duration,
             records
         );
+    }
+
+    function setupDomain(
+        bytes32 node,
+        ISubdomainPricer pricer,
+        address beneficiary,
+        bool active
+    ) public override authorised(node) {
+        _setupDomain(node, pricer, beneficiary, active);
     }
 
     function available(

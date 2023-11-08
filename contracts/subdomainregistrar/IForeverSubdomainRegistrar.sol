@@ -1,14 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.15;
+import {ISubdomainPricer} from "./pricers/ISubdomainPricer.sol";
 
 interface IForeverSubdomainRegistrar {
-    // function setupDomain(
-    //     bytes32 node,
-    //     address token,
-    //     uint256 fee,
-    //     address beneficiary,
-    //     bool active
-    // ) external;
+    function setupDomain(
+        bytes32 node,
+        ISubdomainPricer pricer,
+        address beneficiary,
+        bool active
+    ) external;
 
     function register(
         bytes32 parentNode,

@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 import {INameWrapper, PARENT_CANNOT_CONTROL, IS_DOT_ETH} from "../wrapper/INameWrapper.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
+import {ISubdomainPricer} from "./pricers/ISubdomainPricer.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 error Unavailable();
@@ -17,7 +17,7 @@ error DurationTooLong(bytes32 node);
 error ParentNameNotSetup(bytes32 parentNode);
 
 struct Name {
-    ISubnamePricer pricer;
+    ISubdomainPricer pricer;
     address beneficiary;
     bool active;
 }
@@ -65,12 +65,12 @@ abstract contract BaseSubdomainRegistrar {
         }
     }
 
-    function setupDomain(
+    function _setupDomain(
         bytes32 node,
-        ISubnamePricer pricer,
+        ISubdomainPricer pricer,
         address beneficiary,
         bool active
-    ) public authorised(node) {
+    ) internal virtual authorised(node) {
         names[node] = Name({
             pricer: pricer,
             beneficiary: beneficiary,
@@ -79,7 +79,7 @@ abstract contract BaseSubdomainRegistrar {
         emit NameSetup(node, address(pricer), beneficiary, active);
     }
 
-    function batchRegister(
+    function _batchRegister(
         bytes32 parentNode,
         string[] calldata labels,
         address[] calldata addresses,
@@ -87,7 +87,7 @@ abstract contract BaseSubdomainRegistrar {
         uint16 fuses,
         uint64 duration,
         bytes[][] calldata records
-    ) public {
+    ) internal {
         if (
             labels.length != addresses.length || labels.length != records.length
         ) {
@@ -130,8 +130,9 @@ abstract contract BaseSubdomainRegistrar {
             revert ParentNameNotSetup(parentNode);
         }
 
-        (address token, uint256 fee) = ISubnamePricer(names[parentNode].pricer)
-            .price(parentNode, label, duration);
+        (address token, uint256 fee) = ISubdomainPricer(
+            names[parentNode].pricer
+        ).price(parentNode, label, duration);
 
         _checkParent(parentNode, duration);
 
@@ -202,7 +203,7 @@ abstract contract BaseSubdomainRegistrar {
         string[] calldata labels,
         uint64 duration
     ) internal {
-        ISubnamePricer pricer = names[parentNode].pricer;
+        ISubdomainPricer pricer = names[parentNode].pricer;
         for (uint256 i = 0; i < labels.length; i++) {
             (address token, uint256 price) = pricer.price(
                 parentNode,

@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-interface ISubnamePricer {
+interface ISubdomainPricer {
     function price(
         bytes32 parentNode,
         string calldata label,

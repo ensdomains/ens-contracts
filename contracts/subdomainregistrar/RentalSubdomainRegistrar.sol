@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import {BaseSubdomainRegistrar, DataMissing, Unavailable, NameNotRegistered} from "./BaseSubdomainRegistrar.sol";
 import {IRentalSubdomainRegistrar} from "./IRentalSubdomainRegistrar.sol";
-import {ISubnamePricer} from "./subname-pricers/ISubnamePricer.sol";
+import {ISubdomainPricer} from "./pricers/ISubdomainPricer.sol";
 
 error DurationTooLong(bytes32 node);
 
@@ -48,6 +48,15 @@ contract RentalSubdomainRegistrar is
         );
     }
 
+    function setupDomain(
+        bytes32 node,
+        ISubdomainPricer pricer,
+        address beneficiary,
+        bool active
+    ) public override authorised(node) {
+        _setupDomain(node, pricer, beneficiary, active);
+    }
+
     function renew(
         bytes32 parentNode,
         string calldata label,
@@ -72,6 +81,26 @@ contract RentalSubdomainRegistrar is
         return _renew(parentNode, label, duration);
     }
 
+    function batchRegister(
+        bytes32 parentNode,
+        string[] calldata labels,
+        address[] calldata addresses,
+        address resolver,
+        uint16 fuses,
+        uint64 duration,
+        bytes[][] calldata records
+    ) public payable override {
+        _batchRegister(
+            parentNode,
+            labels,
+            addresses,
+            resolver,
+            fuses,
+            duration,
+            records
+        );
+    }
+
     function batchRenew(
         bytes32 parentNode,
         string[] calldata labels,
@@ -83,8 +112,7 @@ contract RentalSubdomainRegistrar is
 
         _checkParent(parentNode, duration);
 
-        // TODO: Should we add a check to return the new expiry?
-        ISubnamePricer pricer = names[parentNode].pricer;
+        ISubdomainPricer pricer = names[parentNode].pricer;
         for (uint256 i = 0; i < labels.length; i++) {
             (address token, uint256 price) = pricer.price(
                 parentNode,
