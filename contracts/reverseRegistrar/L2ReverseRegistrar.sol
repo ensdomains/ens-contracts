@@ -80,8 +80,7 @@ contract L2ReverseRegistrar is
             revert InvalidSignature();
         }
 
-        _setName(node, name);
-        _setLastUpdated(node, inceptionDate);
+        _setName(node, name, inceptionDate);
         return node;
     }
 
@@ -127,7 +126,7 @@ contract L2ReverseRegistrar is
             inceptionDate >= lastUpdated[node] &&
             inceptionDate < block.timestamp
         ) {
-            _setName(node, name);
+            _setName(node, name, inceptionDate);
             return node;
         }
 
@@ -147,6 +146,7 @@ contract L2ReverseRegistrar is
     /**
      * @dev Sets the `name()` record for the reverse ENS record associated with
      * the addr provided account.
+     * Can be used if the addr is a contract that is owned by a SCW.
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
@@ -156,7 +156,7 @@ contract L2ReverseRegistrar is
         string memory name
     ) public authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
-        _setName(node, name);
+        _setName(node, name, block.timestamp);
         return node;
     }
 
@@ -198,8 +198,7 @@ contract L2ReverseRegistrar is
             revert InvalidSignature();
         }
 
-        _setText(node, key, value);
-        _setLastUpdated(node, inceptionDate);
+        _setText(node, key, value, inceptionDate);
         return node;
     }
 
@@ -248,7 +247,7 @@ contract L2ReverseRegistrar is
             inceptionDate > lastUpdated[node] &&
             inceptionDate < block.timestamp
         ) {
-            _setText(node, key, value);
+            _setText(node, key, value, inceptionDate);
             return node;
         }
 
@@ -283,17 +282,18 @@ contract L2ReverseRegistrar is
         string calldata value
     ) public override authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
-        _setText(node, key, value);
-        _setLastUpdated(node, block.timestamp);
+        _setText(node, key, value, block.timestamp);
         return node;
     }
 
     function _setText(
         bytes32 node,
         string calldata key,
-        string calldata value
+        string calldata value,
+        uint256 inceptionDate
     ) internal {
         versionable_texts[recordVersions[node]][node][key] = value;
+        _setLastUpdated(node, inceptionDate);
         emit TextChanged(node, key, key, value);
     }
 
@@ -316,8 +316,13 @@ contract L2ReverseRegistrar is
      * @param node The node to update.
      * @param newName name record
      */
-    function _setName(bytes32 node, string memory newName) internal virtual {
+    function _setName(
+        bytes32 node,
+        string memory newName,
+        uint256 inceptionDate
+    ) internal virtual {
         versionable_names[recordVersions[node]][node] = newName;
+        _setLastUpdated(node, inceptionDate);
         emit NameChanged(node, newName);
     }
 

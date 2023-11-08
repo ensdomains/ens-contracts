@@ -355,12 +355,7 @@ describe('L2ReverseRegistrar', function () {
         ),
       ]
 
-      const tx = await L2ReverseRegistrar.multicall(calls)
-
-      console.log(tx.blockNumber)
-
-      const block2 = await ethers.provider.getBlock(tx.blockNumber)
-      console.log(block2.timestamp)
+      await L2ReverseRegistrar.multicall(calls)
 
       assert.equal(
         await L2ReverseRegistrar.text(node, 'url'),
