@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 import {ISubdomainPricer} from "./ISubdomainPricer.sol";
 
-contract SinglePriceERC20Rental is ISubdomainPricer {
+contract RentalPricer is ISubdomainPricer {
     uint256 public registrationFee; // per second
     address public token;
 

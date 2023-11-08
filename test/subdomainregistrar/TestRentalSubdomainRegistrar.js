@@ -133,8 +133,8 @@ describe('Rental Subdomain registrar', () => {
     SubdomainRegistrar2 = SubdomainRegistrar.connect(signers[1])
     SubdomainRegistrar3 = SubdomainRegistrar.connect(signers[2])
 
-    RentalPricer = await deploy('SinglePriceERC20Rental', 1, Erc20.address)
-    RentalPricerFree = await deploy('SinglePriceERC20Rental', 0, Erc20.address)
+    RentalPricer = await deploy('RentalPricer', 1, Erc20.address)
+    RentalPricerFree = await deploy('RentalPricer', 0, Erc20.address)
   })
 
   beforeEach(async () => {
