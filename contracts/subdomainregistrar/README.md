@@ -20,11 +20,53 @@ This is a basic FIFS (First in first serve) registrar. The registration can take
 
 This is a basic FIFS (First in first serve) registrar. The key difference between this and the ForeverSubdomainRegistrar is that it does not auto burn the `CAN_EXTEND_EXPIRY` fuse and instead exposes a `renew()` function that allows paid renewal. This registrar also needs to be paired with a rental-based pricing contract. For simplicity the deployer can deploy this pricing contract and the UI can pass through this address to `setupDomain()` when a new user wants to
 
-## Deployment and Setup
+## Deployment and Setup Example
 
 Deploying your own Subdomain registrar takes a few steps. The contracts assumes that the name is already wrapped.
 
 1. Deploy the Pricing contract you would like to use e.g. FixedPricer.sol
-2. Deploy the SubdomainRegistrar e.g. ForeverSubdomainRegistar.sol
+
+```js
+RentalPricer = await deploy('RentalPricer', 1, Erc20.address)
+```
+
+2. Deploy the SubdomainRegistrar e.g. RentalSubdomainRegistar.sol passing the NameWrapper address
+
+```js
+SubdomainRegistrar = await deploy(
+  'RentalSubdomainRegistrar',
+  NameWrapper.address,
+)
+```
+
 3. Call setupDomain() with the name you would like to issue subdomains on and pass the address of the Pricing contract
-4. Call setApprovalForAll() on the account that owns the name
+
+```js
+const node = namehash('test.eth')
+const tx = await SubdomainRegistrar.setupDomain(
+  node,
+  RentalPricer.address,
+  account,
+  true,
+)
+```
+
+4. Call `NameWrapper.setApprovalForAll()` on the account that owns the name passing the registrar address
+
+```js
+await NameWrapper.setApprovalForAll(SubdomainRegistrar.address, true)
+```
+
+5. User can now call the register function to register a new subdomain
+
+```js
+await SubdomainRegistrar.register(
+  node, // parent namehash
+  'subnamelabel', // label to register
+  account, // owner
+  Resolver.address, // resolver address
+  0, // user fuses
+  duration, // in seconds
+  [], //records
+)
+```
