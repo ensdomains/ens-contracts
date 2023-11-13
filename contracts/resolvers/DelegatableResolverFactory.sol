@@ -36,7 +36,7 @@ contract DelegatableResolverFactory {
      * @param address The address of the resolver owner
      * @return address The address of the newly created Resolver
      */
-    function predictAddress(address owner) public view returns (address clone) {
+    function predictAddress(address owner) external returns (address clone) {
         bytes memory data = abi.encodePacked(owner);
         clone = address(implementation).predictAddress(data);
     }
