@@ -2,6 +2,9 @@ const DelegatableResolverFactory = artifacts.require(
   'DelegatableResolverFactory.sol',
 )
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
+const DelegatableResolverRegistrar = artifacts.require(
+  'DelegatableResolverRegistrar.sol',
+)
 const { encodeName, namehash } = require('../test-utils/ens')
 const { exceptions } = require('../test-utils')
 const { expect } = require('chai')
@@ -202,6 +205,38 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(args.operator, operator)
       assert.equal(args.name, encodedname)
       assert.equal(args.approved, true)
+    })
+  })
+
+  describe('registrar', async () => {
+    it('approves multiple users', async () => {
+      const basename = encodeName('')
+      const name = `foo.bar.eth`
+      const encodedsubname = encodeName(name)
+      const encodedsubnode = namehash(name)
+
+      const registrar = await DelegatableResolverRegistrar.new(resolver.address)
+      await resolver.approve(basename, registrar.address, true)
+      await registrar.register(encodedsubname, operator2)
+      assert.equal(
+        (await resolver.getAuthorisedNode(encodedsubname, 0, operator2))[1],
+        true,
+      )
+
+      const operator2Resolver = await (
+        await ethers.getContractFactory('DelegatableResolver')
+      )
+        .attach(resolver.address)
+        .connect(operator2Signer)
+
+      await operator2Resolver['setAddr(bytes32,address)'](
+        encodedsubnode,
+        operator2,
+      )
+      assert.equal(
+        await operator2Resolver['addr(bytes32)'](encodedsubnode),
+        operator2,
+      )
     })
   })
 })
