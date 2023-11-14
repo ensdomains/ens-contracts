@@ -6,9 +6,8 @@ interface IDelegatableResolver {
 
     function getAuthorisedNode(
         bytes memory name,
-        uint256 offset,
-        address owner
-    ) external returns (bytes32 node, bool authorized);
+        uint256 offset
+    ) external returns (bytes32 node, address owner);
 
     function contractowner() external view returns (address);
 }

@@ -40,62 +40,58 @@ contract DelegatableResolver is
     );
 
     error NotAuthorized(bytes32 node);
+    error WrongNode(bytes32 node, address owner);
 
-    //node => (delegate => isAuthorised)
+    //node => owner
     mapping(bytes32 => address) owners;
 
     /*
      * Check to see if the owner has been approved by the owner for the node.
      * @param name The ENS node to query
      * @param offset The offset of the label to query recursively. Start from the 0 position and kepp adding the length of each label as it traverse. The function exits when len is 0.
-     * @param owner The address of the owner to query
      * @return node The node of the name passed as an argument
-     * @return authorized The boolean state of whether the owner is approved to update record of the name
+     * @return owner The boolean state of whether the owner is approved to update record of the name
      */
     function getAuthorisedNode(
         bytes memory name,
-        uint256 offset,
-        address owner
-    ) public view returns (bytes32 node, bool authorized) {
+        uint256 offset
+    ) public view returns (bytes32 node, address owner) {
         uint256 len = name.readUint8(offset);
-        node = bytes32(0);
+        bytes32 node = bytes32(0);
+        address owner = address(0);
         if (len > 0) {
             bytes32 label = name.keccak(offset + 1, len);
-            (node, authorized) = getAuthorisedNode(
-                name,
-                offset + len + 1,
-                owner
-            );
+            (node, owner) = getAuthorisedNode(name, offset + len + 1);
             node = keccak256(abi.encodePacked(node, label));
+            owner = owners[node];
+            if (owner != address(0)) {
+                return (node, owner);
+            }
         } else {
-            return (
-                node,
-                authorized ||
-                    (owners[node] == owner) ||
-                    contractowner() == owner
-            );
+            return (bytes32(0), address(0));
         }
-        return (node, authorized || (owners[node] != address(0)));
+        return (node, owner);
     }
 
     /**
      * @dev Approve an owner to be able to updated records on a node.
      */
-    function approve(bytes memory name, address owner, bool approved) external {
-        (bytes32 node, bool authorized) = getAuthorisedNode(
-            name,
-            0,
-            msg.sender
-        );
-        if (!authorized) {
+    function approve(
+        bytes memory name,
+        address newowner,
+        bool approved
+    ) external {
+        (bytes32 node, address owner) = getAuthorisedNode(name, 0);
+        if (!(owner == msg.sender || contractowner() == msg.sender)) {
             revert NotAuthorized(node);
         }
         if (approved) {
-            owners[node] = owner;
+            owners[node] = newowner;
+            // revert WrongNode(node, newowner);
         } else {
             owners[node] = address(0);
         }
-        emit Approval(node, owner, name, approved);
+        emit Approval(node, newowner, name, approved);
     }
 
     /*

@@ -8,6 +8,7 @@ const DelegatableResolverRegistrar = artifacts.require(
 const { encodeName, namehash } = require('../test-utils/ens')
 const { exceptions } = require('../test-utils')
 const { expect } = require('chai')
+const { emptyAddress } = require('@ensdomains/ensjs/dist/utils')
 
 contract('DelegatableResolver', function (accounts) {
   let node
@@ -114,41 +115,6 @@ contract('DelegatableResolver', function (accounts) {
       assert.equal(await resolver.contractowner(), contractowner)
     })
 
-    it('contractowner is ahtorised to update any names', async () => {
-      assert.equal(
-        (
-          await resolver.getAuthorisedNode(
-            encodeName('a.b.c'),
-            0,
-            contractowner,
-          )
-        ).authorized,
-        true,
-      )
-      assert.equal(
-        (
-          await resolver.getAuthorisedNode(
-            encodeName('x.y.z'),
-            0,
-            contractowner,
-          )
-        ).authorized,
-        true,
-      )
-    })
-
-    it('approves multiple users', async () => {
-      await resolver.approve(encodedname, owner, true)
-      await resolver.approve(encodedname, owner2, true)
-      const result = await resolver.getAuthorisedNode(encodedname, 0, owner)
-      assert.equal(result.node, node)
-      assert.equal(result.authorized, true)
-      assert.equal(
-        (await resolver.getAuthorisedNode(encodedname, 0, owner2)).authorized,
-        true,
-      )
-    })
-
     it('approves subnames', async () => {
       const subname = 'a.b.c.eth'
       await resolver.approve(encodeName(subname), owner, true)
@@ -161,21 +127,31 @@ contract('DelegatableResolver', function (accounts) {
     it('only approves the subname and not its parent', async () => {
       const subname = '1234.123'
       const parentname = 'b.c.eth'
-      await resolver.approve(encodeName(subname), owner, true)
-      const result = await resolver.getAuthorisedNode(
-        encodeName(subname),
-        0,
-        owner,
-      )
+      console.log(1, await resolver.getAuthorisedNode(encodeName(subname), 0))
+      console.log(2, await resolver.contractowner(), contractowner, owner)
+
+      const tx = await (
+        await resolver.approve(encodeName(subname), owner, true)
+      ).wait()
+      console.log(22, { tx })
+      const event = tx.events[0]
+      const args = event.args
+      console.log(event.event)
+      console.log(23, { args })
+
+      console.log(3)
+      const result = await resolver.getAuthorisedNode(encodeName(subname), 0)
+      console.log(4, { result })
       assert.equal(result.node, namehash(subname))
-      assert.equal(result.authorized, true)
+      assert.equal(result.owner, owner)
+      console.log(4)
       const result2 = await resolver.getAuthorisedNode(
         encodeName(parentname),
         0,
-        owner,
       )
+      console.log(5)
       assert.equal(result2.node, namehash(parentname))
-      assert.equal(result2.authorized, false)
+      assert.equal(result2.owner, emptyAddress)
     })
 
     it('approves users to make changes', async () => {
@@ -214,17 +190,30 @@ contract('DelegatableResolver', function (accounts) {
 
   describe('registrar', async () => {
     it('approves multiple users', async () => {
+      const registrar = await DelegatableResolverRegistrar.new(resolver.address)
+
+      const tx = await factory.create(registrar.address)
+      const result = tx.logs[0].args.resolver
+      contractResolver = await (
+        await ethers.getContractFactory('DelegatableResolver')
+      )
+        .attach(result)
+        .connect(contractownerSigner)
+      // ownerResolver = await (
+      //   await ethers.getContractFactory('DelegatableResolver')
+      // )
+      //   .attach(result)
+      //   .connect(ownerSigner)
+
       const basename = encodeName('')
       const name = `foo.bar.eth`
       const encodedsubname = encodeName(name)
       const encodedsubnode = namehash(name)
 
-      const registrar = await DelegatableResolverRegistrar.new(resolver.address)
-      await resolver.approve(basename, registrar.address, true)
       await registrar.register(encodedsubname, owner2)
       assert.equal(
-        (await resolver.getAuthorisedNode(encodedsubname, 0, owner2))[1],
-        true,
+        (await resolver.getAuthorisedNode(encodedsubname, 0))[1],
+        owner2,
       )
 
       const owner2Resolver = await (
