@@ -68,6 +68,13 @@ struct Result {
 }
 
 interface BatchGateway {
+    struct HttpErrorItem {
+        uint16 status;
+        string message;
+    }
+
+    error HttpError(HttpErrorItem[] errors);
+
     function query(
         OffchainLookupCallData[] memory data
     ) external returns (bool[] memory failures, bytes[] memory responses);
