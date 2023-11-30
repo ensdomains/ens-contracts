@@ -13,6 +13,10 @@ library HexUtils {
         uint256 idx,
         uint256 lastIdx
     ) internal pure returns (bytes32 r, bool valid) {
+        uint256 hexLength = lastIdx - idx;
+        if ((hexLength != 64 && hexLength != 40) || hexLength % 2 == 1) {
+            revert("Invalid string length");
+        }
         valid = true;
         assembly {
             // check that the index to read to is not past the end of the string
