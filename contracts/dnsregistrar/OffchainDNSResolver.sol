@@ -11,6 +11,10 @@ import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../utils/HexUtils.sol";
 
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
+
+error InvalidOperation();
 error OffchainLookup(
     address sender,
     string[] urls,
@@ -29,8 +33,9 @@ interface IDNSGateway {
 uint16 constant CLASS_INET = 1;
 uint16 constant TYPE_TXT = 16;
 
-contract OffchainDNSResolver is IExtendedResolver {
+contract OffchainDNSResolver is IExtendedResolver, IERC165 {
     using RRUtils for *;
+    using Address for address;
     using BytesUtils for bytes;
     using HexUtils for bytes;
 
@@ -46,20 +51,23 @@ contract OffchainDNSResolver is IExtendedResolver {
         gatewayURL = _gatewayURL;
     }
 
+    function supportsInterface(
+        bytes4 interfaceId
+    ) external pure override returns (bool) {
+        return interfaceId == type(IExtendedResolver).interfaceId;
+    }
+
     function resolve(
         bytes calldata name,
         bytes calldata data
     ) external view returns (bytes memory) {
-        string[] memory urls = new string[](1);
-        urls[0] = gatewayURL;
-
-        revert OffchainLookup(
-            address(this),
-            urls,
-            abi.encodeCall(IDNSGateway.resolve, (name, TYPE_TXT)),
-            OffchainDNSResolver.resolveCallback.selector,
-            abi.encode(name, data)
-        );
+        return
+            callWithOffchainLookupPropagation(
+                msg.sender,
+                name,
+                data,
+                abi.encodeCall(IExtendedResolver.resolve, (name, data))
+            );
     }
 
     function resolveCallback(
@@ -106,17 +114,30 @@ contract OffchainDNSResolver is IExtendedResolver {
                     )
                 ) {
                     return
-                        IExtendedDNSResolver(dnsresolver).resolve(
+                        callWithOffchainLookupPropagation(
+                            dnsresolver,
                             name,
                             query,
-                            context
+                            abi.encodeCall(
+                                IExtendedDNSResolver.resolve,
+                                (name, query, context)
+                            )
                         );
                 } else if (
                     IERC165(dnsresolver).supportsInterface(
                         IExtendedResolver.resolve.selector
                     )
                 ) {
-                    return IExtendedResolver(dnsresolver).resolve(name, query);
+                    return
+                        callWithOffchainLookupPropagation(
+                            dnsresolver,
+                            name,
+                            query,
+                            abi.encodeCall(
+                                IExtendedResolver.resolve,
+                                (name, query)
+                            )
+                        );
                 } else {
                     (bool ok, bytes memory ret) = address(dnsresolver)
                         .staticcall(query);
@@ -222,5 +243,72 @@ contract OffchainDNSResolver is IExtendedResolver {
             keccak256(
                 abi.encodePacked(parentNode, name.keccak(idx, separator - idx))
             );
+    }
+
+    function callWithOffchainLookupPropagation(
+        address target,
+        bytes memory name,
+        bytes memory innerdata,
+        bytes memory data
+    ) internal view returns (bytes memory) {
+        if (target.isContract()) {
+            bool result = LowLevelCallUtils.functionStaticCall(
+                address(target),
+                data
+            );
+            uint256 size = LowLevelCallUtils.returnDataSize();
+            if (result) {
+                bytes memory returnData = LowLevelCallUtils.readReturnData(
+                    0,
+                    size
+                );
+                return abi.decode(returnData, (bytes));
+            }
+            // Failure
+            if (size >= 4) {
+                bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
+                if (bytes4(errorId) == OffchainLookup.selector) {
+                    // Offchain lookup. Decode the revert message and create our own that nests it.
+                    bytes memory revertData = LowLevelCallUtils.readReturnData(
+                        4,
+                        size - 4
+                    );
+                    (
+                        address sender,
+                        string[] memory urls,
+                        bytes memory callData,
+                        bytes4 innerCallbackFunction,
+                        bytes memory extraData
+                    ) = abi.decode(
+                            revertData,
+                            (address, string[], bytes, bytes4, bytes)
+                        );
+
+                    if (sender != target) {
+                        revert InvalidOperation();
+                    }
+
+                    revert OffchainLookup(
+                        address(this),
+                        urls,
+                        callData,
+                        OffchainDNSResolver.resolveCallback.selector,
+                        abi.encode(sender, innerCallbackFunction, extraData)
+                    );
+                }
+            }
+            LowLevelCallUtils.propagateRevert();
+        } else {
+            string[] memory urls = new string[](1);
+            urls[0] = gatewayURL;
+
+            revert OffchainLookup(
+                address(this),
+                urls,
+                abi.encodeCall(IDNSGateway.resolve, (name, TYPE_TXT)),
+                OffchainDNSResolver.resolveCallback.selector,
+                abi.encode(name, innerdata)
+            );
+        }
     }
 }
