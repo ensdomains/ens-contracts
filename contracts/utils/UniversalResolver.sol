@@ -28,6 +28,13 @@ error ResolverNotContract();
 
 error ResolverError(bytes returnData);
 
+error HttpError(HttpErrorItem[] errors);
+
+struct HttpErrorItem {
+    uint16 status;
+    string message;
+}
+
 struct MulticallData {
     bytes name;
     bytes[] data;
@@ -61,13 +68,6 @@ struct Result {
 }
 
 interface BatchGateway {
-    struct HttpErrorItem {
-        uint16 status;
-        string message;
-    }
-
-    error HttpError(HttpErrorItem[] errors);
-
     function query(
         OffchainLookupCallData[] memory data
     ) external returns (bool[] memory failures, bytes[] memory responses);
@@ -593,12 +593,12 @@ contract UniversalResolver is ERC165, Ownable {
 
     function _checkResolveSingle(Result memory result) internal pure {
         if (!result.success) {
-            if (bytes4(result.returnData) == BatchGateway.HttpError.selector) {
-                (, BatchGateway.HttpErrorItem[] memory errors) = abi.decode(
+            if (bytes4(result.returnData) == HttpError.selector) {
+                (, HttpErrorItem[] memory errors) = abi.decode(
                     result.returnData,
-                    (bytes4, BatchGateway.HttpErrorItem[])
+                    (bytes4, HttpErrorItem[])
                 );
-                revert BatchGateway.HttpError(errors);
+                revert HttpError(errors);
             }
             revert ResolverError(result.returnData);
         }
