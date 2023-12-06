@@ -8,7 +8,6 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../resolvers/profiles/ITextResolver.sol";
 import "../resolvers/profiles/INameResolver.sol";
 import "../root/Controllable.sol";
-import "./L2ReverseResolverBase.sol";
 import "../resolvers/Multicallable.sol";
 
 error InvalidSignature();
@@ -18,31 +17,66 @@ contract L2ReverseRegistrar is
     Ownable,
     ITextResolver,
     INameResolver,
-    IL2ReverseRegistrar,
-    L2ReverseResolverBase
+    IL2ReverseRegistrar
 {
     using ECDSA for bytes32;
     mapping(bytes32 => uint256) public lastUpdated;
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
+    mapping(bytes32 => uint64) internal recordVersions;
+    event VersionChanged(bytes32 indexed node, uint64 newVersion);
+    bytes32 public immutable L2_REVERSE_NODE;
+
+    bytes32 constant lookup =
+        0x3031323334353637383961626364656600000000000000000000000000000000;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     /**
      * @dev Constructor
      */
-    constructor(bytes32 L2ReverseNode) L2ReverseResolverBase(L2ReverseNode) {}
+    constructor(bytes32 L2ReverseNode) {
+        L2_REVERSE_NODE = L2ReverseNode;
+    }
 
-    modifier authorised(address addr) override(L2ReverseResolverBase) {
+    modifier authorised(address addr) {
         isAuthorised(addr);
         _;
     }
 
-    function isAuthorised(address addr) internal view override returns (bool) {
+    modifier authorisedSignature(
+        bytes32 hash,
+        address addr,
+        uint256 inceptionDate,
+        bytes memory signature
+    ) {
+        isAuthorisedWithSignature(hash, addr, inceptionDate, signature);
+        _;
+    }
+
+    function isAuthorised(address addr) internal view returns (bool) {
         require(
             addr == msg.sender || ownsContract(addr, msg.sender),
             "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
         );
+    }
+
+    function isAuthorisedWithSignature(
+        bytes32 hash,
+        address addr,
+        uint256 inceptionDate,
+        bytes memory signature
+    ) internal view returns (bool) {
+        bytes32 message = hash.toEthSignedMessageHash();
+        bytes32 node = _getNamehash(addr);
+
+        if (
+            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
+            inceptionDate < lastUpdated[node] || // must be newer than current record
+            inceptionDate >= block.timestamp // must be in the past
+        ) {
+            revert InvalidSignature();
+        }
     }
 
     /**
@@ -58,27 +92,25 @@ contract L2ReverseRegistrar is
         string memory name,
         uint256 inceptionDate,
         bytes memory signature
-    ) public override returns (bytes32) {
+    )
+        public
+        override
+        authorisedSignature(
+            keccak256(
+                abi.encodePacked(
+                    IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+                    addr,
+                    name,
+                    inceptionDate
+                )
+            ),
+            addr,
+            inceptionDate,
+            signature
+        )
+        returns (bytes32)
+    {
         bytes32 node = _getNamehash(addr);
-
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
-                addr,
-                name,
-                inceptionDate
-            )
-        );
-
-        bytes32 message = hash.toEthSignedMessageHash();
-
-        if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            inceptionDate < lastUpdated[node] || // must be newer than current record
-            inceptionDate >= block.timestamp // must be in the past
-        ) {
-            revert InvalidSignature();
-        }
 
         _setName(node, name, inceptionDate);
         return node;
@@ -175,29 +207,26 @@ contract L2ReverseRegistrar is
         string calldata value,
         uint256 inceptionDate,
         bytes memory signature
-    ) public override returns (bytes32) {
+    )
+        public
+        override
+        authorisedSignature(
+            keccak256(
+                abi.encodePacked(
+                    IL2ReverseRegistrar.setTextForAddrWithSignature.selector,
+                    addr,
+                    key,
+                    value,
+                    inceptionDate
+                )
+            ),
+            addr,
+            inceptionDate,
+            signature
+        )
+        returns (bytes32)
+    {
         bytes32 node = _getNamehash(addr);
-
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                IL2ReverseRegistrar.setTextForAddrWithSignature.selector,
-                addr,
-                key,
-                value,
-                inceptionDate
-            )
-        );
-
-        bytes32 message = hash.toEthSignedMessageHash();
-
-        if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            inceptionDate < lastUpdated[node] ||
-            inceptionDate > block.timestamp
-        ) {
-            revert InvalidSignature();
-        }
-
         _setText(node, key, value, inceptionDate);
         return node;
     }
@@ -339,6 +368,54 @@ contract L2ReverseRegistrar is
     }
 
     /**
+     * Increments the record version associated with an ENS node.
+     * May only be called by the owner of that node in the ENS registry.
+     * @param addr The node to update.
+     */
+    function clearRecords(address addr) public virtual authorised(addr) {
+        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 reverseNode = keccak256(
+            abi.encodePacked(L2_REVERSE_NODE, labelHash)
+        );
+        recordVersions[reverseNode]++;
+        emit VersionChanged(reverseNode, recordVersions[reverseNode]);
+    }
+
+    /**
+     * Increments the record version associated with an ENS node.
+     * May only be called by the owner of that node in the ENS registry.
+     * @param addr The node to update.
+     * @param signature A signature proving ownership of the node.
+     */
+    function clearRecordsWithSignature(
+        address addr,
+        uint256 inceptionDate,
+        bytes memory signature
+    )
+        public
+        virtual
+        authorisedSignature(
+            keccak256(
+                abi.encodePacked(
+                    IL2ReverseRegistrar.clearRecords.selector,
+                    addr,
+                    inceptionDate
+                )
+            ),
+            addr,
+            inceptionDate,
+            signature
+        )
+    {
+        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 reverseNode = keccak256(
+            abi.encodePacked(L2_REVERSE_NODE, labelHash)
+        );
+        recordVersions[reverseNode]++;
+        emit VersionChanged(reverseNode, recordVersions[reverseNode]);
+    }
+
+    /**
      * @dev Returns the node hash for a given account's reverse records.
      * @param addr The address to hash
      * @return The ENS node hash.
@@ -370,16 +447,37 @@ contract L2ReverseRegistrar is
 
     function supportsInterface(
         bytes4 interfaceID
-    )
-        public
-        view
-        override(L2ReverseResolverBase, Multicallable)
-        returns (bool)
-    {
+    ) public view override(Multicallable) returns (bool) {
         return
             interfaceID == type(IL2ReverseRegistrar).interfaceId ||
             interfaceID == type(ITextResolver).interfaceId ||
             interfaceID == type(INameResolver).interfaceId ||
             super.supportsInterface(interfaceID);
+    }
+
+    /**
+     * @dev An optimised function to compute the sha3 of the lower-case
+     *      hexadecimal representation of an Ethereum address.
+     * @param addr The address to hash
+     * @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
+     *         input address.
+     */
+    function sha3HexAddress(address addr) internal pure returns (bytes32 ret) {
+        assembly {
+            for {
+                let i := 40
+            } gt(i, 0) {
+
+            } {
+                i := sub(i, 1)
+                mstore8(i, byte(and(addr, 0xf), lookup))
+                addr := div(addr, 0x10)
+                i := sub(i, 1)
+                mstore8(i, byte(and(addr, 0xf), lookup))
+                addr := div(addr, 0x10)
+            }
+
+            ret := keccak256(0, 40)
+        }
     }
 }

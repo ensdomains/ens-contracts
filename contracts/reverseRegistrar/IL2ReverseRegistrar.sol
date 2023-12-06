@@ -51,5 +51,7 @@ interface IL2ReverseRegistrar {
         bytes memory signature
     ) external returns (bytes32);
 
+    function clearRecords(address addr) external;
+
     function node(address addr) external view returns (bytes32);
 }

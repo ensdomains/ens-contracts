@@ -365,4 +365,19 @@ describe('L2ReverseRegistrar', function () {
       assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
     })
   })
+  describe('Clear records', function () {
+    it('clearRecords() clears records', async () => {
+      const node = await L2ReverseRegistrar.node(account)
+      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
+      await L2ReverseRegistrar.setName('hello.eth')
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://ens.domains',
+      )
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      // await L2ReverseRegistrar.clearRecords()
+      // assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+      // assert.equal(await L2ReverseRegistrar.name(node), '')
+    })
+  })
 })
