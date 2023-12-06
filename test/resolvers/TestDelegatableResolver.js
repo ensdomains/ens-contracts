@@ -208,12 +208,25 @@ contract('DelegatableResolver', function (accounts) {
     })
   })
 
-  describe('registrar', async () => {
-    it('approves multiple users', async () => {
+  describe('DelegatableResolverRegistrar', async () => {
+    it('approves users to update record for the given subname', async () => {
       const basename = encodeName('')
       const name = `foo.bar.eth`
       const encodedsubname = encodeName(name)
       const encodedsubnode = namehash(name)
+
+      const operator2Resolver = await (
+        await ethers.getContractFactory('DelegatableResolver')
+      )
+        .attach(resolver.address)
+        .connect(operator2Signer)
+
+      await exceptions.expectFailure(
+        operator2Resolver['setAddr(bytes32,address)'](
+          encodedsubnode,
+          operator2,
+        ),
+      )
 
       const registrar = await DelegatableResolverRegistrar.new(resolver.address)
       await resolver.approve(basename, registrar.address, true)
@@ -222,12 +235,6 @@ contract('DelegatableResolver', function (accounts) {
         (await resolver.getAuthorisedNode(encodedsubname, 0, operator2))[1],
         true,
       )
-
-      const operator2Resolver = await (
-        await ethers.getContractFactory('DelegatableResolver')
-      )
-        .attach(resolver.address)
-        .connect(operator2Signer)
 
       await operator2Resolver['setAddr(bytes32,address)'](
         encodedsubnode,
