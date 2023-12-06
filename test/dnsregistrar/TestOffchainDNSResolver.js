@@ -6,6 +6,7 @@ const DNSRegistrarContract = artifacts.require('./DNSRegistrar.sol')
 const OwnedResolver = artifacts.require('./OwnedResolver.sol')
 const ExtendedDNSResolver = artifacts.require('./ExtendedDNSResolver.sol')
 const OffchainDNSResolver = artifacts.require('./OffchainDNSResolver.sol')
+const DummyOffchainResolver = artifacts.require('./MockOffchainResolver.sol')
 const PublicResolver = artifacts.require('./PublicResolver.sol')
 const DummyExtendedDNSSECResolver = artifacts.require(
   './DummyExtendedDNSSECResolver.sol',
@@ -31,6 +32,7 @@ contract('OffchainDNSResolver', function (accounts) {
   var root = null
   var dnssec = null
   var suffixes = null
+  var offchainDNSResolver = null
   var offchainResolver = null
   var dummyResolver = null
   var ownedResolver = null
@@ -81,7 +83,8 @@ contract('OffchainDNSResolver', function (accounts) {
       utils.hexEncodeName('co.nz'),
     ])
 
-    offchainResolver = await OffchainDNSResolver.new(
+    offchainResolver = await DummyOffchainResolver.new()
+    offchainDNSResolver = await OffchainDNSResolver.new(
       ens.address,
       dnssec.address,
       OFFCHAIN_GATEWAY,
@@ -89,12 +92,12 @@ contract('OffchainDNSResolver', function (accounts) {
     ownedResolver = await OwnedResolver.new()
 
     dummyResolver = await DummyNonCCIPAwareResolver.new(
-      offchainResolver.address,
+      offchainDNSResolver.address,
     )
 
     registrar = await DNSRegistrarContract.new(
       ZERO_ADDRESS, // Previous registrar
-      offchainResolver.address,
+      offchainDNSResolver.address,
       dnssec.address,
       suffixes.address,
       ens.address,
@@ -104,18 +107,18 @@ contract('OffchainDNSResolver', function (accounts) {
   })
 
   it('should respond to resolution requests with a CCIP read request to the DNS gateway', async function () {
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const DNSGatewayInterface = new ethers.utils.Interface(IDNSGateway.abi)
     const dnsName = utils.hexEncodeName('test.test')
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash('test.test'),
     ).encodeABI()
     await expect(
-      offchainResolver.resolve(dnsName, callData),
+      offchainDNSResolver.resolve(dnsName, callData),
     ).to.be.revertedWith(
       'OffchainLookup(' +
         '"' +
-        offchainResolver.address +
+        offchainDNSResolver.address +
         '", ' +
         '["https://localhost:8000/query"], ' +
         '"' +
@@ -126,15 +129,15 @@ contract('OffchainDNSResolver', function (accounts) {
         '", ' +
         '"' +
         ethers.utils.defaultAbiCoder.encode(
-          ['bytes', 'bytes'],
-          [dnsName, callData],
+          ['bytes', 'bytes', 'bytes4'],
+          [dnsName, callData, '0x00000000'],
         ) +
         '"' +
         ')',
     )
   })
 
-  function doResolveCallback(name, texts, callData) {
+  function doDNSResolveCallback(name, texts, callData) {
     const proof = [
       hexEncodeSignedSet(rootKeys(expiration, inception)),
       hexEncodeSignedSet(testRrset(name, texts)),
@@ -145,8 +148,18 @@ contract('OffchainDNSResolver', function (accounts) {
     )
     const dnsName = utils.hexEncodeName(name)
     const extraData = ethers.utils.defaultAbiCoder.encode(
-      ['bytes', 'bytes'],
-      [dnsName, callData],
+      ['bytes', 'bytes', 'bytes4'],
+      [dnsName, callData, '0x00000000'],
+    )
+    return offchainDNSResolver.resolveCallback(response, extraData)
+  }
+
+  function doResolveCallback(extraData, result) {
+    let validUntil = Math.floor(Date.now() / 1000 + 10000)
+
+    const response = ethers.utils.defaultAbiCoder.encode(
+      ['bytes', 'uint64', 'bytes'],
+      [result, validUntil, '0x'],
     )
     return offchainResolver.resolveCallback(response, extraData)
   }
@@ -155,11 +168,11 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${ownedResolver.address}`],
       callData,
@@ -173,11 +186,11 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${ownedResolver.address} blah`],
       callData,
@@ -207,11 +220,11 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 dnsresolver.eth`],
       callData,
@@ -225,12 +238,12 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
     await expect(
-      doResolveCallback(name, ['nonsense'], callData),
+      doDNSResolveCallback(name, ['nonsense'], callData),
     ).to.be.revertedWith('CouldNotResolve')
   })
 
@@ -238,11 +251,11 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       ['foo', `ENS1 ${ownedResolver.address}`],
       callData,
@@ -256,11 +269,11 @@ contract('OffchainDNSResolver', function (accounts) {
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     await ownedResolver.setAddr(namehash.hash(name), testAddress)
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       ['ENS1 nonexistent.eth', 'ENS1 0x1234', `ENS1 ${ownedResolver.address}`],
       callData,
@@ -278,7 +291,7 @@ contract('OffchainDNSResolver', function (accounts) {
       namehash.hash(name),
       'test',
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${resolver.address} foobie bletch`],
       callData,
@@ -296,7 +309,7 @@ contract('OffchainDNSResolver', function (accounts) {
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${resolver.address} ${testAddress}`],
       callData,
@@ -316,7 +329,7 @@ contract('OffchainDNSResolver', function (accounts) {
       namehash.hash(name),
       COIN_TYPE_ETH,
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${resolver.address} ${testAddress}`],
       callData,
@@ -336,7 +349,7 @@ contract('OffchainDNSResolver', function (accounts) {
       namehash.hash(name),
       COIN_TYPE_BTC,
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${resolver.address} ${testAddress}`],
       callData,
@@ -355,7 +368,7 @@ contract('OffchainDNSResolver', function (accounts) {
       namehash.hash(name),
     ).encodeABI()
     await expect(
-      doResolveCallback(
+      doDNSResolveCallback(
         name,
         [`ENS1 ${resolver.address} ${testAddress}`],
         callData,
@@ -370,7 +383,7 @@ contract('OffchainDNSResolver', function (accounts) {
       namehash.hash(name),
       'test',
     ).encodeABI()
-    const result = await doResolveCallback(
+    const result = await doDNSResolveCallback(
       name,
       [`ENS1 ${resolver.address} foobie bletch`],
       callData,
@@ -380,14 +393,66 @@ contract('OffchainDNSResolver', function (accounts) {
     )
   })
 
+  it('correctly resolves using offchain resolver', async function () {
+    const name = 'test.test'
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
+    const dnsName = utils.hexEncodeName('test.test')
+    const callData = pr.contract.methods['addr(bytes32)'](
+      namehash.hash(name),
+    ).encodeABI()
+
+    const extraData = ethers.utils.defaultAbiCoder.encode(
+      ['bytes', 'bytes', 'bytes4'],
+      [
+        dnsName,
+        callData,
+        ethers.utils.id('resolveCallback(bytes,bytes)').slice(0, 10),
+      ],
+    )
+
+    await expect(
+      doDNSResolveCallback(
+        name,
+        [`ENS1 ${offchainResolver.address} foobie bletch`],
+        callData,
+      ),
+    ).to.be.revertedWith(
+      'OffchainLookup(' +
+        '"' +
+        offchainDNSResolver.address +
+        '", ' +
+        '["https://example.com/"], ' +
+        '"' +
+        callData +
+        '", ' +
+        '"' +
+        ethers.utils.id('resolveCallback(bytes,bytes)').slice(0, 10) +
+        '", ' +
+        '"' +
+        extraData +
+        '"' +
+        ')',
+    )
+
+    const expectedResult = ethers.utils.defaultAbiCoder.encode(
+      ['address'],
+      ['0x0D59d0f7DcC0fBF0A3305cE0261863aAf7Ab685c'],
+    )
+
+    const result = await doResolveCallback(extraData, expectedResult)
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
+    ).to.equal('0x0D59d0f7DcC0fBF0A3305cE0261863aAf7Ab685c')
+  })
+
   it('should prevent OffchainLookup error propagation from non-CCIP-aware contracts', async function () {
     const name = 'test.test'
-    const pr = await PublicResolver.at(offchainResolver.address)
+    const pr = await PublicResolver.at(offchainDNSResolver.address)
     const callData = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
     ).encodeABI()
     await expect(
-      doResolveCallback(name, [`ENS1 ${dummyResolver.address}`], callData),
+      doDNSResolveCallback(name, [`ENS1 ${dummyResolver.address}`], callData),
     ).to.be.revertedWith('InvalidOperation')
   })
 })
