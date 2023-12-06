@@ -209,6 +209,10 @@ contract('DelegatableResolver', function (accounts) {
   })
 
   describe('DelegatableResolverRegistrar', async () => {
+    let registrar
+    beforeEach(async () => {
+      registrar = await DelegatableResolverRegistrar.new(resolver.address)
+    })
     it('approves users to update record for the given subname', async () => {
       const basename = encodeName('')
       const name = `foo.bar.eth`
@@ -228,7 +232,6 @@ contract('DelegatableResolver', function (accounts) {
         ),
       )
 
-      const registrar = await DelegatableResolverRegistrar.new(resolver.address)
       await resolver.approve(basename, registrar.address, true)
       await registrar.register(encodedsubname, operator2)
       assert.equal(
@@ -244,6 +247,11 @@ contract('DelegatableResolver', function (accounts) {
         await operator2Resolver['addr(bytes32)'](encodedsubnode),
         operator2,
       )
+    })
+
+    it('should support interface', async () => {
+      expect(await registrar.supportsInterface('0x01ffc9a7')).to.equal(true) // ERC-165 support
+      expect(await registrar.supportsInterface('0xa99e7e29')).to.equal(true) // IDelegatableResolverRegistrar
     })
   })
 })
