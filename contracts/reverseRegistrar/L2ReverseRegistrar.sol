@@ -445,16 +445,6 @@ contract L2ReverseRegistrar is
         lastUpdated[node] = inceptionDate;
     }
 
-    function supportsInterface(
-        bytes4 interfaceID
-    ) public view override(Multicallable) returns (bool) {
-        return
-            interfaceID == type(IL2ReverseRegistrar).interfaceId ||
-            interfaceID == type(ITextResolver).interfaceId ||
-            interfaceID == type(INameResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
-    }
-
     /**
      * @dev An optimised function to compute the sha3 of the lower-case
      *      hexadecimal representation of an Ethereum address.
@@ -479,5 +469,15 @@ contract L2ReverseRegistrar is
 
             ret := keccak256(0, 40)
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view override(Multicallable) returns (bool) {
+        return
+            interfaceID == type(IL2ReverseRegistrar).interfaceId ||
+            interfaceID == type(ITextResolver).interfaceId ||
+            interfaceID == type(INameResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
