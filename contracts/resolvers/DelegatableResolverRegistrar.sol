@@ -16,7 +16,10 @@ contract DelegatableResolverRegistrar is IDelegatableResolverRegistrar, ERC165 {
 
     /**
      * @dev Approve an operator to be able to updated records on a node.
+     * @param name      The encoded subname
+     * @param operator  The address to approve
      */
+
     function register(bytes memory name, address operator) external {
         bytes32 node = bytes32(0);
         bool authorized = false;
