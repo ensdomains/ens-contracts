@@ -21,10 +21,14 @@ contract DelegatableResolverRegistrar is IDelegatableResolverRegistrar, ERC165 {
      */
 
     function register(bytes memory name, address operator) external {
-        bytes32 node = bytes32(0);
-        bool authorized = false;
-        (node, authorized) = resolver.getAuthorisedNode(name, 0, operator);
-        resolver.approve(name, operator, true);
+        (bytes32 node, bool authorized) = resolver.getAuthorisedNode(
+            name,
+            0,
+            operator
+        );
+        if (authorized == false) {
+            resolver.approve(name, operator, true);
+        }
     }
 
     function supportsInterface(
