@@ -1,7 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { namehash } = require('../test-utils/ens')
-const { EMPTY_ADDRESS } = require('../test-utils/constants')
 
 describe('L2ReverseRegistrar', function () {
   let L2ReverseRegistrar
@@ -288,7 +287,7 @@ describe('L2ReverseRegistrar', function () {
       ).to.be.revertedWith(`InvalidSignature()`)
     })
 
-    it('reverts if inceptionDate is too low', async () => {
+    it('reverts if inception date is too low', async () => {
       const funcId = ethers.utils
         .id(setTextForAddrWithSignatureFuncSig)
         .substring(0, 10)
