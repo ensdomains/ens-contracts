@@ -127,6 +127,52 @@ describe('L2ReverseRegistrar', function () {
         ),
       ).to.be.revertedWith(`InvalidSignature()`)
     })
+
+    it('reverts if inception date is too low', async () => {
+      const funcId = ethers.utils
+        .id(setNameForAddrWithSignatureFuncSig)
+        .substring(0, 10)
+
+      const block = await ethers.provider.getBlock('latest')
+      const inceptionDate = block.timestamp
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'uint256'],
+            [funcId, account, 'hello.eth', inceptionDate],
+          ),
+        ),
+      )
+
+      await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+        account,
+        'hello.eth',
+        inceptionDate,
+        signature,
+      )
+
+      const node = await L2ReverseRegistrar.node(account)
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+
+      const inceptionDate2 = 0
+      const signature2 = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'uint256'],
+            [funcId, account, 'hello.eth', inceptionDate2],
+          ),
+        ),
+      )
+
+      await expect(
+        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+          account,
+          'hello.eth',
+          inceptionDate2,
+          signature2,
+        ),
+      ).to.be.revertedWith(`InvalidSignature()`)
+    })
   })
 
   describe('setNameForAddrWithSignatureAndOwnable', () => {
@@ -238,6 +284,57 @@ describe('L2ReverseRegistrar', function () {
           'http://some.other.url.com',
           inceptionDate,
           signature,
+        ),
+      ).to.be.revertedWith(`InvalidSignature()`)
+    })
+
+    it('reverts if inceptionDate is too low', async () => {
+      const funcId = ethers.utils
+        .id(setTextForAddrWithSignatureFuncSig)
+        .substring(0, 10)
+
+      const block = await ethers.provider.getBlock('latest')
+      const inceptionDate = block.timestamp
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'string', 'uint256'],
+            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          ),
+        ),
+      )
+
+      await L2ReverseRegistrarWithAccount2['setTextForAddrWithSignature'](
+        account,
+        'url',
+        'http://ens.domains',
+        inceptionDate,
+        signature,
+      )
+
+      const node = await L2ReverseRegistrar.node(account)
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://ens.domains',
+      )
+
+      const inceptionDate2 = 0
+      const signature2 = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'string', 'string', 'uint256'],
+            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          ),
+        ),
+      )
+
+      await expect(
+        L2ReverseRegistrarWithAccount2['setTextForAddrWithSignature'](
+          account,
+          'url',
+          'http://ens.domains',
+          inceptionDate2,
+          signature2,
         ),
       ).to.be.revertedWith(`InvalidSignature()`)
     })
@@ -405,22 +502,47 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      keccak256(
-        abi.encodePacked(
-          IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
-          addr,
-          name,
-          inceptionDate,
-        ),
-      ),
-        await L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
-          account,
-          signatureExpiry,
-          signature,
-        )
+      await L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
+        account,
+        signatureExpiry,
+        signature,
+      )
 
       assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
       assert.equal(await L2ReverseRegistrar.name(node), '')
+    })
+
+    it('clearRecordsWithSignature() reverts when signature expiry is too low', async () => {
+      const node = await L2ReverseRegistrar.node(account)
+      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
+      await L2ReverseRegistrar.setName('hello.eth')
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://ens.domains',
+      )
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+
+      const funcId = ethers.utils
+        .id('clearRecordsWithSignature(address,uint256,bytes)')
+        .substring(0, 10)
+
+      const signatureExpiry = 0
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'uint256'],
+            [funcId, account, signatureExpiry],
+          ),
+        ),
+      )
+
+      await expect(
+        L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
+          account,
+          signatureExpiry,
+          signature,
+        ),
+      ).to.be.revertedWith(`InvalidSignature()`)
     })
   })
 })
