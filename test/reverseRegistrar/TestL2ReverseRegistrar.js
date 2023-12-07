@@ -375,9 +375,52 @@ describe('L2ReverseRegistrar', function () {
         'http://ens.domains',
       )
       assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
-      // await L2ReverseRegistrar.clearRecords()
-      // assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
-      // assert.equal(await L2ReverseRegistrar.name(node), '')
+      await L2ReverseRegistrar.clearRecords(account)
+      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+      assert.equal(await L2ReverseRegistrar.name(node), '')
+    })
+
+    it('clearRecordsWithSignature() clears records', async () => {
+      const node = await L2ReverseRegistrar.node(account)
+      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
+      await L2ReverseRegistrar.setName('hello.eth')
+      assert.equal(
+        await L2ReverseRegistrar.text(node, 'url'),
+        'http://ens.domains',
+      )
+      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+
+      const funcId = ethers.utils
+        .id('clearRecordsWithSignature(address,uint256,bytes)')
+        .substring(0, 10)
+
+      const block = await ethers.provider.getBlock('latest')
+      const signatureExpiry = block.timestamp
+      const signature = await signers[0].signMessage(
+        ethers.utils.arrayify(
+          ethers.utils.solidityKeccak256(
+            ['bytes4', 'address', 'uint256'],
+            [funcId, account, signatureExpiry],
+          ),
+        ),
+      )
+
+      keccak256(
+        abi.encodePacked(
+          IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
+          addr,
+          name,
+          inceptionDate,
+        ),
+      ),
+        await L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
+          account,
+          signatureExpiry,
+          signature,
+        )
+
+      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+      assert.equal(await L2ReverseRegistrar.name(node), '')
     })
   })
 })

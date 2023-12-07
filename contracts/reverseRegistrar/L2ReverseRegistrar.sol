@@ -397,7 +397,7 @@ contract L2ReverseRegistrar is
         authorisedSignature(
             keccak256(
                 abi.encodePacked(
-                    IL2ReverseRegistrar.clearRecords.selector,
+                    IL2ReverseRegistrar.clearRecordsWithSignature.selector,
                     addr,
                     inceptionDate
                 )

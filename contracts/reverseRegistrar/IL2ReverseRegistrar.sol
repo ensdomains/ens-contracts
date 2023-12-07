@@ -53,5 +53,11 @@ interface IL2ReverseRegistrar {
 
     function clearRecords(address addr) external;
 
+    function clearRecordsWithSignature(
+        address addr,
+        uint256 inceptionDate,
+        bytes memory signature
+    ) external;
+
     function node(address addr) external view returns (bytes32);
 }
