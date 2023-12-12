@@ -18,13 +18,29 @@ library LowLevelCallUtils {
         address target,
         bytes memory data
     ) internal view returns (bool success) {
+        return functionStaticCall(target, data, gasleft());
+    }
+
+    /**
+     * @dev Makes a static call to the specified `target` with `data` using `gasLimit`. Return data can be fetched with
+     *      `returnDataSize` and `readReturnData`.
+     * @param target The address to staticcall.
+     * @param data The data to pass to the call.
+     * @param gasLimit The gas limit to use for the call.
+     * @return success True if the call succeeded, or false if it reverts.
+     */
+    function functionStaticCall(
+        address target,
+        bytes memory data,
+        uint256 gasLimit
+    ) internal view returns (bool success) {
         require(
             target.isContract(),
             "LowLevelCallUtils: static call to non-contract"
         );
         assembly {
             success := staticcall(
-                gas(),
+                gasLimit,
                 target,
                 add(data, 32),
                 mload(data),
