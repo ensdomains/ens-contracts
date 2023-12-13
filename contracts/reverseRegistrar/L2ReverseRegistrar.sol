@@ -25,12 +25,12 @@ contract L2ReverseRegistrar is
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
     mapping(bytes32 => uint64) internal recordVersions;
     event VersionChanged(bytes32 indexed node, uint64 newVersion);
+    event ReverseClaimed(address indexed addr, bytes32 indexed node);
+
     bytes32 public immutable L2_REVERSE_NODE;
 
     bytes32 constant lookup =
         0x3031323334353637383961626364656600000000000000000000000000000000;
-
-    event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     /**
      * @dev Constructor
