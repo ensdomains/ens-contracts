@@ -27,7 +27,7 @@ contract L2ReverseRegistrar is
     event VersionChanged(bytes32 indexed node, uint64 newVersion);
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
-    bytes32 public immutable L2_REVERSE_NODE;
+    bytes32 public immutable L2ReverseNode;
 
     bytes32 constant lookup =
         0x3031323334353637383961626364656600000000000000000000000000000000;
@@ -35,8 +35,8 @@ contract L2ReverseRegistrar is
     /**
      * @dev Constructor
      */
-    constructor(bytes32 L2ReverseNode) {
-        L2_REVERSE_NODE = L2ReverseNode;
+    constructor(bytes32 _L2ReverseNode) {
+        L2ReverseNode = _L2ReverseNode;
     }
 
     modifier authorised(address addr) {
@@ -375,7 +375,7 @@ contract L2ReverseRegistrar is
     function clearRecords(address addr) public virtual authorised(addr) {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2_REVERSE_NODE, labelHash)
+            abi.encodePacked(L2ReverseNode, labelHash)
         );
         recordVersions[reverseNode]++;
         emit VersionChanged(reverseNode, recordVersions[reverseNode]);
@@ -409,7 +409,7 @@ contract L2ReverseRegistrar is
     {
         bytes32 labelHash = sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2_REVERSE_NODE, labelHash)
+            abi.encodePacked(L2ReverseNode, labelHash)
         );
         recordVersions[reverseNode]++;
         emit VersionChanged(reverseNode, recordVersions[reverseNode]);
@@ -421,8 +421,7 @@ contract L2ReverseRegistrar is
      * @return The ENS node hash.
      */
     function node(address addr) public view override returns (bytes32) {
-        return
-            keccak256(abi.encodePacked(L2_REVERSE_NODE, sha3HexAddress(addr)));
+        return keccak256(abi.encodePacked(L2ReverseNode, sha3HexAddress(addr)));
     }
 
     function ownsContract(
@@ -438,7 +437,7 @@ contract L2ReverseRegistrar is
 
     function _getNamehash(address addr) internal view returns (bytes32) {
         bytes32 labelHash = sha3HexAddress(addr);
-        return keccak256(abi.encodePacked(L2_REVERSE_NODE, labelHash));
+        return keccak256(abi.encodePacked(L2ReverseNode, labelHash));
     }
 
     function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
