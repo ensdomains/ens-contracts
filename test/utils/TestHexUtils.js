@@ -45,12 +45,12 @@ describe('HexUtils', () => {
     })
     it('Correctly parses all hex characters', async () => {
       let [bytes32, valid] = await HexUtils.hexStringToBytes32(
-        toUtf8Bytes('0123456789abcdefABCDEF'),
+        toUtf8Bytes('0123456789abcdefABCDEF0123456789abcdefABCD'),
         0,
-        22,
+        40,
       )
       expect(bytes32).to.equal(
-        '0x0000000000000000000000000000000000000000000123456789abcdefabcdef',
+        '0x0000000000000000000000000123456789abcdefabcdef0123456789abcdefab',
       )
       expect(valid).to.equal(true)
     })
@@ -103,7 +103,7 @@ describe('HexUtils', () => {
     })
   })
 
-  describe.only('Special cases for hexStringToBytes32()', () => {
+  describe('Special cases for hexStringToBytes32()', () => {
     const hex32Bytes =
       '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da'
     it('odd length 1', async () => {
