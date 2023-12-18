@@ -52,6 +52,12 @@ contract('StablePriceOracle', function (accounts) {
     expect(
       parseInt((await priceOracle.price('foobie', 0, duration)).base),
     ).to.equal(duration / 10 - (duration / 10) * discountPercentage)
+
+    const duration2 = 60 * 60 * 24 * 365 * 12 // 5 years
+    const discountPercentage2 = 50 / 100
+    expect(
+      parseInt((await priceOracle.price('foobie', 0, duration2)).base),
+    ).to.equal(duration2 / 10 - (duration2 / 10) * discountPercentage2)
   })
 
   it('should work with larger values', async () => {
