@@ -258,7 +258,6 @@ function shouldRespectConstraints(contracts, getSigners) {
       const parentExpiry = await BaseRegistrar.nameExpires(labelhash('test1'))
       await NameWrapper.setChildFuses(parentNode, childLabelHash, 0, MAX_EXPIRY)
       const [, , expiry] = await NameWrapper.getData(childNode)
-      console.log('expiry', expiry)
       expect(expiry.toString()).to.be.equal(
         parentExpiry.add(GRACE_PERIOD).toString(),
       )
