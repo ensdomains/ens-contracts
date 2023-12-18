@@ -11,6 +11,7 @@ import "../root/Controllable.sol";
 import "../resolvers/Multicallable.sol";
 
 error InvalidSignature();
+error SignatureOutOfDate();
 
 contract L2ReverseRegistrar is
     Multicallable,
@@ -29,6 +30,8 @@ contract L2ReverseRegistrar is
 
     bytes32 public immutable L2ReverseNode;
 
+    // This is the hex encoding of the string 'abcdefghijklmnopqrstuvwxyz'
+    // It is used as a constant to lookup the characters of the hex address
     bytes32 constant lookup =
         0x3031323334353637383961626364656600000000000000000000000000000000;
 
@@ -70,12 +73,15 @@ contract L2ReverseRegistrar is
         bytes32 message = hash.toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
+        if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
+            revert InvalidSignature();
+        }
+
         if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
             inceptionDate < lastUpdated[node] || // must be newer than current record
             inceptionDate >= block.timestamp // must be in the past
         ) {
-            revert InvalidSignature();
+            revert SignatureOutOfDate();
         }
     }
 

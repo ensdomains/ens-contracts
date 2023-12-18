@@ -170,7 +170,7 @@ describe('L2ReverseRegistrar', function () {
           inceptionDate2,
           signature2,
         ),
-      ).to.be.revertedWith(`InvalidSignature()`)
+      ).to.be.revertedWith(`SignatureOutOfDate()`)
     })
   })
 
@@ -541,7 +541,7 @@ describe('L2ReverseRegistrar', function () {
           signatureExpiry,
           signature,
         ),
-      ).to.be.revertedWith(`InvalidSignature()`)
+      ).to.be.revertedWith(`SignatureOutOfDate()`)
     })
   })
 })
