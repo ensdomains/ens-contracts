@@ -239,3 +239,126 @@ contract('DNSRegistrar', function (accounts) {
     )
   })
 })
+
+contract('DNSRegistrar', function (accounts) {
+  let registrar, ens, root, dnssec, suffixes
+  const validityPeriod = 2419200
+  const inception = Date.now() / 1000 - 15 * 60
+  const expiration = inception + validityPeriod
+
+  const testRrset = (name, account) => ({
+    name,
+    sig: {
+      name: 'test',
+      type: 'RRSIG',
+      ttl: 0,
+      class: 'IN',
+      flush: false,
+      data: {
+        typeCovered: 'TXT',
+        algorithm: 253,
+        labels: name.split('.').length + 1,
+        originalTTL: 3600,
+        expiration,
+        inception,
+        keyTag: 1278,
+        signersName: '.',
+        signature: Buffer.from(''),
+      },
+    },
+    rrs: [
+      {
+        name: `_ens.${name}`,
+        type: 'TXT',
+        class: 'IN',
+        ttl: 3600,
+        data: Buffer.from(`a=${account}`, 'ascii'),
+      },
+    ],
+  })
+
+  beforeEach(async function () {
+    ens = await ENSRegistry.new()
+
+    root = await Root.new(ens.address)
+    await ens.setOwner('0x0', root.address)
+
+    dnssec = await DNSSECImpl.deployed()
+
+    suffixes = await SimplePublixSuffixList.new()
+    await suffixes.addPublicSuffixes([utils.hexEncodeName('test')])
+
+    registrar = await DNSRegistrarContract.new(
+      ZERO_ADDRESS, // Previous registrar
+      ZERO_ADDRESS, // Resolver
+      dnssec.address,
+      suffixes.address,
+      ens.address,
+    )
+    await root.setController(registrar.address, true)
+  })
+
+  it('cannot claim multiple names using single unrelated proof', async function () {
+    const alice = accounts[1]
+
+    // Build sample proof for a DNS record with name `alice.test` that alice owns
+    const proofForAliceDotTest = [
+      hexEncodeSignedSet(rootKeys(expiration, inception)),
+      hexEncodeSignedSet(testRrset('alice.test', alice)),
+    ]
+
+    // This is the expected use case.
+    // Using the proof for `alice.test`, can claim `alice.test`
+    assert.equal(await ens.owner(namehash.hash('alice.test')), ZERO_ADDRESS)
+    await registrar.proveAndClaim(
+      utils.hexEncodeName('alice.test'),
+      proofForAliceDotTest,
+    )
+    assert.equal(await ens.owner(namehash.hash('alice.test')), alice)
+
+    // Now using the same proof for `alice.test`, alice can also claim `foo.test`. Without a proof involving `foo.test`
+    assert.equal(await ens.owner(namehash.hash('foo.test')), ZERO_ADDRESS)
+    await expect(
+      registrar.proveAndClaim(
+        utils.hexEncodeName('foo.test'),
+        proofForAliceDotTest,
+      ),
+    ).to.be.revertedWith('NoOwnerRecordFound')
+    assert.equal(await ens.owner(namehash.hash('foo.test')), ZERO_ADDRESS)
+  })
+
+  it('cannot takeover claimed DNS domains using unrelated proof', async function () {
+    const alice = accounts[1]
+    const bob = accounts[2]
+
+    // Build sample proof for a DNS record with name `alice.test` that alice owns
+    const proofForAliceDotTest = [
+      hexEncodeSignedSet(rootKeys(expiration, inception)),
+      hexEncodeSignedSet(testRrset('alice.test', alice)),
+    ]
+
+    // Alice claims her domain
+    assert.equal(await ens.owner(namehash.hash('alice.test')), ZERO_ADDRESS)
+    await registrar.proveAndClaim(
+      utils.hexEncodeName('alice.test'),
+      proofForAliceDotTest,
+    )
+    assert.equal(await ens.owner(namehash.hash('alice.test')), alice)
+
+    // Build sample proof for a DNS record with name `bob.test` that bob owns
+    const proofForBobDotTest = [
+      hexEncodeSignedSet(rootKeys(expiration, inception)),
+      hexEncodeSignedSet(testRrset('bob.test', bob)),
+    ]
+
+    // Bob claims alice's domain
+    assert.equal(await ens.owner(namehash.hash('alice.test')), alice)
+    await expect(
+      registrar.proveAndClaim(
+        utils.hexEncodeName('alice.test'),
+        proofForBobDotTest,
+      ),
+    ).to.be.revertedWith('NoOwnerRecordFound')
+    assert.equal(await ens.owner(namehash.hash('alice.test')), alice)
+  })
+})

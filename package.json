@@ -1,10 +1,11 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "ENS contracts",
   "scripts": {
     "test": "hardhat test",
     "test:local": "hardhat --network localhost test",
+    "test:deploy": "hardhat --network hardhat deploy",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "format": "prettier --write .",
