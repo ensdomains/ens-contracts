@@ -30,6 +30,28 @@ contract('StablePriceOracle', function (accounts) {
     expect(
       parseInt((await priceOracle.price('foobie', 0, 3600)).base),
     ).to.equal(360)
+
+    expect(
+      parseInt(
+        (await priceOracle.price('foobie', 0, 60 * 60 * 24 * 365 * 1)).base,
+      ),
+    ).to.equal((60 * 60 * 24 * 365) / 10)
+  })
+
+  it('should return correct prices for longer durations', async () => {
+    expect(
+      parseInt(
+        (await priceOracle.price('foobie', 0, 60 * 60 * 24 * 365 * 1)).base,
+      ),
+    ).to.equal((60 * 60 * 24 * 365) / 10)
+  })
+
+  it('should respected a progressive discount', async () => {
+    const duration = 60 * 60 * 24 * 365 * 5 // 5 years
+    const discountPercentage = 20 / 100
+    expect(
+      parseInt((await priceOracle.price('foobie', 0, duration)).base),
+    ).to.equal(duration / 10 - (duration / 10) * discountPercentage)
   })
 
   it('should work with larger values', async () => {

@@ -20,6 +20,10 @@ contract StablePriceOracle is IPriceOracle {
     uint256 public immutable price3Letter;
     uint256 public immutable price4Letter;
     uint256 public immutable price5Letter;
+    uint256 public immutable minimumDiscountDuration;
+    uint256 public immutable discountPriceNumerator;
+    uint256 public immutable discountPriceDemoninator;
+    uint256 public immutable discountMaxYears;
 
     // Oracle address
     AggregatorInterface public immutable usdOracle;
@@ -33,6 +37,11 @@ contract StablePriceOracle is IPriceOracle {
         price3Letter = _rentPrices[2];
         price4Letter = _rentPrices[3];
         price5Letter = _rentPrices[4];
+
+        minimumDiscountDuration = 365 days;
+        discountPriceNumerator = 5;
+        discountPriceDemoninator = 100;
+        discountMaxYears = 10;
     }
 
     function price(
@@ -53,6 +62,17 @@ contract StablePriceOracle is IPriceOracle {
             basePrice = price2Letter * duration;
         } else {
             basePrice = price1Letter * duration;
+        }
+
+        if (duration > minimumDiscountDuration) {
+            uint256 discountYears = (duration / minimumDiscountDuration) - 1;
+            if (discountYears > discountMaxYears) {
+                discountYears = discountMaxYears;
+            }
+            basePrice =
+                basePrice -
+                (basePrice * discountPriceNumerator * discountYears) /
+                discountPriceDemoninator;
         }
 
         return
