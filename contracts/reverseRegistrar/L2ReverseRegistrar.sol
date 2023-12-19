@@ -12,6 +12,7 @@ import "../resolvers/Multicallable.sol";
 
 error InvalidSignature();
 error SignatureOutOfDate();
+error Unauthorised();
 
 contract L2ReverseRegistrar is
     Multicallable,
@@ -58,10 +59,9 @@ contract L2ReverseRegistrar is
     }
 
     function isAuthorised(address addr) internal view returns (bool) {
-        require(
-            addr == msg.sender || ownsContract(addr, msg.sender),
-            "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
-        );
+        if (addr != msg.sender && !ownsContract(addr, msg.sender)) {
+            revert Unauthorised();
+        }
     }
 
     function isAuthorisedWithSignature(
