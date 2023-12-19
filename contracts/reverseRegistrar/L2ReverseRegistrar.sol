@@ -13,6 +13,7 @@ import "../resolvers/Multicallable.sol";
 error InvalidSignature();
 error SignatureOutOfDate();
 error Unauthorised();
+error NotOwnerOfContract();
 
 contract L2ReverseRegistrar is
     Multicallable,
@@ -58,6 +59,23 @@ contract L2ReverseRegistrar is
         _;
     }
 
+    modifier ownerAndAuthorisedWithSignature(
+        bytes32 hash,
+        address addr,
+        address owner,
+        uint256 inceptionDate,
+        bytes memory signature
+    ) {
+        isOwnerAndAuthorisedWithSignature(
+            hash,
+            addr,
+            owner,
+            inceptionDate,
+            signature
+        );
+        _;
+    }
+
     function isAuthorised(address addr) internal view returns (bool) {
         if (addr != msg.sender && !ownsContract(addr, msg.sender)) {
             revert Unauthorised();
@@ -74,6 +92,38 @@ contract L2ReverseRegistrar is
         bytes32 node = _getNamehash(addr);
 
         if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
+            revert InvalidSignature();
+        }
+
+        if (
+            inceptionDate < lastUpdated[node] || // must be newer than current record
+            inceptionDate >= block.timestamp // must be in the past
+        ) {
+            revert SignatureOutOfDate();
+        }
+    }
+
+    function isOwnerAndAuthorisedWithSignature(
+        bytes32 hash,
+        address addr,
+        address owner,
+        uint256 inceptionDate,
+        bytes memory signature
+    ) internal view returns (bool) {
+        bytes32 message = hash.toEthSignedMessageHash();
+        bytes32 node = _getNamehash(addr);
+
+        if (!ownsContract(addr, owner)) {
+            revert NotOwnerOfContract();
+        }
+
+        if (
+            !SignatureChecker.isValidERC1271SignatureNow(
+                owner,
+                message,
+                signature
+            )
+        ) {
             revert InvalidSignature();
         }
 
@@ -137,38 +187,29 @@ contract L2ReverseRegistrar is
         string memory name,
         uint256 inceptionDate,
         bytes memory signature
-    ) public returns (bytes32) {
+    )
+        public
+        ownerAndAuthorisedWithSignature(
+            keccak256(
+                abi.encodePacked(
+                    IL2ReverseRegistrar
+                        .setNameForAddrWithSignatureAndOwnable
+                        .selector,
+                    contractAddr,
+                    owner,
+                    name,
+                    inceptionDate
+                )
+            ),
+            contractAddr,
+            owner,
+            inceptionDate,
+            signature
+        )
+        returns (bytes32)
+    {
         bytes32 node = _getNamehash(contractAddr);
-
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                IL2ReverseRegistrar
-                    .setNameForAddrWithSignatureAndOwnable
-                    .selector,
-                contractAddr,
-                owner,
-                name,
-                inceptionDate
-            )
-        );
-
-        bytes32 message = hash.toEthSignedMessageHash();
-
-        if (
-            ownsContract(contractAddr, owner) &&
-            SignatureChecker.isValidERC1271SignatureNow(
-                owner,
-                message,
-                signature
-            ) &&
-            inceptionDate >= lastUpdated[node] &&
-            inceptionDate < block.timestamp
-        ) {
-            _setName(node, name, inceptionDate);
-            return node;
-        }
-
-        revert InvalidSignature();
+        _setName(node, name, inceptionDate);
     }
 
     /**
@@ -254,39 +295,30 @@ contract L2ReverseRegistrar is
         string calldata value,
         uint256 inceptionDate,
         bytes memory signature
-    ) public returns (bytes32) {
+    )
+        public
+        ownerAndAuthorisedWithSignature(
+            keccak256(
+                abi.encodePacked(
+                    IL2ReverseRegistrar
+                        .setTextForAddrWithSignatureAndOwnable
+                        .selector,
+                    contractAddr,
+                    owner,
+                    key,
+                    value,
+                    inceptionDate
+                )
+            ),
+            contractAddr,
+            owner,
+            inceptionDate,
+            signature
+        )
+        returns (bytes32)
+    {
         bytes32 node = _getNamehash(contractAddr);
-
-        bytes32 hash = keccak256(
-            abi.encodePacked(
-                IL2ReverseRegistrar
-                    .setTextForAddrWithSignatureAndOwnable
-                    .selector,
-                contractAddr,
-                owner,
-                key,
-                value,
-                inceptionDate
-            )
-        );
-
-        bytes32 message = hash.toEthSignedMessageHash();
-
-        if (
-            ownsContract(contractAddr, owner) &&
-            SignatureChecker.isValidERC1271SignatureNow(
-                owner,
-                message,
-                signature
-            ) &&
-            inceptionDate > lastUpdated[node] &&
-            inceptionDate < block.timestamp
-        ) {
-            _setText(node, key, value, inceptionDate);
-            return node;
-        }
-
-        revert InvalidSignature();
+        _setText(node, key, value, inceptionDate);
     }
 
     /**
