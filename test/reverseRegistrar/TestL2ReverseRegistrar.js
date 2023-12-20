@@ -2,6 +2,8 @@ const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { namehash } = require('../test-utils/ens')
 
+const keccak256 = ethers.utils.solidityKeccak256
+
 describe('L2ReverseRegistrar', function () {
   let L2ReverseRegistrar
   let L2ReverseRegistrarWithAccount2
@@ -29,6 +31,7 @@ describe('L2ReverseRegistrar', function () {
     )
     L2ReverseRegistrar = await L2ReverseRegistrarFactory.deploy(
       namehash('optimism.reverse'),
+      123,
     )
 
     const MockSmartContractWalletFactory = await ethers.getContractFactory(
@@ -80,12 +83,16 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const signatureExpiry = block.timestamp
+      const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'uint256'],
-            [funcId, account, 'hello.eth', signatureExpiry],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -93,7 +100,7 @@ describe('L2ReverseRegistrar', function () {
       await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
         account,
         'hello.eth',
-        signatureExpiry,
+        inceptionDate,
         signature,
       )
 
@@ -107,12 +114,16 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const signatureExpiry = block.timestamp + 3600
+      const inceptionDate = block.timestamp + 3600
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'uint256'],
-            [funcId, account, 'hello.eth', signatureExpiry],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -121,7 +132,7 @@ describe('L2ReverseRegistrar', function () {
         L2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
           account,
           'notthesamename.eth',
-          signatureExpiry,
+          inceptionDate,
           signature,
         ),
       ).to.be.revertedWith(`InvalidSignature()`)
@@ -136,9 +147,13 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'uint256'],
-            [funcId, account, 'hello.eth', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -156,9 +171,13 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate2 = 0
       const signature2 = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'uint256'],
-            [funcId, account, 'hello.eth', inceptionDate2],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              account,
+              inceptionDate2,
+            ],
           ),
         ),
       )
@@ -183,17 +202,16 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const signatureExpiry = block.timestamp
+      const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'address', 'string', 'uint256'],
+          keccak256(
+            ['bytes32', 'address', 'address', 'uint256'],
             [
-              funcId,
+              keccak256(['bytes4', 'string'], [funcId, 'ownable.eth']),
               MockOwnable.address,
               MockSmartContractWallet.address,
-              'ownable.eth',
-              signatureExpiry,
+              inceptionDate,
             ],
           ),
         ),
@@ -205,7 +223,7 @@ describe('L2ReverseRegistrar', function () {
         MockOwnable.address,
         MockSmartContractWallet.address,
         'ownable.eth',
-        signatureExpiry,
+        inceptionDate,
         signature,
       )
 
@@ -238,9 +256,16 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId, 'url', 'http://ens.domains'],
+              ),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -269,9 +294,16 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId, 'url', 'http://ens.domains'],
+              ),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -296,9 +328,16 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId, 'url', 'http://ens.domains'],
+              ),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
@@ -320,9 +359,16 @@ describe('L2ReverseRegistrar', function () {
       const inceptionDate2 = 0
       const signature2 = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId, account, 'url', 'http://ens.domains', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId, 'url', 'http://ens.domains'],
+              ),
+              account,
+              inceptionDate2,
+            ],
           ),
         ),
       )
@@ -335,7 +381,7 @@ describe('L2ReverseRegistrar', function () {
           inceptionDate2,
           signature2,
         ),
-      ).to.be.revertedWith(`InvalidSignature()`)
+      ).to.be.revertedWith(`SignatureOutOfDate()`)
     })
   })
 
@@ -348,18 +394,19 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const signatureExpiry = block.timestamp
+      const inceptionDate = block.timestamp
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'address', 'string', 'string', 'uint256'],
+          keccak256(
+            ['bytes32', 'address', 'address', 'uint256'],
             [
-              funcId,
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId, 'url', 'http://ens.domains'],
+              ),
               MockOwnable.address,
               MockSmartContractWallet.address,
-              'url',
-              'http://ens.domains',
-              signatureExpiry,
+              inceptionDate,
             ],
           ),
         ),
@@ -372,7 +419,7 @@ describe('L2ReverseRegistrar', function () {
         MockSmartContractWallet.address,
         'url',
         'http://ens.domains',
-        signatureExpiry,
+        inceptionDate,
         signature,
       )
 
@@ -424,18 +471,29 @@ describe('L2ReverseRegistrar', function () {
       console.log('inceptionDate', inceptionDate)
       const signature1 = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'string', 'uint256'],
-            [funcId1, account, 'url', 'http://ens.domains', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(
+                ['bytes4', 'string', 'string'],
+                [funcId1, 'url', 'http://ens.domains'],
+              ),
+              account,
+              inceptionDate,
+            ],
           ),
         ),
       )
 
       const signature2 = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'string', 'uint256'],
-            [funcId2, account, 'hello.eth', inceptionDate],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [
+              keccak256(['bytes4', 'string'], [funcId2, 'hello.eth']),
+              account,
+              inceptionDate + 1,
+            ],
           ),
         ),
       )
@@ -447,7 +505,7 @@ describe('L2ReverseRegistrar', function () {
         ),
         L2ReverseRegistrar.interface.encodeFunctionData(
           'setNameForAddrWithSignature',
-          [account, 'hello.eth', inceptionDate, signature2],
+          [account, 'hello.eth', inceptionDate + 1, signature2],
         ),
       ]
 
@@ -491,19 +549,19 @@ describe('L2ReverseRegistrar', function () {
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const signatureExpiry = block.timestamp
+      const inceptionDate = block.timestamp * 1000
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'uint256'],
-            [funcId, account, signatureExpiry],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [keccak256(['bytes4'], [funcId]), account, inceptionDate],
           ),
         ),
       )
 
       await L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
         account,
-        signatureExpiry,
+        inceptionDate,
         signature,
       )
 
@@ -525,12 +583,12 @@ describe('L2ReverseRegistrar', function () {
         .id('clearRecordsWithSignature(address,uint256,bytes)')
         .substring(0, 10)
 
-      const signatureExpiry = 0
+      const inceptionDate = 0
       const signature = await signers[0].signMessage(
         ethers.utils.arrayify(
-          ethers.utils.solidityKeccak256(
-            ['bytes4', 'address', 'uint256'],
-            [funcId, account, signatureExpiry],
+          keccak256(
+            ['bytes32', 'address', 'uint256'],
+            [keccak256(['bytes4'], [funcId]), account, inceptionDate],
           ),
         ),
       )
@@ -538,7 +596,7 @@ describe('L2ReverseRegistrar', function () {
       await expect(
         L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
           account,
-          signatureExpiry,
+          inceptionDate,
           signature,
         ),
       ).to.be.revertedWith(`SignatureOutOfDate()`)

@@ -15,6 +15,11 @@ error SignatureOutOfDate();
 error Unauthorised();
 error NotOwnerOfContract();
 
+// Note on inception date
+// The inception date is in milliseconds, and so will be divided by 1000
+// when comparing to block.timestamp. This means that the date will be
+// rounded down to the nearest second.
+
 contract L2ReverseRegistrar is
     Multicallable,
     Ownable,
@@ -90,7 +95,8 @@ contract L2ReverseRegistrar is
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
-        bytes32 message = hash.toEthSignedMessageHash();
+        bytes32 message = keccak256(abi.encodePacked(hash, addr, inceptionDate))
+            .toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
         if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
@@ -98,8 +104,8 @@ contract L2ReverseRegistrar is
         }
 
         if (
-            inceptionDate < lastUpdated[node] || // must be newer than current record
-            inceptionDate >= block.timestamp // must be in the past
+            inceptionDate <= lastUpdated[node] || // must be newer than current record
+            inceptionDate / 1000 >= block.timestamp // must be in the past
         ) {
             revert SignatureOutOfDate();
         }
@@ -112,7 +118,9 @@ contract L2ReverseRegistrar is
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
-        bytes32 message = hash.toEthSignedMessageHash();
+        bytes32 message = keccak256(
+            abi.encodePacked(hash, addr, owner, inceptionDate)
+        ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
         if (!ownsContract(addr, owner)) {
@@ -130,8 +138,8 @@ contract L2ReverseRegistrar is
         }
 
         if (
-            inceptionDate < lastUpdated[node] || // must be newer than current record
-            inceptionDate >= block.timestamp // must be in the past
+            inceptionDate <= lastUpdated[node] || // must be newer than current record
+            inceptionDate / 1000 >= block.timestamp // must be in the past
         ) {
             revert SignatureOutOfDate();
         }
@@ -157,9 +165,7 @@ contract L2ReverseRegistrar is
             keccak256(
                 abi.encodePacked(
                     IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
-                    addr,
-                    name,
-                    inceptionDate
+                    name
                 )
             ),
             addr,
@@ -197,10 +203,7 @@ contract L2ReverseRegistrar is
                     IL2ReverseRegistrar
                         .setNameForAddrWithSignatureAndOwnable
                         .selector,
-                    contractAddr,
-                    owner,
-                    name,
-                    inceptionDate
+                    name
                 )
             ),
             contractAddr,
@@ -263,10 +266,8 @@ contract L2ReverseRegistrar is
             keccak256(
                 abi.encodePacked(
                     IL2ReverseRegistrar.setTextForAddrWithSignature.selector,
-                    addr,
                     key,
-                    value,
-                    inceptionDate
+                    value
                 )
             ),
             addr,
@@ -305,11 +306,8 @@ contract L2ReverseRegistrar is
                     IL2ReverseRegistrar
                         .setTextForAddrWithSignatureAndOwnable
                         .selector,
-                    contractAddr,
-                    owner,
                     key,
-                    value,
-                    inceptionDate
+                    value
                 )
             ),
             contractAddr,
@@ -437,9 +435,7 @@ contract L2ReverseRegistrar is
         authorisedSignature(
             keccak256(
                 abi.encodePacked(
-                    IL2ReverseRegistrar.clearRecordsWithSignature.selector,
-                    addr,
-                    inceptionDate
+                    IL2ReverseRegistrar.clearRecordsWithSignature.selector
                 )
             ),
             addr,
