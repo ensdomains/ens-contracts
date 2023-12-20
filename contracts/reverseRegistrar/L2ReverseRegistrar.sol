@@ -15,7 +15,7 @@ error SignatureOutOfDate();
 error Unauthorised();
 error NotOwnerOfContract();
 
-// Note on inception date
+// @note Inception date
 // The inception date is in milliseconds, and so will be divided by 1000
 // when comparing to block.timestamp. This means that the date will be
 // rounded down to the nearest second.
@@ -95,8 +95,9 @@ contract L2ReverseRegistrar is
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
-        bytes32 message = keccak256(abi.encodePacked(hash, addr, inceptionDate))
-            .toEthSignedMessageHash();
+        bytes32 message = keccak256(
+            abi.encodePacked(hash, addr, inceptionDate, coinType)
+        ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
         if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
@@ -119,7 +120,7 @@ contract L2ReverseRegistrar is
         bytes memory signature
     ) internal view returns (bool) {
         bytes32 message = keccak256(
-            abi.encodePacked(hash, addr, owner, inceptionDate)
+            abi.encodePacked(hash, addr, owner, inceptionDate, coinType)
         ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
