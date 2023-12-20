@@ -11,8 +11,9 @@ abstract contract AddrResolver is
     ResolverBase
 {
     uint256 private constant COIN_TYPE_ETH = 60;
-
-    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
+    bytes defaultEVMAddress;
+    mapping(uint64 => mapping(bytes32 => bytes)) versionableDefault;
+    mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionableAddresses;
 
     /**
      * Sets the address associated with an ENS node.
@@ -51,14 +52,29 @@ abstract contract AddrResolver is
         if (coinType == COIN_TYPE_ETH) {
             emit AddrChanged(node, bytesToAddress(a));
         }
-        versionable_addresses[recordVersions[node]][node][coinType] = a;
+        versionableAddresses[recordVersions[node]][node][coinType] = a;
+    }
+
+    function setEVMDefault(
+        bytes32 node,
+        bytes memory a
+    ) public virtual authorised(node) {
+        emit AddressChanged(node, COIN_TYPE_ETH, a);
+        emit AddrChanged(node, bytesToAddress(a));
+        defaultEVMAddress = a;
     }
 
     function addr(
         bytes32 node,
         uint256 coinType
     ) public view virtual override returns (bytes memory) {
-        return versionable_addresses[recordVersions[node]][node][coinType];
+        bytes memory record = versionableAddresses[recordVersions[node]][node][
+            coinType
+        ];
+        if (record.length == 0 && _isEVMAddress(coinType)) {
+            return defaultEVMAddress;
+        }
+        return record;
     }
 
     function supportsInterface(
@@ -84,5 +100,9 @@ abstract contract AddrResolver is
         assembly {
             mstore(add(b, 32), mul(a, exp(256, 12)))
         }
+    }
+
+    function _isEVMAddress(uint256 coinType) internal pure returns (bool) {
+        return (0x7fffffff & coinType) >> 0 > 0;
     }
 }

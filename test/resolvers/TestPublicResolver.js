@@ -7,6 +7,7 @@ const {
   EMPTY_BYTES32: ROOT_NODE,
   EMPTY_ADDRESS,
 } = require('../test-utils/constants')
+const { ethers } = require('hardhat')
 
 const { expect } = require('chai')
 const namehash = require('eth-ens-namehash')
@@ -20,8 +21,9 @@ contract('PublicResolver', function (accounts) {
   let account
   let signers
   let result
+  let snapshotId
 
-  beforeEach(async () => {
+  before(async () => {
     signers = await ethers.getSigners()
     account = await signers[0].getAddress()
     node = namehash.hash('eth')
@@ -51,6 +53,13 @@ contract('PublicResolver', function (accounts) {
     await ens.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
       from: accounts[0],
     })
+  })
+
+  beforeEach(async () => {
+    snapshotId = await ethers.provider.send('evm_snapshot')
+  })
+  afterEach(async () => {
+    await ethers.provider.send('evm_revert', [snapshotId])
   })
 
   describe('fallback function', async () => {
@@ -381,6 +390,11 @@ contract('PublicResolver', function (accounts) {
       await basicSetAddr()
       await resolver.clearRecords(node)
       assert.equal(await resolver.methods['addr(bytes32)'](node), EMPTY_ADDRESS)
+    })
+
+    it('resets record on version change', async () => {
+      await resolver.setEVMDefault(node, accounts[1])
+      assert.equal(await resolver.methods['addr(bytes32)'](node), accounts[1])
     })
   })
 
