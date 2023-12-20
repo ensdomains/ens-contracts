@@ -31,6 +31,7 @@ contract L2ReverseRegistrar is
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     bytes32 public immutable L2ReverseNode;
+    uint256 public immutable coinType;
 
     // This is the hex encoding of the string 'abcdefghijklmnopqrstuvwxyz'
     // It is used as a constant to lookup the characters of the hex address
@@ -40,8 +41,9 @@ contract L2ReverseRegistrar is
     /**
      * @dev Constructor
      */
-    constructor(bytes32 _L2ReverseNode) {
+    constructor(bytes32 _L2ReverseNode, uint256 _coinType) {
         L2ReverseNode = _L2ReverseNode;
+        coinType = _coinType;
     }
 
     modifier authorised(address addr) {
