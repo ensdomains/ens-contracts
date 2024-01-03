@@ -560,6 +560,45 @@ contract('UniversalResolver', function (accounts) {
       )
       expect(addrRet).to.equal(dummyOffchainResolver.address)
     })
+    it('should propagate HttpError', async () => {
+      const urWithHttpErrorAbi = new ethers.Contract(
+        universalResolver.address,
+        [
+          ...universalResolver.interface.fragments,
+          'error HttpError((uint16,string)[])',
+        ],
+        ethers.provider,
+      )
+      const errorData = urWithHttpErrorAbi.interface.encodeErrorResult(
+        'HttpError',
+        [[[404, 'Not Found']]],
+      )
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        [
+          false,
+          dummyOffchainResolver.address,
+          ['http://universal-offchain-resolver.local/'],
+          '0x',
+          [[resolveCallbackSig, errorData]],
+        ],
+      )
+      const responses = batchGateway.encodeFunctionResult('query', [
+        [true],
+        [errorData],
+      ])
+
+      try {
+        await urWithHttpErrorAbi.callStatic.resolveSingleCallback(
+          responses,
+          extraData,
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('HttpError')
+        expect(e.errorArgs).to.deep.equal([[[404, 'Not Found']]])
+      }
+    })
   })
   describe('resolveCallback', () => {
     it('should resolve records via a callback from offchain lookup', async () => {

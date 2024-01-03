@@ -594,11 +594,10 @@ contract UniversalResolver is ERC165, Ownable {
     function _checkResolveSingle(Result memory result) internal pure {
         if (!result.success) {
             if (bytes4(result.returnData) == HttpError.selector) {
-                (, HttpErrorItem[] memory errors) = abi.decode(
-                    result.returnData,
-                    (bytes4, HttpErrorItem[])
-                );
-                revert HttpError(errors);
+                bytes memory returnData = result.returnData;
+                assembly {
+                    revert(add(returnData, 32), mload(returnData))
+                }
             }
             revert ResolverError(result.returnData);
         }
