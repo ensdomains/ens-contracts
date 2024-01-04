@@ -262,15 +262,12 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.other')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.other'),
           data,
-        )
-        expect(false).to.be.true
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverNotFound')
-      }
+        ),
+      ).to.be.revertedWith('ResolverNotFound')
     })
 
     it('should throw if a resolver is not a contract', async () => {
@@ -279,15 +276,12 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('non-contract-resolver.test.eth')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('non-contract-resolver.test.eth'),
           data,
-        )
-        expect(false).to.be.true
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverNotContract')
-      }
+        ),
+      ).to.be.revertedWith('ResolverNotContract')
     })
 
     it('should throw with revert data if resolver reverts', async () => {
@@ -326,14 +320,12 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.eth')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.eth'),
           data,
-        )
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverWildcardNotSupported')
-      }
+        ),
+      ).to.be.revertedWith('ResolverWildcardNotSupported')
     })
 
     it('should resolve a record if `supportsInterface` throws', async () => {
@@ -386,6 +378,7 @@ contract('UniversalResolver', function (accounts) {
           dns.hexEncodeName('test2.eth'),
           data,
         )
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorName).to.equal('ResolverError')
         expect(e.errorSignature).to.equal('ResolverError(bytes)')
@@ -421,6 +414,7 @@ contract('UniversalResolver', function (accounts) {
           dns.hexEncodeName('offchain.test.eth'),
           data,
         )
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorName).to.equal('OffchainLookup')
         expect(e.errorArgs.sender).to.equal(universalResolver.address)
@@ -449,6 +443,7 @@ contract('UniversalResolver', function (accounts) {
           data,
           ['https://custom-offchain-resolver.local/'],
         )
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorArgs.urls).to.deep.equal([
           'https://custom-offchain-resolver.local/',
@@ -517,6 +512,7 @@ contract('UniversalResolver', function (accounts) {
             dns.hexEncodeName('offchain.test.eth'),
             [textData, addrData],
           )
+          expect(false).to.be.true
         } catch (e) {
           expect(e.errorName).to.equal('OffchainLookup')
           expect(e.errorArgs.callData).to.equal(callData)
@@ -762,6 +758,7 @@ contract('UniversalResolver', function (accounts) {
       ])
       try {
         await universalResolver.callStatic.reverseCallback(responses, extraData)
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorName).to.equal('OffchainLookup')
         const extraDataReturned = ethers.utils.defaultAbiCoder.decode(
