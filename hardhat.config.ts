@@ -33,8 +33,9 @@ if (process.env.DEPLOYER_KEY) {
     process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
   ]
 }
-
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 // circular dependency shared with actions
+console.log(1)
 export const archivedDeploymentPath = './deployments/archive'
 
 const config: HardhatUserConfig = {
@@ -72,6 +73,24 @@ const config: HardhatUserConfig = {
       tags: ['test', 'legacy', 'use_root'],
       chainId: 11155111,
       accounts: real_accounts,
+    },
+    optimismSepolia: {
+      url: 'https://sepolia.optimism.io',
+      chainId: 11155420,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    baseSepolia: {
+      url: 'https://sepolia.base.org',
+      chainId: 84532,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    arbitrumSepolia: {
+      url: 'https://sepolia-rollup.arbitrum.io/rpc',
+      chainId: 421614,
+      accounts: real_accounts,
+      tags: ['l2'],
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -128,6 +147,39 @@ const config: HardhatUserConfig = {
     owner: {
       default: 1,
     },
+  },
+  etherscan: {
+    apiKey: {
+      optimismSepolia: ETHERSCAN_API_KEY,
+      baseSepolia: ETHERSCAN_API_KEY,
+      arbitrumSepolia: ETHERSCAN_API_KEY,
+    },
+    customChains: [
+      {
+        network: 'optimismSepolia',
+        chainId: 11155420,
+        urls: {
+          apiURL: 'https://api-sepolia-optimism.etherscan.io/api',
+          browserURL: 'https://sepolia-optimism.etherscan.io',
+        },
+      },
+      {
+        network: 'baseSepolia',
+        chainId: 84532,
+        urls: {
+          apiURL: 'https://api-sepolia.basescan.org/api',
+          browserURL: 'https://sepolia.basescan.org',
+        },
+      },
+      {
+        network: 'arbitrumSepolia',
+        chainId: 421614,
+        urls: {
+          apiURL: 'https://api-sepolia.arbiscan.io/api',
+          browserURL: 'https://api-sepolia.arbiscan.io',
+        },
+      },
+    ],
   },
   external: {
     contracts: [
