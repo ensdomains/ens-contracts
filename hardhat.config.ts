@@ -11,6 +11,7 @@ import 'hardhat-deploy'
 import 'hardhat-gas-reporter'
 import { HardhatUserConfig } from 'hardhat/config'
 import { promisify } from 'util'
+import '@nomicfoundation/hardhat-verify'
 
 const exec = promisify(_exec)
 
@@ -35,7 +36,6 @@ if (process.env.DEPLOYER_KEY) {
 }
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY
 // circular dependency shared with actions
-console.log(1)
 export const archivedDeploymentPath = './deployments/archive'
 
 const config: HardhatUserConfig = {
