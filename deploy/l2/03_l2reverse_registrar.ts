@@ -10,17 +10,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const chainId = hre.network.config.chainId!
   const coinType = convertEVMChainIdToCoinType(chainId)
   const REVERSE_NAMESPACE = `${coinType}.reverse.evmgateway.eth`
-  const REVERSENODE = ethers.utils.namehash(REVERSE_NAMESPACE)
+  const REVERSENODE = ethers.namehash(REVERSE_NAMESPACE)
   console.log(
     `REVERSE_NAMESPACE for chainId ${chainId} is ${REVERSE_NAMESPACE}`,
   )
-  console.log(
-    `Deploying L2ReverseRegistrar with REVERSENODE ${REVERSENODE} and coinType ${coinType}`,
-  )
+  console.log(`Deploying L2ReverseRegistrar with ${REVERSENODE}`)
   await deploy('L2ReverseRegistrar', {
     from: deployer,
-    args: [REVERSENODE, coinType],
+    args: [REVERSENODE],
     log: true,
+    // gasPrice:20000007,
+    // gas:20000007
   })
 }
 export default func
