@@ -32,5 +32,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 }
 
 func.tags = ['dnssec-algorithms']
+func.dependencies = ['BaseRegistrarImplementation'] // not necessary but allows registrar to be deployed first
 
 export default func
