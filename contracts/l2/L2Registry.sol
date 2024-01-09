@@ -112,20 +112,31 @@ contract L2Registry is IERC1155 {
         console.log("Calling setSubnode");
         console.log(id);
         console.log(label);
-        // console.log(tokenData);
+        console.logBytes(tokenData);
         console.log(operator);
         console.log(to);
+        console.log(11);
         require(address(_getController(tokens[id])) == msg.sender);
+        console.log(12);
         uint256 subnode = uint256(keccak256(abi.encodePacked(id, label)));
+        console.log(13);
         bytes memory oldTokenData = tokens[subnode];
+        console.log(14);
         IController oldController = _getController(oldTokenData);
+        console.log(15);
         address oldOwner = address(oldController) == address(0)
             ? address(0)
             : oldController.ownerOf(oldTokenData);
+        console.log(16);
         tokens[subnode] = tokenData;
+        console.log(17);
         if (to == address(0)) {
+            console.log(18);
             to = _getController(tokenData).ownerOf(tokenData);
+            console.log(19);
+            console.log(to);
         }
+        console.log(20);
         emit TransferSingle(operator, oldOwner, to, subnode, 1);
     }
 

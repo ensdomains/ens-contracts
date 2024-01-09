@@ -19,9 +19,9 @@ contract('L2Registry', function (accounts) {
     resolver,
     root,
     registry,
-    controller,
+    factory,
     ownerController,
-    controllerFactory
+    ownerControllerAddress
   beforeEach(async () => {
     signers = await ethers.getSigners()
     deployer = await signers[0]
@@ -44,39 +44,35 @@ contract('L2Registry', function (accounts) {
     registry = await L2Registry.new(root.address)
     console.log(3, { registryAddress: registry.address })
     factory = await SimpleControllerFactory.new(registry.address)
-    ownerController = await deploy(
-      'SimpleController',
-      registry.address,
-      ownerAddress,
+    await factory.getInstance(ownerAddress)
+    ownerControllerAddress = await factory.computeAddress(ownerAddress)
+    console.log(4, { ownerControllerAddress })
+    ownerController = await (
+      await ethers.getContractFactory('SimpleController')
     )
-    ownerController = ownerController.connect(owner)
-    // controller = await SimpleController.new(
-    //     registry.address,
-    //     ownerAddress
-    // )
-    // console.log(4, {controllerAddress:controller.address})
-    // ownerController = await (
-    //     await ethers.getContractFactory('SimpleController')
-    // )
-    //     .attach(controller.address)
-    //     .connect(ownerAddress)
-
-    // console.log(5, {controllerSigner:ownerController.signer.address})
+      .attach(ownerControllerAddress)
+      .connect(ownerAddress)
   })
   it('should deploy', async () => {
+    console.log(5)
     assert.equal(await registry.controller(ROOT_NODE), root.address)
-    console.log(6)
+    console.log(
+      6,
+      registry.address,
+      ROOT_NODE,
+      labelhash('test'),
+      ownerControllerAddress,
+    )
     await root.setSubnode(
       registry.address,
       ROOT_NODE,
       labelhash('test'),
-      ownerController.address,
+      ownerControllerAddress,
     )
     console.log(7)
-    assert.equal(await registry.controller(TEST_NODE), ownerController.address)
+    assert.equal(await registry.controller(TEST_NODE), ownerControllerAddress)
     console.log(8, await factory.computeAddress(subnodeOwnerAddress))
     console.log(9, await factory.getInstance(subnodeOwnerAddress))
-    // console.log(8, {controllerSigner:ownerController.signer.address})
     await ownerController.setSubnode(
       TEST_NODE,
       labelhash('sub'),
