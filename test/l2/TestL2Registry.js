@@ -44,14 +44,13 @@ contract('L2Registry', function (accounts) {
     registry = await L2Registry.new(root.address)
     console.log(3, { registryAddress: registry.address })
     factory = await SimpleControllerFactory.new(registry.address)
-    await factory.getInstance(ownerAddress)
-    ownerControllerAddress = await factory.computeAddress(ownerAddress)
-    console.log(4, { ownerControllerAddress })
-    ownerController = await (
-      await ethers.getContractFactory('SimpleController')
+    const tx = await factory.getInstance(ownerAddress)
+    ownerControllerAddress = tx.logs[0].args.instance
+    ownerController = await ethers.getContractAt(
+      'SimpleController',
+      ownerControllerAddress,
+      owner,
     )
-      .attach(ownerControllerAddress)
-      .connect(ownerAddress)
   })
   it('should deploy', async () => {
     console.log(5)

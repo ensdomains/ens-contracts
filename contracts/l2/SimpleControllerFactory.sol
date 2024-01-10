@@ -13,6 +13,8 @@ contract SimpleControllerFactory is IControllerFactory {
 
     L2Registry immutable registry;
 
+    event NewInstance(address owner, address instance);
+
     constructor(address _registry) {
         registry = L2Registry(_registry);
     }
@@ -25,22 +27,19 @@ contract SimpleControllerFactory is IControllerFactory {
             keccak256(
                 abi.encodePacked(
                     type(SimpleController).creationCode,
-                    address(registry),
-                    owner
+                    abi.encode(address(registry), owner)
                 )
             )
         );
     }
 
     function getInstance(address owner) external returns (address controller) {
-        console.log("Calling getInstance");
         controller = computeAddress(owner);
-        console.log(controller.code.length);
         if (controller.code.length == 0) {
             controller = address(
                 new SimpleController{salt: bytes32(0)}(registry, owner)
             );
         }
-        console.log(controller.code.length);
+        emit NewInstance(owner, controller);
     }
 }
