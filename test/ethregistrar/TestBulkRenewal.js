@@ -114,9 +114,10 @@ contract('BulkRenewal', function (accounts) {
   })
 
   it('should return the cost of a bulk renewal', async () => {
+    const result = await bulkRenewal.rentPrice(['test1', 'test2'], 86400)
     assert.equal(
-      await bulkRenewal.rentPrice(['test1', 'test2'], 86400),
-      86400 * 2,
+      result.toString(),
+      '172800', //(86400 * 2)
     )
   })
 
@@ -131,8 +132,9 @@ contract('BulkRenewal', function (accounts) {
     })
     assert.equal(tx.receipt.status, true)
     const newExpiry = await baseRegistrar.nameExpires(sha3('test2'))
-    assert.equal(newExpiry - oldExpiry, 86400)
+    assert.equal((newExpiry - oldExpiry).toString(), '86400')
     // Check any excess funds are returned
-    assert.equal(await web3.eth.getBalance(bulkRenewal.address), 0)
+    const balance = await web3.eth.getBalance(bulkRenewal.address)
+    assert.equal(balance, 0)
   })
 })
