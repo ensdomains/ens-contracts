@@ -176,8 +176,8 @@ contract L2ReverseRegistrar is
         returns (bytes32)
     {
         bytes32 node = _getNamehash(addr);
-
         _setName(node, name, inceptionDate);
+        emit ReverseClaimed(addr, node);
         return node;
     }
 
@@ -216,6 +216,7 @@ contract L2ReverseRegistrar is
     {
         bytes32 node = _getNamehash(contractAddr);
         _setName(node, name, inceptionDate);
+        emit ReverseClaimed(contractAddr, node);
     }
 
     /**
@@ -242,6 +243,7 @@ contract L2ReverseRegistrar is
     ) public authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
         _setName(node, name, block.timestamp);
+        emit ReverseClaimed(addr, node);
         return node;
     }
 
