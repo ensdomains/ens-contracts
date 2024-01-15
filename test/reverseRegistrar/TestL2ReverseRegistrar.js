@@ -64,33 +64,49 @@ describe('L2ReverseRegistrar', function () {
   })
 
   describe('setName', () => {
-    it('should set the name record for the calling account', async function () {
-      const name = 'myname.eth'
-      const tx = await L2ReverseRegistrar.setName(name)
-      await tx.wait()
-
-      const node = await L2ReverseRegistrar.node(
+    let name
+    let node
+    beforeEach(async () => {
+      name = 'myname.eth'
+      node = await L2ReverseRegistrar.node(
         await ethers.provider.getSigner().getAddress(),
       )
+    })
+
+    it('should set the name record for the calling account', async function () {
+      const tx = await L2ReverseRegistrar.setName(name)
+      await tx.wait()
       const actualName = await L2ReverseRegistrar.name(node)
       expect(actualName).to.equal(name)
+    })
+
+    it('event ReverseClaimed is emitted', async () => {
+      await expect(L2ReverseRegistrar.setName(name))
+        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+        .withArgs(account, node)
     })
   })
 
   describe('setNameForAddrWithSignature', () => {
-    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+    let name
+    let node
+    let inceptionDate
+    let signature
+    beforeEach(async () => {
+      name = 'myname.eth'
+      node = await L2ReverseRegistrar.node(account)
       const funcId = ethers.utils
         .id(setNameForAddrWithSignatureFuncSig)
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const inceptionDate = block.timestamp
-      const signature = await signers[0].signMessage(
+      inceptionDate = block.timestamp
+      signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           keccak256(
             ['bytes32', 'address', 'uint256', 'uint256'],
             [
-              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              keccak256(['bytes4', 'string'], [funcId, name]),
               account,
               inceptionDate,
               coinType,
@@ -98,16 +114,29 @@ describe('L2ReverseRegistrar', function () {
           ),
         ),
       )
+    })
 
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
       await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
         account,
-        'hello.eth',
+        name,
         inceptionDate,
         signature,
       )
+      assert.equal(await L2ReverseRegistrar.name(node), name)
+    })
 
-      const node = await L2ReverseRegistrar.node(account)
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+    it('event ReverseClaimed is emitted', async () => {
+      await expect(
+        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+          account,
+          name,
+          inceptionDate,
+          signature,
+        ),
+      )
+        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+        .withArgs(account, node)
     })
 
     it('reverts if signature parameters do not match', async () => {
@@ -122,7 +151,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['bytes32', 'address', 'uint256'],
             [
-              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
+              keccak256(['bytes4', 'string'], [funcId, name]),
               account,
               inceptionDate,
             ],
@@ -197,22 +226,27 @@ describe('L2ReverseRegistrar', function () {
     })
   })
 
-  describe('setNameForAddrWithSignatureAndOwnable', () => {
-    it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
-      const node = await L2ReverseRegistrar.node(MockOwnable.address)
+  describe.only('setNameForAddrWithSignatureAndOwnable', () => {
+    let name
+    let node
+    let inceptionDate
+    let signature
+    beforeEach(async () => {
+      name = 'ownable.eth'
+      node = await L2ReverseRegistrar.node(MockOwnable.address)
       assert.equal(await L2ReverseRegistrar.name(node), '')
       const funcId = ethers.utils
         .id(setNameForAddrWithSignatureAndOwnableFuncSig)
         .substring(0, 10)
 
       const block = await ethers.provider.getBlock('latest')
-      const inceptionDate = block.timestamp
-      const signature = await signers[0].signMessage(
+      inceptionDate = block.timestamp
+      signature = await signers[0].signMessage(
         ethers.utils.arrayify(
           keccak256(
             ['bytes32', 'address', 'address', 'uint256', 'uint256'],
             [
-              keccak256(['bytes4', 'string'], [funcId, 'ownable.eth']),
+              keccak256(['bytes4', 'string'], [funcId, name]),
               MockOwnable.address,
               MockSmartContractWallet.address,
               inceptionDate,
@@ -221,18 +255,37 @@ describe('L2ReverseRegistrar', function () {
           ),
         ),
       )
+    })
 
+    it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
       await L2ReverseRegistrarWithAccount2[
         'setNameForAddrWithSignatureAndOwnable'
       ](
         MockOwnable.address,
         MockSmartContractWallet.address,
-        'ownable.eth',
+        name,
         inceptionDate,
         signature,
       )
 
-      assert.equal(await L2ReverseRegistrar.name(node), 'ownable.eth')
+      assert.equal(await L2ReverseRegistrar.name(node), name)
+    })
+    it('event ReverseClaimed is emitted', async () => {
+      console.log({
+        MockSmartContractWalletAddress: MockSmartContractWallet.address,
+        MockOwnableAddress: MockOwnable.address,
+      })
+      await expect(
+        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignatureAndOwnable'](
+          MockOwnable.address,
+          MockSmartContractWallet.address,
+          name,
+          inceptionDate,
+          signature,
+        ),
+      )
+        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+        .withArgs(MockOwnable.address, node)
     })
   })
 
