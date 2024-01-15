@@ -271,10 +271,6 @@ describe('L2ReverseRegistrar', function () {
       assert.equal(await L2ReverseRegistrar.name(node), name)
     })
     it('event ReverseClaimed is emitted', async () => {
-      console.log({
-        MockSmartContractWalletAddress: MockSmartContractWallet.address,
-        MockOwnableAddress: MockOwnable.address,
-      })
       await expect(
         L2ReverseRegistrarWithAccount2['setNameForAddrWithSignatureAndOwnable'](
           MockOwnable.address,
