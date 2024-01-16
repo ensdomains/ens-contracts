@@ -3073,8 +3073,8 @@ clone@2.1.2, clone@^2.0.0:
   integrity sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==
 
 clones-with-immutable-args@Arachnid/clones-with-immutable-args#feature/create2:
-  version "1.0.0"
-  resolved "https://codeload.github.com/Arachnid/clones-with-immutable-args/tar.gz/802248d00be50ae2c8a860266aeca9b13fe317c8"
+  version "1.1.0"
+  resolved "https://codeload.github.com/Arachnid/clones-with-immutable-args/tar.gz/23768824cdc037f361f7065538b8f949cae9d3d1"
 
 code-point-at@^1.0.0:
   version "1.1.0"
