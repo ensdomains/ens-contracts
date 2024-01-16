@@ -13,7 +13,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
 }
 
-func.id = 'extended-dns-resolver'
 func.tags = ['resolvers', 'ExtendedDNSResolver']
 
 export default func
