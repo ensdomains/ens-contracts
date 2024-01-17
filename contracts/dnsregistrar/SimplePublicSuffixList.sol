@@ -7,9 +7,12 @@ import "./PublicSuffixList.sol";
 contract SimplePublicSuffixList is PublicSuffixList, Ownable {
     mapping(bytes => bool) suffixes;
 
+    event SuffixAdded(bytes suffix);
+
     function addPublicSuffixes(bytes[] memory names) public onlyOwner {
         for (uint256 i = 0; i < names.length; i++) {
             suffixes[names[i]] = true;
+            emit SuffixAdded(names[i]);
         }
     }
 
