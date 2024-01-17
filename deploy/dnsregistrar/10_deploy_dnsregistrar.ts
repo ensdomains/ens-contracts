@@ -13,11 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const oldregistrar = await hre.deployments.getOrNull('DNSRegistrar')
   const root = await ethers.getContract('Root')
 
-  const publicSuffixList = await deploy('TLDPublicSuffixList', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
+  const publicSuffixList = await ethers.getContract('SimplePublicSuffixList')
 
   const tx = await deploy('DNSRegistrar', {
     from: deployer,
@@ -34,7 +30,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (
     owner !== undefined &&
-    (await root.owner().toLowerCase()) === owner.toLowerCase()
+    (await root.owner()).toLowerCase() === owner.toLowerCase()
   ) {
     const tx2 = await root
       .connect(await ethers.getSigner(owner))

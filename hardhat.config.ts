@@ -133,6 +133,7 @@ const config: HardhatUserConfig = {
     },
     owner: {
       default: 1,
+      1: '0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7',
     },
   },
   external: {
