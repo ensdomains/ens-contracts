@@ -32,7 +32,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
   console.log(`Deployed DNSRegistrar to ${tx.address}`)
 
-  if (owner !== undefined && (await root.isOwner(owner))) {
+  if (
+    owner !== undefined &&
+    (await root.owner().toLowerCase()) === owner.toLowerCase()
+  ) {
     const tx2 = await root
       .connect(await ethers.getSigner(owner))
       .setController(tx.address, true)
