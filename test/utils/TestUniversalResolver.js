@@ -23,7 +23,13 @@ contract('UniversalResolver', function (accounts) {
     DummyOffchainResolver,
     LegacyResolver,
     ReverseRegistrar
+  /**
+   * @type {Contract}
+   */
   let ens,
+    /**
+     * @type {Contract}
+     */
     publicResolver,
     /**
      * @type {Contract}
@@ -129,6 +135,12 @@ contract('UniversalResolver', function (accounts) {
       accounts[0],
       { from: accounts[0] },
     )
+    await ens.setSubnodeOwner(
+      namehash.hash('test.eth'),
+      sha3('non-contract-resolver'),
+      accounts[0],
+      { from: accounts[0] },
+    )
     let name = 'test.eth'
     for (let i = 0; i < 5; i += 1) {
       const parent = name
@@ -149,6 +161,11 @@ contract('UniversalResolver', function (accounts) {
     await ens.setResolver(
       namehash.hash('revert-resolver.test.eth'),
       dummyRevertResolver.address,
+      { from: accounts[0] },
+    )
+    await ens.setResolver(
+      namehash.hash('non-contract-resolver.test.eth'),
+      accounts[0],
       { from: accounts[0] },
     )
 
@@ -232,11 +249,11 @@ contract('UniversalResolver', function (accounts) {
         dns.hexEncodeName('test.eth'),
         data,
       )
-      const [ret] = ethers.utils.defaultAbiCoder.decode(
+      const [returnAddress] = ethers.utils.defaultAbiCoder.decode(
         ['address'],
         result['0'],
       )
-      expect(ret).to.equal(accounts[1])
+      expect(returnAddress).to.equal(accounts[1])
     })
 
     it('should throw if a resolver is not set on the queried name', async () => {
@@ -245,37 +262,55 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.other')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.other'),
           data,
-        )
-        expect(false).to.be.true
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverNotFound')
-      }
+        ),
+      ).to.be.revertedWith('ResolverNotFound')
     })
 
-    it('should return with revert data if resolver reverts', async () => {
+    it('should throw if a resolver is not a contract', async () => {
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('non-contract-resolver.test.eth')],
+      )
+
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('non-contract-resolver.test.eth'),
+          data,
+        ),
+      ).to.be.revertedWith('ResolverNotContract')
+    })
+
+    it('should throw with revert data if resolver reverts', async () => {
       const data = publicResolver.interface.encodeFunctionData(
         'addr(bytes32)',
         [namehash.hash('revert-resolver.test.eth')],
       )
 
-      const result = await universalResolver['resolve(bytes,bytes)'](
-        dns.hexEncodeName('revert-resolver.test.eth'),
-        data,
-      )
       try {
-        publicResolver.interface.decodeFunctionResult(
-          'addr(bytes32)',
-          result['0'],
+        await universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('revert-resolver.test.eth'),
+          data,
         )
         expect(false).to.be.true
       } catch (e) {
-        expect(e.errorName).to.equal('Error')
-        expect(e.errorSignature).to.equal('Error(string)')
-        expect(e.reason).to.equal('Not Supported')
+        expect(e.errorName).to.equal('ResolverError')
+        expect(e.errorSignature).to.equal('ResolverError(bytes)')
+        const encodedInnerError = e.errorArgs[0]
+        try {
+          publicResolver.interface.decodeFunctionResult(
+            'addr(bytes32)',
+            encodedInnerError,
+          )
+          expect(false).to.be.true
+        } catch (e) {
+          expect(e.errorName).to.equal('Error')
+          expect(e.errorSignature).to.equal('Error(string)')
+          expect(e.errorArgs[0]).to.equal('Not Supported')
+        }
       }
     })
 
@@ -285,14 +320,12 @@ contract('UniversalResolver', function (accounts) {
         [namehash.hash('no-resolver.test.eth')],
       )
 
-      try {
-        await universalResolver['resolve(bytes,bytes)'](
+      await expect(
+        universalResolver['resolve(bytes,bytes)'](
           dns.hexEncodeName('no-resolver.test.eth'),
           data,
-        )
-      } catch (e) {
-        expect(e.errorName).to.equal('ResolverWildcardNotSupported')
-      }
+        ),
+      ).to.be.revertedWith('ResolverWildcardNotSupported')
     })
 
     it('should resolve a record if `supportsInterface` throws', async () => {
@@ -323,6 +356,36 @@ contract('UniversalResolver', function (accounts) {
       expect(ret).to.equal(legacyResolver.address)
     })
 
+    it('should not run out of gas if calling a non-existent function on a legacy resolver', async () => {
+      const legacyResolver = await LegacyResolver.deploy()
+      await ens.setSubnodeOwner(
+        namehash.hash('eth'),
+        sha3('test2'),
+        accounts[0],
+        { from: accounts[0] },
+      )
+      await ens.setResolver(
+        namehash.hash('test2.eth'),
+        legacyResolver.address,
+        { from: accounts[0] },
+      )
+      const data = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32,uint256)',
+        [namehash.hash('test.eth'), 60],
+      )
+      try {
+        await universalResolver['resolve(bytes,bytes)'](
+          dns.hexEncodeName('test2.eth'),
+          data,
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('ResolverError')
+        expect(e.errorSignature).to.equal('ResolverError(bytes)')
+        expect(e.errorArgs[0]).to.equal('0x')
+      }
+    })
+
     it('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
       const data = publicResolver.interface.encodeFunctionData(
         'addr(bytes32)',
@@ -351,6 +414,7 @@ contract('UniversalResolver', function (accounts) {
           dns.hexEncodeName('offchain.test.eth'),
           data,
         )
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorName).to.equal('OffchainLookup')
         expect(e.errorArgs.sender).to.equal(universalResolver.address)
@@ -379,6 +443,7 @@ contract('UniversalResolver', function (accounts) {
           data,
           ['https://custom-offchain-resolver.local/'],
         )
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorArgs.urls).to.deep.equal([
           'https://custom-offchain-resolver.local/',
@@ -396,16 +461,20 @@ contract('UniversalResolver', function (accounts) {
           'addr(bytes32)',
           [namehash.hash('test.eth')],
         )
-        const [[textEncoded, addrEncoded]] = await universalResolver[
-          'resolve(bytes,bytes[])'
-        ](dns.hexEncodeName('test.eth'), [textData, addrData])
+        const [[textResultEncoded, addrResultEncoded]] =
+          await universalResolver['resolve(bytes,bytes[])'](
+            dns.hexEncodeName('test.eth'),
+            [textData, addrData],
+          )
+        expect(textResultEncoded.success).to.equal(true)
+        expect(addrResultEncoded.success).to.equal(true)
         const [textRet] = publicResolver.interface.decodeFunctionResult(
           'text(bytes32,string)',
-          textEncoded,
+          textResultEncoded.returnData,
         )
         const [addrRet] = publicResolver.interface.decodeFunctionResult(
           'addr(bytes32)',
-          addrEncoded,
+          addrResultEncoded.returnData,
         )
         expect(textRet).to.equal('bar')
         expect(addrRet).to.equal(accounts[1])
@@ -443,6 +512,7 @@ contract('UniversalResolver', function (accounts) {
             dns.hexEncodeName('offchain.test.eth'),
             [textData, addrData],
           )
+          expect(false).to.be.true
         } catch (e) {
           expect(e.errorName).to.equal('OffchainLookup')
           expect(e.errorArgs.callData).to.equal(callData)
@@ -486,6 +556,45 @@ contract('UniversalResolver', function (accounts) {
       )
       expect(addrRet).to.equal(dummyOffchainResolver.address)
     })
+    it('should propagate HttpError', async () => {
+      const urWithHttpErrorAbi = new ethers.Contract(
+        universalResolver.address,
+        [
+          ...universalResolver.interface.fragments,
+          'error HttpError((uint16,string)[])',
+        ],
+        ethers.provider,
+      )
+      const errorData = urWithHttpErrorAbi.interface.encodeErrorResult(
+        'HttpError',
+        [[[404, 'Not Found']]],
+      )
+      const extraData = ethers.utils.defaultAbiCoder.encode(
+        ['bool', 'address', 'string[]', 'bytes', '(bytes4,bytes)[]'],
+        [
+          false,
+          dummyOffchainResolver.address,
+          ['http://universal-offchain-resolver.local/'],
+          '0x',
+          [[resolveCallbackSig, errorData]],
+        ],
+      )
+      const responses = batchGateway.encodeFunctionResult('query', [
+        [true],
+        [errorData],
+      ])
+
+      try {
+        await urWithHttpErrorAbi.callStatic.resolveSingleCallback(
+          responses,
+          extraData,
+        )
+        expect(false).to.be.true
+      } catch (e) {
+        expect(e.errorName).to.equal('HttpError')
+        expect(e.errorArgs).to.deep.equal([[[404, 'Not Found']]])
+      }
+    })
   })
   describe('resolveCallback', () => {
     it('should resolve records via a callback from offchain lookup', async () => {
@@ -517,13 +626,15 @@ contract('UniversalResolver', function (accounts) {
       const [[encodedRes, encodedResTwo], resolverAddress] =
         await universalResolver.callStatic.resolveCallback(responses, extraData)
       expect(resolverAddress).to.equal(dummyOffchainResolver.address)
+      expect(encodedRes.success).to.equal(true)
+      expect(encodedResTwo.success).to.equal(true)
       const [addrRet] = publicResolver.interface.decodeFunctionResult(
         'addr(bytes32)',
-        encodedRes,
+        encodedRes.returnData,
       )
       const [addrRetTwo] = publicResolver.interface.decodeFunctionResult(
         'addr(bytes32)',
-        encodedResTwo,
+        encodedResTwo.returnData,
       )
       expect(addrRet).to.equal(dummyOffchainResolver.address)
       expect(addrRetTwo).to.equal(dummyOffchainResolver.address)
@@ -546,7 +657,8 @@ contract('UniversalResolver', function (accounts) {
       const [[encodedRes], resolverAddress] =
         await universalResolver.callStatic.resolveCallback(responses, extraData)
       expect(resolverAddress).to.equal(dummyOffchainResolver.address)
-      expect(encodedRes).to.equal('0x')
+      expect(encodedRes.success).to.equal(false)
+      expect(encodedRes.returnData).to.equal('0x')
     })
     it('should allow response at non-0 extraData index', async () => {
       const addrData = publicResolver.interface.encodeFunctionData(
@@ -576,13 +688,15 @@ contract('UniversalResolver', function (accounts) {
       ])
       const [[encodedRes, encodedResTwo], resolverAddress] =
         await universalResolver.callStatic.resolveCallback(responses, extraData)
+      expect(encodedRes.success).to.equal(true)
+      expect(encodedResTwo.success).to.equal(true)
       const [addrRet] = ethers.utils.defaultAbiCoder.decode(
         ['bytes'],
-        encodedRes,
+        encodedRes.returnData,
       )
       const [addrRetTwo] = publicResolver.interface.decodeFunctionResult(
         'addr(bytes32)',
-        encodedResTwo,
+        encodedResTwo.returnData,
       )
       expect(ethers.utils.toUtf8String(addrRet)).to.equal('onchain')
       expect(addrRetTwo).to.equal(dummyOffchainResolver.address)
@@ -616,11 +730,12 @@ contract('UniversalResolver', function (accounts) {
       ])
       const [[addr, text], resolver] =
         await universalResolver.callStatic.resolveCallback(responses, extraData)
+      expect(text.success).to.equal(true)
       const [addrRetFromText] = publicResolver.interface.decodeFunctionResult(
         'addr(bytes32)',
-        text,
+        text.returnData,
       )
-      expect(addr).to.equal('0x')
+      expect(addr.returnData).to.equal('0x')
       expect(addrRetFromText).to.equal(dummyOffchainResolver.address)
       expect(resolver).to.equal(dummyOffchainResolver.address)
     })
@@ -643,6 +758,7 @@ contract('UniversalResolver', function (accounts) {
       ])
       try {
         await universalResolver.callStatic.reverseCallback(responses, extraData)
+        expect(false).to.be.true
       } catch (e) {
         expect(e.errorName).to.equal('OffchainLookup')
         const extraDataReturned = ethers.utils.defaultAbiCoder.decode(
