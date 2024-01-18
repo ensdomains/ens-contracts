@@ -1,0 +1,41 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/dnsregistrar/PublicSuffixList.sol": {
+      "content": "pragma solidity ^0.8.4;\n\ninterface PublicSuffixList {\n    function isPublicSuffix(bytes calldata name) external view returns (bool);\n}\n"
+    },
+    "contracts/dnsregistrar/SimplePublicSuffixList.sol": {
+      "content": "pragma solidity ^0.8.4;\npragma experimental ABIEncoderV2;\n\nimport \"../root/Ownable.sol\";\nimport \"./PublicSuffixList.sol\";\n\ncontract SimplePublicSuffixList is PublicSuffixList, Ownable {\n    mapping(bytes => bool) suffixes;\n\n    event SuffixAdded(bytes suffix);\n\n    function addPublicSuffixes(bytes[] memory names) public onlyOwner {\n        for (uint256 i = 0; i < names.length; i++) {\n            suffixes[names[i]] = true;\n            emit SuffixAdded(names[i]);\n        }\n    }\n\n    function isPublicSuffix(\n        bytes calldata name\n    ) external view override returns (bool) {\n        return suffixes[name];\n    }\n}\n"
+    },
+    "contracts/root/Ownable.sol": {
+      "content": "pragma solidity ^0.8.4;\n\ncontract Ownable {\n    address public owner;\n\n    event OwnershipTransferred(\n        address indexed previousOwner,\n        address indexed newOwner\n    );\n\n    modifier onlyOwner() {\n        require(isOwner(msg.sender));\n        _;\n    }\n\n    constructor() public {\n        owner = msg.sender;\n    }\n\n    function transferOwnership(address newOwner) public onlyOwner {\n        emit OwnershipTransferred(owner, newOwner);\n        owner = newOwner;\n    }\n\n    function isOwner(address addr) public view returns (bool) {\n        return owner == addr;\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 1200
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    }
+  }
+}
