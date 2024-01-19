@@ -4,91 +4,108 @@ pragma solidity ^0.8.17;
 
 import "./L2Registry.sol";
 import "./IController.sol";
-import "./IControllerFactory.sol";
-import "hardhat/console.sol";
 
+/**
+ * @dev A simple ENS registry controller. Names are permanently owned by a single account.
+ *      Name data is structured as follows:
+ *       - Byte 0: controller (address)
+ *       - Byte 20: owner (address)
+ *       - Byte 40: resolver (address)
+ */
 contract SimpleController is IController {
     L2Registry immutable registry;
-    IControllerFactory immutable factory;
-    address immutable owner;
 
-    address resolver;
-
-    constructor(L2Registry _registry, address _owner) {
+    constructor(L2Registry _registry) {
         registry = _registry;
-        factory = IControllerFactory(msg.sender);
-        owner = _owner;
     }
 
-    function ownerOf(
-        bytes calldata /* tokenData */
-    ) external view returns (address) {
+    /*************************
+     * IController functions *
+     *************************/
+    function ownerOf(bytes calldata tokenData) external pure returns (address) {
+        (address owner, ) = _unpack(tokenData);
         return owner;
     }
 
     function safeTransferFrom(
-        bytes calldata /*tokenData*/,
-        address /*operator*/,
+        bytes calldata tokenData,
+        address operator,
         address from,
         address to,
         uint256 /*id*/,
         uint256 value,
-        bytes calldata /*data*/
-    ) external returns (bytes memory) {
-        require(msg.sender == address(registry));
+        bytes calldata /*data*/,
+        bool operatorApproved
+    ) external view returns (bytes memory) {
+        (address owner, address resolver) = _unpack(tokenData);
+
         require(value == 1);
         require(from == owner);
-        address newController = factory.getInstance(to);
-        return abi.encodePacked(newController);
+        require(operator == owner || operatorApproved);
+
+        return _pack(to, resolver);
     }
 
     function balanceOf(
-        bytes calldata /*tokenData*/,
+        bytes calldata tokenData,
         address _owner,
         uint256 /*id*/
-    ) external view returns (uint256) {
+    ) external pure returns (uint256) {
+        (address owner, ) = _unpack(tokenData);
         return _owner == owner ? 1 : 0;
     }
 
     function resolverFor(
-        bytes calldata /* tokenData */
-    ) external view returns (address) {
+        bytes calldata tokenData
+    ) external pure returns (address) {
+        (, address resolver) = _unpack(tokenData);
         return resolver;
     }
 
-    function setResolver(address _resolver) external {
-        require(
-            msg.sender == owner || registry.isApprovedForAll(owner, msg.sender)
+    /*******************
+     * Owner functions *
+     *******************/
+
+    function setResolver(uint256 id, address newResolver) external {
+        (address owner, bool authorized) = registry.getAuthorization(
+            id,
+            msg.sender
         );
-        resolver = _resolver;
+        require(owner == msg.sender || authorized);
+        registry.setNode(id, _pack(owner, newResolver));
     }
 
     function setSubnode(
         uint256 node,
         uint256 label,
-        address subnodeOwner
+        address subnodeOwner,
+        address subnodeResolver
     ) external {
-        console.log("Calling SimpleController.setSubnode");
-        console.log(msg.sender);
-        console.log(owner);
-        require(
-            msg.sender == owner || registry.isApprovedForAll(owner, msg.sender)
+        (address owner, bool authorized) = registry.getAuthorization(
+            node,
+            msg.sender
         );
-        console.log("1");
-        console.log(subnodeOwner);
-        address newController = factory.getInstance(subnodeOwner);
-        console.log("2");
+        require(owner == msg.sender || authorized);
         registry.setSubnode(
             node,
             label,
-            abi.encodePacked(newController),
+            _pack(subnodeOwner, subnodeResolver),
             msg.sender,
             subnodeOwner
         );
-        console.log("3");
-        console.log(node);
-        console.log(label);
-        console.log(subnodeOwner);
-        console.log(newController);
+    }
+
+    function _unpack(
+        bytes calldata tokenData
+    ) internal pure returns (address owner, address resolver) {
+        owner = address(bytes20(tokenData[20:40]));
+        resolver = address(bytes20(tokenData[40:60]));
+    }
+
+    function _pack(
+        address owner,
+        address resolver
+    ) internal view returns (bytes memory tokenData) {
+        tokenData = abi.encodePacked(address(this), owner, resolver);
     }
 }

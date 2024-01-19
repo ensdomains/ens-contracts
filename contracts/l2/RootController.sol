@@ -2,9 +2,7 @@
 
 pragma solidity ^0.8.17;
 
-import "./IControllerFactory.sol";
 import "./RootController.sol";
-import "./IControllerFactory.sol";
 import "./IController.sol";
 import "./L2Registry.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -12,12 +10,17 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract RootController is Ownable, IController {
     address resolver;
 
-    constructor(address initialOwner, address _resolver) Ownable() {
+    constructor(address _resolver) Ownable() {
         resolver = _resolver;
     }
 
     error CannotTransfer();
 
+    event NewResolver(uint256 id, address resolver);
+
+    /*************************
+     * IController functions *
+     *************************/
     function ownerOf(
         bytes calldata /*tokenData*/
     ) external view returns (address) {
@@ -31,8 +34,9 @@ contract RootController is Ownable, IController {
         address /*to*/,
         uint256 /*id*/,
         uint256 /*value*/,
-        bytes calldata /*data*/
-    ) external returns (bytes memory) {
+        bytes calldata /*data*/,
+        bool /*operatorApproved*/
+    ) external pure returns (bytes memory) {
         revert CannotTransfer();
     }
 
@@ -50,8 +54,12 @@ contract RootController is Ownable, IController {
         return resolver;
     }
 
+    /*******************
+     * Owner functions *
+     *******************/
     function setResolver(address newResolver) external onlyOwner {
         resolver = newResolver;
+        emit NewResolver(0, newResolver);
     }
 
     function setSubnode(

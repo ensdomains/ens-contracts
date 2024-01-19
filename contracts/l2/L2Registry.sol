@@ -6,17 +6,22 @@ import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./IController.sol";
-import "hardhat/console.sol";
 
 contract L2Registry is IERC1155 {
-    mapping(uint256 => bytes) tokens;
+    mapping(uint256 => bytes) public tokens;
     mapping(address => mapping(address => bool)) approvals;
 
     error TokenDoesNotExist(uint256 id);
 
+    event NewController(uint256 id, address controller);
+
     constructor(bytes memory root) {
         tokens[0] = root;
     }
+
+    /********************
+     * Public functions *
+     ********************/
 
     function safeTransferFrom(
         address from,
@@ -43,6 +48,14 @@ contract L2Registry is IERC1155 {
         emit TransferBatch(msg.sender, from, to, ids, values);
     }
 
+    function setApprovalForAll(address operator, bool approved) external {
+        approvals[msg.sender][operator] = approved;
+        emit ApprovalForAll(msg.sender, operator, approved);
+    }
+
+    /*************************
+     * Public view functions *
+     *************************/
     function balanceOf(
         address owner,
         uint256 id
@@ -71,16 +84,21 @@ contract L2Registry is IERC1155 {
         }
     }
 
-    function setApprovalForAll(address operator, bool approved) external {
-        approvals[msg.sender][operator] = approved;
-        emit ApprovalForAll(msg.sender, operator, approved);
-    }
-
     function isApprovedForAll(
         address owner,
         address operator
     ) external view returns (bool) {
         return approvals[owner][operator];
+    }
+
+    function getAuthorization(
+        uint256 id,
+        address operator
+    ) public view returns (address owner, bool authorized) {
+        bytes memory tokenData = tokens[id];
+        IController _controller = _getController(tokenData);
+        owner = _controller.ownerOf(tokenData);
+        authorized = approvals[owner][operator];
     }
 
     function supportsInterface(
@@ -97,52 +115,69 @@ contract L2Registry is IERC1155 {
         return _controller.resolverFor(tokenData);
     }
 
+    function controller(uint256 id) external view returns (IController) {
+        return _getController(tokens[id]);
+    }
+
+    /*****************************
+     * Controller-only functions *
+     *****************************/
+
     function setNode(uint256 id, bytes memory data) external {
-        require(address(_getController(tokens[id])) == msg.sender);
+        // Fetch the current controller for this node
+        IController oldController = _getController(tokens[id]);
+        // Only the controller may call this function
+        require(address(oldController) == msg.sender);
+
+        // Fetch the new controller and emit `NewController` if needed.
+        IController newController = _getController(data);
+        if (oldController != newController) {
+            emit NewController(id, address(newController));
+        }
+
+        // Update the data for this node.
         tokens[id] = data;
     }
 
     function setSubnode(
         uint256 id,
         uint256 label,
-        bytes memory tokenData,
+        bytes memory subnodeData,
         address operator,
         address to
     ) external {
-        console.log("Calling setSubnode");
-        console.log(id);
-        console.log(label);
-        console.logBytes(tokenData);
-        console.log(operator);
-        console.log(to);
-        console.log(11);
-        require(address(_getController(tokens[id])) == msg.sender);
-        console.log(12);
+        // Fetch the token data and controller for the current node
+        bytes memory tokenData = tokens[id];
+        IController _controller = _getController(tokenData);
+        // Only the controller of the node may call this function
+        require(address(_controller) == msg.sender);
+
+        // Compute the subnode ID, and fetch the current data for it (if any)
         uint256 subnode = uint256(keccak256(abi.encodePacked(id, label)));
-        console.log(13);
-        bytes memory oldTokenData = tokens[subnode];
-        console.log(14);
-        IController oldController = _getController(oldTokenData);
-        console.log(15);
-        address oldOwner = address(oldController) == address(0)
+        bytes memory oldSubnodeData = tokens[subnode];
+        IController oldSubnodeController = _getController(oldSubnodeData);
+        address oldOwner = oldSubnodeData.length < 20
             ? address(0)
-            : oldController.ownerOf(oldTokenData);
-        console.log(16);
-        tokens[subnode] = tokenData;
-        console.log(17);
-        if (to == address(0)) {
-            console.log(18);
-            to = _getController(tokenData).ownerOf(tokenData);
-            console.log(19);
-            console.log(to);
+            : oldSubnodeController.ownerOf(oldSubnodeData);
+
+        // Get the address of the new controller
+        IController newSubnodeController = _getController(subnodeData);
+        if (newSubnodeController != oldSubnodeController) {
+            emit NewController(subnode, address(newSubnodeController));
         }
-        console.log(20);
+
+        tokens[subnode] = subnodeData;
+
+        // Fetch the to address, if not supplied, for the TransferSingle event.
+        if (to == address(0) && subnodeData.length >= 20) {
+            to = _getController(subnodeData).ownerOf(subnodeData);
+        }
         emit TransferSingle(operator, oldOwner, to, subnode, 1);
     }
 
-    function controller(uint256 id) external view returns (IController) {
-        return _getController(tokens[id]);
-    }
+    /**********************
+     * Internal functions *
+     **********************/
 
     function _getController(
         bytes memory data
@@ -162,20 +197,27 @@ contract L2Registry is IERC1155 {
         uint256 value,
         bytes calldata data
     ) internal {
-        require(from == msg.sender || approvals[from][msg.sender]);
         bytes memory tokenData = tokens[id];
-        IController _controller = _getController(tokenData);
-        if (address(_controller) == address(0)) {
+        IController oldController = _getController(tokenData);
+        if (address(oldController) == address(0)) {
             revert TokenDoesNotExist(id);
         }
-        tokens[id] = _controller.safeTransferFrom(
+        bool operatorApproved = approvals[from][msg.sender];
+        bytes memory newTokenData = oldController.safeTransferFrom(
             tokenData,
             msg.sender,
             from,
             to,
             id,
             value,
-            data
+            data,
+            operatorApproved
         );
+
+        IController newController = _getController(newTokenData);
+        if (newController != oldController) {
+            emit NewController(id, address(newController));
+        }
+        tokens[id] = newTokenData;
     }
 }

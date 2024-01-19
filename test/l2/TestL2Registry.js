@@ -2,14 +2,12 @@ const L2Registry = artifacts.require('L2Registry.sol')
 const RootController = artifacts.require('RootController.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const SimpleController = artifacts.require('SimpleController.sol')
-const SimpleControllerFactory = artifacts.require('SimpleControllerFactory.sol')
-const { exceptions } = require('../test-utils')
-const { expect } = require('chai')
 const { labelhash, namehash, encodeName, FUSES } = require('../test-utils/ens')
 const ROOT_NODE = namehash('')
 const TEST_NODE = namehash('test')
+const TEST_SUBNODE = namehash('sub.test')
 const { deploy } = require('../test-utils/contracts')
-console.log({ ROOT_NODE })
+
 contract('L2Registry', function (accounts) {
   let signers,
     deployer,
@@ -19,13 +17,9 @@ contract('L2Registry', function (accounts) {
     resolver,
     root,
     registry,
-    factory,
-    ownerController,
-    ownerControllerAddress
+    controller
   beforeEach(async () => {
     signers = await ethers.getSigners()
-    deployer = await signers[0]
-    deployerAddress = await deployer.getAddress()
     deployer = await signers[0]
     deployerAddress = await deployer.getAddress()
     owner = await signers[1]
@@ -34,49 +28,35 @@ contract('L2Registry', function (accounts) {
     subnodeOwnerAddress = await subnodeOwner.getAddress()
 
     resolver = await DelegatableResolver.new()
-    console.log(1, {
-      deployerAddress,
-      ownerAddress,
-      subnodeOwnerAddress,
-    })
-    root = await RootController.new(deployerAddress, resolver.address)
-    console.log(2, { rootAddress: root.address })
+    root = await RootController.new(resolver.address)
     registry = await L2Registry.new(root.address)
-    console.log(3, { registryAddress: registry.address })
-    factory = await SimpleControllerFactory.new(registry.address)
-    const tx = await factory.getInstance(ownerAddress)
-    ownerControllerAddress = tx.logs[0].args.instance
-    ownerController = await ethers.getContractAt(
-      'SimpleController',
-      ownerControllerAddress,
-      owner,
-    )
+    controller = await SimpleController.new(registry.address)
   })
   it('should deploy', async () => {
-    console.log(5)
     assert.equal(await registry.controller(ROOT_NODE), root.address)
-    console.log(
-      6,
-      registry.address,
-      ROOT_NODE,
-      labelhash('test'),
-      ownerControllerAddress,
-    )
+
     await root.setSubnode(
       registry.address,
       ROOT_NODE,
       labelhash('test'),
-      ownerControllerAddress,
+      ethers.utils.solidityPack(
+        ['address', 'address', 'address'],
+        [controller.address, ownerAddress, resolver.address],
+      ),
     )
-    console.log(7)
-    assert.equal(await registry.controller(TEST_NODE), ownerControllerAddress)
-    console.log(8, await factory.computeAddress(subnodeOwnerAddress))
-    console.log(9, await factory.getInstance(subnodeOwnerAddress))
-    await ownerController.setSubnode(
+    assert.equal(await registry.controller(TEST_NODE), controller.address)
+    assert.equal(await registry.balanceOf(ownerAddress, TEST_NODE), 1)
+    assert.equal(await registry.resolver(TEST_NODE), resolver.address)
+
+    await controller.setSubnode(
       TEST_NODE,
       labelhash('sub'),
       subnodeOwnerAddress,
+      resolver.address,
+      { from: ownerAddress },
     )
-    console.log(10, await registry.controller(namehash('sub.test')))
+    assert.equal(await registry.controller(TEST_SUBNODE), controller.address)
+    assert.equal(await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE), 1)
+    assert.equal(await registry.resolver(TEST_SUBNODE), resolver.address)
   })
 })
