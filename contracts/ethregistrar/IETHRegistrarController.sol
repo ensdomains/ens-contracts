@@ -24,8 +24,6 @@ interface IETHRegistrarController {
 
     function commit(bytes32) external;
 
-    function commitments(bytes32) external view returns (uint256);
-
     function register(
         string calldata,
         address,

@@ -185,7 +185,7 @@ yarn pub
 
 ### Cherry-picked release flow
 
-Certain changes can be released in isolation via cherry-picking, although ideally we would always release from `staging`. 
+Certain changes can be released in isolation via cherry-picking, although ideally we would always release from `staging`.
 
 1. Create a new branch from `mainnet`.
 2. Cherry-pick from `staging` into new branch.
