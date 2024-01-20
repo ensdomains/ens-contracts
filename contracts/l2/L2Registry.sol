@@ -10,6 +10,8 @@ import "./IController.sol";
 contract L2Registry is IERC1155 {
     mapping(uint256 => bytes) public tokens;
     mapping(address => mapping(address => bool)) approvals;
+    mapping(address => uint256) tokenApprovalsNonce;
+    mapping(address => mapping(uint256 => mapping(uint256 => mapping(address => bool)))) tokenApprovals;
 
     error TokenDoesNotExist(uint256 id);
 
@@ -53,6 +55,25 @@ contract L2Registry is IERC1155 {
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
+    // set approval for id
+    function setApprovalForId(
+        address delegate,
+        uint256 id,
+        bool approved
+    ) external {
+        // get the owner of the token
+        address _owner = _getController(tokens[id]).ownerOf(tokens[id]);
+        // make sure the caller is the owner or an approved operator.
+        require(
+            msg.sender == _owner || isApprovedForAll(_owner, msg.sender),
+            "L2Registry: caller is not owner or approved operator"
+        );
+
+        tokenApprovals[_owner][tokenApprovalsNonce[_owner]][id][
+            delegate
+        ] = approved;
+    }
+
     /*************************
      * Public view functions *
      *************************/
@@ -87,18 +108,37 @@ contract L2Registry is IERC1155 {
     function isApprovedForAll(
         address owner,
         address operator
-    ) external view returns (bool) {
+    ) public view returns (bool) {
         return approvals[owner][operator];
+    }
+
+    function isApprovedForId(
+        uint256 id,
+        address delegate
+    ) public view returns (bool) {
+        // get the owner
+        address _owner = _getController(tokens[id]).ownerOf(tokens[id]);
+        return
+            tokenApprovals[_owner][tokenApprovalsNonce[_owner]][id][delegate];
+    }
+
+    function clearAllApprovedForIds(address owner) external {
+        // make sure the caller is the owner or an approved operator.
+        require(
+            msg.sender == owner || approvals[owner][msg.sender],
+            "L2Registry: caller is not owner or approved operator"
+        );
+        tokenApprovalsNonce[owner]++;
     }
 
     function getAuthorization(
         uint256 id,
-        address operator
-    ) public view returns (address owner, bool authorized) {
-        bytes memory tokenData = tokens[id];
-        IController _controller = _getController(tokenData);
-        owner = _controller.ownerOf(tokenData);
-        authorized = approvals[owner][operator];
+        address delegate
+    ) public view returns (bool authorized) {
+        address owner = _getController(tokens[id]).ownerOf(tokens[id]);
+        authorized =
+            approvals[owner][delegate] ||
+            tokenApprovals[owner][tokenApprovalsNonce[owner]][id][delegate];
     }
 
     function supportsInterface(
@@ -202,7 +242,9 @@ contract L2Registry is IERC1155 {
         if (address(oldController) == address(0)) {
             revert TokenDoesNotExist(id);
         }
-        bool operatorApproved = approvals[from][msg.sender];
+        bool isApproved = approvals[from][msg.sender] ||
+            tokenApprovals[from][tokenApprovalsNonce[from]][id][msg.sender];
+
         bytes memory newTokenData = oldController.safeTransferFrom(
             tokenData,
             msg.sender,
@@ -211,7 +253,7 @@ contract L2Registry is IERC1155 {
             id,
             value,
             data,
-            operatorApproved
+            isApproved
         );
 
         IController newController = _getController(newTokenData);

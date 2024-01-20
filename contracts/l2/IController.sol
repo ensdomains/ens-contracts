@@ -13,7 +13,7 @@ interface IController {
         uint256 id,
         uint256 value,
         bytes calldata data,
-        bool operatorApproved
+        bool isApproved
     ) external returns (bytes memory);
 
     function balanceOf(

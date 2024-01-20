@@ -67,27 +67,29 @@ contract SimpleController is IController {
      *******************/
 
     function setResolver(uint256 id, address newResolver) external {
-        (address owner, bool authorized) = registry.getAuthorization(
-            id,
-            msg.sender
-        );
-        require(owner == msg.sender || authorized);
+        // get tokenData
+        bytes memory tokenData = registry.tokens(id);
+        (address owner, ) = _unpack(tokenData);
+        bool isAuthorized = registry.getAuthorization(id, msg.sender);
+        require(owner == msg.sender || isAuthorized);
         registry.setNode(id, _pack(owner, newResolver));
     }
 
     function setSubnode(
-        uint256 node,
+        bytes32 node,
         uint256 label,
         address subnodeOwner,
         address subnodeResolver
     ) external {
-        (address owner, bool authorized) = registry.getAuthorization(
-            node,
+        bytes memory tokenData = registry.tokens(uint256(node));
+        (address owner, ) = _unpack(tokenData);
+        bool isAuthorized = registry.getAuthorization(
+            uint256(node),
             msg.sender
         );
-        require(owner == msg.sender || authorized);
+        require(owner == msg.sender || isAuthorized);
         registry.setSubnode(
-            node,
+            uint256(node),
             label,
             _pack(subnodeOwner, subnodeResolver),
             msg.sender,
@@ -96,10 +98,12 @@ contract SimpleController is IController {
     }
 
     function _unpack(
-        bytes calldata tokenData
+        bytes memory tokenData
     ) internal pure returns (address owner, address resolver) {
-        owner = address(bytes20(tokenData[20:40]));
-        resolver = address(bytes20(tokenData[40:60]));
+        assembly {
+            owner := mload(add(tokenData, 40))
+            resolver := mload(add(tokenData, 60))
+        }
     }
 
     function _pack(

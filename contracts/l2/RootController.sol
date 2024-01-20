@@ -10,6 +10,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract RootController is Ownable, IController {
     address resolver;
 
+    bytes32 private constant ROOT_NODE =
+        0x0000000000000000000000000000000000000000000000000000000000000000;
+
     constructor(address _resolver) Ownable() {
         resolver = _resolver;
     }
@@ -64,10 +67,16 @@ contract RootController is Ownable, IController {
 
     function setSubnode(
         L2Registry registry,
-        uint256 node,
+        uint256 /*node*/,
         uint256 label,
         bytes memory subnodeData
     ) external onlyOwner {
-        registry.setSubnode(node, label, subnodeData, msg.sender, address(0));
+        registry.setSubnode(
+            uint256(ROOT_NODE),
+            label,
+            subnodeData,
+            msg.sender,
+            address(0)
+        );
     }
 }
