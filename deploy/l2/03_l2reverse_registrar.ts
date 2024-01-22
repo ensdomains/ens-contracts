@@ -9,7 +9,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await getNamedAccounts()
   const chainId = hre.network.config.chainId!
   const coinType = convertEVMChainIdToCoinType(chainId)
-  const REVERSE_NAMESPACE = `${coinType}.reverse.evmgateway.eth`
+  const REVERSE_NAMESPACE = `${coinType}.reverse`
   const REVERSENODE = ethers.utils.namehash(REVERSE_NAMESPACE)
   console.log(
     `REVERSE_NAMESPACE for chainId ${chainId} is ${REVERSE_NAMESPACE}`,
