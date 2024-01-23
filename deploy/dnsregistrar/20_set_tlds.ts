@@ -1284,7 +1284,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   }
 }
 
-func.tags = ['DNSRegistrar']
+func.tags = ['registrar-tlds']
 func.dependencies = ['registry', 'dnssec-oracle']
 func.runAtTheEnd = true
 

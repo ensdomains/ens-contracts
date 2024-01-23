@@ -75,16 +75,22 @@ function shouldBehaveLikeERC1155(
       context("when accounts don't own tokens", function () {
         it('returns zero for given addresses', async function () {
           expect(
-            await token.balanceOf(firstTokenHolderAddress, firstTokenId),
-          ).to.be.bignumber.equal('0')
+            (
+              await token.balanceOf(firstTokenHolderAddress, firstTokenId)
+            ).toString(),
+          ).to.be.equal('0')
 
           expect(
-            await token.balanceOf(secondTokenHolderAddress, secondTokenId),
-          ).to.be.bignumber.equal('0')
+            (
+              await token.balanceOf(secondTokenHolderAddress, secondTokenId)
+            ).toString(),
+          ).to.be.equal('0')
 
           expect(
-            await token.balanceOf(firstTokenHolderAddress, unknownTokenId),
-          ).to.be.bignumber.equal('0')
+            (
+              await token.balanceOf(firstTokenHolderAddress, unknownTokenId)
+            ).toString(),
+          ).to.be.equal('0')
         })
       })
 
@@ -95,16 +101,22 @@ function shouldBehaveLikeERC1155(
 
         it('returns the amount of tokens owned by the given addresses', async function () {
           expect(
-            await token.balanceOf(firstTokenHolderAddress, firstTokenId),
-          ).to.be.bignumber.equal(firstAmount)
+            (
+              await token.balanceOf(firstTokenHolderAddress, firstTokenId)
+            ).toString(),
+          ).to.be.equal(firstAmount.toString())
 
           expect(
-            await token.balanceOf(secondTokenHolderAddress, secondTokenId),
-          ).to.be.bignumber.equal(secondAmount)
+            (
+              await token.balanceOf(secondTokenHolderAddress, secondTokenId)
+            ).toString(),
+          ).to.be.equal(secondAmount.toString())
 
           expect(
-            await token.balanceOf(firstTokenHolderAddress, unknownTokenId),
-          ).to.be.bignumber.equal('0')
+            (
+              await token.balanceOf(firstTokenHolderAddress, unknownTokenId)
+            ).toString(),
+          ).to.be.equal('0')
         })
       })
     })
@@ -151,9 +163,9 @@ function shouldBehaveLikeERC1155(
             [firstTokenId, secondTokenId, unknownTokenId],
           )
           expect(result).to.be.an('array')
-          expect(result[0]).to.be.a.bignumber.equal('0')
-          expect(result[1]).to.be.a.bignumber.equal('0')
-          expect(result[2]).to.be.a.bignumber.equal('0')
+          expect(result[0].toString()).to.be.equal('0')
+          expect(result[1].toString()).to.be.equal('0')
+          expect(result[2].toString()).to.be.equal('0')
         })
       })
 
@@ -172,9 +184,9 @@ function shouldBehaveLikeERC1155(
             [secondTokenId, firstTokenId, unknownTokenId],
           )
           expect(result).to.be.an('array')
-          expect(result[0]).to.be.a.bignumber.equal(secondAmount)
-          expect(result[1]).to.be.a.bignumber.equal(firstAmount)
-          expect(result[2]).to.be.a.bignumber.equal('0')
+          expect(result[0].toString()).to.be.equal(secondAmount.toString())
+          expect(result[1].toString()).to.be.equal(firstAmount.toString())
+          expect(result[2].toString()).to.be.equal('0')
         })
 
         it('returns multiple times the balance of the same address when asked', async function () {
@@ -187,10 +199,10 @@ function shouldBehaveLikeERC1155(
             [firstTokenId, secondTokenId, firstTokenId],
           )
           expect(result).to.be.an('array')
-          expect(result[0]).to.be.a.bignumber.equal(result[2])
-          expect(result[0]).to.be.a.bignumber.equal(firstAmount)
-          expect(result[1]).to.be.a.bignumber.equal(secondAmount)
-          expect(result[2]).to.be.a.bignumber.equal(firstAmount)
+          expect(result[0].toString()).to.be.equal(result[2].toString())
+          expect(result[0].toString()).to.be.equal(firstAmount.toString())
+          expect(result[1].toString()).to.be.equal(secondAmount.toString())
+          expect(result[2].toString()).to.be.equal(firstAmount.toString())
         })
       })
     })
@@ -275,12 +287,12 @@ function shouldBehaveLikeERC1155(
 
         it('debits transferred balance from sender', async function () {
           const newBalance = await token.balanceOf(from, id)
-          expect(newBalance).to.be.a.bignumber.equal('0')
+          expect(newBalance.toString()).to.be.a.equal('0')
         })
 
         it('credits transferred balance to receiver', async function () {
           const newBalance = await token.balanceOf(this.toWhom, id)
-          expect(newBalance).to.be.a.bignumber.equal(value)
+          expect(newBalance.toString()).to.be.a.equal(value.toString())
         })
 
         it('emits a TransferSingle log', async function () {
@@ -316,13 +328,13 @@ function shouldBehaveLikeERC1155(
             multiTokenHolderAddress,
             secondTokenId,
           )
-          expect(balance1).to.be.a.bignumber.equal(secondAmount)
+          expect(balance1.toString()).to.be.equal(secondAmount.toString())
 
           const balance2 = await token.balanceOf(
             recipientAddress,
             secondTokenId,
           )
-          expect(balance2).to.be.a.bignumber.equal('0')
+          expect(balance2.toString()).to.be.a.bignumber.equal('0')
         })
       })
 
@@ -382,13 +394,13 @@ function shouldBehaveLikeERC1155(
 
             it("preserves operator's balances not involved in the transfer", async function () {
               const balance1 = await token.balanceOf(proxyAddress, firstTokenId)
-              expect(balance1).to.be.a.bignumber.equal('0')
+              expect(balance1.toString()).to.be.equal('0')
 
               const balance2 = await token.balanceOf(
                 proxyAddress,
                 secondTokenId,
               )
-              expect(balance2).to.be.a.bignumber.equal('0')
+              expect(balance2.toString()).to.be.equal('0')
             })
           })
         },
@@ -615,7 +627,7 @@ function shouldBehaveLikeERC1155(
             ids,
           )
           for (const newBalance of newBalances) {
-            expect(newBalance).to.be.a.bignumber.equal('0')
+            expect(newBalance.toString()).to.be.equal('0')
           }
         })
 
@@ -625,7 +637,7 @@ function shouldBehaveLikeERC1155(
             ids,
           )
           for (let i = 0; i < newBalances.length; i++) {
-            expect(newBalances[i]).to.be.a.bignumber.equal(values[i])
+            expect(newBalances[i].toString()).to.be.equal(values[i].toString())
           }
         })
 
@@ -714,12 +726,12 @@ function shouldBehaveLikeERC1155(
 
             it("preserves operator's balances not involved in the transfer", async function () {
               const balance1 = await token.balanceOf(proxyAddress, firstTokenId)
-              expect(balance1).to.be.a.bignumber.equal('0')
+              expect(balance1.toString()).to.be.equal('0')
               const balance2 = await token.balanceOf(
                 proxyAddress,
                 secondTokenId,
               )
-              expect(balance2).to.be.a.bignumber.equal('0')
+              expect(balance2.toString()).to.be.equal('0')
             })
           })
         },

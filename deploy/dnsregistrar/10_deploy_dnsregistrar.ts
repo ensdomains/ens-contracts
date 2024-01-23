@@ -13,11 +13,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const oldregistrar = await hre.deployments.getOrNull('DNSRegistrar')
   const root = await ethers.getContract('Root')
 
-  const publicSuffixList = await deploy('TLDPublicSuffixList', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
+  const publicSuffixList = await ethers.getContract('SimplePublicSuffixList')
 
   const tx = await deploy('DNSRegistrar', {
     from: deployer,
@@ -32,11 +28,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   })
   console.log(`Deployed DNSRegistrar to ${tx.address}`)
 
-  const tx2 = await root
-    .connect(await ethers.getSigner(owner))
-    .setController(tx.address, true)
-  console.log(`Set DNSRegistrar as controller of Root (${tx2.hash})`)
-  await tx2.wait()
+  if (
+    owner !== undefined &&
+    (await root.owner()).toLowerCase() === owner.toLowerCase()
+  ) {
+    const tx2 = await root
+      .connect(await ethers.getSigner(owner))
+      .setController(tx.address, true)
+    console.log(`Set DNSRegistrar as controller of Root (${tx2.hash})`)
+    await tx2.wait()
+  } else {
+    console.log(
+      `${owner} is not the owner of the root; you will need to call setController('${tx.address}', true) manually`,
+    )
+  }
 }
 
 func.tags = ['DNSRegistrar']

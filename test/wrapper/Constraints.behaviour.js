@@ -258,7 +258,9 @@ function shouldRespectConstraints(contracts, getSigners) {
       const parentExpiry = await BaseRegistrar.nameExpires(labelhash('test1'))
       await NameWrapper.setChildFuses(parentNode, childLabelHash, 0, MAX_EXPIRY)
       const [, , expiry] = await NameWrapper.getData(childNode)
-      expect(expiry).to.be.bignumber.equal(parentExpiry.add(GRACE_PERIOD))
+      expect(expiry.toString()).to.be.equal(
+        parentExpiry.add(GRACE_PERIOD).toString(),
+      )
     })
 
     it('Parent can extend expiry with setSubnodeOwner()', async () => {
@@ -271,7 +273,9 @@ function shouldRespectConstraints(contracts, getSigners) {
         MAX_EXPIRY,
       )
       const [, , expiry] = await NameWrapper.getData(childNode)
-      expect(expiry).to.be.bignumber.equal(parentExpiry.add(GRACE_PERIOD))
+      expect(expiry.toString()).to.be.equal(
+        parentExpiry.add(GRACE_PERIOD).toString(),
+      )
     })
 
     it('Parent can extend expiry with setSubnodeRecord()', async () => {
@@ -286,7 +290,9 @@ function shouldRespectConstraints(contracts, getSigners) {
         MAX_EXPIRY,
       )
       const [, , expiry] = await NameWrapper.getData(childNode)
-      expect(expiry).to.be.bignumber.equal(parentExpiry.add(GRACE_PERIOD))
+      expect(expiry.toString()).to.be.equal(
+        parentExpiry.add(GRACE_PERIOD).toString(),
+      )
     })
   }
 
@@ -309,7 +315,9 @@ function shouldRespectConstraints(contracts, getSigners) {
       const parentExpiry = await BaseRegistrar.nameExpires(labelhash('test1'))
       await NameWrapper.setChildFuses(parentNode, childLabelHash, 0, MAX_EXPIRY)
       const [, , expiry] = await NameWrapper.getData(childNode)
-      expect(expiry).to.be.bignumber.equal(parentExpiry.add(GRACE_PERIOD))
+      expect(expiry.toString()).to.be.equal(
+        parentExpiry.add(GRACE_PERIOD).toString(),
+      )
     })
 
     it('Parent cannot extend expiry with setSubnodeOwner()', async () => {
