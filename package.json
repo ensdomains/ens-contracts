@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "0.0.21",
+  "version": "1.0.0",
   "description": "ENS contracts",
   "scripts": {
     "test": "hardhat test",
@@ -72,5 +72,8 @@
   "bugs": {
     "url": "https://github.com/ensdomains/ens-contracts/issues"
   },
-  "homepage": "https://github.com/ensdomains/ens-contracts#readme"
+  "homepage": "https://github.com/ensdomains/ens-contracts#readme",
+  "volta": {
+    "node": "16.20.2"
+  }
 }

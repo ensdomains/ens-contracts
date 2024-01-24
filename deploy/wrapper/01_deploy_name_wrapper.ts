@@ -25,11 +25,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const deployArgs = {
     from: deployer,
-    args: [
-      registry.address,
-      '0x57f1887a8bf19b14fc0df6fd9b2acc9af147ea85',
-      metadata.address,
-    ],
+    args: [registry.address, registrar.address, metadata.address],
     log: true,
   }
 

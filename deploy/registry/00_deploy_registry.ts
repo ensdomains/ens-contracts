@@ -6,14 +6,11 @@ const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  console.log('starting')
   const { getNamedAccounts, deployments, network } = hre
   const { deploy, run } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
   if (network.tags.legacy) {
-    console.log(deployer)
-    console.log(owner)
     const contract = await deploy('LegacyENSRegistry', {
       from: owner,
       args: [],
