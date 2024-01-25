@@ -2,6 +2,7 @@ const L2Registry = artifacts.require('L2Registry.sol')
 const RootController = artifacts.require('RootController.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const SimpleController = artifacts.require('SimpleController.sol')
+const StaticMetadataService = artifacts.require('StaticMetadataService.sol')
 const { labelhash, namehash, encodeName, FUSES } = require('../test-utils/ens')
 const ROOT_NODE = namehash('')
 const TEST_NODE = namehash('test')
@@ -20,7 +21,9 @@ contract.only('L2Registry', function (accounts) {
     controller,
     dummyAddress,
     operator,
-    delegate
+    delegate,
+    metaDataservice
+
   beforeEach(async () => {
     signers = await ethers.getSigners()
     deployer = await signers[0]
@@ -29,10 +32,15 @@ contract.only('L2Registry', function (accounts) {
     ownerAddress = await owner.getAddress()
     subnodeOwner = await signers[2]
     subnodeOwnerAddress = await subnodeOwner.getAddress()
+    hacker = await signers[3]
+    hackerAddress = await hacker.getAddress()
+    dummyAccount = await signers[4]
+    dummyAccountAddress = await dummyAccount.getAddress()
 
     resolver = await DelegatableResolver.new()
+    metaDataservice = await StaticMetadataService.new('https://ens.domains')
     root = await RootController.new(resolver.address)
-    registry = await L2Registry.new(root.address)
+    registry = await L2Registry.new(root.address, metaDataservice.address)
     controller = await SimpleController.new(registry.address)
 
     dummyAddress = '0x1234567890123456789012345678901234567890'
@@ -57,6 +65,24 @@ contract.only('L2Registry', function (accounts) {
     assert.equal(await registry.balanceOf(ownerAddress, TEST_NODE), 1)
     assert.equal(await registry.resolver(TEST_NODE), resolver.address)
   })
+
+  it('uri() returns url', async () => {
+    expect(await registry.uri(123)).to.equal('https://ens.domains')
+  })
+
+  it('owner can set a new MetadataService', async () => {
+    await registry.setMetadataService(dummyAccountAddress)
+    expect(await registry.metadataService()).to.equal(dummyAccountAddress)
+  })
+
+  it('non-owner cannot set a new MetadataService', async () => {
+    await expect(
+      registry.setMetadataService(dummyAccountAddress, {
+        from: hackerAddress,
+      }),
+    ).to.be.revertedWith('Ownable: caller is not the owner')
+  })
+
   it('should set a subnode on the test node', async () => {
     await controller.setSubnode(
       TEST_NODE,

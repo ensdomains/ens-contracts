@@ -5,9 +5,12 @@ import "@openzeppelin/contracts/interfaces/IERC1155.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
+import {IMetadataService} from "../wrapper/IMetadataService.sol";
+import {IERC1155MetadataURI} from "@openzeppelin/contracts/token/ERC1155/extensions/IERC1155MetadataURI.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./IController.sol";
 
-contract L2Registry is IERC1155 {
+contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
     struct Record {
         string name;
         bytes data;
@@ -17,17 +20,30 @@ contract L2Registry is IERC1155 {
     mapping(address => uint256) tokenApprovalsNonce;
     mapping(address => mapping(uint256 => mapping(uint256 => mapping(address => bool)))) tokenApprovals;
 
+    IMetadataService public metadataService;
+
     error TokenDoesNotExist(uint256 id);
 
     event NewController(uint256 id, address controller);
 
-    constructor(bytes memory root) {
+    constructor(bytes memory root, IMetadataService _metadataService) {
         tokens[0].data = root;
+        metadataService = _metadataService;
     }
 
     /********************
      * Public functions *
      ********************/
+
+    function uri(uint256 tokenId) public view returns (string memory) {
+        return metadataService.uri(tokenId);
+    }
+
+    function setMetadataService(
+        IMetadataService _metadataService
+    ) public onlyOwner {
+        metadataService = _metadataService;
+    }
 
     function getData(uint256 id) external view returns (bytes memory) {
         return tokens[id].data;
@@ -174,6 +190,7 @@ contract L2Registry is IERC1155 {
     ) external pure returns (bool) {
         return
             interfaceId == type(IERC1155).interfaceId ||
+            interfaceId == type(IERC1155MetadataURI).interfaceId ||
             interfaceId == type(IERC165).interfaceId;
     }
 

@@ -11,6 +11,9 @@ import "./IController.sol";
  *       - Byte 0: controller (address)
  *       - Byte 20: owner (address)
  *       - Byte 40: resolver (address)
+ *       _ Byte 60: expiry (uint64)
+ *       - Byte 68: fuses (uint96)
+ *       - Byte 80: renewalController (address)
  */
 contract SimpleController is IController {
     L2Registry immutable registry;
@@ -104,6 +107,15 @@ contract SimpleController is IController {
         assembly {
             owner := mload(add(tokenData, 40))
             resolver := mload(add(tokenData, 60))
+        }
+    }
+
+    function _getExpiryAndFuses(
+        bytes memory tokenData
+    ) internal pure returns (uint64 expiry, uint96 fuses) {
+        assembly {
+            expiry := mload(add(tokenData, 68))
+            fuses := mload(add(tokenData, 80))
         }
     }
 
