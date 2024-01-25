@@ -68,9 +68,9 @@ contract SimpleController is IController {
 
     function setResolver(uint256 id, address newResolver) external {
         // get tokenData
-        bytes memory tokenData = registry.tokens(id);
+        bytes memory tokenData = registry.getData(id);
         (address owner, ) = _unpack(tokenData);
-        bool isAuthorized = registry.getAuthorization(id, msg.sender);
+        bool isAuthorized = registry.getAuthorization(id, owner, msg.sender);
         require(owner == msg.sender || isAuthorized);
         registry.setNode(id, _pack(owner, newResolver));
     }
@@ -81,10 +81,11 @@ contract SimpleController is IController {
         address subnodeOwner,
         address subnodeResolver
     ) external {
-        bytes memory tokenData = registry.tokens(uint256(node));
+        bytes memory tokenData = registry.getData(uint256(node));
         (address owner, ) = _unpack(tokenData);
         bool isAuthorized = registry.getAuthorization(
             uint256(node),
+            owner,
             msg.sender
         );
         require(owner == msg.sender || isAuthorized);
