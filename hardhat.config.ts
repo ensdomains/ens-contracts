@@ -74,7 +74,7 @@ const config: HardhatUserConfig = {
       accounts: real_accounts,
     },
     holesky: {
-      url: `https://holesky.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: `https://holesky-rpc.nocturnode.tech`,
       tags: ['test', 'legacy', 'use_root'],
       chainId: 17000,
       accounts: real_accounts,
