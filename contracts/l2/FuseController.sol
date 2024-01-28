@@ -21,7 +21,7 @@ error nameExpired(bytes32 node);
  *       - Byte 68: fuses (uint96)
  *       - Byte 80: renewalController (address)
  */
-contract SimpleController is Ownable, IFuseController {
+contract FuseController is Ownable, IFuseController {
     L2Registry immutable registry;
 
     IControllerUpgrade upgradeContract;

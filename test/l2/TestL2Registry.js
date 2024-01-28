@@ -1,7 +1,7 @@
 const L2Registry = artifacts.require('L2Registry.sol')
 const RootController = artifacts.require('RootController.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
-const SimpleController = artifacts.require('SimpleController.sol')
+const FuseController = artifacts.require('FuseController.sol')
 const StaticMetadataService = artifacts.require('StaticMetadataService.sol')
 const { labelhash, namehash, encodeName, FUSES } = require('../test-utils/ens')
 const ROOT_NODE = namehash('')
@@ -47,7 +47,7 @@ contract.only('L2Registry', function (accounts) {
     metaDataservice = await StaticMetadataService.new('https://ens.domains')
     root = await RootController.new(resolver.address)
     registry = await L2Registry.new(root.address, metaDataservice.address)
-    controller = await SimpleController.new(registry.address)
+    controller = await FuseController.new(registry.address)
 
     dummyAddress = '0x1234567890123456789012345678901234567890'
     operator = signers[3]
