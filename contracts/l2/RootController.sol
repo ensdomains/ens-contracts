@@ -24,9 +24,14 @@ contract RootController is Ownable, IController {
     /*************************
      * IController functions *
      *************************/
-    function ownerOf(
+
+    function ownerOfWithData(
         bytes calldata /*tokenData*/
     ) external view returns (address) {
+        return owner();
+    }
+
+    function ownerOf(bytes32 /*node*/) external view returns (address) {
         return owner();
     }
 

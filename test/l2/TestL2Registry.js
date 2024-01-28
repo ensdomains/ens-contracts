@@ -8,6 +8,12 @@ const ROOT_NODE = namehash('')
 const TEST_NODE = namehash('test')
 const TEST_SUBNODE = namehash('sub.test')
 const { deploy } = require('../test-utils/contracts')
+const { EMPTY_BYTES32, EMPTY_ADDRESS } = require('../test-utils/constants')
+
+// The maximum value of a uint64 is 2^64 - 1 = 18446744073709551615
+// use BN instead of BigNumber to avoid BN error
+
+const MAX_UINT64 = '18446744073709551615'
 
 contract.only('L2Registry', function (accounts) {
   let signers,
@@ -52,18 +58,32 @@ contract.only('L2Registry', function (accounts) {
     // test to make sure the root node is owned by the deployer
     assert.equal(await registry.balanceOf(deployerAddress, ROOT_NODE), 1)
 
+    const packedData = ethers.utils.solidityPack(
+      ['address', 'address', 'address', 'uint64', 'uint32', 'address'],
+      [
+        controller.address,
+        ownerAddress,
+        resolver.address,
+        MAX_UINT64,
+        0,
+        EMPTY_ADDRESS,
+      ],
+    )
+
     await root.setSubnode(
       registry.address,
       0, // This is ignored because the ROOT_NODE is fixed in the root controller.
       labelhash('test'),
-      ethers.utils.solidityPack(
-        ['address', 'address', 'address'],
-        [controller.address, ownerAddress, resolver.address],
-      ),
+      packedData,
     )
+
     assert.equal(await registry.controller(TEST_NODE), controller.address)
     assert.equal(await registry.balanceOf(ownerAddress, TEST_NODE), 1)
     assert.equal(await registry.resolver(TEST_NODE), resolver.address)
+    assert.equal(await controller.ownerOf(TEST_NODE), ownerAddress)
+    assert.equal(await controller.expiryOf(TEST_NODE), MAX_UINT64)
+    assert.equal(await controller.fusesOf(TEST_NODE), 0)
+    assert.equal(await controller.renewalControllerOf(TEST_NODE), EMPTY_ADDRESS)
   })
 
   it('uri() returns url', async () => {
@@ -89,11 +109,21 @@ contract.only('L2Registry', function (accounts) {
       labelhash('sub'),
       subnodeOwnerAddress,
       resolver.address,
+      5184000, // 60 days
+      0, // no fuse
+      EMPTY_ADDRESS, // no controller
       { from: ownerAddress },
     )
     assert.equal(await registry.controller(TEST_SUBNODE), controller.address)
     assert.equal(await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE), 1)
     assert.equal(await registry.resolver(TEST_SUBNODE), resolver.address)
+    assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
+    assert.equal(await controller.expiryOf(TEST_SUBNODE), 5184000)
+    assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
+    assert.equal(
+      await controller.renewalControllerOf(TEST_SUBNODE),
+      EMPTY_ADDRESS,
+    )
   })
 
   it('should set the resolver', async () => {

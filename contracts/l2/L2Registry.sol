@@ -24,8 +24,6 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
 
     error TokenDoesNotExist(uint256 id);
 
-    event NewController(uint256 id, address controller);
-
     constructor(bytes memory root, IMetadataService _metadataService) {
         tokens[0].data = root;
         metadataService = _metadataService;
@@ -90,7 +88,7 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         bool approved
     ) external {
         // get the owner of the token
-        address _owner = _getController(tokens[id].data).ownerOf(
+        address _owner = _getController(tokens[id].data).ownerOfWithData(
             tokens[id].data
         );
         // make sure the caller is the owner or an approved operator.
@@ -147,7 +145,7 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         address delegate
     ) public view returns (bool) {
         // get the owner
-        address _owner = _getController(tokens[id].data).ownerOf(
+        address _owner = _getController(tokens[id].data).ownerOfWithData(
             tokens[id].data
         );
         return
@@ -157,7 +155,7 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
     function clearAllApprovedForIds(address owner) external {
         // make sure the caller is the owner or an approved operator.
         require(
-            msg.sender == owner || approvals[owner][msg.sender],
+            msg.sender == owner || isApprovedForAll(owner, msg.sender),
             "L2Registry: caller is not owner or approved operator"
         );
         tokenApprovalsNonce[owner]++;
@@ -166,11 +164,11 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
     function getAuthorization(
         uint256 id,
         address delegate
-    ) public view returns (bool authorized) {
-        address owner = _getController(tokens[id].data).ownerOf(
+    ) public view returns (bool /*authorized*/) {
+        address owner = _getController(tokens[id].data).ownerOfWithData(
             tokens[id].data
         );
-        authorized =
+        return
             approvals[owner][delegate] ||
             tokenApprovals[owner][tokenApprovalsNonce[owner]][id][delegate];
     }
@@ -179,8 +177,8 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         uint256 id,
         address owner,
         address delegate
-    ) public view returns (bool authorized) {
-        authorized =
+    ) public view returns (bool /*authorized*/) {
+        return
             approvals[owner][delegate] ||
             tokenApprovals[owner][tokenApprovalsNonce[owner]][id][delegate];
     }
@@ -194,13 +192,15 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
             interfaceId == type(IERC165).interfaceId;
     }
 
-    function resolver(uint256 id) external view returns (address) {
+    function resolver(uint256 id) external view returns (address /*resolver*/) {
         bytes memory tokenData = tokens[id].data;
         IController _controller = _getController(tokenData);
         return _controller.resolverFor(tokenData);
     }
 
-    function controller(uint256 id) external view returns (IController) {
+    function controller(
+        uint256 id
+    ) external view returns (IController /*controller*/) {
         return _getController(tokens[id].data);
     }
 
@@ -213,12 +213,6 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         IController oldController = _getController(tokens[id].data);
         // Only the controller may call this function
         require(address(oldController) == msg.sender);
-
-        // Fetch the new controller and emit `NewController` if needed.
-        IController newController = _getController(data);
-        if (oldController != newController) {
-            emit NewController(id, address(newController));
-        }
 
         // Update the data for this node.
         tokens[id].data = data;
@@ -243,19 +237,13 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         IController oldSubnodeController = _getController(oldSubnodeData);
         address oldOwner = oldSubnodeData.length < 20
             ? address(0)
-            : oldSubnodeController.ownerOf(oldSubnodeData);
-
-        // Get the address of the new controller
-        IController newSubnodeController = _getController(subnodeData);
-        if (newSubnodeController != oldSubnodeController) {
-            emit NewController(subnode, address(newSubnodeController));
-        }
+            : oldSubnodeController.ownerOfWithData(oldSubnodeData);
 
         tokens[subnode].data = subnodeData;
 
         // Fetch the to address, if not supplied, for the TransferSingle event.
         if (to == address(0) && subnodeData.length >= 20) {
-            to = _getController(subnodeData).ownerOf(subnodeData);
+            to = _getController(subnodeData).ownerOfWithData(subnodeData);
         }
         emit TransferSingle(operator, oldOwner, to, subnode, 1);
     }
@@ -301,10 +289,6 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
             isApproved
         );
 
-        IController newController = _getController(newTokenData);
-        if (newController != oldController) {
-            emit NewController(id, address(newController));
-        }
         tokens[id].data = newTokenData;
     }
 }

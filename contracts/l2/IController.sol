@@ -3,7 +3,11 @@
 pragma solidity ^0.8.17;
 
 interface IController {
-    function ownerOf(bytes calldata tokenData) external view returns (address);
+    function ownerOfWithData(
+        bytes calldata tokenData
+    ) external view returns (address);
+
+    function ownerOf(bytes32 node) external view returns (address);
 
     function safeTransferFrom(
         bytes calldata tokenData,
