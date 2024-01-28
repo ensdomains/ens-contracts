@@ -2,6 +2,7 @@ const L2Registry = artifacts.require('L2Registry.sol')
 const RootController = artifacts.require('RootController.sol')
 const DelegatableResolver = artifacts.require('DelegatableResolver.sol')
 const FuseController = artifacts.require('FuseController.sol')
+const FuseControllerUpgraded = artifacts.require('FuseControllerUpgraded.sol')
 const StaticMetadataService = artifacts.require('StaticMetadataService.sol')
 const { labelhash, namehash, encodeName, FUSES } = require('../test-utils/ens')
 const ROOT_NODE = namehash('')
@@ -25,6 +26,7 @@ contract.only('L2Registry', function (accounts) {
     root,
     registry,
     controller,
+    controllerUpgraded,
     dummyAddress,
     operator,
     delegate,
@@ -48,6 +50,7 @@ contract.only('L2Registry', function (accounts) {
     root = await RootController.new(resolver.address)
     registry = await L2Registry.new(root.address, metaDataservice.address)
     controller = await FuseController.new(registry.address)
+    controllerUpgraded = await FuseControllerUpgraded.new(registry.address)
 
     dummyAddress = '0x1234567890123456789012345678901234567890'
     operator = signers[3]
@@ -177,5 +180,38 @@ contract.only('L2Registry', function (accounts) {
     })
 
     assert.equal(await registry.isApprovedForId(TEST_NODE, dummyAddress), true)
+  })
+
+  // Check to make sure we can upgrade the controller
+  it('should upgrade the controller', async () => {
+    // get the controller
+    const currentController = await registry.controller(TEST_NODE)
+    // set the upgraded controller on the controller.
+    await controller.setUpgradeController(controllerUpgraded.address, {
+      from: deployerAddress,
+    })
+
+    // upgrade the controller of the TEST_NODE using the upgrade(node, extraData) function
+    await controller.upgrade(TEST_NODE, '0x', {
+      from: ownerAddress,
+    })
+
+    // get the new controller
+    const _upgradedController = await registry.controller(TEST_NODE)
+
+    // check to make sure the controller is the upgraded controller
+    assert.equal(_upgradedController, controllerUpgraded.address)
+
+    // create am instace from the upgraded controller's address
+    _upgradedControllerInstance = await ethers.getContractAt(
+      'FuseControllerUpgraded',
+      _upgradedController,
+    )
+
+    // check to make sure the owner is the same on the upgraded controller
+    assert.equal(
+      await _upgradedControllerInstance.ownerOf(TEST_NODE),
+      ownerAddress,
+    )
   })
 })

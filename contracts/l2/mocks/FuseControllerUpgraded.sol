@@ -2,10 +2,12 @@
 
 pragma solidity ^0.8.17;
 
-import "./L2Registry.sol";
-import "./IFuseController.sol";
-import "./IControllerUpgrade.sol";
+import "../L2Registry.sol";
+import "../IFuseController.sol";
+import "../IControllerUpgrade.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+
+import "hardhat/console.sol";
 
 error Unauthorised(bytes32 node, address addr);
 error CannotUpgrade();
@@ -21,7 +23,11 @@ error nameExpired(bytes32 node);
  *       - Byte 68: fuses (uint96)
  *       - Byte 80: renewalController (address)
  */
-contract FuseController is Ownable, IFuseController {
+contract FuseControllerUpgraded is
+    Ownable,
+    IFuseController,
+    IControllerUpgrade
+{
     L2Registry immutable registry;
 
     IControllerUpgrade upgradeContract;
@@ -53,6 +59,7 @@ contract FuseController is Ownable, IFuseController {
     function ownerOf(bytes32 node) external view returns (address) {
         //get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
+        console.logBytes(tokenData);
         (address owner, , , , ) = _unpack(tokenData);
         return owner;
     }
@@ -82,14 +89,7 @@ contract FuseController is Ownable, IFuseController {
         require(operator == td.owner || operatorApproved);
 
         return
-            _pack(
-                address(this),
-                to,
-                td.resolver,
-                td.expiry,
-                td.fuses,
-                td.renewalController
-            );
+            _pack(to, td.resolver, td.expiry, td.fuses, td.renewalController);
     }
 
     function balanceOf(
@@ -155,7 +155,7 @@ contract FuseController is Ownable, IFuseController {
             revert Unauthorised(node, msg.sender);
         }
 
-        if (_isExpired(tokenData)) {
+        if (!_isExpired(tokenData)) {
             revert nameExpired(node);
         }
 
@@ -164,7 +164,6 @@ contract FuseController is Ownable, IFuseController {
             uint256(node),
             _pack(
                 address(upgradeContract),
-                owner,
                 resolver,
                 expiry,
                 fuses,
@@ -172,8 +171,11 @@ contract FuseController is Ownable, IFuseController {
             )
         );
 
-        // Call the new contract to notify it of the upgrade.
         upgradeContract.upgradeFrom(node, extraData);
+    }
+
+    function upgradeFrom(bytes32 node, bytes calldata extraData) external {
+        // we don't need to do anything here.
     }
 
     /*******************
@@ -198,14 +200,7 @@ contract FuseController is Ownable, IFuseController {
 
         registry.setNode(
             id,
-            _pack(
-                address(this),
-                owner,
-                newResolver,
-                expiry,
-                fuses,
-                renewalController
-            )
+            _pack(owner, newResolver, expiry, fuses, renewalController)
         );
     }
 
@@ -234,7 +229,6 @@ contract FuseController is Ownable, IFuseController {
             uint256(node),
             label,
             _pack(
-                address(this),
                 subnodeOwner,
                 subnodeResolver,
                 subnodeExpiry,
@@ -289,7 +283,6 @@ contract FuseController is Ownable, IFuseController {
     }
 
     function _pack(
-        address controller,
         address owner,
         address resolver,
         uint64 expiry,
@@ -298,7 +291,7 @@ contract FuseController is Ownable, IFuseController {
     ) internal view returns (bytes memory /*tokenData*/) {
         return
             abi.encodePacked(
-                controller,
+                address(this),
                 owner,
                 resolver,
                 expiry,
