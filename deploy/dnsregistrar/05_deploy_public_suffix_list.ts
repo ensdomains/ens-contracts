@@ -23,7 +23,9 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   if (owner !== undefined && owner !== deployer && listOwner !== owner) {
     console.log('Transferring ownership to owner account')
-    await psl.transferOwnership(owner)
+    const tx = await psl.transferOwnership(owner)
+    console.log(`Transfer ownership (tx: ${tx.hash})...`)
+    await tx.wait()
   }
   const publicSuffixList = psl.connect(await ethers.getSigner(owner))
 
@@ -40,7 +42,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   for (let i = 0; i < suffixes.length; i += 100) {
     const batch = suffixes.slice(i, i + 100).map((suffix) => encodeName(suffix))
     const tx = await publicSuffixList.addPublicSuffixes(batch)
-    console.log('Setting suffixes ' + tx.hash)
+    console.log(`Setting suffixes (tx: ${tx.hash})...`)
     txes.push(tx)
   }
   console.log(
