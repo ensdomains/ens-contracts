@@ -3,6 +3,7 @@
 pragma solidity ^0.8.17;
 
 import "@openzeppelin/contracts/interfaces/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
@@ -12,6 +13,8 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import "./IController.sol";
 
 contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
+    using Address for address;
+
     struct Record {
         string name;
         bytes data;
@@ -24,6 +27,8 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
     IMetadataService public metadataService;
 
     error TokenDoesNotExist(uint256 id);
+
+    event NewController(uint256 id, address controller);
 
     constructor(bytes memory root, IMetadataService _metadataService) {
         tokens[0].data = root;
@@ -61,6 +66,8 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
     ) external {
         _safeTransferFrom(from, to, id, value, data);
         emit TransferSingle(msg.sender, from, to, id, value);
+
+        _doSafeTransferAcceptanceCheck(msg.sender, from, to, id, value, data);
     }
 
     function safeBatchTransferFrom(
@@ -75,6 +82,15 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
             _safeTransferFrom(from, to, ids[i], values[i], data);
         }
         emit TransferBatch(msg.sender, from, to, ids, values);
+
+        _doSafeBatchTransferAcceptanceCheck(
+            msg.sender,
+            from,
+            to,
+            ids,
+            values,
+            data
+        );
     }
 
     function setApprovalForAll(address operator, bool approved) external {
@@ -215,6 +231,12 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         // Only the controller may call this function
         require(address(oldController) == msg.sender);
 
+        // Fetch the new controller and emit `NewController` if needed.
+        IController newController = _getController(data);
+        if (oldController != newController) {
+            emit NewController(id, address(newController));
+        }
+
         // Update the data for this node.
         tokens[id].data = data;
     }
@@ -240,13 +262,29 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
             ? address(0)
             : oldSubnodeController.ownerOfWithData(oldSubnodeData);
 
+        // Get the address of the new controller
+        IController newSubnodeController = _getController(subnodeData);
+        if (newSubnodeController != oldSubnodeController) {
+            emit NewController(subnode, address(newSubnodeController));
+        }
+
         tokens[subnode].data = subnodeData;
 
         // Fetch the to address, if not supplied, for the TransferSingle event.
         if (to == address(0) && subnodeData.length >= 20) {
             to = _getController(subnodeData).ownerOfWithData(subnodeData);
         }
+
         emit TransferSingle(operator, oldOwner, to, subnode, 1);
+
+        _doSafeTransferAcceptanceCheck(
+            operator,
+            oldOwner,
+            to,
+            subnode,
+            1,
+            bytes("")
+        );
     }
 
     /**********************
@@ -291,5 +329,68 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         );
 
         tokens[id].data = newTokenData;
+    }
+
+    function _doSafeTransferAcceptanceCheck(
+        address operator,
+        address from,
+        address to,
+        uint256 id,
+        uint256 amount,
+        bytes memory data
+    ) private {
+        if (to.isContract()) {
+            try
+                IERC1155Receiver(to).onERC1155Received(
+                    operator,
+                    from,
+                    id,
+                    amount,
+                    data
+                )
+            returns (bytes4 response) {
+                if (
+                    response != IERC1155Receiver(to).onERC1155Received.selector
+                ) {
+                    revert("ERC1155: ERC1155Receiver rejected tokens");
+                }
+            } catch Error(string memory reason) {
+                revert(reason);
+            } catch {
+                revert("ERC1155: transfer to non ERC1155Receiver implementer");
+            }
+        }
+    }
+
+    function _doSafeBatchTransferAcceptanceCheck(
+        address operator,
+        address from,
+        address to,
+        uint256[] memory ids,
+        uint256[] memory amounts,
+        bytes memory data
+    ) private {
+        if (to.isContract()) {
+            try
+                IERC1155Receiver(to).onERC1155BatchReceived(
+                    operator,
+                    from,
+                    ids,
+                    amounts,
+                    data
+                )
+            returns (bytes4 response) {
+                if (
+                    response !=
+                    IERC1155Receiver(to).onERC1155BatchReceived.selector
+                ) {
+                    revert("ERC1155: ERC1155Receiver rejected tokens");
+                }
+            } catch Error(string memory reason) {
+                revert(reason);
+            } catch {
+                revert("ERC1155: transfer to non ERC1155Receiver implementer");
+            }
+        }
     }
 }

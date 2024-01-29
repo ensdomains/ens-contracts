@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 
 import "../L2Registry.sol";
 import "../IFuseController.sol";
-import "../IControllerUpgrade.sol";
+import "../IControllerUpgradeTarget.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "hardhat/console.sol";
@@ -26,11 +26,11 @@ error nameExpired(bytes32 node);
 contract FuseControllerUpgraded is
     Ownable,
     IFuseController,
-    IControllerUpgrade
+    IControllerUpgradeTarget
 {
     L2Registry immutable registry;
 
-    IControllerUpgrade upgradeContract;
+    IControllerUpgradeTarget upgradeContract;
 
     // A struct to hold the unpacked data
     struct TokenData {

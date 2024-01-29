@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import "./IController.sol";
-import "./IControllerUpgrade.sol";
+import "./IControllerUpgradeTarget.sol";
 
 interface IFuseController is IController {
     function expiryOf(bytes32 node) external view returns (uint64);
@@ -14,6 +14,6 @@ interface IFuseController is IController {
     function upgrade(bytes32 node, bytes calldata extraData) external;
 
     function setUpgradeController(
-        IControllerUpgrade _upgradeController
+        IControllerUpgradeTarget _upgradeController
     ) external;
 }

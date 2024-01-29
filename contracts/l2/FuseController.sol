@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 
 import "./L2Registry.sol";
 import "./IFuseController.sol";
-import "./IControllerUpgrade.sol";
+import "./IControllerUpgradeTarget.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 error Unauthorised(bytes32 node, address addr);
@@ -24,7 +24,7 @@ error nameExpired(bytes32 node);
 contract FuseController is Ownable, IFuseController {
     L2Registry immutable registry;
 
-    IControllerUpgrade upgradeContract;
+    IControllerUpgradeTarget upgradeContract;
 
     // A struct to hold the unpacked data
     struct TokenData {
@@ -252,7 +252,7 @@ contract FuseController is Ownable, IFuseController {
 
     // A function that sets the upgrade contract.
     function setUpgradeController(
-        IControllerUpgrade _upgradeContract
+        IControllerUpgradeTarget _upgradeContract
     ) external onlyOwner {
         upgradeContract = _upgradeContract;
     }
