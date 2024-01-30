@@ -5,7 +5,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { getNamedAccounts, deployments } = hre
   const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+  const { deployer, owner } = await getNamedAccounts()
 
   const registry = await ethers.getContract('ENSRegistry')
   const batchGatewayURLs = JSON.parse(process.env.BATCH_GATEWAY_URLS || '[]')
@@ -19,6 +19,11 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     args: [registry.address, batchGatewayURLs],
     log: true,
   })
+
+  const UR = await ethers.getContract('UniversalResolver')
+  const tx = await UR.transferOwnership(owner)
+  console.log(`Transfer ownership to ${owner} (tx: ${tx.hash})...`)
+  await tx.wait()
 }
 
 func.id = 'universal-resolver'
