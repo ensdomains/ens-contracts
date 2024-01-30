@@ -4,7 +4,7 @@ import "../registry/ENS.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Controllable.sol";
 
-contract Root is Ownable, Controllable {
+contract Root is Controllable {
     bytes32 private constant ROOT_NODE = bytes32(0);
 
     bytes4 private constant INTERFACE_META_ID =
@@ -15,7 +15,7 @@ contract Root is Ownable, Controllable {
     ENS public ens;
     mapping(bytes32 => bool) public locked;
 
-    constructor(ENS _ens) public {
+    constructor(ENS _ens) public Controllable() {
         ens = _ens;
     }
 

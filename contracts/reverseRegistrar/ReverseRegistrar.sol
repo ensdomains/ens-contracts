@@ -15,7 +15,7 @@ bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967f
 
 // namehash('addr.reverse')
 
-contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
+contract ReverseRegistrar is Controllable, IReverseRegistrar {
     ENS public immutable ens;
     NameResolver public defaultResolver;
 
@@ -26,7 +26,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @dev Constructor
      * @param ensAddr The address of the ENS registry.
      */
-    constructor(ENS ensAddr) {
+    constructor(ENS ensAddr) Controllable() {
         ens = ensAddr;
 
         // Assign ownership of the reverse record to our deployer

@@ -60,7 +60,7 @@ contract NameWrapper is
         ENS _ens,
         IBaseRegistrar _registrar,
         IMetadataService _metadataService
-    ) ReverseClaimer(_ens, msg.sender) {
+    ) ReverseClaimer(_ens, msg.sender) Controllable() {
         ens = _ens;
         registrar = _registrar;
         metadataService = _metadataService;

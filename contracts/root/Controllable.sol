@@ -15,6 +15,8 @@ contract Controllable is Ownable {
         _;
     }
 
+    constructor() Ownable(msg.sender) {}
+
     function setController(address controller, bool enabled) public onlyOwner {
         controllers[controller] = enabled;
         emit ControllerChanged(controller, enabled);
