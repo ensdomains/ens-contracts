@@ -14,10 +14,20 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   await deploy('SimplePublicSuffixList', {
     from: deployer,
+    gasLimit: 10000000,
     args: [],
     log: true,
   })
-  const publicSuffixList = await ethers.getContract('SimplePublicSuffixList')
+  const psl = await ethers.getContract('SimplePublicSuffixList')
+  const listOwner = await psl.owner()
+
+  if (owner !== undefined && owner !== deployer && listOwner !== owner) {
+    console.log('Transferring ownership to owner account')
+    const tx = await psl.transferOwnership(owner)
+    console.log(`Transfer ownership (tx: ${tx.hash})...`)
+    await tx.wait()
+  }
+  const publicSuffixList = psl.connect(await ethers.getSigner(owner))
 
   const suffixList = await (
     await fetch('https://publicsuffix.org/list/public_suffix_list.dat')
@@ -28,19 +38,17 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   // Right now we're only going to support top-level, non-idna suffixes
   suffixes = suffixes.filter((suffix) => suffix.match(/^[a-z0-9]+$/))
   const txes = []
+  console.log('Starting suffix transactions')
   for (let i = 0; i < suffixes.length; i += 100) {
     const batch = suffixes.slice(i, i + 100).map((suffix) => encodeName(suffix))
-    txes.push(await publicSuffixList.addPublicSuffixes(batch))
+    const tx = await publicSuffixList.addPublicSuffixes(batch)
+    console.log(`Setting suffixes (tx: ${tx.hash})...`)
+    txes.push(tx)
   }
   console.log(
     `Waiting on ${txes.length} suffix-setting transactions to complete...`,
   )
   await Promise.all(txes.map((tx) => tx.wait()))
-
-  if (owner !== undefined && owner !== deployer) {
-    console.log('Transferring ownership to owner account')
-    await publicSuffixList.transferOwnership(owner)
-  }
 }
 
 func.tags = ['SimplePublicSuffixList']
