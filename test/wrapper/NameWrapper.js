@@ -553,7 +553,7 @@ describe('Name Wrapper', () => {
 
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
@@ -742,7 +742,7 @@ describe('Name Wrapper', () => {
     it('wraps a name if sender is owner', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
@@ -1224,7 +1224,7 @@ describe('Name Wrapper', () => {
     it('Allows the owner to unwrap a name.', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(
@@ -1248,7 +1248,7 @@ describe('Name Wrapper', () => {
     it('Does not allows the previous owner to unwrap when the name has expired.', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(
@@ -2082,7 +2082,7 @@ describe('Name Wrapper', () => {
       it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
         await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-        //allow the restricted name wrappper to transfer the name to itself and reclaim it
+        //allow the restricted name wrapper to transfer the name to itself and reclaim it
         await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
         await NameWrapper.wrapETH2LD(
@@ -2121,7 +2121,7 @@ describe('Name Wrapper', () => {
       it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
         await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-        //allow the restricted name wrappper to transfer the name to itself and reclaim it
+        //allow the restricted name wrapper to transfer the name to itself and reclaim it
         await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
         await NameWrapper.wrapETH2LD(
@@ -5735,7 +5735,7 @@ describe('Name Wrapper', () => {
       ).to.equal(true)
     })
 
-    it('Allows specifiying resolver address', async () => {
+    it('Allows specifying resolver address', async () => {
       await BaseRegistrar.register(tokenId, account, 1 * DAY)
 
       await BaseRegistrar['safeTransferFrom(address,address,uint256,bytes)'](
@@ -6888,7 +6888,7 @@ describe('Name Wrapper', () => {
       await evm.advanceTime(GRACE_PERIOD + 1 * DAY + 1)
       await evm.mine()
 
-      // XXX: note that at this step, the hackler should use the current .eth
+      // XXX: note that at this step, the hacker should use the current .eth
       // registrar to directly register `sub1.eth` to himself, without wrapping
       // the name.
       await BaseRegistrar.register(labelHash1, hacker, 10 * DAY)
@@ -6898,7 +6898,7 @@ describe('Name Wrapper', () => {
       // set `EnsRegistry.owner` as NameWrapper. Note that this step is used to
       // bypass the newly-introduced checks for [ZZ-001]
       //
-      // XXX: corrently, `sub1.eth` becomes a normal node
+      // XXX: currently, `sub1.eth` becomes a normal node
       await EnsRegistryH.setOwner(wrappedTokenId1, NameWrapper.address)
 
       // create `sub2.sub1.eth` to the victim user with `PARENT_CANNOT_CONTROL`
