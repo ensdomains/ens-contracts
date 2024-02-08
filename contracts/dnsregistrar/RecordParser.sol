@@ -31,11 +31,13 @@ library RecordParser {
             " "
         );
         if (terminator == type(uint256).max) {
-            terminator = input.length;
+            terminator = len + offset;
+            nextOffset = terminator;
+        } else {
+            nextOffset = terminator + 1;
         }
 
         key = input.substring(offset, separator - offset);
         value = input.substring(separator + 1, terminator - separator - 1);
-        nextOffset = terminator + 1;
     }
 }

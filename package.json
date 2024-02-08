@@ -72,5 +72,8 @@
   "bugs": {
     "url": "https://github.com/ensdomains/ens-contracts/issues"
   },
-  "homepage": "https://github.com/ensdomains/ens-contracts#readme"
+  "homepage": "https://github.com/ensdomains/ens-contracts#readme",
+  "volta": {
+    "node": "16.20.2"
+  }
 }

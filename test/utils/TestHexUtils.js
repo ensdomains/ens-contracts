@@ -45,12 +45,12 @@ describe('HexUtils', () => {
     })
     it('Correctly parses all hex characters', async () => {
       let [bytes32, valid] = await HexUtils.hexStringToBytes32(
-        toUtf8Bytes('0123456789abcdefABCDEF'),
+        toUtf8Bytes('0123456789abcdefABCDEF0123456789abcdefABCD'),
         0,
-        22,
+        40,
       )
       expect(bytes32).to.equal(
-        '0x0000000000000000000000000000000000000000000123456789abcdefabcdef',
+        '0x0000000000000000000000000123456789abcdefabcdef0123456789abcdefab',
       )
       expect(valid).to.equal(true)
     })
@@ -100,6 +100,36 @@ describe('HexUtils', () => {
       )
       expect(address).to.equal('0x0000000000000000000000000000000000000000')
       expect(valid).to.equal(false)
+    })
+  })
+
+  describe('Special cases for hexStringToBytes32()', () => {
+    const hex32Bytes =
+      '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da'
+    it('odd length 1', async () => {
+      await expect(HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes), 0, 63))
+        .to.be.reverted
+    })
+
+    it('odd length 2', async () => {
+      await expect(
+        HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes + '00'), 1, 64),
+      ).to.be.reverted
+    })
+
+    it('not enough length', async () => {
+      await expect(HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes), 0, 2))
+        .to.be.reverted
+    })
+
+    it('exceed length', async () => {
+      await expect(
+        HexUtils.hexStringToBytes32(
+          toUtf8Bytes(hex32Bytes + '1234'),
+          0,
+          64 + 4,
+        ),
+      ).to.be.reverted
     })
   })
 })
