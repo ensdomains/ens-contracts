@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import "../../../contracts/resolvers/profiles/ITextResolver.sol";
 import "../../../contracts/resolvers/profiles/IExtendedResolver.sol";
 
 error OffchainLookup(
@@ -27,6 +28,10 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
     ) external view returns (bytes memory) {
         string[] memory urls = new string[](1);
         urls[0] = "https://example.com/";
+
+        if (bytes4(data) == bytes4(0x12345678)) {
+            return abi.encode("foo");
+        }
         revert OffchainLookup(
             address(this),
             urls,
@@ -36,8 +41,8 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
         );
     }
 
-    function addr(bytes32) external pure returns (bytes memory) {
-        return abi.encode("onchain");
+    function addr(bytes32) external pure returns (address) {
+        return 0x69420f05A11f617B4B74fFe2E04B2D300dFA556F;
     }
 
     function resolveCallback(
