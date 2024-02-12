@@ -9,6 +9,7 @@ import "../resolvers/profiles/ITextResolver.sol";
 import "../resolvers/profiles/INameResolver.sol";
 import "../root/Controllable.sol";
 import "../resolvers/Multicallable.sol";
+import "../utils/LowLevelCallUtils.sol";
 
 error InvalidSignature();
 error SignatureOutOfDate();
@@ -414,7 +415,7 @@ contract L2ReverseRegistrar is
      * @param addr The node to update.
      */
     function clearRecords(address addr) public virtual authorised(addr) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(L2ReverseNode, labelHash)
         );
@@ -446,7 +447,7 @@ contract L2ReverseRegistrar is
             signature
         )
     {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(L2ReverseNode, labelHash)
         );
@@ -460,7 +461,13 @@ contract L2ReverseRegistrar is
      * @return The ENS node hash.
      */
     function node(address addr) public view override returns (bytes32) {
-        return keccak256(abi.encodePacked(L2ReverseNode, sha3HexAddress(addr)));
+        return
+            keccak256(
+                abi.encodePacked(
+                    L2ReverseNode,
+                    LowLevelCallUtils.sha3HexAddress(addr)
+                )
+            );
     }
 
     function ownsContract(
@@ -475,38 +482,12 @@ contract L2ReverseRegistrar is
     }
 
     function _getNamehash(address addr) internal view returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         return keccak256(abi.encodePacked(L2ReverseNode, labelHash));
     }
 
     function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
         lastUpdated[node] = inceptionDate;
-    }
-
-    /**
-     * @dev An optimised function to compute the sha3 of the lower-case
-     *      hexadecimal representation of an Ethereum address.
-     * @param addr The address to hash
-     * @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
-     *         input address.
-     */
-    function sha3HexAddress(address addr) internal pure returns (bytes32 ret) {
-        assembly {
-            for {
-                let i := 40
-            } gt(i, 0) {
-
-            } {
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-            }
-
-            ret := keccak256(0, 40)
-        }
     }
 
     function supportsInterface(

@@ -10,6 +10,7 @@ import "../resolvers/profiles/INameResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "../wrapper/BytesUtils.sol";
 import "../utils/HexUtils.sol";
+import "../utils/LowLevelCallUtils.sol";
 
 // name(bytes32 node)
 // name(address)
@@ -173,7 +174,7 @@ contract DefaultReverseResolver is
     }
 
     function _getNamehash(address addr) internal view returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         return keccak256(abi.encodePacked(DEFAULT_REVERSE_NODE, labelHash));
     }
 
@@ -215,32 +216,6 @@ contract DefaultReverseResolver is
         }
     }
 
-    /**
-     * @dev An optimised function to compute the sha3 of the lower-case
-     *      hexadecimal representation of an Ethereum address.
-     * @param addr The address to hash
-     * @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
-     *         input address.
-     */
-    function sha3HexAddress(address addr) internal pure returns (bytes32 ret) {
-        assembly {
-            for {
-                let i := 40
-            } gt(i, 0) {
-
-            } {
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-            }
-
-            ret := keccak256(0, 40)
-        }
-    }
-
     function clearRecordsWithSignature(
         address addr,
         uint256 inceptionDate,
@@ -259,7 +234,7 @@ contract DefaultReverseResolver is
             signature
         )
     {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
             abi.encodePacked(DEFAULT_REVERSE_NODE, labelHash)
         );
