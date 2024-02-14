@@ -241,6 +241,21 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         _clearRecords(addr);
     }
 
+    /**
+     * @dev Returns the node hash for a given account's reverse records.
+     * @param addr The address to hash
+     * @return The ENS node hash.
+     */
+    function node(address addr) public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encodePacked(
+                    ParentNode,
+                    LowLevelCallUtils.sha3HexAddress(addr)
+                )
+            );
+    }
+
     function _getNamehash(address addr) internal view returns (bytes32) {
         bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         return keccak256(abi.encodePacked(ParentNode, labelHash));

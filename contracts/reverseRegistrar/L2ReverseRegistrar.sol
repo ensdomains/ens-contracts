@@ -271,21 +271,6 @@ contract L2ReverseRegistrar is
         _clearRecords(addr);
     }
 
-    /**
-     * @dev Returns the node hash for a given account's reverse records.
-     * @param addr The address to hash
-     * @return The ENS node hash.
-     */
-    function node(address addr) public view override returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    L2ReverseNode,
-                    LowLevelCallUtils.sha3HexAddress(addr)
-                )
-            );
-    }
-
     function ownsContract(
         address contractAddr,
         address addr

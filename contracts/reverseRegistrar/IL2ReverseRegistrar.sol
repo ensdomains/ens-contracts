@@ -37,6 +37,4 @@ interface IL2ReverseRegistrar {
     ) external returns (bytes32);
 
     function clearRecords(address addr) external;
-
-    function node(address addr) external view returns (bytes32);
 }

@@ -15,25 +15,4 @@ interface IDefaultReverseResolver {
         address addr,
         string memory key
     ) external returns (string memory);
-
-    function setNameForAddrWithSignature(
-        address addr,
-        string memory name,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external returns (bytes32);
-
-    function setTextForAddrWithSignature(
-        address addr,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external returns (bytes32);
-
-    function clearRecordsWithSignature(
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external;
 }
