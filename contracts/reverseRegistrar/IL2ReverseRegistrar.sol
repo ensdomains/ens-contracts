@@ -8,13 +8,6 @@ interface IL2ReverseRegistrar {
         string memory name
     ) external returns (bytes32);
 
-    function setNameForAddrWithSignature(
-        address addr,
-        string memory name,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external returns (bytes32);
-
     function setNameForAddrWithSignatureAndOwnable(
         address contractAddr,
         address owner,
@@ -34,14 +27,6 @@ interface IL2ReverseRegistrar {
         string calldata value
     ) external returns (bytes32);
 
-    function setTextForAddrWithSignature(
-        address addr,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external returns (bytes32);
-
     function setTextForAddrWithSignatureAndOwnable(
         address contractAddr,
         address owner,
@@ -52,12 +37,6 @@ interface IL2ReverseRegistrar {
     ) external returns (bytes32);
 
     function clearRecords(address addr) external;
-
-    function clearRecordsWithSignature(
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) external;
 
     function node(address addr) external view returns (bytes32);
 }

@@ -226,7 +226,7 @@ describe('L2ReverseRegistrar', function () {
     })
   })
 
-  describe.only('setNameForAddrWithSignatureAndOwnable', () => {
+  describe('setNameForAddrWithSignatureAndOwnable', () => {
     let name
     let node
     let inceptionDate

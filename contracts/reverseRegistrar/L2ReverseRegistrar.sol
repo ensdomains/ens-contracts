@@ -2,6 +2,7 @@ pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
 import "./IL2ReverseRegistrar.sol";
+import "./SignatureReverseResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -11,9 +12,6 @@ import "../root/Controllable.sol";
 import "../resolvers/Multicallable.sol";
 import "../utils/LowLevelCallUtils.sol";
 
-error InvalidSignature();
-error SignatureOutOfDate();
-error Unauthorised();
 error NotOwnerOfContract();
 
 // @note Inception date
@@ -26,45 +24,22 @@ contract L2ReverseRegistrar is
     Ownable,
     ITextResolver,
     INameResolver,
-    IL2ReverseRegistrar
+    IL2ReverseRegistrar,
+    SignatureReverseResolver
 {
     using ECDSA for bytes32;
-    mapping(bytes32 => uint256) public lastUpdated;
-    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
-    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
-    mapping(bytes32 => uint64) internal recordVersions;
-    event VersionChanged(bytes32 indexed node, uint64 newVersion);
-    event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     bytes32 public immutable L2ReverseNode;
-    uint256 public immutable coinType;
-
-    // This is the hex encoding of the string 'abcdefghijklmnopqrstuvwxyz'
-    // It is used as a constant to lookup the characters of the hex address
-    bytes32 constant lookup =
-        0x3031323334353637383961626364656600000000000000000000000000000000;
 
     /**
      * @dev Constructor
      */
-    constructor(bytes32 _L2ReverseNode, uint256 _coinType) {
+    constructor(
+        bytes32 _L2ReverseNode,
+        uint256 _coinType
+    ) SignatureReverseResolver(_L2ReverseNode, _coinType) {
         L2ReverseNode = _L2ReverseNode;
-        coinType = _coinType;
-    }
-
-    modifier authorised(address addr) {
-        isAuthorised(addr);
-        _;
-    }
-
-    modifier authorisedSignature(
-        bytes32 hash,
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) {
-        isAuthorisedWithSignature(hash, addr, inceptionDate, signature);
-        _;
+        // coinType = _coinType;
     }
 
     modifier ownerAndAuthorisedWithSignature(
@@ -84,32 +59,9 @@ contract L2ReverseRegistrar is
         _;
     }
 
-    function isAuthorised(address addr) internal view returns (bool) {
+    function isAuthorised(address addr) internal view override returns (bool) {
         if (addr != msg.sender && !ownsContract(addr, msg.sender)) {
             revert Unauthorised();
-        }
-    }
-
-    function isAuthorisedWithSignature(
-        bytes32 hash,
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) internal view returns (bool) {
-        bytes32 message = keccak256(
-            abi.encodePacked(hash, addr, inceptionDate, coinType)
-        ).toEthSignedMessageHash();
-        bytes32 node = _getNamehash(addr);
-
-        if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
-            revert InvalidSignature();
-        }
-
-        if (
-            inceptionDate <= lastUpdated[node] || // must be newer than current record
-            inceptionDate / 1000 >= block.timestamp // must be in the past
-        ) {
-            revert SignatureOutOfDate();
         }
     }
 
@@ -145,41 +97,6 @@ contract L2ReverseRegistrar is
         ) {
             revert SignatureOutOfDate();
         }
-    }
-
-    /**
-     * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
-     * @param addr The reverse record to set
-     * @param name The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
-     * @param signature The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
-    function setNameForAddrWithSignature(
-        address addr,
-        string memory name,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        override
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseRegistrar.setNameForAddrWithSignature.selector,
-                    name
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
-        bytes32 node = _getNamehash(addr);
-        _setName(node, name, inceptionDate);
-        emit ReverseClaimed(addr, node);
-        return node;
     }
 
     /**
@@ -245,43 +162,6 @@ contract L2ReverseRegistrar is
         bytes32 node = _getNamehash(addr);
         _setName(node, name, block.timestamp);
         emit ReverseClaimed(addr, node);
-        return node;
-    }
-
-    /**
-     * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
-     * @param addr The reverse record to set
-     * @param key The key of the text record
-     * @param value The value of the text record
-     * @param inceptionDate Date from when this signature is valid from
-     * @param signature The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
-    function setTextForAddrWithSignature(
-        address addr,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        override
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseRegistrar.setTextForAddrWithSignature.selector,
-                    key,
-                    value
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
-        bytes32 node = _getNamehash(addr);
-        _setText(node, key, value, inceptionDate);
         return node;
     }
 
@@ -357,17 +237,6 @@ contract L2ReverseRegistrar is
         return node;
     }
 
-    function _setText(
-        bytes32 node,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate
-    ) internal {
-        versionable_texts[recordVersions[node]][node][key] = value;
-        _setLastUpdated(node, inceptionDate);
-        emit TextChanged(node, key, key, value);
-    }
-
     /**
      * Returns the text data associated with an ENS node and key.
      * @param node The ENS node to query.
@@ -378,23 +247,7 @@ contract L2ReverseRegistrar is
         bytes32 node,
         string calldata key
     ) external view virtual override returns (string memory) {
-        return versionable_texts[recordVersions[node]][node][key];
-    }
-
-    /**
-     * Sets the name associated with an ENS node, for reverse records.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param newName name record
-     */
-    function _setName(
-        bytes32 node,
-        string memory newName,
-        uint256 inceptionDate
-    ) internal virtual {
-        versionable_names[recordVersions[node]][node] = newName;
-        _setLastUpdated(node, inceptionDate);
-        emit NameChanged(node, newName);
+        return _text(node, key);
     }
 
     /**
@@ -406,7 +259,7 @@ contract L2ReverseRegistrar is
     function name(
         bytes32 node
     ) external view virtual override returns (string memory) {
-        return versionable_names[recordVersions[node]][node];
+        return _name(node);
     }
 
     /**
@@ -415,44 +268,7 @@ contract L2ReverseRegistrar is
      * @param addr The node to update.
      */
     function clearRecords(address addr) public virtual authorised(addr) {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2ReverseNode, labelHash)
-        );
-        recordVersions[reverseNode]++;
-        emit VersionChanged(reverseNode, recordVersions[reverseNode]);
-    }
-
-    /**
-     * Increments the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     * @param signature A signature proving ownership of the node.
-     */
-    function clearRecordsWithSignature(
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        virtual
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseRegistrar.clearRecordsWithSignature.selector
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-    {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(L2ReverseNode, labelHash)
-        );
-        recordVersions[reverseNode]++;
-        emit VersionChanged(reverseNode, recordVersions[reverseNode]);
+        _clearRecords(addr);
     }
 
     /**
@@ -481,18 +297,14 @@ contract L2ReverseRegistrar is
         }
     }
 
-    function _getNamehash(address addr) internal view returns (bytes32) {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
-        return keccak256(abi.encodePacked(L2ReverseNode, labelHash));
-    }
-
-    function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
-        lastUpdated[node] = inceptionDate;
-    }
-
     function supportsInterface(
         bytes4 interfaceID
-    ) public view override(Multicallable) returns (bool) {
+    )
+        public
+        view
+        override(Multicallable, SignatureReverseResolver)
+        returns (bool)
+    {
         return
             interfaceID == type(IL2ReverseRegistrar).interfaceId ||
             interfaceID == type(ITextResolver).interfaceId ||
