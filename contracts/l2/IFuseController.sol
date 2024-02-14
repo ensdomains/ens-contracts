@@ -7,7 +7,7 @@ import "./IControllerUpgradeTarget.sol";
 interface IFuseController is IController {
     function expiryOf(bytes32 node) external view returns (uint64);
 
-    function fusesOf(bytes32 node) external view returns (uint96);
+    function fusesOf(bytes32 node) external view returns (uint64);
 
     function renewalControllerOf(bytes32 node) external view returns (address);
 

@@ -62,7 +62,7 @@ contract.only('L2Registry', function (accounts) {
     assert.equal(await registry.balanceOf(deployerAddress, ROOT_NODE), 1)
 
     const packedData = ethers.utils.solidityPack(
-      ['address', 'address', 'address', 'uint64', 'uint32', 'address'],
+      ['address', 'address', 'address', 'uint64', 'uint64', 'address'],
       [
         controller.address,
         ownerAddress,

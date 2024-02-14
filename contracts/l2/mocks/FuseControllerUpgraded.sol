@@ -20,7 +20,7 @@ error nameExpired(bytes32 node);
  *       - Byte 20: owner (address)
  *       - Byte 40: resolver (address)
  *       _ Byte 60: expiry (uint64)
- *       - Byte 68: fuses (uint96)
+ *       - Byte 68: fuses (uint64)
  *       - Byte 80: renewalController (address)
  */
 contract FuseControllerUpgraded is
@@ -37,7 +37,7 @@ contract FuseControllerUpgraded is
         address owner;
         address resolver;
         uint64 expiry;
-        uint96 fuses;
+        uint64 fuses;
         address renewalController;
     }
 
@@ -115,10 +115,10 @@ contract FuseControllerUpgraded is
         return expiry;
     }
 
-    function fusesOf(bytes32 node) external view returns (uint96) {
+    function fusesOf(bytes32 node) external view returns (uint64) {
         // get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        (, , , uint96 fuses, ) = _unpack(tokenData);
+        (, , , uint64 fuses, ) = _unpack(tokenData);
         return fuses;
     }
 
@@ -141,7 +141,7 @@ contract FuseControllerUpgraded is
             address owner,
             address resolver,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         ) = _unpack(tokenData);
 
@@ -189,7 +189,7 @@ contract FuseControllerUpgraded is
             address owner,
             ,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         ) = _unpack(tokenData);
         bool isAuthorized = registry.getAuthorization(id, owner, msg.sender);
@@ -210,7 +210,7 @@ contract FuseControllerUpgraded is
         address subnodeOwner,
         address subnodeResolver,
         uint64 subnodeExpiry,
-        uint96 subnodeFuses,
+        uint64 subnodeFuses,
         address subnodeRenewalController
     ) external {
         bytes memory tokenData = registry.getData(uint256(node));
@@ -246,7 +246,7 @@ contract FuseControllerUpgraded is
 
     // A function that sets the upgrade contract.
     function setUpgradeController(
-        IControllerUpgrade _upgradeContract
+        IControllerUpgradeTarget _upgradeContract
     ) external onlyOwner {
         upgradeContract = _upgradeContract;
     }
@@ -269,7 +269,7 @@ contract FuseControllerUpgraded is
             address owner,
             address resolver,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         )
     {
@@ -286,7 +286,7 @@ contract FuseControllerUpgraded is
         address owner,
         address resolver,
         uint64 expiry,
-        uint96 fuses,
+        uint64 fuses,
         address renewalController
     ) internal view returns (bytes memory /*tokenData*/) {
         return

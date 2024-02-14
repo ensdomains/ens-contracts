@@ -18,7 +18,7 @@ error nameExpired(bytes32 node);
  *       - Byte 20: owner (address)
  *       - Byte 40: resolver (address)
  *       _ Byte 60: expiry (uint64)
- *       - Byte 68: fuses (uint96)
+ *       - Byte 68: fuses (uint64)
  *       - Byte 80: renewalController (address)
  */
 contract FuseController is Ownable, IFuseController {
@@ -31,7 +31,7 @@ contract FuseController is Ownable, IFuseController {
         address owner;
         address resolver;
         uint64 expiry;
-        uint96 fuses;
+        uint64 fuses;
         address renewalController;
     }
 
@@ -45,7 +45,7 @@ contract FuseController is Ownable, IFuseController {
 
     function ownerOfWithData(
         bytes calldata tokenData
-    ) external pure returns (address) {
+    ) external view returns (address) {
         (address owner, , , , ) = _unpack(tokenData);
         return owner;
     }
@@ -96,14 +96,14 @@ contract FuseController is Ownable, IFuseController {
         bytes calldata tokenData,
         address _owner,
         uint256 /*id*/
-    ) external pure returns (uint256) {
+    ) external view returns (uint256) {
         (address owner, , , , ) = _unpack(tokenData);
         return _owner == owner ? 1 : 0;
     }
 
     function resolverFor(
         bytes calldata tokenData
-    ) external pure returns (address) {
+    ) external view returns (address) {
         (, address resolver, , , ) = _unpack(tokenData);
         return resolver;
     }
@@ -115,10 +115,10 @@ contract FuseController is Ownable, IFuseController {
         return expiry;
     }
 
-    function fusesOf(bytes32 node) external view returns (uint96) {
+    function fusesOf(bytes32 node) external view returns (uint64) {
         // get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        (, , , uint96 fuses, ) = _unpack(tokenData);
+        (, , , uint64 fuses, ) = _unpack(tokenData);
         return fuses;
     }
 
@@ -141,7 +141,7 @@ contract FuseController is Ownable, IFuseController {
             address owner,
             address resolver,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         ) = _unpack(tokenData);
 
@@ -187,7 +187,7 @@ contract FuseController is Ownable, IFuseController {
             address owner,
             ,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         ) = _unpack(tokenData);
         bool isAuthorized = registry.getAuthorization(id, owner, msg.sender);
@@ -215,7 +215,7 @@ contract FuseController is Ownable, IFuseController {
         address subnodeOwner,
         address subnodeResolver,
         uint64 subnodeExpiry,
-        uint96 subnodeFuses,
+        uint64 subnodeFuses,
         address subnodeRenewalController
     ) external {
         bytes memory tokenData = registry.getData(uint256(node));
@@ -270,21 +270,23 @@ contract FuseController is Ownable, IFuseController {
         bytes memory tokenData
     )
         internal
-        pure
+        view
         returns (
             address owner,
             address resolver,
             uint64 expiry,
-            uint96 fuses,
+            uint64 fuses,
             address renewalController
         )
     {
+        require(tokenData.length == 96, "Invalid tokenData length");
+
         assembly {
             owner := mload(add(tokenData, 40))
             resolver := mload(add(tokenData, 60))
             expiry := mload(add(tokenData, 68))
-            fuses := mload(add(tokenData, 80))
-            renewalController := mload(add(tokenData, 92))
+            fuses := mload(add(tokenData, 76))
+            renewalController := mload(add(tokenData, 96))
         }
     }
 
@@ -293,7 +295,7 @@ contract FuseController is Ownable, IFuseController {
         address owner,
         address resolver,
         uint64 expiry,
-        uint96 fuses,
+        uint64 fuses,
         address renewalController
     ) internal view returns (bytes memory /*tokenData*/) {
         return
