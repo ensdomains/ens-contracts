@@ -12,6 +12,7 @@ import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "../wrapper/BytesUtils.sol";
 import "../utils/HexUtils.sol";
 import "../utils/LowLevelCallUtils.sol";
+import "hardhat/console.sol";
 
 contract DefaultReverseResolver is
     Ownable,
@@ -59,17 +60,26 @@ contract DefaultReverseResolver is
         bytes calldata data
     ) external view returns (bytes memory result) {
         bytes4 selector = bytes4(data);
-        (bytes32 labelhash, uint256 offset) = encodedname.readLabel(0);
-        (address addr, ) = HexUtils.hexToAddress(
-            abi.encodePacked(labelhash),
-            0,
-            offset
-        );
-        if (selector == INameResolver.name.selector) {
-            return bytes(name(addr));
+        // readLabel wasn't decoding labelhash properly hence
+        // (bytes32 labelhash, uint256 offset) = encodedname.readLabel(0);
+        // (address addr, ) = HexUtils.hexToAddress(
+        //     abi.encodePacked(labelhash),
+        //     0,
+        //     labelhash.length
+        // );
+        if (selector == IDefaultReverseResolver.name.selector) {
+            address addr = abi.decode(data[4:], (address));
+            string memory n = name(addr);
+            console.logString("1");
+            console.logString(n);
+            console.logBytes(bytes(n));
+            return bytes(n);
         }
-        if (selector == ITextResolver.text.selector) {
-            (, string memory key) = abi.decode(data[4:], (bytes32, string));
+        if (selector == IDefaultReverseResolver.text.selector) {
+            (address addr, string memory key) = abi.decode(
+                data[4:],
+                (address, string)
+            );
             return bytes(text(addr, key));
         }
     }

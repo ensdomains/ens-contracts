@@ -1,7 +1,7 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { namehash } = require('../test-utils/ens')
-
+const { namehash, encodeName } = require('../test-utils/ens')
+const { sha256 } = require('ethers/lib/utils')
 const keccak256 = ethers.utils.solidityKeccak256
 const coinType = 0
 
@@ -31,6 +31,7 @@ describe('DefaultReverseResolver', function () {
     'clearRecordsWithSignature(address,uint256,bytes)'
   let setNameForAddrWithSignatureFuncId
   let setTextForAddrWithSignatureFuncId
+  let DefaultReverseResolverFactory
   before(async function () {
     signers = await ethers.getSigners()
     account = await signers[0].getAddress()
@@ -44,7 +45,7 @@ describe('DefaultReverseResolver', function () {
     clearRecordsWithSignatureFuncId = ethers.utils
       .id(clearRecordsWithSignatureSig)
       .substring(0, 10)
-    const DefaultReverseResolverFactory = await ethers.getContractFactory(
+    DefaultReverseResolverFactory = await ethers.getContractFactory(
       'DefaultReverseResolver',
     )
     DefaultReverseResolver = await DefaultReverseResolverFactory.deploy()
@@ -110,6 +111,28 @@ describe('DefaultReverseResolver', function () {
         signature,
       )
       assert.equal(await DefaultReverseResolver.name(account), name)
+    })
+
+    it('allows to resolve', async () => {
+      await DefaultReverseResolverWithAccount2['setNameForAddrWithSignature'](
+        account,
+        name,
+        inceptionDate,
+        signature,
+      )
+      const reverseName = `${account
+        .substring(2)
+        .toLowerCase()}.default.reverse`
+      const encodedname = encodeName(reverseName)
+      const calldata =
+        DefaultReverseResolverFactory.interface.encodeFunctionData('name', [
+          account,
+        ])
+      const result = await DefaultReverseResolverWithAccount2['resolve'](
+        encodedname,
+        calldata,
+      )
+      assert.equal(ethers.utils.toUtf8String(result), name)
     })
 
     it('event ReverseClaimed is emitted', async () => {
@@ -214,6 +237,9 @@ describe('DefaultReverseResolver', function () {
 
   describe('setTextForAddrWithSignature', function () {
     it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const key = 'url'
+      const value = 'http://ens.domains'
+
       const funcId = ethers.utils
         .id(setTextForAddrWithSignatureFuncSig)
         .substring(0, 10)
@@ -239,19 +265,29 @@ describe('DefaultReverseResolver', function () {
 
       await DefaultReverseResolverWithAccount2['setTextForAddrWithSignature'](
         account,
-        'url',
-        'http://ens.domains',
+        key,
+        value,
         inceptionDate,
         signature,
       )
 
       // const node = await DefaultReverseResolver.node(account)
-      assert.equal(
-        await DefaultReverseResolver.text(account, 'url'),
-        'http://ens.domains',
+      assert.equal(await DefaultReverseResolver.text(account, key), value)
+      const reverseName = `${account
+        .substring(2)
+        .toLowerCase()}.default.reverse`
+      const encodedname = encodeName(reverseName)
+      const calldata =
+        DefaultReverseResolverFactory.interface.encodeFunctionData('text', [
+          account,
+          key,
+        ])
+      const result = await DefaultReverseResolverWithAccount2['resolve'](
+        encodedname,
+        calldata,
       )
+      assert.equal(ethers.utils.toUtf8String(result), value)
     })
-
     it('reverts if signature parameters do not match', async () => {
       const funcId = ethers.utils
         .id(setTextForAddrWithSignatureFuncSig)
