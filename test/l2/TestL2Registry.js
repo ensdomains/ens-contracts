@@ -112,7 +112,7 @@ contract.only('L2Registry', function (accounts) {
       labelhash('sub'),
       subnodeOwnerAddress,
       resolver.address,
-      5184000, // 60 days
+      MAX_UINT64,
       0, // no fuse
       EMPTY_ADDRESS, // no controller
       { from: ownerAddress },
@@ -121,7 +121,7 @@ contract.only('L2Registry', function (accounts) {
     assert.equal(await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE), 1)
     assert.equal(await registry.resolver(TEST_SUBNODE), resolver.address)
     assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
-    assert.equal(await controller.expiryOf(TEST_SUBNODE), 5184000)
+    assert.equal(await controller.expiryOf(TEST_SUBNODE), MAX_UINT64)
     assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
     assert.equal(
       await controller.renewalControllerOf(TEST_SUBNODE),

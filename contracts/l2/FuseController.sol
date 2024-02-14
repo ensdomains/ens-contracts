@@ -80,6 +80,7 @@ contract FuseController is Ownable, IFuseController {
         require(value == 1);
         require(from == td.owner);
         require(operator == td.owner || operatorApproved);
+        require(!_isExpired(tokenData));
 
         return
             _pack(
@@ -98,6 +99,9 @@ contract FuseController is Ownable, IFuseController {
         uint256 /*id*/
     ) external view returns (uint256) {
         (address owner, , , , ) = _unpack(tokenData);
+        if (_isExpired(tokenData)) {
+            return 0;
+        }
         return _owner == owner ? 1 : 0;
     }
 

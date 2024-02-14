@@ -7,8 +7,6 @@ import "../IFuseController.sol";
 import "../IControllerUpgradeTarget.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-import "hardhat/console.sol";
-
 error Unauthorised(bytes32 node, address addr);
 error CannotUpgrade();
 error nameExpired(bytes32 node);
@@ -59,7 +57,6 @@ contract FuseControllerUpgraded is
     function ownerOf(bytes32 node) external view returns (address) {
         //get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        console.logBytes(tokenData);
         (address owner, , , , ) = _unpack(tokenData);
         return owner;
     }
