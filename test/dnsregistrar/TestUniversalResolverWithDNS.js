@@ -186,7 +186,7 @@ contract('UniversalResolver', function (accounts) {
       )
 
       const IDNSGatewayAbi = [
-        'function resolve(bytes memory name, uint16 qtype ) external returns (bytes[] memory)',
+        'function resolve(bytes memory name, uint16 qtype) external returns (bytes[] memory)',
       ]
       const iface = new ethers.utils.Interface(IDNSGatewayAbi)
       const innerExtraData = iface.encodeFunctionData('resolve', [
@@ -209,8 +209,8 @@ contract('UniversalResolver', function (accounts) {
             [
               resolveCallbackSig,
               ethers.utils.defaultAbiCoder.encode(
-                ['bytes', 'bytes', 'bytes4'],
-                [dns.hexEncodeName('test.test'), addrCallData, '0x00000000'],
+                ['bytes', 'bytes'],
+                [dns.hexEncodeName('test.test'), addrCallData],
               ),
             ],
           ],
