@@ -12,6 +12,7 @@ import 'hardhat-gas-reporter'
 import { HardhatUserConfig } from 'hardhat/config'
 import { promisify } from 'util'
 import '@nomicfoundation/hardhat-verify'
+import 'hardhat-storage-layout'
 
 const exec = promisify(_exec)
 
