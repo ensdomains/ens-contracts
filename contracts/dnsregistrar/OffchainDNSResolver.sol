@@ -155,7 +155,7 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
     ) external view returns (bytes memory) {
         (
             bytes memory name,
-            bytes memory query,
+            bytes memory innerExtraData,
             address targetResolver,
             bytes4 selector
         ) = abi.decode(extraData, (bytes, bytes, address, bytes4));
@@ -163,8 +163,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             callWithOffchainLookupPropagation(
                 targetResolver,
                 name,
-                query,
-                abi.encodeWithSelector(selector, response, query)
+                innerExtraData,
+                abi.encodeWithSelector(selector, response, innerExtraData)
             );
     }
 
