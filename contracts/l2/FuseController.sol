@@ -46,14 +46,24 @@ contract FuseController is Ownable, IFuseController {
     function ownerOfWithData(
         bytes calldata tokenData
     ) external view returns (address) {
-        (address owner, , , , ) = _unpack(tokenData);
+        (bool isExpired, address owner, , , , ) = _isExpired(tokenData);
+
+        if (isExpired) {
+            return address(0);
+        }
         return owner;
     }
 
     function ownerOf(bytes32 node) external view returns (address) {
         //get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        (address owner, , , , ) = _unpack(tokenData);
+
+        (bool isExpired, address owner, , , , ) = _isExpired(tokenData);
+
+        if (isExpired) {
+            return address(0);
+        }
+
         return owner;
     }
 
@@ -80,7 +90,8 @@ contract FuseController is Ownable, IFuseController {
         require(value == 1);
         require(from == td.owner);
         require(operator == td.owner || operatorApproved);
-        require(!_isExpired(tokenData));
+        (bool isExpired, , , , , ) = _isExpired(tokenData);
+        require(isExpired);
 
         return
             _pack(
@@ -98,8 +109,8 @@ contract FuseController is Ownable, IFuseController {
         address _owner,
         uint256 /*id*/
     ) external view returns (uint256) {
-        (address owner, , , , ) = _unpack(tokenData);
-        if (_isExpired(tokenData)) {
+        (bool isExpired, address owner, , , , ) = _isExpired(tokenData);
+        if (isExpired) {
             return 0;
         }
         return _owner == owner ? 1 : 0;
@@ -108,7 +119,10 @@ contract FuseController is Ownable, IFuseController {
     function resolverFor(
         bytes calldata tokenData
     ) external view returns (address) {
-        (, address resolver, , , ) = _unpack(tokenData);
+        (bool isExpired, , address resolver, , , ) = _isExpired(tokenData);
+        if (isExpired) {
+            return address(0);
+        }
         return resolver;
     }
 
@@ -120,16 +134,26 @@ contract FuseController is Ownable, IFuseController {
     }
 
     function fusesOf(bytes32 node) external view returns (uint64) {
-        // get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        (, , , uint64 fuses, ) = _unpack(tokenData);
+
+        (bool isExpired, , , , uint64 fuses, ) = _isExpired(tokenData);
+
+        if (isExpired) {
+            return 0;
+        }
         return fuses;
     }
 
     function renewalControllerOf(bytes32 node) external view returns (address) {
         // get the tokenData
         bytes memory tokenData = registry.getData(uint256(node));
-        (, , , , address renewalController) = _unpack(tokenData);
+        (bool isExpired, , , , , address renewalController) = _isExpired(
+            tokenData
+        );
+
+        if (isExpired) {
+            return address(0);
+        }
         return renewalController;
     }
 
@@ -142,12 +166,13 @@ contract FuseController is Ownable, IFuseController {
         // Unpack the tokenData of the node.
         bytes memory tokenData = registry.getData(uint256(node));
         (
+            bool isExpired,
             address owner,
             address resolver,
             uint64 expiry,
             uint64 fuses,
             address renewalController
-        ) = _unpack(tokenData);
+        ) = _isExpired(tokenData);
 
         bool isAuthorized = registry.getAuthorization(
             uint256(node),
@@ -159,7 +184,7 @@ contract FuseController is Ownable, IFuseController {
             revert Unauthorised(node, msg.sender);
         }
 
-        if (_isExpired(tokenData)) {
+        if (isExpired) {
             revert nameExpired(node);
         }
 
@@ -265,9 +290,24 @@ contract FuseController is Ownable, IFuseController {
      * Internal functions *
      **********************/
 
-    function _isExpired(bytes memory tokenData) internal view returns (bool) {
-        (, , uint64 expiry, , ) = _unpack(tokenData);
-        return expiry <= block.timestamp;
+    function _isExpired(
+        bytes memory tokenData
+    )
+        internal
+        view
+        returns (
+            bool isExpired,
+            address owner,
+            address resolver,
+            uint64 expiry,
+            uint64 fuses,
+            address renewalController
+        )
+    {
+        (owner, resolver, expiry, fuses, renewalController) = _unpack(
+            tokenData
+        );
+        isExpired = expiry <= block.timestamp;
     }
 
     function _unpack(
