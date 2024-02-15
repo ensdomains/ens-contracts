@@ -11,7 +11,9 @@
     "format": "prettier --write .",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "generateMarkdown": "hardhat deploy-markdown-export",
+    "docgen": "hardhat docgen"
   },
   "files": [
     "build",
@@ -38,6 +40,7 @@
     "envfile": "^6.17.0",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.6.1",
+    "find": "^0.3.0",
     "hardhat": "^2.9.9",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
@@ -58,7 +61,9 @@
     "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",
-    "dns-packet": "^5.3.0"
+    "@pooltogether/hardhat-deploy-markdown-export": "^0.3.5",
+    "dns-packet": "^5.3.0",
+    "solidity-docgen": "^0.6.0-beta.36"
   },
   "directories": {
     "test": "test"
