@@ -1,7 +1,6 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { namehash, encodeName } = require('../test-utils/ens')
-const { sha256 } = require('ethers/lib/utils')
+const { encodeName } = require('../test-utils/ens')
 const keccak256 = ethers.utils.solidityKeccak256
 const coinType = 0
 
@@ -18,8 +17,6 @@ async function makeSignature(signer, account, inceptionDate, dataTypes, data) {
 describe('DefaultReverseResolver', function () {
   let DefaultReverseResolver
   let DefaultReverseResolverWithAccount2
-  let MockSmartContractWallet
-  let MockOwnable
   let signers
   let account
   let account2
@@ -49,14 +46,6 @@ describe('DefaultReverseResolver', function () {
       'DefaultReverseResolver',
     )
     DefaultReverseResolver = await DefaultReverseResolverFactory.deploy()
-
-    const MockSmartContractWalletFactory = await ethers.getContractFactory(
-      'MockSmartContractWallet',
-    )
-    MockSmartContractWallet = await MockSmartContractWalletFactory.deploy(
-      account,
-    )
-
     DefaultReverseResolverWithAccount2 = DefaultReverseResolver.connect(
       signers[1],
     )
@@ -88,18 +77,12 @@ describe('DefaultReverseResolver', function () {
 
       const block = await ethers.provider.getBlock('latest')
       inceptionDate = block.timestamp
-      signature = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(['bytes4', 'string'], [funcId, name]),
-              account,
-              inceptionDate,
-              coinType,
-            ],
-          ),
-        ),
+      signature = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate,
+        ['bytes4', 'string'],
+        [funcId, name],
       )
     })
 
@@ -185,18 +168,12 @@ describe('DefaultReverseResolver', function () {
 
       const block = await ethers.provider.getBlock('latest')
       const inceptionDate = block.timestamp
-      const signature = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
-              account,
-              inceptionDate,
-              coinType,
-            ],
-          ),
-        ),
+      const signature = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate,
+        ['bytes4', 'string'],
+        [funcId, 'hello.eth'],
       )
 
       await DefaultReverseResolverWithAccount2['setNameForAddrWithSignature'](
@@ -210,18 +187,12 @@ describe('DefaultReverseResolver', function () {
       assert.equal(await DefaultReverseResolver.name(account), 'hello.eth')
 
       const inceptionDate2 = 0
-      const signature2 = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
-              account,
-              inceptionDate2,
-              coinType,
-            ],
-          ),
-        ),
+      const signature2 = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate2,
+        ['bytes4', 'string'],
+        [funcId, 'hello.eth'],
       )
 
       await expect(
@@ -246,21 +217,12 @@ describe('DefaultReverseResolver', function () {
 
       const block = await ethers.provider.getBlock('latest')
       const inceptionDate = block.timestamp
-      const signature = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(
-                ['bytes4', 'string', 'string'],
-                [funcId, 'url', 'http://ens.domains'],
-              ),
-              account,
-              inceptionDate,
-              coinType,
-            ],
-          ),
-        ),
+      const signature = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate,
+        ['bytes4', 'string', 'string'],
+        [funcId, 'url', 'http://ens.domains'],
       )
 
       await DefaultReverseResolverWithAccount2['setTextForAddrWithSignature'](
@@ -329,21 +291,12 @@ describe('DefaultReverseResolver', function () {
 
       const block = await ethers.provider.getBlock('latest')
       const inceptionDate = block.timestamp
-      const signature = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(
-                ['bytes4', 'string', 'string'],
-                [funcId, 'url', 'http://ens.domains'],
-              ),
-              account,
-              inceptionDate,
-              coinType,
-            ],
-          ),
-        ),
+      const signature = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate,
+        ['bytes4', 'string', 'string'],
+        [funcId, 'url', 'http://ens.domains'],
       )
 
       await DefaultReverseResolverWithAccount2['setTextForAddrWithSignature'](
@@ -359,25 +312,14 @@ describe('DefaultReverseResolver', function () {
         await DefaultReverseResolver.text(account, 'url'),
         'http://ens.domains',
       )
-
       const inceptionDate2 = 0
-      const signature2 = await signers[0].signMessage(
-        ethers.utils.arrayify(
-          keccak256(
-            ['bytes32', 'address', 'uint256', 'uint256'],
-            [
-              keccak256(
-                ['bytes4', 'string', 'string'],
-                [funcId, 'url', 'http://ens.domains'],
-              ),
-              account,
-              inceptionDate2,
-              coinType,
-            ],
-          ),
-        ),
+      const signature2 = await makeSignature(
+        signers[0],
+        account,
+        inceptionDate2,
+        ['bytes4', 'string', 'string'],
+        [funcId, 'url', 'http://ens.domains'],
       )
-
       await expect(
         DefaultReverseResolverWithAccount2['setTextForAddrWithSignature'](
           account,
