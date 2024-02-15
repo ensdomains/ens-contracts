@@ -27,21 +27,28 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         bytes calldata context
     ) external pure override returns (bytes memory) {
         bytes4 selector = bytes4(data);
-        if (
-            selector == IAddrResolver.addr.selector ||
-            selector == IAddressResolver.addr.selector
-        ) {
-            if (selector == IAddressResolver.addr.selector) {
-                (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));
-                if (coinType != COIN_TYPE_ETH) return abi.encode("");
-            }
-            (address record, bool valid) = context.hexToAddress(
-                2,
-                context.length
-            );
-            if (!valid) revert InvalidAddressFormat();
-            return abi.encode(record);
+        if (selector == IAddrResolver.addr.selector) {
+            return _resolveAddr(data, context);
+        } else if (selector == IAddressResolver.addr.selector) {
+            return _resolveAddress(data, context);
         }
         revert NotImplemented();
+    }
+
+    function _resolveAddress(
+        bytes calldata data,
+        bytes calldata context
+    ) internal pure returns (bytes memory) {
+        (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));
+        (address record, bool valid) = context.hexToAddress(2, context.length);
+        if (!valid) revert InvalidAddressFormat();
+        return abi.encode(record);
+    }
+
+    function _resolveAddr(
+        bytes calldata data,
+        bytes calldata context
+    ) internal pure returns (bytes memory) {
+        return _resolveAddress(data, context);
     }
 }
