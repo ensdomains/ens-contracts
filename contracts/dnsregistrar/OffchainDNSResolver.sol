@@ -87,7 +87,7 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
             if (
-                !rrname.equals(name) ||
+                !rrname.equals(stripWildcard(name)) ||
                 iter.class != CLASS_INET ||
                 iter.dnstype != TYPE_TXT
             ) {
@@ -168,6 +168,19 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             );
     }
 
+    function stripWildcard(
+        bytes memory name
+    ) public pure returns (bytes memory) {
+        if (name.length > 4 && name[0] == "*" && name[1] == ".") {
+            bytes memory strippedName = new bytes(name.length - 2);
+            for (uint i = 2; i < name.length; i++) {
+                strippedName[i - 2] = name[i];
+            }
+            return strippedName;
+        }
+        return name;
+    }
+
     function parseRR(
         bytes memory data,
         uint256 idx,
@@ -199,10 +212,16 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         uint256 startIdx,
         uint256 lastIdx
     ) internal pure returns (bytes memory) {
-        // TODO: Concatenate multiple text fields
-        uint256 fieldLength = data.readUint8(startIdx);
-        assert(startIdx + fieldLength < lastIdx);
-        return data.substring(startIdx + 1, fieldLength);
+        bytes memory result = new bytes(0);
+        uint256 idx = startIdx;
+        while (idx < lastIdx) {
+            uint256 fieldLength = data.readUint8(idx);
+            assert(idx + fieldLength + 1 <= lastIdx);
+            bytes memory field = data.substring(idx + 1, fieldLength);
+            result = abi.encodePacked(result, field);
+            idx += fieldLength + 1;
+        }
+        return result;
     }
 
     function parseAndResolve(

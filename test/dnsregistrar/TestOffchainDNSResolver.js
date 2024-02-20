@@ -11,6 +11,11 @@ const PublicResolver = artifacts.require('./PublicResolver.sol')
 const DummyExtendedDNSSECResolver = artifacts.require(
   './DummyExtendedDNSSECResolver.sol',
 )
+
+const DummyExtendedDNSSECResolver2 = artifacts.require(
+  './DummyExtendedDNSSECResolver2.sol',
+)
+
 const DummyLegacyTextResolver = artifacts.require(
   './DummyLegacyTextResolver.sol',
 )
@@ -148,8 +153,8 @@ contract('OffchainDNSResolver', function (accounts) {
     )
     const dnsName = utils.hexEncodeName(name)
     const extraData = ethers.utils.defaultAbiCoder.encode(
-      ['bytes', 'bytes', 'bytes4'],
-      [dnsName, callData, '0x00000000'],
+      ['bytes', 'bytes'],
+      [dnsName, callData],
     )
     return offchainDNSResolver.resolveCallback(response, extraData)
   }
@@ -455,5 +460,80 @@ contract('OffchainDNSResolver', function (accounts) {
     await expect(
       doDNSResolveCallback(name, [`ENS1 ${dummyResolver.address}`], callData),
     ).to.be.revertedWith('InvalidOperation')
+  })
+
+  it('should correctly concatenate multiple texts in the TXT record and resolve', async function () {
+    const COIN_TYPE_ETH = 60
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const resolver = await DummyExtendedDNSSECResolver2.new()
+    const pr = await PublicResolver.at(resolver.address)
+    const callDataAddr = pr.contract.methods['addr(bytes32,uint256)'](
+      namehash.hash(name),
+      COIN_TYPE_ETH,
+    ).encodeABI()
+    const resultAddr = await doDNSResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} ${testAddress} smth=smth.eth`],
+      callDataAddr,
+    )
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['address'], resultAddr)[0],
+    ).to.equal(testAddress)
+
+    const callDataText = pr.contract.methods['text(bytes32,string)'](
+      namehash.hash(name),
+      'smth',
+    ).encodeABI()
+    const resultText = await doDNSResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} ${testAddress} smth=smth.eth`],
+      callDataText,
+    )
+
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+    ).to.equal('smth.eth')
+  })
+
+  it('should correctly do text resolution regardless of order', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const resolver = await DummyExtendedDNSSECResolver2.new()
+    const pr = await PublicResolver.at(resolver.address)
+
+    const callDataText = pr.contract.methods['text(bytes32,string)'](
+      namehash.hash(name),
+      'smth',
+    ).encodeABI()
+    const resultText = await doDNSResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} smth=smth.eth ${testAddress}`],
+      callDataText,
+    )
+
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+    ).to.equal('smth.eth')
+  })
+
+  it('should correctly do text resolution regardless of key-value pair amount', async function () {
+    const name = 'test.test'
+    const resolver = await DummyExtendedDNSSECResolver2.new()
+    const pr = await PublicResolver.at(resolver.address)
+
+    const callDataText = pr.contract.methods['text(bytes32,string)'](
+      namehash.hash(name),
+      'bla',
+    ).encodeABI()
+    const resultText = await doDNSResolveCallback(
+      name,
+      [`ENS1 ${resolver.address} smth=smth.eth bla=bla.eth`],
+      callDataText,
+    )
+
+    expect(
+      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+    ).to.equal('bla.eth')
   })
 })
