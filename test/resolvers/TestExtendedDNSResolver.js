@@ -24,11 +24,13 @@ contract('ExtendedDNSResolver', function (accounts) {
       node,
       ...args,
     ])
-    return resolver.resolve(
+    const resolveArgs = [
       hexEncodeName(name),
       callData,
       ethers.utils.hexlify(ethers.utils.toUtf8Bytes(context)),
-    )
+    ]
+    // console.log(resolveArgs);
+    return resolver.resolve(...resolveArgs)
   }
 
   describe('a records', async () => {
@@ -112,6 +114,58 @@ contract('ExtendedDNSResolver', function (accounts) {
         `a[60]=${testAddress} a[60]=0x1234567890123456789012345678901234567890`,
       )
       expect(result).to.equal(testAddress.toLowerCase())
+    })
+  })
+
+  describe('t records', async () => {
+    it('decodes an unquoted t record', async function () {
+      const name = 'test.test'
+      const result = await resolve(
+        name,
+        'text',
+        ['com.twitter'],
+        't[com.twitter]=nicksdjohnson',
+      )
+      expect(ethers.utils.toUtf8String(ethers.utils.arrayify(result))).to.equal(
+        'nicksdjohnson',
+      )
+    })
+
+    it('returns null for a missing key', async function () {
+      const name = 'test.test'
+      const result = await resolve(
+        name,
+        'text',
+        ['com.discord'],
+        't[com.twitter]=nicksdjohnson',
+      )
+      expect(result).to.equal(null)
+    })
+
+    it('decodes a quoted t record', async function () {
+      const name = 'test.test'
+      const result = await resolve(
+        name,
+        'text',
+        ['url'],
+        "t[url]='https://ens.domains/'",
+      )
+      expect(ethers.utils.toUtf8String(ethers.utils.arrayify(result))).to.equal(
+        'https://ens.domains/',
+      )
+    })
+
+    it('handles escaped quotes', async function () {
+      const name = 'test.test'
+      const result = await resolve(
+        name,
+        'text',
+        ['note'],
+        "t[note]='I\\'m great'",
+      )
+      expect(ethers.utils.toUtf8String(ethers.utils.arrayify(result))).to.equal(
+        "I'm great",
+      )
     })
   })
 })

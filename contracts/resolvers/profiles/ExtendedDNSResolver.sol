@@ -6,9 +6,44 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "../../resolvers/profiles/IExtendedDNSResolver.sol";
 import "../../resolvers/profiles/IAddressResolver.sol";
 import "../../resolvers/profiles/IAddrResolver.sol";
+import "../../resolvers/profiles/ITextResolver.sol";
 import "../../utils/HexUtils.sol";
 import "../../dnssec-oracle/BytesUtils.sol";
 
+/**
+ * @dev Resolves names on ENS by interpreting record data stored in a DNS TXT record.
+ *      This resolver implements the IExtendedDNSResolver interface, meaning that when
+ *      a DNS name specifies it as the resolver via a TXT record, this resolver's
+ *      resolve() method is invoked, and is passed any additional information from that
+ *      text record. This resolver implements a simple text parser allowing a variety
+ *      of records to be specified in text, which will then be used to resolve the name
+ *      in ENS.
+ *
+ *      To use this, set a TXT record on your DNS name in the following format:
+ *          ENS1 <address or name of ExtendedDNSResolver> <record data>
+ *
+ *      For example:
+ *          ENS1 2.dnsname.ens.eth a[60]=0x1234...
+ *
+ *      The record data consists of a series of key=value pairs, separated by spaces. Keys
+ *      may have an optional argument in square brackets, and values may be either unquoted
+ *       - in which case they may not contain spaces - or single-quoted. Single quotes in
+ *      a quoted value may be backslash-escaped.
+ *
+ *      Record types:
+ *       - a[coinId] - Specifies how an `addr()` request should be resolved for the specified
+ *         coinId. Ethereum has coinId 60. The value must be 0x-prefixed hexadecimal, and will
+ *         be returned unmodified; this means that non-EVM addresses will need to be translated
+ *         into binary format and then encoded in hex.
+ *         Examples:
+ *          - a[60]=0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7
+ *          - a[0]=0x00149010587f8364b964fcaa70687216b53bd2cbd798
+ *       - t[key] - Specifies how a `text()` request should be resolved for the specified key.
+ *         Examples:
+ *          - t[com.twitter]=nicksdjohnson
+ *          - t[url]='https://ens.domains/'
+ *          - t[note]='I\'m great'
+ */
 contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     using HexUtils for *;
     using BytesUtils for *;
@@ -32,9 +67,11 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     ) external pure override returns (bytes memory) {
         bytes4 selector = bytes4(data);
         if (selector == IAddrResolver.addr.selector) {
-            return _resolveAddr(data, context);
+            return _resolveAddr(context);
         } else if (selector == IAddressResolver.addr.selector) {
             return _resolveAddress(data, context);
+        } else if (selector == ITextResolver.text.selector) {
+            return _resolveText(data, context);
         }
         revert NotImplemented();
     }
@@ -57,7 +94,6 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     }
 
     function _resolveAddr(
-        bytes calldata /* data */,
         bytes calldata context
     ) internal pure returns (bytes memory) {
         bytes memory value = _findValue(context, "a[60]=");
@@ -67,6 +103,18 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         (bytes memory record, bool valid) = value.hexToBytes(2, value.length);
         if (!valid) revert InvalidAddressFormat(value);
         return record;
+    }
+
+    function _resolveText(
+        bytes calldata data,
+        bytes calldata context
+    ) internal pure returns (bytes memory) {
+        (, string memory key) = abi.decode(data[4:], (bytes32, string));
+        bytes memory value = _findValue(
+            context,
+            bytes.concat("t[", bytes(key), "]=")
+        );
+        return value;
     }
 
     uint256 constant STATE_START = 0;
