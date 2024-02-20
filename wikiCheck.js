@@ -46,19 +46,46 @@ const checkDeployment = (
   wikiDeployments,
   i,
 ) => {
+  console.log('**********************************************************8')
   const deploymentFilename = deploymentFilenames[i]
-  const wikiDeployment = wikiDeployments[i]
+
+  const wikiDeploymentString = wikiDeployments.find((wikiDeployment) => {
+    const wikiDeploymentName = wikiDeployment.split('|')[1].trim()
+
+    const match = wikiDeploymentName.match(
+      new RegExp(`${deploymentFilename.split('.')[0].trim()}`),
+    )
+    return match && match?.[0] === match?.input
+  })
+  console.log('wikiDeploymentString: ', wikiDeploymentString)
+
+  const wikiDeploymentAddress = wikiDeploymentString.substring(
+    wikiDeploymentString.indexOf('[') + 1,
+    wikiDeploymentString.lastIndexOf(']'),
+  )
+  const wikiEtherscanAddress = wikiDeploymentString.substring(
+    wikiDeploymentString.lastIndexOf('/') + 1,
+    wikiDeploymentString.lastIndexOf(')'),
+  )
 
   const deployment = require(`./deployments/${chainName}/${deploymentFilename}`)
+  console.log('deploymentFilename: ', deploymentFilename)
+  console.log('wikiDeploymentAddress: ', wikiDeploymentAddress)
+  console.log('deployment.address: ', deployment.address)
 
-  debugger
+  if ((chainName = 'sepolia')) {
+    debugger
+  }
 
-  if (
-    deployment.address !== wikiDeployment.address ||
-    deployment.transactionHash !== wikiDeployment.transactionHash
-  ) {
+  if (deployment.address !== wikiDeploymentAddress) {
     throw new Error(
-      `Deployment ${i} in wiki and in the repository do not match for ${SUPPORTED_CHAINS[chainIndex]}`,
+      `Deployment ${i} in wiki and in the repository do not match for ${chainName}`,
+    )
+  }
+
+  if (deployment.address !== wikiEtherscanAddress) {
+    throw new Error(
+      `Etherscan address ${i} in wiki and in the repository do not match for ${chainName}`,
     )
   }
 }
@@ -97,8 +124,9 @@ const run = async () => {
   try {
     const data = await getRawWikiData(WIKI_DEPLOYMENTS_URL)
     const lines = data.split('\n')
-    console.log(lines)
+    console.log('lines: ', lines)
     for (let i = 0; i < SUPPORTED_CHAINS.length; i++) {
+      console.log('i: ', i)
       await checkChain(i, lines)
     }
   } catch (err) {
