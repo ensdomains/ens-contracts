@@ -2,10 +2,25 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [staging, mainnet]
   pull_request:
 
 jobs:
+  wiki_address_chek:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16
+          cache: 'yarn'
+
+      - run: yarn install --frozen-lockfile
+
+      - name: Run wikiCheck
+        run: yarn wikiCheck
   test:
     runs-on: ubuntu-latest
     steps:
