@@ -77,5 +77,41 @@ contract('ExtendedDNSResolver', function (accounts) {
         resolve(name, 'addr(bytes32)', [], `a[60]=${testAddress}`),
       ).to.be.revertedWith('InvalidAddressFormat')
     })
+
+    it('works if the record comes after an unrelated one', async function () {
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32)',
+        [],
+        `foo=bar a[60]=${testAddress}`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
+
+    it('works if the record comes after one for another cointype', async function () {
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32)',
+        [],
+        `a[0]=0x1234 a[60]=${testAddress}`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
+
+    it('uses the first matching record it finds', async function () {
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32)',
+        [],
+        `a[60]=${testAddress} a[60]=0x1234567890123456789012345678901234567890`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
   })
 })
