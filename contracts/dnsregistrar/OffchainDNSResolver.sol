@@ -86,8 +86,13 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         ) {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
+            uint256 nameOffset = 0;
+            if (checkWildcard(name)) {
+                nameOffset = 2;
+            }
+
             if (
-                !rrname.equals(stripWildcard(name)) ||
+                !name.equals(nameOffset, rrname, 0, name.length - nameOffset) ||
                 iter.class != CLASS_INET ||
                 iter.dnstype != TYPE_TXT
             ) {
@@ -168,17 +173,10 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             );
     }
 
-    function stripWildcard(
+    function checkWildcard(
         bytes memory name
-    ) public pure returns (bytes memory) {
-        if (name.length > 4 && name[0] == "*" && name[1] == ".") {
-            bytes memory strippedName = new bytes(name.length - 2);
-            for (uint i = 2; i < name.length; i++) {
-                strippedName[i - 2] = name[i];
-            }
-            return strippedName;
-        }
-        return name;
+    ) public pure returns (bool isWildcard) {
+        return name.length > 4 && uint8(name[0]) == 1 && name[1] == "*";
     }
 
     function parseRR(
@@ -212,13 +210,21 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         uint256 startIdx,
         uint256 lastIdx
     ) internal pure returns (bytes memory) {
-        bytes memory result = new bytes(0);
+        uint256 totalLength = 0;
         uint256 idx = startIdx;
         while (idx < lastIdx) {
             uint256 fieldLength = data.readUint8(idx);
-            assert(idx + fieldLength + 1 <= lastIdx);
-            bytes memory field = data.substring(idx + 1, fieldLength);
-            result = abi.encodePacked(result, field);
+            totalLength += fieldLength;
+            idx += fieldLength + 1;
+        }
+
+        bytes memory result = new bytes(totalLength);
+        idx = startIdx;
+        uint256 resultIdx = 0;
+        while (idx < lastIdx) {
+            uint256 fieldLength = data.readUint8(idx);
+            result.strcpy(resultIdx, data, idx + 1, fieldLength);
+            resultIdx += fieldLength;
             idx += fieldLength + 1;
         }
         return result;
