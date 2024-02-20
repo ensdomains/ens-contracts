@@ -29,7 +29,6 @@ contract('ExtendedDNSResolver', function (accounts) {
       callData,
       ethers.utils.hexlify(ethers.utils.toUtf8Bytes(context)),
     ]
-    // console.log(resolveArgs);
     return resolver.resolve(...resolveArgs)
   }
 
