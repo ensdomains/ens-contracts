@@ -114,6 +114,20 @@ contract('ExtendedDNSResolver', function (accounts) {
       )
       expect(result).to.equal(testAddress.toLowerCase())
     })
+
+    it('resolves addresses with coin types', async function () {
+      const CHAIN_ID_OPTIMISM = 10
+      const COIN_TYPE_OPTIMISM = (0x80000000 | CHAIN_ID_OPTIMISM) >>> 0
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32,uint256)',
+        [COIN_TYPE_OPTIMISM],
+        `a[e${CHAIN_ID_OPTIMISM}]=${testAddress}`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
   })
 
   describe('t records', async () => {

@@ -31,14 +31,22 @@ import "../../dnssec-oracle/BytesUtils.sol";
  *      a quoted value may be backslash-escaped.
  *
  *      Record types:
- *       - a[coinId] - Specifies how an `addr()` request should be resolved for the specified
- *         coinId. Ethereum has coinId 60. The value must be 0x-prefixed hexadecimal, and will
+ *       - a[<coinType>] - Specifies how an `addr()` request should be resolved for the specified
+ *         `coinType`. Ethereum has `coinType` 60. The value must be 0x-prefixed hexadecimal, and will
  *         be returned unmodified; this means that non-EVM addresses will need to be translated
  *         into binary format and then encoded in hex.
  *         Examples:
  *          - a[60]=0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7
  *          - a[0]=0x00149010587f8364b964fcaa70687216b53bd2cbd798
- *       - t[key] - Specifies how a `text()` request should be resolved for the specified key.
+ *       - a[e<chainId>] - Specifies how an `addr()` request should be resolved for the specified
+ *         `chainId`. The value must be 0x-prefixed hexadecimal. When encoding an address for an
+ *         EVM-based cryptocurrency that uses a chainId instead of a coinType, this syntax *must*
+ *         be used in place of the coin type - eg, Optimism is `a[e10]`, not `a[2147483658]`.
+ *         A list of supported cryptocurrencies for both syntaxes can be found here:
+ *           https://github.com/ensdomains/address-encoder/blob/master/docs/supported-cryptocurrencies.md
+ *         Example:
+ *          - a[e10]=0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7
+ *       - t[<key>] - Specifies how a `text()` request should be resolved for the specified `key`.
  *         Examples:
  *          - t[com.twitter]=nicksdjohnson
  *          - t[url]='https://ens.domains/'
@@ -81,10 +89,22 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         bytes calldata context
     ) internal pure returns (bytes memory) {
         (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));
-        bytes memory value = _findValue(
-            context,
-            bytes.concat("a[", bytes(coinType.toString()), "]=")
-        );
+        bytes memory value;
+        if (coinType & 0x80000000 != 0) {
+            value = _findValue(
+                context,
+                bytes.concat(
+                    "a[e",
+                    bytes((coinType & 0x7fffffff).toString()),
+                    "]="
+                )
+            );
+        } else {
+            value = _findValue(
+                context,
+                bytes.concat("a[", bytes(coinType.toString()), "]=")
+            );
+        }
         if (value.length == 0) {
             return value;
         }
