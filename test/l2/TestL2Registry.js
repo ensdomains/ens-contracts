@@ -37,29 +37,23 @@ function mine() {
 }
 
 const {
-  CANNOT_UNWRAP,
+  CAN_DO_EVERYTHING,
+  CANNOT_BURN_NAME,
   CANNOT_BURN_FUSES,
   CANNOT_TRANSFER,
   CANNOT_SET_RESOLVER,
-  CANNOT_SET_TTL,
   CANNOT_CREATE_SUBDOMAIN,
+  CANNOT_SET_RENEWAL_CONTROLLER,
   PARENT_CANNOT_CONTROL,
-  CAN_DO_EVERYTHING,
-  IS_DOT_ETH,
-  CAN_EXTEND_EXPIRY,
-  CANNOT_APPROVE,
 } = {
   CAN_DO_EVERYTHING: 0,
-  CANNOT_UNWRAP: 1,
-  CANNOT_BURN_FUSES: 2,
-  CANNOT_TRANSFER: 4,
-  CANNOT_SET_RESOLVER: 8,
-  CANNOT_SET_TTL: 16,
-  CANNOT_CREATE_SUBDOMAIN: 32,
-  CANNOT_APPROVE: 64,
-  PARENT_CANNOT_CONTROL: 2 ** 16,
-  IS_DOT_ETH: 2 ** 17,
-  CAN_EXTEND_EXPIRY: 2 ** 18,
+  CANNOT_BURN_NAME: 1,
+  CANNOT_BURN_FUSES: 2 ** 1,
+  CANNOT_TRANSFER: 2 ** 2,
+  CANNOT_SET_RESOLVER: 2 ** 3,
+  CANNOT_CREATE_SUBDOMAIN: 2 ** 4,
+  CANNOT_SET_RENEWAL_CONTROLLER: 2 ** 5,
+  PARENT_CANNOT_CONTROL: 2 ** 6,
 }
 
 describe.only('L2Registry', () => {
@@ -108,14 +102,14 @@ describe.only('L2Registry', () => {
     // test to make sure the root node is owned by the deployer
     assert.equal(await registry.balanceOf(deployerAddress, ROOT_NODE), 1)
 
-    const packedData = ethers.utils.solidityPack(
+    const testNodeData = ethers.utils.solidityPack(
       ['address', 'address', 'address', 'uint64', 'uint64', 'address'],
       [
         controller.address,
         ownerAddress,
         resolver.address,
         MAX_EXPIRY,
-        0,
+        CANNOT_BURN_NAME | PARENT_CANNOT_CONTROL,
         EMPTY_ADDRESS,
       ],
     )
@@ -124,7 +118,7 @@ describe.only('L2Registry', () => {
       registry.address,
       0, // This is ignored because the ROOT_NODE is fixed in the root controller.
       labelhash('test'),
-      packedData,
+      testNodeData,
     )
 
     assert.equal(await registry.controller(TEST_NODE), controller.address)
@@ -132,7 +126,10 @@ describe.only('L2Registry', () => {
     assert.equal(await registry.resolver(TEST_NODE), resolver.address)
     assert.equal(await controller.ownerOf(TEST_NODE), ownerAddress)
     assert.equal(await controller.expiryOf(TEST_NODE), MAX_EXPIRY)
-    assert.equal(await controller.fusesOf(TEST_NODE), 0)
+    assert.equal(
+      await controller.fusesOf(TEST_NODE),
+      CANNOT_BURN_NAME | PARENT_CANNOT_CONTROL,
+    )
     assert.equal(await controller.renewalControllerOf(TEST_NODE), EMPTY_ADDRESS)
   })
 
@@ -168,7 +165,7 @@ describe.only('L2Registry', () => {
         subnodeOwnerAddress,
         resolver.address,
         MAX_EXPIRY,
-        0, // no fuse
+        CANNOT_SET_RESOLVER | CANNOT_BURN_NAME | PARENT_CANNOT_CONTROL, // no fuse
         EMPTY_ADDRESS, // no controller
         { from: ownerAddress },
       )
@@ -180,7 +177,10 @@ describe.only('L2Registry', () => {
       assert.equal(await registry.resolver(TEST_SUBNODE), resolver.address)
       assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
       assert.equal(await controller.expiryOf(TEST_SUBNODE), MAX_EXPIRY)
-      assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
+      assert.equal(
+        await controller.fusesOf(TEST_SUBNODE),
+        CANNOT_SET_RESOLVER | CANNOT_BURN_NAME | PARENT_CANNOT_CONTROL,
+      )
       assert.equal(
         await controller.renewalControllerOf(TEST_SUBNODE),
         EMPTY_ADDRESS,
@@ -318,11 +318,69 @@ describe.only('L2Registry', () => {
         await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE),
         0,
       )
-      // assert.equal(await registry.resolver(TEST_SUBNODE), EMPTY_ADDRESS)
-      // assert.equal(await controller.ownerOf(TEST_SUBNODE), EMPTY_ADDRESS)
-      // assert.equal(await controller.expiryOf(TEST_SUBNODE), expiry)
-      // assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
-      // assert.equal(await controller.renewalControllerOf(TEST_SUBNODE), EMPTY_ADDRESS)
+      assert.equal(await registry.resolver(TEST_SUBNODE), EMPTY_ADDRESS)
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), EMPTY_ADDRESS)
+      assert.equal(await controller.expiryOf(TEST_SUBNODE), expiry)
+      assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
+      assert.equal(
+        await controller.renewalControllerOf(TEST_SUBNODE),
+        EMPTY_ADDRESS,
+      )
+    })
+
+    // make sure that the name can't be transferred when the CANNOT_TRANSFER fuse is set
+    it('should set the CANNOT_TRANSFER fuse', async () => {
+      await controller.setFuses(TEST_NODE, CANNOT_TRANSFER, {
+        from: ownerAddress,
+      })
+      assert.equal(await controller.fusesOf(TEST_NODE), CANNOT_TRANSFER)
+      await expect(
+        registry.safeTransferFrom(
+          ownerAddress,
+          dummyAddress,
+          TEST_NODE,
+          1,
+          '0x',
+          {
+            from: ownerAddress,
+          },
+        ),
+      ).to.be.revertedWith('')
+    })
+
+    // Make sure the resolver can't be set when the CANNOT_SET_RESOLVER fuse is burned
+    it('should set the CANNOT_SET_RESOLVER fuse', async () => {
+      await controller.setFuses(TEST_NODE, CANNOT_SET_RESOLVER, {
+        from: ownerAddress,
+      })
+      assert.equal(await controller.fusesOf(TEST_NODE), CANNOT_SET_RESOLVER)
+      await expect(
+        controller.setResolver(TEST_NODE, dummyAddress, {
+          from: ownerAddress,
+        }),
+      ).to.be.revertedWith('')
+    })
+
+    it('should transfer the name to the zero address', async () => {
+      await registry.safeTransferFrom(
+        ownerAddress,
+        ZERO_ADDRESS,
+        TEST_NODE,
+        1,
+        '0x',
+        {
+          from: ownerAddress,
+        },
+      )
+      assert.equal(await registry.balanceOf(ownerAddress, TEST_NODE), 0)
+      assert.equal(await registry.resolver(TEST_NODE), EMPTY_ADDRESS)
+      assert.equal(await controller.ownerOf(TEST_NODE), EMPTY_ADDRESS)
+      assert.equal(await controller.expiryOf(TEST_NODE), 0)
+      assert.equal(await controller.fusesOf(TEST_NODE), 0)
+      assert.equal(
+        await controller.renewalControllerOf(TEST_NODE),
+        EMPTY_ADDRESS,
+      )
     })
   })
 })
