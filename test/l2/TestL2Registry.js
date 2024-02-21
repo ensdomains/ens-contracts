@@ -361,24 +361,46 @@ describe.only('L2Registry', () => {
       ).to.be.revertedWith('')
     })
 
-    it('should transfer the name to the zero address', async () => {
-      await registry.safeTransferFrom(
-        ownerAddress,
-        ZERO_ADDRESS,
+    // Make sure that a subname called 'sub' can be created and then burned by the owner
+    it('should create and burn a subnode', async () => {
+      await controller.setSubnode(
         TEST_NODE,
-        1,
-        '0x',
-        {
-          from: ownerAddress,
-        },
+        labelhash('sub'),
+        subnodeOwnerAddress,
+        resolver.address,
+        MAX_EXPIRY,
+        0, // no fuse
+        EMPTY_ADDRESS, // no controller
+        { from: ownerAddress },
       )
-      assert.equal(await registry.balanceOf(ownerAddress, TEST_NODE), 0)
-      assert.equal(await registry.resolver(TEST_NODE), EMPTY_ADDRESS)
-      assert.equal(await controller.ownerOf(TEST_NODE), EMPTY_ADDRESS)
-      assert.equal(await controller.expiryOf(TEST_NODE), 0)
-      assert.equal(await controller.fusesOf(TEST_NODE), 0)
+      assert.equal(await registry.controller(TEST_SUBNODE), controller.address)
       assert.equal(
-        await controller.renewalControllerOf(TEST_NODE),
+        await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE),
+        1,
+      )
+      assert.equal(await registry.resolver(TEST_SUBNODE), resolver.address)
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
+      assert.equal(await controller.expiryOf(TEST_SUBNODE), MAX_EXPIRY)
+      assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
+      assert.equal(
+        await controller.renewalControllerOf(TEST_SUBNODE),
+        EMPTY_ADDRESS,
+      )
+
+      await registry.burn(subnodeOwnerAddress, TEST_SUBNODE, 1, {
+        from: subnodeOwnerAddress,
+      })
+
+      assert.equal(
+        await registry.balanceOf(subnodeOwnerAddress, TEST_SUBNODE),
+        0,
+      )
+      assert.equal(await registry.resolver(TEST_SUBNODE), EMPTY_ADDRESS)
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), EMPTY_ADDRESS)
+      assert.equal(await controller.expiryOf(TEST_SUBNODE), 0)
+      assert.equal(await controller.fusesOf(TEST_SUBNODE), 0)
+      assert.equal(
+        await controller.renewalControllerOf(TEST_SUBNODE),
         EMPTY_ADDRESS,
       )
     })

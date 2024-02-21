@@ -20,6 +20,16 @@ interface IController {
         bool isApproved
     ) external returns (bytes memory);
 
+    function burn(
+        bytes calldata tokenData,
+        address operator,
+        address from,
+        uint256 id,
+        uint256 value,
+        bytes calldata data,
+        bool operatorApproved
+    ) external view returns (bytes memory);
+
     function balanceOf(
         bytes calldata tokenData,
         address owner,

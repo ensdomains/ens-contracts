@@ -107,15 +107,6 @@ contract FuseController is Ownable, IFuseController {
         // Make sure the CANNOT_TRANSFER fuse is not burned.
         require((td.fuses & CANNOT_TRANSFER) == 0, "Cannot transfer");
 
-        // if the 'to' address is the zero address, then the token is being burned, and
-        // set all the values to the default values.
-        if (to == address(0)) {
-            // Make sure the CANNOT_BURN_NAME fuse is not burned.
-            require((td.fuses & CANNOT_BURN_NAME) == 0, "Cannot burn name");
-            return
-                _pack(address(this), address(0), address(0), 0, 0, address(0));
-        }
-
         return
             _pack(
                 address(this),
@@ -125,6 +116,49 @@ contract FuseController is Ownable, IFuseController {
                 td.fuses,
                 td.renewalController
             );
+    }
+
+    function burn(
+        bytes calldata tokenData,
+        address operator,
+        address from,
+        uint256 /*id*/,
+        uint256 value,
+        bytes calldata /*data*/,
+        bool operatorApproved
+    ) external view returns (bytes memory) {
+        TokenData memory td;
+
+        // Make sure the tokenData is of the correct length.
+        if (tokenData.length < 96) {
+            revert("Invalid tokenData length");
+        }
+
+        (
+            td.owner,
+            td.resolver,
+            td.expiry,
+            td.fuses,
+            td.renewalController
+        ) = _unpack(tokenData);
+
+        require(msg.sender == address(registry), "Caller is not the registry");
+        require(value == 1);
+        require(from == td.owner, "From is not the owner");
+        require(
+            operator == td.owner || operatorApproved,
+            "Operator not approved"
+        );
+        (bool isExpired, , , , , ) = _isExpired(tokenData);
+        require(!isExpired, "Token is expired");
+
+        // Make sure the CANNOT_BURN_NAME and CANNOT_TRANSFER fuse is not burned.
+        require(
+            (td.fuses & (CANNOT_BURN_NAME | CANNOT_TRANSFER)) == 0,
+            "Cannot burn or transfer"
+        );
+
+        return _pack(address(this), address(0), address(0), 0, 0, address(0));
     }
 
     function balanceOf(

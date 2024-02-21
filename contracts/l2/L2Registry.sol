@@ -93,6 +93,26 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         );
     }
 
+    function burn(address from, uint256 id, uint256 /*value*/) external {
+        _burn(from, id);
+        emit TransferSingle(msg.sender, from, address(0), id, 1);
+    }
+
+    function burnBatch(
+        address from,
+        uint256[] memory ids,
+        uint256[] calldata /*values*/
+    ) external {
+        // make an empty uint256 array for the value of 1 for each id
+        uint256[] memory onesArray = new uint256[](ids.length);
+        for (uint256 i = 0; i < ids.length; i++) {
+            _burn(from, ids[i]);
+            // fill the ones array with 1s
+            onesArray[i] = 1;
+        }
+        emit TransferBatch(msg.sender, from, address(0), ids, onesArray);
+    }
+
     function setApprovalForAll(address operator, bool approved) external {
         approvals[msg.sender][operator] = approved;
         emit ApprovalForAll(msg.sender, operator, approved);
@@ -309,6 +329,13 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
         uint256 value,
         bytes calldata data
     ) internal {
+        if (to == address(0)) {
+            revert("Cannot transfer to the zero address");
+        }
+        if (from == address(0)) {
+            revert("Cannot transfer from the zero address");
+        }
+
         bytes memory tokenData = tokens[id].data;
         IController oldController = _getController(tokenData);
         if (address(oldController) == address(0)) {
@@ -325,6 +352,28 @@ contract L2Registry is Ownable, IERC1155, IERC1155MetadataURI {
             id,
             value,
             data,
+            isApproved
+        );
+
+        tokens[id].data = newTokenData;
+    }
+
+    function _burn(address from, uint256 id) internal {
+        bytes memory tokenData = tokens[id].data;
+        IController oldController = _getController(tokenData);
+        if (address(oldController) == address(0)) {
+            revert TokenDoesNotExist(id);
+        }
+        bool isApproved = approvals[from][msg.sender] ||
+            tokenApprovals[from][tokenApprovalsNonce[from]][id][msg.sender];
+
+        bytes memory newTokenData = oldController.burn(
+            tokenData,
+            msg.sender,
+            from,
+            id,
+            1,
+            bytes(""),
             isApproved
         );
 
