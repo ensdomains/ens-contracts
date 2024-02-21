@@ -9,10 +9,10 @@ interface IDefaultReverseResolver {
         string value
     );
 
-    function name(address addr) external returns (string memory);
+    function name(address addr) external view returns (string memory);
 
     function text(
         address addr,
         string memory key
-    ) external returns (string memory);
+    ) external view returns (string memory);
 }

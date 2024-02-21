@@ -1,6 +1,5 @@
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
-const { encodeName } = require('../test-utils/ens')
 const keccak256 = ethers.utils.solidityKeccak256
 const coinType = 0
 
@@ -94,28 +93,6 @@ describe('DefaultReverseResolver', function () {
         signature,
       )
       assert.equal(await DefaultReverseResolver.name(account), name)
-    })
-
-    it('allows to resolve', async () => {
-      await DefaultReverseResolverWithAccount2['setNameForAddrWithSignature'](
-        account,
-        name,
-        inceptionDate,
-        signature,
-      )
-      const reverseName = `${account
-        .substring(2)
-        .toLowerCase()}.default.reverse`
-      const encodedname = encodeName(reverseName)
-      const calldata =
-        DefaultReverseResolverFactory.interface.encodeFunctionData('name', [
-          account,
-        ])
-      const result = await DefaultReverseResolverWithAccount2['resolve'](
-        encodedname,
-        calldata,
-      )
-      assert.equal(ethers.utils.toUtf8String(result), name)
     })
 
     it('event ReverseClaimed is emitted', async () => {
@@ -233,22 +210,7 @@ describe('DefaultReverseResolver', function () {
         signature,
       )
 
-      // const node = await DefaultReverseResolver.node(account)
       assert.equal(await DefaultReverseResolver.text(account, key), value)
-      const reverseName = `${account
-        .substring(2)
-        .toLowerCase()}.default.reverse`
-      const encodedname = encodeName(reverseName)
-      const calldata =
-        DefaultReverseResolverFactory.interface.encodeFunctionData('text', [
-          account,
-          key,
-        ])
-      const result = await DefaultReverseResolverWithAccount2['resolve'](
-        encodedname,
-        calldata,
-      )
-      assert.equal(ethers.utils.toUtf8String(result), value)
     })
     it('reverts if signature parameters do not match', async () => {
       const funcId = ethers.utils

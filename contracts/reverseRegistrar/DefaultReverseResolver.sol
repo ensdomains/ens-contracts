@@ -5,12 +5,10 @@ import "./SignatureReverseResolver.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "../wrapper/BytesUtils.sol";
 
 contract DefaultReverseResolver is
     Ownable,
-    IExtendedResolver,
     IDefaultReverseResolver,
     ERC165,
     SignatureReverseResolver
@@ -43,32 +41,6 @@ contract DefaultReverseResolver is
     ) public view returns (string memory) {
         bytes32 node = _getNamehash(addr);
         return versionable_texts[recordVersions[node]][node][key];
-    }
-
-    function resolve(
-        bytes memory encodedname,
-        bytes calldata data
-    ) external view returns (bytes memory result) {
-        bytes4 selector = bytes4(data);
-        // readLabel wasn't decoding labelhash properly hence
-        // (bytes32 labelhash, uint256 offset) = encodedname.readLabel(0);
-        // (address addr, ) = HexUtils.hexToAddress(
-        //     abi.encodePacked(labelhash),
-        //     0,
-        //     labelhash.length
-        // );
-        if (selector == IDefaultReverseResolver.name.selector) {
-            address addr = abi.decode(data[4:], (address));
-            string memory n = name(addr);
-            return bytes(n);
-        }
-        if (selector == IDefaultReverseResolver.text.selector) {
-            (address addr, string memory key) = abi.decode(
-                data[4:],
-                (address, string)
-            );
-            return bytes(text(addr, key));
-        }
     }
 
     function supportsInterface(
