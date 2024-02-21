@@ -90,6 +90,7 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     ) internal pure returns (bytes memory) {
         (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));
         bytes memory value;
+        // Per https://docs.ens.domains/ensip/11#specification
         if (coinType & 0x80000000 != 0) {
             value = _findValue(
                 context,
