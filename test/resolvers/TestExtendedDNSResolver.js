@@ -91,6 +91,30 @@ contract('ExtendedDNSResolver', function (accounts) {
       expect(result).to.equal(testAddress.toLowerCase())
     })
 
+    it('handles multiple spaces between records', async function () {
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32)',
+        [],
+        `foo=bar  a[60]=${testAddress}`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
+
+    it('handles multiple spaces between quoted records', async function () {
+      const name = 'test.test'
+      const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+      const result = await resolve(
+        name,
+        'addr(bytes32)',
+        [],
+        `foo='bar'  a[60]=${testAddress}`,
+      )
+      expect(result).to.equal(testAddress.toLowerCase())
+    })
+
     it('works if the record comes after one for another cointype', async function () {
       const name = 'test.test'
       const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'

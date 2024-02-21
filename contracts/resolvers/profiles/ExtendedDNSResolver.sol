@@ -236,7 +236,7 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
                             escaped = true;
                         } else if (data[i] == "'") {
                             i += 1;
-                            if (data[i] == " ") {
+                            while (data[i] == " ") {
                                 i += 1;
                             }
                             state = STATE_START;
@@ -248,8 +248,10 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
                 assert(state == STATE_IGNORED_UNQUOTED_VALUE);
                 for (; i < len; i++) {
                     if (data[i] == " ") {
+                        while (data[i] == " ") {
+                            i += 1;
+                        }
                         state = STATE_START;
-                        i += 1;
                         break;
                     }
                 }
