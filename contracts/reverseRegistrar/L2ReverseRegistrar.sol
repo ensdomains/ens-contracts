@@ -14,11 +14,10 @@ import "../utils/LowLevelCallUtils.sol";
 
 error NotOwnerOfContract();
 
-// @note Inception date
-// The inception date is in milliseconds, and so will be divided by 1000
-// when comparing to block.timestamp. This means that the date will be
-// rounded down to the nearest second.
-
+/**
+ * A L2 reverser registrar. Deployed to each L2 chain.
+ * The contract will be verified on L1 Reverse Resolver under the namespace specified at constructor
+ */
 contract L2ReverseRegistrar is
     Multicallable,
     Ownable,
@@ -29,8 +28,10 @@ contract L2ReverseRegistrar is
 
     bytes32 public immutable L2ReverseNode;
 
-    /**
+    /*
      * @dev Constructor
+     * @param _L2ReverseNode The namespace to set. The converntion is '${cointype}.reverse'
+     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
      */
     constructor(
         bytes32 _L2ReverseNode,

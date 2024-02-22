@@ -7,6 +7,11 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../wrapper/BytesUtils.sol";
 
+/**
+ * A fallback reverser resolver to resolve when L2 reverse resolver has no names set.
+ * The contract will be set under "default.reverse" namespace
+ * It can only be set by EOA as contract accounts are chain dependent.
+ */
 contract DefaultReverseResolver is
     Ownable,
     IDefaultReverseResolver,
@@ -30,11 +35,23 @@ contract DefaultReverseResolver is
         }
     }
 
+    /*
+     * Returns the name associated with an address, for reverse records.
+     * This function is non ENSIP standard
+     * @param address The ENS address to query.
+     * @return The associated name.
+     */
     function name(address addr) public view returns (string memory) {
         bytes32 node = _getNamehash(addr);
         return versionable_names[recordVersions[node]][node];
     }
 
+    /*
+     * Returns the text data associated with an address and key.
+     * @param address The ENS address to query.
+     * @param key The text data key to query.
+     * @return The associated text data.
+     */
     function text(
         address addr,
         string memory key
