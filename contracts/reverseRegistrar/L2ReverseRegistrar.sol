@@ -22,8 +22,6 @@ error NotOwnerOfContract();
 contract L2ReverseRegistrar is
     Multicallable,
     Ownable,
-    ITextResolver,
-    INameResolver,
     IL2ReverseRegistrar,
     SignatureReverseResolver
 {
@@ -39,7 +37,6 @@ contract L2ReverseRegistrar is
         uint256 _coinType
     ) SignatureReverseResolver(_L2ReverseNode, _coinType) {
         L2ReverseNode = _L2ReverseNode;
-        // coinType = _coinType;
     }
 
     modifier ownerAndAuthorisedWithSignature(
@@ -134,6 +131,7 @@ contract L2ReverseRegistrar is
     {
         bytes32 node = _getNamehash(contractAddr);
         _setName(node, name, inceptionDate);
+        emit NameChanged(node, name);
         emit ReverseClaimed(contractAddr, node);
     }
 
@@ -292,8 +290,6 @@ contract L2ReverseRegistrar is
     {
         return
             interfaceID == type(IL2ReverseRegistrar).interfaceId ||
-            interfaceID == type(ITextResolver).interfaceId ||
-            interfaceID == type(INameResolver).interfaceId ||
             super.supportsInterface(interfaceID);
     }
 }

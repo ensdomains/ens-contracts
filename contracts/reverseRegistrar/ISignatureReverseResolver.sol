@@ -1,6 +1,16 @@
 pragma solidity >=0.8.4;
 
 interface ISignatureReverseResolver {
+    event VersionChanged(bytes32 indexed node, uint64 newVersion);
+    event ReverseClaimed(address indexed addr, bytes32 indexed node);
+    event NameChanged(bytes32 indexed node, string name);
+    event TextChanged(
+        bytes32 indexed node,
+        string indexed indexedKey,
+        string key,
+        string value
+    );
+
     function setNameForAddrWithSignature(
         address addr,
         string memory name,

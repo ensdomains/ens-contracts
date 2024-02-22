@@ -12,19 +12,12 @@ error InvalidSignature();
 error SignatureOutOfDate();
 error Unauthorised();
 
-// @note Inception date
-// The inception date is in milliseconds, and so will be divided by 1000
-// when comparing to block.timestamp. This means that the date will be
-// rounded down to the nearest second.
-
 contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     using ECDSA for bytes32;
     mapping(bytes32 => uint256) public lastUpdated;
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
     mapping(bytes32 => uint64) internal recordVersions;
-    event VersionChanged(bytes32 indexed node, uint64 newVersion);
-    event ReverseClaimed(address indexed addr, bytes32 indexed node);
 
     bytes32 public immutable ParentNode;
     uint256 public immutable coinType;
@@ -165,7 +158,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     ) internal {
         versionable_texts[recordVersions[node]][node][key] = value;
         _setLastUpdated(node, inceptionDate);
-        // emit TextChanged(node, key, key, value);
+        emit TextChanged(node, key, key, value);
     }
 
     /**
@@ -181,12 +174,6 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         return versionable_texts[recordVersions[node]][node][key];
     }
 
-    /**
-     * Sets the name associated with an ENS node, for reverse records.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param newName name record
-     */
     function _setName(
         bytes32 node,
         string memory newName,
@@ -194,7 +181,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     ) internal virtual {
         versionable_names[recordVersions[node]][node] = newName;
         _setLastUpdated(node, inceptionDate);
-        // emit NameChanged(node, newName);
+        emit NameChanged(node, newName);
     }
 
     function _name(bytes32 node) internal view returns (string memory) {
