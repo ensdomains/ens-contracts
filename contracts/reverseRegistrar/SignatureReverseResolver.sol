@@ -22,8 +22,10 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     bytes32 public immutable ParentNode;
     uint256 public immutable coinType;
 
-    /**
+    /*
      * @dev Constructor
+     * @param ParentNode The namespace to set.
+     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
      */
     constructor(bytes32 _ParentNode, uint256 _coinType) {
         ParentNode = _ParentNode;
@@ -256,6 +258,5 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         bytes4 interfaceID
     ) public view virtual returns (bool) {
         return interfaceID == type(ISignatureReverseResolver).interfaceId;
-        // super.supportsInterface(interfaceID);
     }
 }
