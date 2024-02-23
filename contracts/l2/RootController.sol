@@ -10,20 +10,29 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract RootController is Ownable, IController {
     address resolver;
 
+    bytes32 private constant ROOT_NODE =
+        0x0000000000000000000000000000000000000000000000000000000000000000;
+
     constructor(address _resolver) Ownable() {
         resolver = _resolver;
     }
 
     error CannotTransfer();
+    error CannotBurn();
 
     event NewResolver(uint256 id, address resolver);
 
     /*************************
      * IController functions *
      *************************/
-    function ownerOf(
+
+    function ownerOfWithData(
         bytes calldata /*tokenData*/
     ) external view returns (address) {
+        return owner();
+    }
+
+    function ownerOf(bytes32 /*node*/) external view returns (address) {
         return owner();
     }
 
@@ -38,6 +47,18 @@ contract RootController is Ownable, IController {
         bool /*operatorApproved*/
     ) external pure returns (bytes memory) {
         revert CannotTransfer();
+    }
+
+    function burn(
+        bytes calldata /*tokenData*/,
+        address /*operator*/,
+        address /*from*/,
+        uint256 /*id*/,
+        uint256 /*value*/,
+        bytes calldata /*data*/,
+        bool /*operatorApproved*/
+    ) external view returns (bytes memory) {
+        revert CannotBurn();
     }
 
     function balanceOf(
@@ -64,10 +85,16 @@ contract RootController is Ownable, IController {
 
     function setSubnode(
         L2Registry registry,
-        uint256 node,
+        uint256 /*node*/,
         uint256 label,
         bytes memory subnodeData
     ) external onlyOwner {
-        registry.setSubnode(node, label, subnodeData, msg.sender, address(0));
+        registry.setSubnode(
+            uint256(ROOT_NODE),
+            label,
+            subnodeData,
+            msg.sender,
+            address(0)
+        );
     }
 }
