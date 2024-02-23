@@ -415,18 +415,17 @@ contract FuseController is Ownable, IFuseController {
             tokenDataSubnode
         );
 
-        // Check to make sure partent cannot control is not burned.
-        require(
-            (sub.fuses & PARENT_CANNOT_CONTROL) == 0,
-            "Parent cannot control"
-        );
-
         // Check to make sure the caller is authorized.
         if (
-            // Allow the owner of the parent node to set the expiry.
-            !(td.owner == msg.sender) &&
+            // Allow the owner of the parent node to set the expiry as
+            // long as there is no renewal controller set on the parent node.
+            !(td.owner == msg.sender &&
+                td.renewalController == address(0) &&
+                sub.renewalController == address(0)) &&
             // Allow an authorized user of the parent node to set the expiry.
-            !(isAuthorized) &&
+            !(isAuthorized &&
+                td.renewalController == address(0) &&
+                sub.renewalController == address(0)) &&
             // Allow the renewal controller of the parent node
             // as long as the there is no renewal controller set on the subnode
             // to set the expiry.
