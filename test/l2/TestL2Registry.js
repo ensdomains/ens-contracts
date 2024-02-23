@@ -85,6 +85,8 @@ describe.only('L2Registry', () => {
     hackerAddress = await hacker.getAddress()
     dummyAccount = await signers[4]
     dummyAccountAddress = await dummyAccount.getAddress()
+    renewalController = await signers[5]
+    renewalControllerAddress = await renewalController.getAddress()
 
     resolver = await DelegatableResolver.new()
     metaDataservice = await StaticMetadataService.new('https://ens.domains')
@@ -402,6 +404,145 @@ describe.only('L2Registry', () => {
       assert.equal(
         await controller.renewalControllerOf(TEST_SUBNODE),
         EMPTY_ADDRESS,
+      )
+    })
+
+    // Make sure that a test subnode can be renewed by the renewal controller address.
+    it('should renew a subnode using the renewal controller', async () => {
+      const blockTime = (await ethers.provider.getBlock('latest')).timestamp
+
+      await controller.setSubnode(
+        TEST_NODE,
+        labelhash('sub'),
+        subnodeOwnerAddress,
+        resolver.address,
+        // blocktime + 60 DAYs
+        blockTime + 60 * DAY,
+        0, // no fuse
+        renewalControllerAddress, // no controller
+        { from: ownerAddress },
+      )
+
+      // Make sure the subnode is owned by the subnodeOwnerAddress
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
+
+      // Make sure the renewal controller is set to the renewalControllerAddress
+      assert.equal(
+        await controller.renewalControllerOf(TEST_SUBNODE),
+        renewalControllerAddress,
+      )
+
+      // Extend the expiry of the subnode by 30 days by calling the setExpiry function from the renewal controller address.
+      await controller.setExpiry(
+        TEST_NODE,
+        labelhash('sub'),
+        blockTime + 90 * DAY,
+        {
+          from: renewalControllerAddress,
+        },
+      )
+
+      // Make sure the subnode is still owned by the subnodeOwnerAddress
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
+
+      // Make sure the expiry of the subnode has been extended by 30 days
+      assert.equal(
+        await controller.expiryOf(TEST_SUBNODE),
+        blockTime + 90 * DAY,
+      )
+    })
+
+    // Make sure that the test subnode can be renewed by the parent renewal controller address.
+    it('should renew a subnode using the parent renewal controller', async () => {
+      const blockTime = (await ethers.provider.getBlock('latest')).timestamp
+
+      await controller.setSubnode(
+        TEST_NODE,
+        labelhash('sub'),
+        subnodeOwnerAddress,
+        resolver.address,
+        // blocktime + 60 DAYs
+        blockTime + 60 * DAY,
+        0, // no fuse
+        renewalControllerAddress, // no controller
+        { from: ownerAddress },
+      )
+
+      // Predict the node hash of the sub-subnode
+      const subSubNode = namehash('sub-sub.sub.test')
+
+      // Make a sub-subnode without a renewal controller
+      await controller.setSubnode(
+        TEST_SUBNODE,
+        labelhash('sub-sub'),
+        dummyAccountAddress,
+        resolver.address,
+        // blocktime + 60 DAYs
+        blockTime + 60 * DAY,
+        0, // no fuse
+        EMPTY_ADDRESS, // no controller
+        { from: subnodeOwnerAddress },
+      )
+
+      // Make sure the sub-subnode is owned by the dummyAccountAddress
+      assert.equal(await controller.ownerOf(subSubNode), dummyAccountAddress)
+
+      // Make sure we can renew the sub-subnode using the parent renewal controller
+      await controller.setExpiry(
+        TEST_SUBNODE,
+        labelhash('sub-sub'),
+        blockTime + 90 * DAY,
+        {
+          from: renewalControllerAddress,
+        },
+      )
+
+      // Make sure the sub-subnode is still owned by the dummyAccountAddress
+      assert.equal(await controller.ownerOf(subSubNode), dummyAccountAddress)
+
+      // Make sure the expiry of the sub-subnode has been extended by 30 days
+      assert.equal(await controller.expiryOf(subSubNode), blockTime + 90 * DAY)
+    })
+
+    // Make sure that a hacker can't renew a subnode using the renewal controller address.
+    it('should revert when a hacker tries to renew a subnode using the renewal controller', async () => {
+      const blockTime = (await ethers.provider.getBlock('latest')).timestamp
+
+      await controller.setSubnode(
+        TEST_NODE,
+        labelhash('sub'),
+        subnodeOwnerAddress,
+        resolver.address,
+        // blocktime + 60 DAYs
+        blockTime + 60 * DAY,
+        0, // no fuse
+        renewalControllerAddress, // no controller
+        { from: ownerAddress },
+      )
+
+      // Make sure the subnode is owned by the subnodeOwnerAddress
+      assert.equal(await controller.ownerOf(TEST_SUBNODE), subnodeOwnerAddress)
+
+      // Make sure the renewal controller is set to the renewalControllerAddress
+      assert.equal(
+        await controller.renewalControllerOf(TEST_SUBNODE),
+        renewalControllerAddress,
+      )
+
+      // Extend the expiry of the subnode by 30 days by calling the setExpiry
+      // function from the renewal controller address, expect it to revert
+      // with custom error, Unauthorised(bytes32 node, address addr);
+      await expect(
+        controller.setExpiry(
+          TEST_NODE,
+          labelhash('sub'),
+          blockTime + 90 * DAY,
+          {
+            from: hackerAddress,
+          },
+        ),
+      ).to.be.revertedWith(
+        `Unauthorised("${TEST_SUBNODE}", "${hackerAddress}")`,
       )
     })
   })

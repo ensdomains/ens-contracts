@@ -198,7 +198,7 @@ contract FuseController is Ownable, IFuseController {
         bytes memory tokenData = registry.getData(uint256(node));
 
         // if the tokenData is not of the correct length, return 0.
-        if (tokenData.length < 96) {
+        if (tokenData.length != 96) {
             return 0;
         }
 
@@ -369,12 +369,19 @@ contract FuseController is Ownable, IFuseController {
     }
 
     // Set the expiry of a subnode, with a node and a label.
-    function setExpiry(bytes32 node, uint256 label, uint64 newExpiry) external {
+    function setExpiry(
+        bytes32 node,
+        bytes32 labelhash,
+        uint64 newExpiry
+    ) external {
+        TokenData memory td;
+        TokenData memory sub;
+
         // get the subnode
-        bytes32 subnode = keccak256(abi.encodePacked(node, label));
+        bytes32 subnode = keccak256(abi.encodePacked(node, labelhash));
 
         // get tokenData
-        bytes memory tokenData = registry.getData(uint256(subnode));
+        bytes memory tokenData = registry.getData(uint256(node));
 
         // Make sure the parent node controller is this contract.
         require(
@@ -382,37 +389,64 @@ contract FuseController is Ownable, IFuseController {
             "Controller is not this contract"
         );
 
-        (
-            address owner,
-            address resolver, // we don't need the old expiry
-            ,
-            /*uint64 expiry*/ uint64 fuses,
-            address renewalController
-        ) = _unpack(tokenData);
+        // Make sure the tokenData is 96 bytes long.
+        require(tokenData.length == 96, "Invalid tokenData length");
 
-        // Check to make sure partent cannot control is not burned.
-        require((fuses & PARENT_CANNOT_CONTROL) != 0, "Parent cannot control");
+        (
+            td.owner, // resolver // expiry
+            ,
+            ,
+            td.fuses,
+            td.renewalController
+        ) = _unpack(tokenData);
 
         // Make sure the caller is authroized in the parent node.
         bool isAuthorized = registry.getAuthorization(
             uint256(node),
-            owner,
+            td.owner,
             msg.sender
         );
 
-        if (owner != msg.sender && !isAuthorized) {
-            revert Unauthorised(node, msg.sender);
+        // get tokenDataSubnode
+        bytes memory tokenDataSubnode = registry.getData(uint256(subnode));
+
+        // Get the data of the subnode, including the fuses and renewal controller, get the data
+        (sub.owner, sub.resolver, , sub.fuses, sub.renewalController) = _unpack(
+            tokenDataSubnode
+        );
+
+        // Check to make sure partent cannot control is not burned.
+        require(
+            (sub.fuses & PARENT_CANNOT_CONTROL) == 0,
+            "Parent cannot control"
+        );
+
+        // Check to make sure the caller is authorized.
+        if (
+            // Allow the owner of the parent node to set the expiry.
+            !(td.owner == msg.sender) &&
+            // Allow an authorized user of the parent node to set the expiry.
+            !(isAuthorized) &&
+            // Allow the renewal controller of the parent node
+            // as long as the there is no renewal controller set on the subnode
+            // to set the expiry.
+            !(td.renewalController == msg.sender &&
+                sub.renewalController == address(0)) &&
+            // Allow the renewal controller of the subnode to set the expiry.
+            !(sub.renewalController == msg.sender)
+        ) {
+            revert Unauthorised(subnode, msg.sender);
         }
 
         registry.setNode(
             uint256(subnode),
             _pack(
                 address(this),
-                owner,
-                resolver,
+                sub.owner,
+                sub.resolver,
                 newExpiry,
-                fuses,
-                renewalController
+                sub.fuses,
+                sub.renewalController
             )
         );
     }
@@ -481,7 +515,7 @@ contract FuseController is Ownable, IFuseController {
 
     function setSubnode(
         bytes32 node,
-        uint256 label,
+        bytes32 labelhash,
         address subnodeOwner,
         address subnodeResolver,
         uint64 subnodeExpiry,
@@ -507,7 +541,7 @@ contract FuseController is Ownable, IFuseController {
         );
 
         // Make the node of the subnode.
-        bytes32 subnode = keccak256(abi.encodePacked(node, label));
+        bytes32 subnode = keccak256(abi.encodePacked(node, labelhash));
 
         // Get the subnode fuses.
         uint64 subnodeFusesOld = fusesOf(subnode);
@@ -546,7 +580,7 @@ contract FuseController is Ownable, IFuseController {
 
         registry.setSubnode(
             uint256(node),
-            label,
+            uint256(labelhash),
             _pack(
                 address(this),
                 subnodeOwner,
