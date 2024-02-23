@@ -44,6 +44,7 @@ const {
   CANNOT_SET_RESOLVER,
   CANNOT_CREATE_SUBDOMAIN,
   CANNOT_SET_RENEWAL_CONTROLLER,
+  PARENT_CANNOT_SET_EXPIRY,
   PARENT_CANNOT_CONTROL,
 } = {
   CAN_DO_EVERYTHING: 0,
@@ -53,7 +54,8 @@ const {
   CANNOT_SET_RESOLVER: 2 ** 3,
   CANNOT_CREATE_SUBDOMAIN: 2 ** 4,
   CANNOT_SET_RENEWAL_CONTROLLER: 2 ** 5,
-  PARENT_CANNOT_CONTROL: 2 ** 6,
+  PARENT_CANNOT_SET_EXPIRY: 2 ** 6,
+  PARENT_CANNOT_CONTROL: 2 ** 7,
 }
 
 describe.only('L2Registry', () => {
@@ -596,9 +598,9 @@ describe.only('L2Registry', () => {
       ).to.be.revertedWith(`Unauthorised("${subSubNode}", "${hackerAddress}")`)
     })
 
-    // Make sure that if the renewal controller is set on the sub-subnode that the renewal controller
+    // Make sure that if the PARENT_CANNOT_SET_EXPIRY is set on the sub-subnode that the renewal controller
     // on the subnode can't renew the sub-subnode
-    it('should revert when the subnode renewal controller tries to renew the sub-subnode', async () => {
+    it('should revert when the subnode renewal controller tries to renew the sub-subnode and PARENT_CANNOT_SET_EXPIRY is burned', async () => {
       const blockTime = (await ethers.provider.getBlock('latest')).timestamp
 
       await controller.setSubnode(
@@ -608,7 +610,7 @@ describe.only('L2Registry', () => {
         resolver.address,
         // blocktime + 60 DAYs
         blockTime + 60 * DAY,
-        0, // no fuse
+        PARENT_CANNOT_CONTROL | CANNOT_BURN_NAME,
         renewalControllerAddress, // no controller
         { from: ownerAddress },
       )
@@ -624,7 +626,7 @@ describe.only('L2Registry', () => {
         resolver.address,
         // blocktime + 60 DAYs
         blockTime + 60 * DAY,
-        0, // no fuse
+        PARENT_CANNOT_CONTROL | CANNOT_BURN_NAME | PARENT_CANNOT_SET_EXPIRY,
         renewalControllerAddress2,
         { from: subnodeOwnerAddress },
       )
@@ -647,7 +649,7 @@ describe.only('L2Registry', () => {
       )
     })
 
-    // Make sure that if PARTENT_CANNOT_CONTROL is set it is still possible for the parent's renewal controller to renew the subnode.
+    // Make sure that if PARTENT_CANNOT_CONTROL is set it is still possible for the parent to renew the subnode.
     it('should renew a subnode by the owner of the parent when PARTENT_CANNOT_CONTROL is set on the subnode', async () => {
       const blockTime = (await ethers.provider.getBlock('latest')).timestamp
 
@@ -658,7 +660,7 @@ describe.only('L2Registry', () => {
         resolver.address,
         // blocktime + 60 DAYs
         blockTime + 60 * DAY,
-        PARENT_CANNOT_CONTROL | CANNOT_BURN_NAME, // no fuse
+        PARENT_CANNOT_CONTROL | CANNOT_BURN_NAME,
         EMPTY_ADDRESS, // no controller
         { from: ownerAddress },
       )
