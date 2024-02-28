@@ -20,10 +20,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   })
 
-  const UR = await ethers.getContract('UniversalResolver')
-  const tx = await UR.transferOwnership(owner)
-  console.log(`Transfer ownership to ${owner} (tx: ${tx.hash})...`)
-  await tx.wait()
+  if (owner !== undefined && owner !== deployer) {
+    const UR = await ethers.getContract('UniversalResolver')
+    const tx = await UR.transferOwnership(owner)
+    console.log(`Transfer ownership to ${owner} (tx: ${tx.hash})...`)
+    await tx.wait()
+  }
 }
 
 func.id = 'universal-resolver'
