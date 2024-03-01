@@ -1,6 +1,6 @@
 const { solidity } = require('ethereum-waffle')
 const { use, expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const { ethers } = require('hardhat')
 const { dns } = require('../test-utils')

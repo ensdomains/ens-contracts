@@ -1,5 +1,5 @@
 const digests = require('./data/digests')
-const { expectRevert } = require('@openzeppelin/test-helpers')
+const { expectRevert } = require('../test-utils/expectRevert')
 
 digests.forEach(function (testcase) {
   contract(testcase.digest, function (accounts) {

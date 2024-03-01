@@ -2,7 +2,7 @@ var base32hex = require('rfc4648').base32hex
 const anchors = require('../test-utils/anchors.js')
 const packet = require('dns-packet')
 const types = require('dns-packet/types')
-const { expectRevert } = require('@openzeppelin/test-helpers')
+const { expectRevert } = require('../test-utils/expectRevert.js')
 const {
   rootKeys,
   hexEncodeSignedSet,

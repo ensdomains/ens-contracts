@@ -1,9 +1,26 @@
 // Based on https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v4.1.0/test/token/ERC1155/ERC1155.behaviour.js
 // Copyright (c) 2016-2020 zOS Global Limited
 
-const { makeInterfaceId } = require('@openzeppelin/test-helpers')
-
 const { expect } = require('chai')
+const { utils } = require('ethers')
+
+function makeInterfaceId(functionSignatures = []) {
+  const INTERFACE_ID_LENGTH = 4
+
+  const interfaceIdBuffer = functionSignatures
+    .map((signature) => utils.keccak256(utils.toUtf8Bytes(signature))) // keccak256
+    .map(
+      (h) => Buffer.from(h.substring(2), 'hex').subarray(0, 4), // bytes4()
+    )
+    .reduce((memo, bytes) => {
+      for (let i = 0; i < INTERFACE_ID_LENGTH; i++) {
+        memo[i] = memo[i] ^ bytes[i] // xor
+      }
+      return memo
+    }, Buffer.alloc(INTERFACE_ID_LENGTH))
+
+  return `0x${interfaceIdBuffer.toString('hex')}`
+}
 
 const INTERFACES = {
   ERC165: ['supportsInterface(bytes4)'],
@@ -88,10 +105,10 @@ const INTERFACES = {
 const INTERFACE_IDS = {}
 const FN_SIGNATURES = {}
 for (const k of Object.getOwnPropertyNames(INTERFACES)) {
-  INTERFACE_IDS[k] = makeInterfaceId.ERC165(INTERFACES[k])
+  INTERFACE_IDS[k] = makeInterfaceId(INTERFACES[k])
   for (const fnName of INTERFACES[k]) {
     // the interface id of a single function is equivalent to its function signature
-    FN_SIGNATURES[fnName] = makeInterfaceId.ERC165([fnName])
+    FN_SIGNATURES[fnName] = makeInterfaceId([fnName])
   }
 }
 

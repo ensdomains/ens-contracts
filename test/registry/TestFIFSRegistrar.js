@@ -3,7 +3,7 @@ const ENS = artifacts.require('./registry/ENSRegistry.sol')
 
 const { exceptions } = require('../test-utils')
 const sha3 = require('web3-utils').sha3
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 
 contract('FIFSRegistrar', function (accounts) {
   let registrar, ens

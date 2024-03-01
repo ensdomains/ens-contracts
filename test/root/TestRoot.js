@@ -2,7 +2,7 @@ const Root = artifacts.require('./Root.sol')
 const ENS = artifacts.require('@ensdomains/ens/contracts/ENSRegistry.sol')
 
 const { exceptions, evm } = require('@ensdomains/test-utils')
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const sha3 = require('js-sha3').keccak_256
 
 contract('Root', function (accounts) {

@@ -1,7 +1,7 @@
 import fs from 'fs'
 
 import * as envfile from 'envfile'
-import n from 'eth-ens-namehash'
+import n from '@ensdomains/eth-ens-namehash'
 import { task } from 'hardhat/config'
 
 const namehash = n.hash

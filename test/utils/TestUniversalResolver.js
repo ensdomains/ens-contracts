@@ -1,6 +1,6 @@
 const { solidity } = require('ethereum-waffle')
 const { use, expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const { hexDataSlice, concat } = require('ethers/lib/utils')
 const sha3 = require('web3-utils').sha3
 const { Contract } = require('ethers')

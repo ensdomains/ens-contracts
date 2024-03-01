@@ -1,4 +1,4 @@
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')

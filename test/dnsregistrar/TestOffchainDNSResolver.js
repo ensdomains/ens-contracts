@@ -18,7 +18,7 @@ const DummyNonCCIPAwareResolver = artifacts.require(
   './DummyNonCCIPAwareResolver.sol',
 )
 const DNSSECImpl = artifacts.require('./DNSSECImpl')
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const utils = require('./Helpers/Utils')
 const { expect } = require('chai')
 const { rootKeys, hexEncodeSignedSet } = require('../utils/dnsutils.js')

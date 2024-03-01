@@ -2,8 +2,7 @@
 // Copyright (c) 2016-2020 zOS Global Limited
 // Portions Copyright (c) 2021 Nick Johnson
 
-const namehash = require('eth-ens-namehash').hash
-const { BN, constants, expectEvent } = require('@openzeppelin/test-helpers')
+const { constants } = require('ethers')
 const { ZERO_ADDRESS } = constants
 const { ethers } = require('hardhat')
 

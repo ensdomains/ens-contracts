@@ -9,7 +9,7 @@ const {
 } = require('../test-utils/constants')
 
 const { expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 
 const { exceptions } = require('../test-utils')

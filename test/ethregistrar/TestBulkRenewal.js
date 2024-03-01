@@ -9,7 +9,7 @@ const NameWrapper = artifacts.require('./wrapper/NameWrapper.sol')
 const { deploy } = require('../test-utils/contracts')
 const { EMPTY_BYTES32: EMPTY_BYTES } = require('../test-utils/constants')
 
-const namehash = require('eth-ens-namehash')
+const namehash = require('@ensdomains/eth-ens-namehash')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
 const { exceptions } = require('../test-utils')

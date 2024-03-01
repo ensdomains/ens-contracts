@@ -2,11 +2,10 @@ import { Interface } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
-
-const { makeInterfaceId } = require('@openzeppelin/test-helpers')
+import { makeInterfaceId } from '../utils/solidity'
 
 function computeInterfaceId(iface: Interface) {
-  return makeInterfaceId.ERC165(
+  return makeInterfaceId(
     Object.values(iface.functions).map((frag) => frag.format('sighash')),
   )
 }

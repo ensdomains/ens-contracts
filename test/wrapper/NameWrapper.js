@@ -6,9 +6,11 @@ const { evm } = require('../test-utils')
 const { shouldBehaveLikeERC1155 } = require('./ERC1155.behaviour')
 const { shouldSupportInterfaces } = require('./SupportsInterface.behaviour')
 const { shouldRespectConstraints } = require('./Constraints.behaviour')
-const { ZERO_ADDRESS } = require('@openzeppelin/test-helpers/src/constants')
+const { constants } = require('ethers')
 const { deploy } = require('../test-utils/contracts')
 const { EMPTY_BYTES32, EMPTY_ADDRESS } = require('../test-utils/constants')
+
+const { AddressZero: ZERO_ADDRESS } = constants
 
 const abiCoder = new ethers.utils.AbiCoder()
 
