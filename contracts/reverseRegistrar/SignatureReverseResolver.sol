@@ -19,16 +19,16 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
     mapping(bytes32 => uint64) internal recordVersions;
 
-    bytes32 public immutable ParentNode;
+    bytes32 public immutable parentNode;
     uint256 public immutable coinType;
 
     /*
      * @dev Constructor
-     * @param ParentNode The namespace to set.
+     * @param parentNode The namespace to set.
      * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
      */
-    constructor(bytes32 _ParentNode, uint256 _coinType) {
-        ParentNode = _ParentNode;
+    constructor(bytes32 _parentNode, uint256 _coinType) {
+        parentNode = _parentNode;
         coinType = _coinType;
     }
 
@@ -200,7 +200,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     function _clearRecords(address addr) internal {
         bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
         bytes32 reverseNode = keccak256(
-            abi.encodePacked(ParentNode, labelHash)
+            abi.encodePacked(parentNode, labelHash)
         );
         recordVersions[reverseNode]++;
         emit VersionChanged(reverseNode, recordVersions[reverseNode]);
@@ -241,7 +241,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         return
             keccak256(
                 abi.encodePacked(
-                    ParentNode,
+                    parentNode,
                     LowLevelCallUtils.sha3HexAddress(addr)
                 )
             );
@@ -249,7 +249,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
 
     function _getNamehash(address addr) internal view returns (bytes32) {
         bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
-        return keccak256(abi.encodePacked(ParentNode, labelHash));
+        return keccak256(abi.encodePacked(parentNode, labelHash));
     }
 
     function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
