@@ -47,12 +47,6 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         _;
     }
 
-    function getLastUpdated(
-        bytes32 node
-    ) internal view virtual returns (uint256) {
-        return lastUpdated[node];
-    }
-
     function isAuthorised(address addr) internal view virtual returns (bool) {
         revert("This function needs to be overriten");
     }
