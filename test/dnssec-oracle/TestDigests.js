@@ -1,6 +1,5 @@
 const digests = require('./data/digests')
-const { expectRevert } = require('../test-utils/expectRevert')
-
+const { expect, contract, ethers, artifacts } = require('hardhat')
 digests.forEach(function (testcase) {
   contract(testcase.digest, function (accounts) {
     const algorithm = artifacts.require('./digests/' + testcase.digest + '.sol')
@@ -11,7 +10,7 @@ digests.forEach(function (testcase) {
         testcase.valids.map(async function ([text, digest]) {
           assert.equal(
             await instance.verify(
-              ethers.utils.hexlify(ethers.utils.toUtf8Bytes(text)),
+              ethers.hexlify(ethers.toUtf8Bytes(text)),
               digest,
             ),
             true,
@@ -26,7 +25,7 @@ digests.forEach(function (testcase) {
         testcase.invalids.map(async function ([text, digest]) {
           assert.equal(
             await instance.verify(
-              ethers.utils.hexlify(ethers.utils.toUtf8Bytes(text)),
+              ethers.hexlify(ethers.toUtf8Bytes(text)),
               digest,
             ),
             false,
@@ -35,16 +34,13 @@ digests.forEach(function (testcase) {
       )
     })
 
-    it('should throw an error for hashes of the wrong form', async function () {
+    it.only('should throw an error for hashes of the wrong form', async function () {
       var instance = await algorithm.deployed()
       await Promise.all(
         testcase.errors.map(async function ([text, digest]) {
-          await expectRevert.unspecified(
-            instance.verify(
-              ethers.utils.hexlify(ethers.utils.toUtf8Bytes(text)),
-              digest,
-            ),
-          )
+          await expect(
+            instance.verify(ethers.hexlify(ethers.toUtf8Bytes(text)), digest),
+          ).to.be.reverted
         }),
       )
     })

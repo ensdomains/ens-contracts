@@ -1,14 +1,15 @@
 import { exec as _exec } from 'child_process'
 
-import '@nomiclabs/hardhat-ethers'
+import '@nomicfoundation/hardhat-ethers'
 import '@nomiclabs/hardhat-solhint'
 import '@nomiclabs/hardhat-truffle5'
-import '@nomiclabs/hardhat-waffle'
+import '@nomiclabs/hardhat-web3'
+import '@nomicfoundation/hardhat-chai-matchers'
 import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
-import 'hardhat-gas-reporter'
+import '@nomicfoundation/hardhat-toolbox'
 import { HardhatUserConfig } from 'hardhat/config'
 import { promisify } from 'util'
 

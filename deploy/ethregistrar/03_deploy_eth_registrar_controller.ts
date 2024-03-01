@@ -1,4 +1,4 @@
-import { Interface } from 'ethers/lib/utils'
+import { Interface } from 'ethers'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -6,7 +6,7 @@ import { makeInterfaceId } from '../utils/solidity'
 
 function computeInterfaceId(iface: Interface) {
   return makeInterfaceId(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
+    Object.values(iface.fragments).map((frag) => frag.format('sighash')),
   )
 }
 
@@ -15,19 +15,19 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer, owner } = await getNamedAccounts()
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
+  const registry = await ethers.getContractAt('ENSRegistry', owner)
 
-  const registrar = await ethers.getContract(
+  const registrar = await ethers.getContractAt(
     'BaseRegistrarImplementation',
     owner,
   )
-  const priceOracle = await ethers.getContract(
+  const priceOracle = await ethers.getContractAt(
     'ExponentialPremiumPriceOracle',
     owner,
   )
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
-  const nameWrapper = await ethers.getContract('NameWrapper', owner)
-  const ethOwnedResolver = await ethers.getContract('OwnedResolver', owner)
+  const reverseRegistrar = await ethers.getContractAt('ReverseRegistrar', owner)
+  const nameWrapper = await ethers.getContractAt('NameWrapper', owner)
+  const ethOwnedResolver = await ethers.getContractAt('OwnedResolver', owner)
 
   const deployArgs = {
     from: deployer,
@@ -46,7 +46,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   if (!controller.newlyDeployed) return
 
   if (owner !== deployer) {
-    const c = await ethers.getContract('ETHRegistrarController', deployer)
+    const c = await ethers.getContractAt('ETHRegistrarController', deployer)
     const tx = await c.transferOwnership(owner)
     console.log(
       `Transferring ownership of ETHRegistrarController to ${owner} (tx: ${tx.hash})...`,

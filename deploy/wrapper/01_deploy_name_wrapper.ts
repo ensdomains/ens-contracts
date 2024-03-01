@@ -1,4 +1,4 @@
-import { Interface } from 'ethers/lib/utils'
+import { Interface } from 'ethers'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -6,7 +6,7 @@ import { makeInterfaceId } from '../utils/solidity'
 
 function computeInterfaceId(iface: Interface) {
   return makeInterfaceId(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
+    Object.values(iface.fragments).map((frag) => frag.format('sighash')),
   )
 }
 

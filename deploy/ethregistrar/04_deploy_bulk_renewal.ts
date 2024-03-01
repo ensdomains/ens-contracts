@@ -1,4 +1,4 @@
-import { Interface } from 'ethers/lib/utils'
+import { Interface } from 'ethers'
 import { ethers } from 'hardhat'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
@@ -6,7 +6,7 @@ import { makeInterfaceId } from '../utils/solidity'
 
 function computeInterfaceId(iface: Interface) {
   return makeInterfaceId(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
+    Object.values(iface.fragments).map((frag) => frag.format('sighash')),
   )
 }
 
@@ -15,8 +15,8 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  const registry = await ethers.getContract('ENSRegistry')
-  const controller = await ethers.getContract('ETHRegistrarController')
+  const registry = await ethers.getContractFactory('ENSRegistry')
+  const controller = await ethers.getContractFactory('ETHRegistrarController')
 
   const bulkRenewal = await deploy('StaticBulkRenewal', {
     from: deployer,
@@ -29,14 +29,6 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const artifact = await deployments.getArtifact('IBulkRenewal')
   const interfaceId = computeInterfaceId(new Interface(artifact.abi))
-  const provider = new ethers.providers.StaticJsonRpcProvider(
-    ethers.provider.connection.url,
-    {
-      ...ethers.provider.network,
-      ensAddress: registry.address,
-    },
-  )
-
   const resolver = await registry.resolver(ethers.utils.namehash('eth'))
   if (resolver === ethers.constants.AddressZero) {
     console.log(
