@@ -48,7 +48,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     }
 
     function isAuthorised(address addr) internal view virtual returns (bool) {
-        revert("This function needs to be overriten");
+        revert("This function needs to be overridden");
     }
 
     function isAuthorisedWithSignature(
