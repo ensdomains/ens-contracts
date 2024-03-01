@@ -132,7 +132,6 @@ contract L2ReverseRegistrar is
     {
         bytes32 node = _getNamehash(contractAddr);
         _setName(node, name, inceptionDate);
-        emit NameChanged(node, name);
         emit ReverseClaimed(contractAddr, node);
     }
 
