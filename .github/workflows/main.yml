@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  wiki_address_chek:
+  wiki_address_check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
