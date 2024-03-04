@@ -236,31 +236,6 @@ contract L2ReverseRegistrar is
     }
 
     /**
-     * Returns the text data associated with an ENS node and key.
-     * @param node The ENS node to query.
-     * @param key The text data key to query.
-     * @return The associated text data.
-     */
-    function text(
-        bytes32 node,
-        string calldata key
-    ) external view virtual override returns (string memory) {
-        return _text(node, key);
-    }
-
-    /**
-     * Returns the name associated with an ENS node, for reverse records.
-     * Defined in EIP181.
-     * @param node The ENS node to query.
-     * @return The associated name.
-     */
-    function name(
-        bytes32 node
-    ) external view virtual override returns (string memory) {
-        return _name(node);
-    }
-
-    /**
      * Increments the record version associated with an ENS node.
      * May only be called by the owner of that node in the ENS registry.
      * @param addr The node to update.

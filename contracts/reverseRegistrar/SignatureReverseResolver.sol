@@ -165,10 +165,10 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
      * @param key The text data key to query.
      * @return The associated text data.
      */
-    function _text(
+    function text(
         bytes32 node,
         string calldata key
-    ) internal view returns (string memory) {
+    ) public view returns (string memory) {
         return versionable_texts[recordVersions[node]][node][key];
     }
 
@@ -182,7 +182,13 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         emit NameChanged(node, newName);
     }
 
-    function _name(bytes32 node) internal view returns (string memory) {
+    /**
+     * Returns the name associated with an ENS node, for reverse records.
+     * Defined in EIP181.
+     * @param node The ENS node to query.
+     * @return The associated name.
+     */
+    function name(bytes32 node) public view returns (string memory) {
         return versionable_names[recordVersions[node]][node];
     }
 

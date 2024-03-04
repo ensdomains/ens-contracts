@@ -31,4 +31,11 @@ interface ISignatureReverseResolver {
         uint256 inceptionDate,
         bytes memory signature
     ) external;
+
+    function name(bytes32 node) external view returns (string memory);
+
+    function text(
+        bytes32 node,
+        string calldata key
+    ) external view returns (string memory);
 }
