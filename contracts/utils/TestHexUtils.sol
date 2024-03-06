@@ -6,6 +6,14 @@ import {HexUtils} from "./HexUtils.sol";
 contract TestHexUtils {
     using HexUtils for *;
 
+    function hexToBytes(
+        bytes calldata name,
+        uint256 idx,
+        uint256 lastInx
+    ) public pure returns (bytes memory, bool) {
+        return name.hexToBytes(idx, lastInx);
+    }
+
     function hexStringToBytes32(
         bytes calldata name,
         uint256 idx,

@@ -311,12 +311,10 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const result = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} ${testAddress}`],
+      [`ENS1 ${resolver.address} a[60]=${testAddress}`],
       callData,
     )
-    expect(
-      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
-    ).to.equal(testAddress)
+    expect(result).to.equal(testAddress.toLowerCase())
   })
 
   it('correctly handles extra data in the TXT record when calling a resolver that supports address resolution with valid cointype', async function () {
@@ -331,12 +329,10 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const result = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} ${testAddress}`],
+      [`ENS1 ${resolver.address} a[${COIN_TYPE_ETH}]=${testAddress}`],
       callData,
     )
-    expect(
-      ethers.utils.defaultAbiCoder.decode(['address'], result)[0],
-    ).to.equal(testAddress)
+    expect(result).to.equal(testAddress.toLowerCase())
   })
 
   it('handles extra data in the TXT record when calling a resolver that supports address resolution with invalid cointype', async function () {
@@ -351,12 +347,10 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const result = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} ${testAddress}`],
+      [`ENS1 ${resolver.address} a[60]=${testAddress}`],
       callData,
     )
-    expect(ethers.utils.defaultAbiCoder.decode(['string'], result)[0]).to.equal(
-      '',
-    )
+    expect(result).to.equal(null)
   })
 
   it('raise an error if extra (address) data in the TXT record is invalid', async function () {
@@ -370,7 +364,7 @@ contract('OffchainDNSResolver', function (accounts) {
     await expect(
       doDNSResolveCallback(
         name,
-        [`ENS1 ${resolver.address} ${testAddress}`],
+        [`ENS1 ${resolver.address} a[60]=${testAddress}`],
         callData,
       ),
     ).to.be.revertedWith('InvalidAddressFormat')
