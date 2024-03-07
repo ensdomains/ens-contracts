@@ -30,13 +30,13 @@ contract L2ReverseRegistrar is
 
     /*
      * @dev Constructor
-     * @param _L2ReverseNode The namespace to set. The converntion is '${cointype}.reverse'
-     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
+     * @param _L2ReverseNode The namespace to set. The converntion is '${chainId}.reverse'
+     * @param _chainId The chainId converted from the chainId of the chain this contract is deployed to.
      */
     constructor(
         bytes32 _L2ReverseNode,
-        uint256 _coinType
-    ) SignatureReverseResolver(_L2ReverseNode, _coinType) {
+        uint256 _chainId
+    ) SignatureReverseResolver(_L2ReverseNode, _chainId) {
         L2ReverseNode = _L2ReverseNode;
     }
 
@@ -71,7 +71,7 @@ contract L2ReverseRegistrar is
         bytes memory signature
     ) internal view returns (bool) {
         bytes32 message = keccak256(
-            abi.encodePacked(hash, addr, owner, inceptionDate, coinType)
+            abi.encodePacked(hash, addr, owner, inceptionDate, chainId)
         ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 

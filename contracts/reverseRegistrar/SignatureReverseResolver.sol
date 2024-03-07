@@ -20,16 +20,16 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     mapping(bytes32 => uint64) internal recordVersions;
 
     bytes32 public immutable parentNode;
-    uint256 public immutable coinType;
+    uint256 public immutable chainId;
 
     /*
      * @dev Constructor
      * @param parentNode The namespace to set.
-     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
+     * @param _chainId The chainId converted from the chainId of the chain this contract is deployed to.
      */
-    constructor(bytes32 _parentNode, uint256 _coinType) {
+    constructor(bytes32 _parentNode, uint256 _chainId) {
         parentNode = _parentNode;
-        coinType = _coinType;
+        chainId = _chainId;
     }
 
     modifier authorised(address addr) {
@@ -58,7 +58,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         bytes memory signature
     ) internal view returns (bool) {
         bytes32 message = keccak256(
-            abi.encodePacked(hash, addr, inceptionDate, coinType)
+            abi.encodePacked(hash, addr, inceptionDate, chainId)
         ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
