@@ -68,28 +68,10 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         bytes calldata response,
         bytes calldata extraData
     ) external view returns (bytes memory) {
-        (bytes memory name, bytes memory query, bytes4 selector) = abi.decode(
+        (bytes memory name, bytes memory query) = abi.decode(
             extraData,
-            (bytes, bytes, bytes4)
+            (bytes, bytes)
         );
-
-        if (selector != bytes4(0)) {
-            (bytes memory targetData, address targetResolver) = abi.decode(
-                query,
-                (bytes, address)
-            );
-            return
-                callWithOffchainLookupPropagation(
-                    targetResolver,
-                    name,
-                    query,
-                    abi.encodeWithSelector(
-                        selector,
-                        response,
-                        abi.encode(targetData, address(this))
-                    )
-                );
-        }
 
         DNSSEC.RRSetWithSignature[] memory rrsets = abi.decode(
             response,
@@ -165,6 +147,25 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
 
         // No valid records; revert.
         revert CouldNotResolve(name);
+    }
+
+    function resolveWrappedCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (bytes memory) {
+        (
+            bytes memory name,
+            bytes memory innerExtraData,
+            address targetResolver,
+            bytes4 selector
+        ) = abi.decode(extraData, (bytes, bytes, address, bytes4));
+        return
+            callWithOffchainLookupPropagation(
+                targetResolver,
+                name,
+                innerExtraData,
+                abi.encodeWithSelector(selector, response, innerExtraData)
+            );
     }
 
     function parseRR(
@@ -304,7 +305,7 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             urls,
             abi.encodeCall(IDNSGateway.resolve, (name, TYPE_TXT)),
             OffchainDNSResolver.resolveCallback.selector,
-            abi.encode(name, data, bytes4(0))
+            abi.encode(name, data)
         );
     }
 
@@ -329,8 +330,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             address(this),
             urls,
             callData,
-            OffchainDNSResolver.resolveCallback.selector,
-            abi.encode(name, extraData, innerCallbackFunction)
+            OffchainDNSResolver.resolveWrappedCallback.selector,
+            abi.encode(name, extraData, sender, innerCallbackFunction)
         );
     }
 }

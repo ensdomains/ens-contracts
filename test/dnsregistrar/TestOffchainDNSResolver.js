@@ -129,8 +129,8 @@ contract('OffchainDNSResolver', function (accounts) {
         '", ' +
         '"' +
         ethers.utils.defaultAbiCoder.encode(
-          ['bytes', 'bytes', 'bytes4'],
-          [dnsName, callData, '0x00000000'],
+          ['bytes', 'bytes'],
+          [dnsName, callData],
         ) +
         '"' +
         ')',
@@ -402,10 +402,11 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
 
     const extraData = ethers.utils.defaultAbiCoder.encode(
-      ['bytes', 'bytes', 'bytes4'],
+      ['bytes', 'bytes', 'address', 'bytes4'],
       [
         dnsName,
         callData,
+        offchainResolver.address,
         ethers.utils.id('resolveCallback(bytes,bytes)').slice(0, 10),
       ],
     )
@@ -426,7 +427,7 @@ contract('OffchainDNSResolver', function (accounts) {
         callData +
         '", ' +
         '"' +
-        ethers.utils.id('resolveCallback(bytes,bytes)').slice(0, 10) +
+        ethers.utils.id('resolveWrappedCallback(bytes,bytes)').slice(0, 10) +
         '", ' +
         '"' +
         extraData +
