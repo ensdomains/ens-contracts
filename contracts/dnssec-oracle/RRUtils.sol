@@ -1,6 +1,6 @@
 pragma solidity ^0.8.4;
 
-import "./BytesUtils.sol";
+import "../utils/BytesUtils.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
 
 /**
