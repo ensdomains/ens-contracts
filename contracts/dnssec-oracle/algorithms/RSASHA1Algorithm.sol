@@ -1,8 +1,8 @@
 pragma solidity ^0.8.4;
 
 import "./Algorithm.sol";
-import "../BytesUtils.sol";
 import "./RSAVerify.sol";
+import "../../utils/BytesUtils.sol";
 import "@ensdomains/solsha1/contracts/SHA1.sol";
 
 /**

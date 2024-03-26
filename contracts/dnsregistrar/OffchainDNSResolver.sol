@@ -5,11 +5,11 @@ import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedDNSResolver.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../utils/HexUtils.sol";
+import "../utils/BytesUtils.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";

@@ -96,4 +96,29 @@ library HexUtils {
         (bytes32 r, bool valid) = hexStringToBytes32(str, idx, lastIdx);
         return (address(uint160(uint256(r))), valid);
     }
+
+    /**
+     * @dev Attempts to convert an address to a hex string
+     * @param addr The _addr to parse
+     */
+    function addressToHex(address addr) internal pure returns (string memory) {
+        bytes memory hexString = new bytes(40);
+        for (uint i = 0; i < 20; i++) {
+            bytes1 byteValue = bytes1(uint8(uint160(addr) >> (8 * (19 - i))));
+            bytes1 highNibble = bytes1(uint8(byteValue) / 16);
+            bytes1 lowNibble = bytes1(
+                uint8(byteValue) - 16 * uint8(highNibble)
+            );
+            hexString[2 * i] = _nibbleToHexChar(highNibble);
+            hexString[2 * i + 1] = _nibbleToHexChar(lowNibble);
+        }
+        return string(hexString);
+    }
+
+    function _nibbleToHexChar(
+        bytes1 nibble
+    ) internal pure returns (bytes1 hexChar) {
+        if (uint8(nibble) < 10) return bytes1(uint8(nibble) + 0x30);
+        else return bytes1(uint8(nibble) + 0x57);
+    }
 }

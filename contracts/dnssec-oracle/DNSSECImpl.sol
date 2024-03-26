@@ -3,11 +3,11 @@ pragma solidity ^0.8.4;
 pragma experimental ABIEncoderV2;
 
 import "./Owned.sol";
-import "./BytesUtils.sol";
 import "./RRUtils.sol";
 import "./DNSSEC.sol";
 import "./algorithms/Algorithm.sol";
 import "./digests/Digest.sol";
+import "../utils/BytesUtils.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
 
 /*

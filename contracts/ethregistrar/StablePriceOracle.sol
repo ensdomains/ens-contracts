@@ -2,7 +2,7 @@
 pragma solidity ~0.8.17;
 
 import "./IPriceOracle.sol";
-import "./StringUtils.sol";
+import "../utils/StringUtils.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 

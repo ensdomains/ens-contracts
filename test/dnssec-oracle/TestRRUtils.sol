@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "../../contracts/dnssec-oracle/RRUtils.sol";
-import "../../contracts/dnssec-oracle/BytesUtils.sol";
+import "../../contracts/utils/BytesUtils.sol";
 
 contract TestRRUtils {
     using BytesUtils for *;

@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {BytesUtils} from "../BytesUtils.sol";
 import {INameWrapper} from "../INameWrapper.sol";
 import {ENS} from "../../registry/ENS.sol";
+import {BytesUtils} from "../../utils/BytesUtils.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 contract NameGriefer is IERC1155Receiver {

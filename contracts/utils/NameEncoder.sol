@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {BytesUtils} from "../wrapper/BytesUtils.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
 
 library NameEncoder {
     using BytesUtils for bytes;

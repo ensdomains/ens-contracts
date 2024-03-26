@@ -1,7 +1,7 @@
 pragma solidity ^0.8.4;
 
 import "./Digest.sol";
-import "../BytesUtils.sol";
+import "../../utils/BytesUtils.sol";
 import "@ensdomains/solsha1/contracts/SHA1.sol";
 
 /**
