@@ -468,18 +468,17 @@ contract('OffchainDNSResolver', function (accounts) {
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
     const resolver = await DummyExtendedDNSSECResolver2.new()
     const pr = await PublicResolver.at(resolver.address)
-    const callDataAddr = pr.contract.methods['addr(bytes32,uint256)'](
+    const callDataAddr = pr.contract.methods['addr(bytes32)'](
       namehash.hash(name),
-      COIN_TYPE_ETH,
     ).encodeABI()
     const resultAddr = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} ${testAddress} smth=smth.eth`],
+      [
+        `ENS1 ${resolver.address} a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
+      ],
       callDataAddr,
     )
-    expect(
-      ethers.utils.defaultAbiCoder.decode(['address'], resultAddr)[0],
-    ).to.equal(testAddress)
+    expect(resultAddr).to.equal(testAddress.toLowerCase())
 
     const callDataText = pr.contract.methods['text(bytes32,string)'](
       namehash.hash(name),
@@ -487,12 +486,12 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const resultText = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} ${testAddress} smth=smth.eth`],
+      [`ENS1 ${resolver.address} a[60]=${testAddress} t[smth]=smth.eth`],
       callDataText,
     )
 
     expect(
-      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+      ethers.utils.toUtf8String(ethers.utils.arrayify(resultText)),
     ).to.equal('smth.eth')
   })
 
@@ -508,12 +507,12 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const resultText = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} smth=smth.eth ${testAddress}`],
+      [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
       callDataText,
     )
 
     expect(
-      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+      ethers.utils.toUtf8String(ethers.utils.arrayify(resultText)),
     ).to.equal('smth.eth')
   })
 
@@ -528,12 +527,12 @@ contract('OffchainDNSResolver', function (accounts) {
     ).encodeABI()
     const resultText = await doDNSResolveCallback(
       name,
-      [`ENS1 ${resolver.address} smth=smth.eth bla=bla.eth`],
+      [`ENS1 ${resolver.address} t[smth]=smth.eth t[bla]=bla.eth`],
       callDataText,
     )
 
     expect(
-      ethers.utils.defaultAbiCoder.decode(['string'], resultText)[0],
+      ethers.utils.toUtf8String(ethers.utils.arrayify(resultText)),
     ).to.equal('bla.eth')
   })
 })

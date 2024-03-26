@@ -12,11 +12,29 @@ library HexUtils {
         bytes memory str,
         uint256 idx,
         uint256 lastIdx
-    ) internal pure returns (bytes32 r, bool valid) {
+    ) internal pure returns (bytes32, bool) {
+        require(lastIdx - idx <= 64);
+        (bytes memory r, bool valid) = hexToBytes(str, idx, lastIdx);
+        if (!valid) {
+            return (bytes32(0), false);
+        }
+        bytes32 ret;
+        assembly {
+            ret := shr(mul(4, sub(64, sub(lastIdx, idx))), mload(add(r, 32)))
+        }
+        return (ret, true);
+    }
+
+    function hexToBytes(
+        bytes memory str,
+        uint256 idx,
+        uint256 lastIdx
+    ) internal pure returns (bytes memory r, bool valid) {
         uint256 hexLength = lastIdx - idx;
-        if ((hexLength != 64 && hexLength != 40) || hexLength % 2 == 1) {
+        if (hexLength % 2 == 1) {
             revert("Invalid string length");
         }
+        r = new bytes(hexLength / 2);
         valid = true;
         assembly {
             // check that the index to read to is not past the end of the string
@@ -58,7 +76,7 @@ library HexUtils {
                     break
                 }
                 let combined := or(shl(4, byte1), byte2)
-                r := or(shl(8, r), combined)
+                mstore8(add(add(r, 32), div(sub(i, idx), 2)), combined)
             }
         }
     }
