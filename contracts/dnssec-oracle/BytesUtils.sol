@@ -291,6 +291,27 @@ library BytesUtils {
         }
     }
 
+    function strcpy(
+        bytes memory self,
+        uint256 selfOffset,
+        bytes memory src,
+        uint256 srcOffset,
+        uint256 length
+    ) internal pure {
+        require(selfOffset + length <= self.length);
+        require(srcOffset + length <= src.length);
+
+        uint256 selfPtr;
+        uint256 srcPtr;
+
+        assembly {
+            selfPtr := add(add(self, 32), selfOffset)
+            srcPtr := add(add(src, 32), srcOffset)
+        }
+
+        memcpy(selfPtr, srcPtr, length);
+    }
+
     /*
      * @dev Copies a substring into a new byte string.
      * @param self The byte string to copy from.
