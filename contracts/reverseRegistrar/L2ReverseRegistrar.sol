@@ -31,12 +31,12 @@ contract L2ReverseRegistrar is
     /*
      * @dev Constructor
      * @param _L2ReverseNode The namespace to set. The converntion is '${coinType}.reverse'
-     * @param _chainId The chainId converted from the chainId of the chain this contract is deployed to.
+     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
      */
     constructor(
         bytes32 _L2ReverseNode,
-        uint256 _chainId
-    ) SignatureReverseResolver(_L2ReverseNode, _chainId) {
+        uint256 _coinType
+    ) SignatureReverseResolver(_L2ReverseNode, _coinType) {
         L2ReverseNode = _L2ReverseNode;
     }
 
@@ -80,7 +80,7 @@ contract L2ReverseRegistrar is
                 addr,
                 owner,
                 inceptionDate,
-                chainId
+                coinType
             )
         ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);

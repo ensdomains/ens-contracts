@@ -19,7 +19,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   )
   await deploy('L2ReverseRegistrar', {
     from: deployer,
-    args: [REVERSENODE, chainId],
+    args: [REVERSENODE, coinType],
     log: true,
   })
 }
