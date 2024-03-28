@@ -14,6 +14,7 @@ error Unauthorised();
 
 contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
     using ECDSA for bytes32;
+    using LowLevelCallUtils for address;
     mapping(bytes32 => uint256) public lastUpdated;
     mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
     mapping(uint64 => mapping(bytes32 => string)) versionable_names;
@@ -207,7 +208,7 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
      * @param addr The node to update.
      */
     function _clearRecords(address addr) internal {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         bytes32 reverseNode = keccak256(
             abi.encodePacked(parentNode, labelHash)
         );
@@ -247,17 +248,11 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
      * @return The ENS node hash.
      */
     function node(address addr) public view returns (bytes32) {
-        return
-            keccak256(
-                abi.encodePacked(
-                    parentNode,
-                    LowLevelCallUtils.sha3HexAddress(addr)
-                )
-            );
+        return keccak256(abi.encodePacked(parentNode, addr.sha3HexAddress()));
     }
 
     function _getNamehash(address addr) internal view returns (bytes32) {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         return keccak256(abi.encodePacked(parentNode, labelHash));
     }
 

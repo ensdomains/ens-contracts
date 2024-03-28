@@ -24,6 +24,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     ENS public immutable ens;
     NameResolver public defaultResolver;
     using ECDSA for bytes32;
+    using LowLevelCallUtils for address;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(NameResolver indexed resolver);
@@ -87,7 +88,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address owner,
         address resolver
     ) public override authorised(addr) returns (bytes32) {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
@@ -112,7 +113,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
-        bytes32 labelHash = LowLevelCallUtils.sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
@@ -235,10 +236,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     function node(address addr) public pure override returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(
-                    ADDR_REVERSE_NODE,
-                    LowLevelCallUtils.sha3HexAddress(addr)
-                )
+                abi.encodePacked(ADDR_REVERSE_NODE, addr.sha3HexAddress())
             );
     }
 
