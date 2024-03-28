@@ -3,7 +3,6 @@ pragma solidity >=0.8.4;
 import "../registry/ENS.sol";
 import "./IL2ReverseRegistrar.sol";
 import "./SignatureReverseResolver.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../resolvers/profiles/ITextResolver.sol";
@@ -20,7 +19,6 @@ error NotOwnerOfContract();
  */
 contract L2ReverseRegistrar is
     Multicallable,
-    Ownable,
     IL2ReverseRegistrar,
     SignatureReverseResolver
 {

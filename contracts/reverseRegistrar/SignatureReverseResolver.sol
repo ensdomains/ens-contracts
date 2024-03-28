@@ -2,7 +2,6 @@ pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
 import "./ISignatureReverseResolver.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../root/Controllable.sol";
@@ -12,7 +11,7 @@ error InvalidSignature();
 error SignatureOutOfDate();
 error Unauthorised();
 
-contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
+contract SignatureReverseResolver is ISignatureReverseResolver {
     using ECDSA for bytes32;
     using LowLevelCallUtils for address;
     mapping(bytes32 => uint256) public lastUpdated;
