@@ -57,8 +57,17 @@ contract SignatureReverseResolver is Ownable, ISignatureReverseResolver {
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
+        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
         bytes32 message = keccak256(
-            abi.encodePacked(hash, addr, inceptionDate, chainId)
+            abi.encodePacked(
+                bytes1(0x19),
+                bytes1(0),
+                address(this),
+                hash,
+                addr,
+                inceptionDate,
+                chainId
+            )
         ).toEthSignedMessageHash();
         bytes32 node = _getNamehash(addr);
 
