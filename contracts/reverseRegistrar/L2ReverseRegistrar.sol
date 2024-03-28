@@ -63,6 +63,28 @@ contract L2ReverseRegistrar is
         }
     }
 
+    function computeOwnerMessage(
+        bytes32 hash,
+        address addr,
+        address owner,
+        uint256 inceptionDate
+    ) public view returns (bytes32) {
+        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
+        return
+            keccak256(
+                abi.encodePacked(
+                    bytes1(0x19),
+                    bytes1(0),
+                    address(this),
+                    hash,
+                    addr,
+                    owner,
+                    inceptionDate,
+                    coinType
+                )
+            ).toEthSignedMessageHash();
+    }
+
     function isOwnerAndAuthorisedWithSignature(
         bytes32 hash,
         address addr,
@@ -70,19 +92,7 @@ contract L2ReverseRegistrar is
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
-        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
-        bytes32 message = keccak256(
-            abi.encodePacked(
-                bytes1(0x19),
-                bytes1(0),
-                address(this),
-                hash,
-                addr,
-                owner,
-                inceptionDate,
-                coinType
-            )
-        ).toEthSignedMessageHash();
+        bytes32 message = computeOwnerMessage(hash, addr, owner, inceptionDate);
         bytes32 node = _getNamehash(addr);
 
         if (!ownsContract(addr, owner)) {
