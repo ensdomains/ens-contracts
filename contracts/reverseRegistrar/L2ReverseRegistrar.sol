@@ -30,7 +30,7 @@ contract L2ReverseRegistrar is
 
     /*
      * @dev Constructor
-     * @param _L2ReverseNode The namespace to set. The converntion is '${chainId}.reverse'
+     * @param _L2ReverseNode The namespace to set. The converntion is '${coinType}.reverse'
      * @param _chainId The chainId converted from the chainId of the chain this contract is deployed to.
      */
     constructor(
