@@ -38,6 +38,6 @@ contract DelegatableResolverFactory {
      */
     function predictAddress(address owner) external returns (address clone) {
         bytes memory data = abi.encodePacked(owner);
-        clone = address(implementation).predictAddress(data);
+        clone = address(implementation).addressOfClone2(data);
     }
 }

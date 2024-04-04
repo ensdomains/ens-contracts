@@ -3050,9 +3050,9 @@ clone@2.1.2, clone@^2.0.0:
   resolved "https://registry.yarnpkg.com/clone/-/clone-2.1.2.tgz#1b7f4b9f591f1e8f83670401600345a02887435f"
   integrity sha512-3Pe/CF1Nn94hyhIYpjtiLhdCoEoz0DqQ+988E9gmeEdQZlojxnOb74wctFyuwWQHzqyf9X7C7MG8juUpqBJT8w==
 
-clones-with-immutable-args@Arachnid/clones-with-immutable-args#feature/create2:
-  version "1.0.0"
-  resolved "https://codeload.github.com/Arachnid/clones-with-immutable-args/tar.gz/802248d00be50ae2c8a860266aeca9b13fe317c8"
+clones-with-immutable-args@wighawag/clones-with-immutable-args:
+  version "1.1.2"
+  resolved "https://codeload.github.com/wighawag/clones-with-immutable-args/tar.gz/2df4bff4eef8c061b9a92a7edbbfe12dbf6bcdb0"
 
 code-point-at@^1.0.0:
   version "1.1.0"
