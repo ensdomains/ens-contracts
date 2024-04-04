@@ -49,7 +49,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
 
     function isAuthorised(address addr) internal view virtual returns (bool) {}
 
-    function computeMessage(
+    function getSignedMessageHash(
         bytes32 hash,
         address addr,
         uint256 inceptionDate
@@ -75,7 +75,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         uint256 inceptionDate,
         bytes memory signature
     ) internal view returns (bool) {
-        bytes32 message = computeMessage(hash, addr, inceptionDate);
+        bytes32 message = getSignedMessageHash(hash, addr, inceptionDate);
         bytes32 node = _getNamehash(addr);
 
         if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
