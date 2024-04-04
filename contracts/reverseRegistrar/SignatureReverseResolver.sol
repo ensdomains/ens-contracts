@@ -47,9 +47,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         _;
     }
 
-    function isAuthorised(address addr) internal view virtual returns (bool) {
-        revert("This function needs to be overridden");
-    }
+    function isAuthorised(address addr) internal view virtual returns (bool) {}
 
     function computeMessage(
         bytes32 hash,

@@ -15,7 +15,6 @@ error NotOwnerOfContract();
 
 /**
  * A L2 reverser registrar. Deployed to each L2 chain.
- * The contract will be verified on L1 Reverse Resolver under the namespace specified at constructor
  */
 contract L2ReverseRegistrar is
     Multicallable,
