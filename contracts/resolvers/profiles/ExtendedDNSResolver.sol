@@ -30,6 +30,18 @@ import "../../dnssec-oracle/BytesUtils.sol";
  *       - in which case they may not contain spaces - or single-quoted. Single quotes in
  *      a quoted value may be backslash-escaped.
  *
+ *
+ *                                       ┌────────┐
+ *                                       │ ┌───┐  │
+ *        ┌──────────────────────────────┴─┤" "│◄─┴────────────────────────────────────────┐
+ *        │                                └───┘                                           │
+ *        │  ┌───┐    ┌───┐    ┌───┐    ┌───┐    ┌───┐    ┌───┐    ┌────────────┐    ┌───┐ │
+ *      ^─┴─►│key├─┬─►│"["├───►│arg├───►│"]"├─┬─►│"="├─┬─►│"'"├───►│quoted_value├───►│"'"├─┼─$
+ *           └───┘ │  └───┘    └───┘    └───┘ │  └───┘ │  └───┘    └────────────┘    └───┘ │
+ *                 └──────────────────────────┘        │          ┌──────────────┐         │
+ *                                                     └─────────►│unquoted_value├─────────┘
+ *                                                                └──────────────┘
+ *
  *      Record types:
  *       - a[<coinType>] - Specifies how an `addr()` request should be resolved for the specified
  *         `coinType`. Ethereum has `coinType` 60. The value must be 0x-prefixed hexadecimal, and will
@@ -148,14 +160,28 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     uint256 constant STATE_IGNORED_QUOTED_VALUE = 7;
     uint256 constant STATE_IGNORED_UNQUOTED_VALUE = 8;
 
+    /**
+     * @dev Implements a DFA to parse the text record, looking for an entry
+     *      matching `key`.
+     * @param data The text record to parse.
+     * @param key The exact key to search for.
+     * @return value The value if found, or an empty string if `key` does not exist.
+     */
     function _findValue(
         bytes memory data,
         bytes memory key
     ) internal pure returns (bytes memory value) {
+        // Here we use a simple state machine to parse the text record. We
+        // process characters one at a time; each character can trigger a
+        // transition to a new state, or terminate the DFA and return a value.
+        // For states that expect to process a number of tokens, we use
+        // inner loops for efficiency reasons, to avoid the need to go
+        // through the outer loop and switch statement for every character.
         uint256 state = STATE_START;
         uint256 len = data.length;
         for (uint256 i = 0; i < len; ) {
             if (state == STATE_START) {
+                // Look for a matching key.
                 if (data.equals(i, key, 0, key.length)) {
                     i += key.length;
                     state = STATE_VALUE;

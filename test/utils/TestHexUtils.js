@@ -7,6 +7,7 @@ use(solidity)
 
 const NULL_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 describe('HexUtils', () => {
   let HexUtils
@@ -139,7 +140,7 @@ describe('HexUtils', () => {
         39,
       )
       expect(valid).to.equal(false)
-      expect(address).to.equal('0x0000000000000000000000000000000000000000')
+      expect(address).to.equal(ZERO_ADDRESS)
     })
   })
 

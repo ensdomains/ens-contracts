@@ -216,5 +216,16 @@ contract('ExtendedDNSResolver', function (accounts) {
         "I'm great",
       )
     })
+
+    it('rejects a record with an unterminated quoted string', async function () {
+      const name = 'test.test'
+      const result = await resolve(
+        name,
+        'text',
+        ['note'],
+        "t[note]='I\\'m great",
+      )
+      expect(result).to.equal(null)
+    })
   })
 })
