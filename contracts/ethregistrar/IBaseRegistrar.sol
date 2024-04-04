@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
+
 import "../registry/ENS.sol";
 import "./IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
