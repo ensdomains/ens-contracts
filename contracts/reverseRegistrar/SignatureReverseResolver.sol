@@ -8,7 +8,7 @@ import "../root/Controllable.sol";
 import "../utils/LowLevelCallUtils.sol";
 
 error InvalidSignature();
-error SignatureOutOfDate();
+error InvalidSignatureDate();
 error Unauthorised();
 
 contract SignatureReverseResolver is ISignatureReverseResolver {
