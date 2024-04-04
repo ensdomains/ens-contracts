@@ -8,7 +8,7 @@ import "../../resolvers/profiles/IAddressResolver.sol";
 import "../../resolvers/profiles/IAddrResolver.sol";
 import "../../resolvers/profiles/ITextResolver.sol";
 import "../../utils/HexUtils.sol";
-import "../../dnssec-oracle/BytesUtils.sol";
+import "../../utils/BytesUtils.sol";
 
 /**
  * @dev Resolves names on ENS by interpreting record data stored in a DNS TXT record.

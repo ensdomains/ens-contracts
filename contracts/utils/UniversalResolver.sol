@@ -8,8 +8,8 @@ import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
 import {NameEncoder} from "./NameEncoder.sol";
-import {BytesUtils} from "../wrapper/BytesUtils.sol";
 import {HexUtils} from "./HexUtils.sol";
 
 error OffchainLookup(
