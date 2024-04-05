@@ -58,8 +58,6 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         return
             keccak256(
                 abi.encodePacked(
-                    bytes1(0x19),
-                    bytes1(0),
                     address(this),
                     hash,
                     addr,
@@ -86,7 +84,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
             inceptionDate <= lastUpdated[node] || // must be newer than current record
             inceptionDate / 1000 >= block.timestamp // must be in the past
         ) {
-            revert SignatureOutOfDate();
+            revert InvalidSignatureDate();
         }
     }
 

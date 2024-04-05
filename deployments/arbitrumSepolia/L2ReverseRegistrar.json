@@ -29,7 +29,7 @@
     },
     {
       "inputs": [],
-      "name": "SignatureOutOfDate",
+      "name": "InvalidSignatureDate",
       "type": "error"
     },
     {
