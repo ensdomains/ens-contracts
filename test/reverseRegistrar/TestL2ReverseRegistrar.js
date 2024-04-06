@@ -4,9 +4,9 @@ const { namehash } = require('../test-utils/ens')
 
 const keccak256 = ethers.utils.solidityKeccak256
 
-describe('L2ReverseRegistrar', function () {
-  let L2ReverseRegistrar
-  let L2ReverseRegistrarWithAccount2
+describe('L2ReverseResolver', function () {
+  let L2ReverseResolver
+  let L2ReverseResolverWithAccount2
   let MockSmartContractWallet
   let MockOwnable
   let signers
@@ -27,10 +27,10 @@ describe('L2ReverseRegistrar', function () {
     account = await signers[0].getAddress()
     account2 = await signers[1].getAddress()
 
-    const L2ReverseRegistrarFactory = await ethers.getContractFactory(
-      'L2ReverseRegistrar',
+    const L2ReverseResolverFactory = await ethers.getContractFactory(
+      'L2ReverseResolver',
     )
-    L2ReverseRegistrar = await L2ReverseRegistrarFactory.deploy(
+    L2ReverseResolver = await L2ReverseResolverFactory.deploy(
       namehash('optimism.reverse'),
       coinType,
     )
@@ -47,9 +47,9 @@ describe('L2ReverseRegistrar', function () {
       MockSmartContractWallet.address,
     )
 
-    L2ReverseRegistrarWithAccount2 = L2ReverseRegistrar.connect(signers[1])
+    L2ReverseResolverWithAccount2 = L2ReverseResolver.connect(signers[1])
 
-    await L2ReverseRegistrar.deployed()
+    await L2ReverseResolver.deployed()
   })
 
   beforeEach(async () => {
@@ -60,7 +60,7 @@ describe('L2ReverseRegistrar', function () {
   })
 
   it('should deploy the contract', async function () {
-    expect(L2ReverseRegistrar.address).to.not.equal(0)
+    expect(L2ReverseResolver.address).to.not.equal(0)
   })
 
   describe('setName', () => {
@@ -68,21 +68,21 @@ describe('L2ReverseRegistrar', function () {
     let node
     beforeEach(async () => {
       name = 'myname.eth'
-      node = await L2ReverseRegistrar.node(
+      node = await L2ReverseResolver.node(
         await ethers.provider.getSigner().getAddress(),
       )
     })
 
     it('should set the name record for the calling account', async function () {
-      const tx = await L2ReverseRegistrar.setName(name)
+      const tx = await L2ReverseResolver.setName(name)
       await tx.wait()
-      const actualName = await L2ReverseRegistrar.name(node)
+      const actualName = await L2ReverseResolver.name(node)
       expect(actualName).to.equal(name)
     })
 
     it('event ReverseClaimed is emitted', async () => {
-      await expect(L2ReverseRegistrar.setName(name))
-        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+      await expect(L2ReverseResolver.setName(name))
+        .to.emit(L2ReverseResolver, 'ReverseClaimed')
         .withArgs(account, node)
     })
   })
@@ -94,7 +94,7 @@ describe('L2ReverseRegistrar', function () {
     let signature
     beforeEach(async () => {
       name = 'myname.eth'
-      node = await L2ReverseRegistrar.node(account)
+      node = await L2ReverseResolver.node(account)
       const funcId = ethers.utils
         .id(setNameForAddrWithSignatureFuncSig)
         .substring(0, 10)
@@ -106,7 +106,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrar.address,
+              L2ReverseResolver.address,
               keccak256(['bytes4', 'string'], [funcId, name]),
               account,
               inceptionDate,
@@ -118,25 +118,25 @@ describe('L2ReverseRegistrar', function () {
     })
 
     it('allows an account to sign a message to allow a relayer to claim the address', async () => {
-      await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+      await L2ReverseResolverWithAccount2['setNameForAddrWithSignature'](
         account,
         name,
         inceptionDate,
         signature,
       )
-      assert.equal(await L2ReverseRegistrar.name(node), name)
+      assert.equal(await L2ReverseResolver.name(node), name)
     })
 
     it('event ReverseClaimed is emitted', async () => {
       await expect(
-        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+        L2ReverseResolverWithAccount2['setNameForAddrWithSignature'](
           account,
           name,
           inceptionDate,
           signature,
         ),
       )
-        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+        .to.emit(L2ReverseResolver, 'ReverseClaimed')
         .withArgs(account, node)
     })
 
@@ -152,7 +152,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4', 'string'], [funcId, name]),
               account,
               inceptionDate,
@@ -162,7 +162,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        L2ReverseRegistrarWithAccount2[setNameForAddrWithSignatureFuncSig](
+        L2ReverseResolverWithAccount2[setNameForAddrWithSignatureFuncSig](
           account,
           'notthesamename.eth',
           inceptionDate,
@@ -183,7 +183,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
               account,
               inceptionDate,
@@ -193,15 +193,15 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+      await L2ReverseResolverWithAccount2['setNameForAddrWithSignature'](
         account,
         'hello.eth',
         inceptionDate,
         signature,
       )
 
-      const node = await L2ReverseRegistrar.node(account)
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      const node = await L2ReverseResolver.node(account)
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
 
       const inceptionDate2 = 0
       const signature2 = await signers[0].signMessage(
@@ -209,7 +209,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4', 'string'], [funcId, 'hello.eth']),
               account,
               inceptionDate2,
@@ -220,7 +220,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignature'](
+        L2ReverseResolverWithAccount2['setNameForAddrWithSignature'](
           account,
           'hello.eth',
           inceptionDate2,
@@ -237,8 +237,8 @@ describe('L2ReverseRegistrar', function () {
     let signature
     beforeEach(async () => {
       name = 'ownable.eth'
-      node = await L2ReverseRegistrar.node(MockOwnable.address)
-      assert.equal(await L2ReverseRegistrar.name(node), '')
+      node = await L2ReverseResolver.node(MockOwnable.address)
+      assert.equal(await L2ReverseResolver.name(node), '')
       const funcId = ethers.utils
         .id(setNameForAddrWithSignatureAndOwnableFuncSig)
         .substring(0, 10)
@@ -250,7 +250,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4', 'string'], [funcId, name]),
               MockOwnable.address,
               MockSmartContractWallet.address,
@@ -263,7 +263,7 @@ describe('L2ReverseRegistrar', function () {
     })
 
     it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
-      await L2ReverseRegistrarWithAccount2[
+      await L2ReverseResolverWithAccount2[
         'setNameForAddrWithSignatureAndOwnable'
       ](
         MockOwnable.address,
@@ -273,11 +273,11 @@ describe('L2ReverseRegistrar', function () {
         signature,
       )
 
-      assert.equal(await L2ReverseRegistrar.name(node), name)
+      assert.equal(await L2ReverseResolver.name(node), name)
     })
     it('event ReverseClaimed is emitted', async () => {
       await expect(
-        L2ReverseRegistrarWithAccount2['setNameForAddrWithSignatureAndOwnable'](
+        L2ReverseResolverWithAccount2['setNameForAddrWithSignatureAndOwnable'](
           MockOwnable.address,
           MockSmartContractWallet.address,
           name,
@@ -285,7 +285,7 @@ describe('L2ReverseRegistrar', function () {
           signature,
         ),
       )
-        .to.emit(L2ReverseRegistrar, 'ReverseClaimed')
+        .to.emit(L2ReverseResolver, 'ReverseClaimed')
         .withArgs(MockOwnable.address, node)
     })
   })
@@ -294,13 +294,13 @@ describe('L2ReverseRegistrar', function () {
     it('should set the text record for the calling account', async function () {
       const key = 'url;'
       const value = 'http://ens.domains'
-      const tx = await L2ReverseRegistrar.setText(key, value)
+      const tx = await L2ReverseResolver.setText(key, value)
       await tx.wait()
 
-      const node = await L2ReverseRegistrar.node(
+      const node = await L2ReverseResolver.node(
         await ethers.provider.getSigner().getAddress(),
       )
-      const actualRecord = await L2ReverseRegistrar.text(node, key)
+      const actualRecord = await L2ReverseResolver.text(node, key)
       expect(actualRecord).to.equal(value)
     })
   })
@@ -318,7 +318,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(
                 ['bytes4', 'string', 'string'],
                 [funcId, 'url', 'http://ens.domains'],
@@ -331,7 +331,7 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await L2ReverseRegistrarWithAccount2['setTextForAddrWithSignature'](
+      await L2ReverseResolverWithAccount2['setTextForAddrWithSignature'](
         account,
         'url',
         'http://ens.domains',
@@ -339,9 +339,9 @@ describe('L2ReverseRegistrar', function () {
         signature,
       )
 
-      const node = await L2ReverseRegistrar.node(account)
+      const node = await L2ReverseResolver.node(account)
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
     })
@@ -361,7 +361,7 @@ describe('L2ReverseRegistrar', function () {
               keccak256(
                 ['address', 'bytes4', 'string', 'string'],
                 [
-                  L2ReverseRegistrarWithAccount2.address,
+                  L2ReverseResolverWithAccount2.address,
                   funcId,
                   'url',
                   'http://ens.domains',
@@ -375,7 +375,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        L2ReverseRegistrarWithAccount2[setTextForAddrWithSignatureFuncSig](
+        L2ReverseResolverWithAccount2[setTextForAddrWithSignatureFuncSig](
           account,
           'url',
           'http://some.other.url.com',
@@ -397,7 +397,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(
                 ['bytes4', 'string', 'string'],
                 [funcId, 'url', 'http://ens.domains'],
@@ -410,7 +410,7 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await L2ReverseRegistrarWithAccount2['setTextForAddrWithSignature'](
+      await L2ReverseResolverWithAccount2['setTextForAddrWithSignature'](
         account,
         'url',
         'http://ens.domains',
@@ -418,9 +418,9 @@ describe('L2ReverseRegistrar', function () {
         signature,
       )
 
-      const node = await L2ReverseRegistrar.node(account)
+      const node = await L2ReverseResolver.node(account)
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
 
@@ -430,7 +430,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(
                 ['bytes4', 'string', 'string'],
                 [funcId, 'url', 'http://ens.domains'],
@@ -444,7 +444,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        L2ReverseRegistrarWithAccount2['setTextForAddrWithSignature'](
+        L2ReverseResolverWithAccount2['setTextForAddrWithSignature'](
           account,
           'url',
           'http://ens.domains',
@@ -457,8 +457,8 @@ describe('L2ReverseRegistrar', function () {
 
   describe('setTextForAddrWithSignatureAndOwnable', function () {
     it('allows an account to sign a message to allow a relayer to claim the address of a contract that is owned by another contract that the account is a signer of', async () => {
-      const node = await L2ReverseRegistrar.node(MockOwnable.address)
-      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
+      const node = await L2ReverseResolver.node(MockOwnable.address)
+      assert.equal(await L2ReverseResolver.text(node, 'url'), '')
       const funcId = ethers.utils
         .id(setTextForAddrWithSignatureAndOwnableFuncSig)
         .substring(0, 10)
@@ -470,7 +470,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(
                 ['bytes4', 'string', 'string'],
                 [funcId, 'url', 'http://ens.domains'],
@@ -484,7 +484,7 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await L2ReverseRegistrarWithAccount2[
+      await L2ReverseResolverWithAccount2[
         'setTextForAddrWithSignatureAndOwnable'
       ](
         MockOwnable.address,
@@ -496,7 +496,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
     })
@@ -504,31 +504,31 @@ describe('L2ReverseRegistrar', function () {
 
   describe('Multicallable', function () {
     it('setText() + setName()', async () => {
-      const node = await L2ReverseRegistrar.node(account)
+      const node = await L2ReverseResolver.node(account)
 
       const calls = [
-        L2ReverseRegistrar.interface.encodeFunctionData('setText', [
+        L2ReverseResolver.interface.encodeFunctionData('setText', [
           'url',
           'http://multicall.xyz',
         ]),
-        L2ReverseRegistrar.interface.encodeFunctionData('setName', [
+        L2ReverseResolver.interface.encodeFunctionData('setName', [
           'hello.eth',
         ]),
       ]
 
-      await L2ReverseRegistrar.multicall(calls)
+      await L2ReverseResolver.multicall(calls)
 
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://multicall.xyz',
       )
 
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
     })
 
     it('setTextForAddrWithSignature()', async () => {
-      const node = await L2ReverseRegistrar.node(account)
-      assert.equal(await L2ReverseRegistrar.text(node, 'randomKey'), '')
+      const node = await L2ReverseResolver.node(account)
+      assert.equal(await L2ReverseResolver.text(node, 'randomKey'), '')
       const funcId1 = ethers.utils
         .id(setTextForAddrWithSignatureFuncSig)
         .substring(0, 10)
@@ -545,7 +545,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(
                 ['bytes4', 'string', 'string'],
                 [funcId1, 'url', 'http://ens.domains'],
@@ -563,7 +563,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4', 'string'], [funcId2, 'hello.eth']),
               account,
               inceptionDate + 1,
@@ -574,50 +574,50 @@ describe('L2ReverseRegistrar', function () {
       )
 
       const calls = [
-        L2ReverseRegistrar.interface.encodeFunctionData(
+        L2ReverseResolver.interface.encodeFunctionData(
           'setTextForAddrWithSignature',
           [account, 'url', 'http://ens.domains', inceptionDate, signature1],
         ),
-        L2ReverseRegistrar.interface.encodeFunctionData(
+        L2ReverseResolver.interface.encodeFunctionData(
           'setNameForAddrWithSignature',
           [account, 'hello.eth', inceptionDate + 1, signature2],
         ),
       ]
 
-      await L2ReverseRegistrar.multicall(calls)
+      await L2ReverseResolver.multicall(calls)
 
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
 
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
     })
   })
   describe('Clear records', function () {
     it('clearRecords() clears records', async () => {
-      const node = await L2ReverseRegistrar.node(account)
-      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
-      await L2ReverseRegistrar.setName('hello.eth')
+      const node = await L2ReverseResolver.node(account)
+      await L2ReverseResolver.setText('url', 'http://ens.domains')
+      await L2ReverseResolver.setName('hello.eth')
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
-      await L2ReverseRegistrar.clearRecords(account)
-      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
-      assert.equal(await L2ReverseRegistrar.name(node), '')
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
+      await L2ReverseResolver.clearRecords(account)
+      assert.equal(await L2ReverseResolver.text(node, 'url'), '')
+      assert.equal(await L2ReverseResolver.name(node), '')
     })
 
     it('clearRecordsWithSignature() clears records', async () => {
-      const node = await L2ReverseRegistrar.node(account)
-      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
-      await L2ReverseRegistrar.setName('hello.eth')
+      const node = await L2ReverseResolver.node(account)
+      await L2ReverseResolver.setText('url', 'http://ens.domains')
+      await L2ReverseResolver.setName('hello.eth')
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
 
       const funcId = ethers.utils
         .id('clearRecordsWithSignature(address,uint256,bytes)')
@@ -630,7 +630,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4'], [funcId]),
               account,
               inceptionDate,
@@ -640,25 +640,25 @@ describe('L2ReverseRegistrar', function () {
         ),
       )
 
-      await L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
+      await L2ReverseResolverWithAccount2['clearRecordsWithSignature'](
         account,
         inceptionDate,
         signature,
       )
 
-      assert.equal(await L2ReverseRegistrar.text(node, 'url'), '')
-      assert.equal(await L2ReverseRegistrar.name(node), '')
+      assert.equal(await L2ReverseResolver.text(node, 'url'), '')
+      assert.equal(await L2ReverseResolver.name(node), '')
     })
 
     it('clearRecordsWithSignature() reverts when signature expiry is too low', async () => {
-      const node = await L2ReverseRegistrar.node(account)
-      await L2ReverseRegistrar.setText('url', 'http://ens.domains')
-      await L2ReverseRegistrar.setName('hello.eth')
+      const node = await L2ReverseResolver.node(account)
+      await L2ReverseResolver.setText('url', 'http://ens.domains')
+      await L2ReverseResolver.setName('hello.eth')
       assert.equal(
-        await L2ReverseRegistrar.text(node, 'url'),
+        await L2ReverseResolver.text(node, 'url'),
         'http://ens.domains',
       )
-      assert.equal(await L2ReverseRegistrar.name(node), 'hello.eth')
+      assert.equal(await L2ReverseResolver.name(node), 'hello.eth')
 
       const funcId = ethers.utils
         .id('clearRecordsWithSignature(address,uint256,bytes)')
@@ -670,7 +670,7 @@ describe('L2ReverseRegistrar', function () {
           keccak256(
             ['address', 'bytes32', 'address', 'uint256', 'uint256'],
             [
-              L2ReverseRegistrarWithAccount2.address,
+              L2ReverseResolverWithAccount2.address,
               keccak256(['bytes4'], [funcId]),
               account,
               inceptionDate,
@@ -681,7 +681,7 @@ describe('L2ReverseRegistrar', function () {
       )
 
       await expect(
-        L2ReverseRegistrarWithAccount2['clearRecordsWithSignature'](
+        L2ReverseResolverWithAccount2['clearRecordsWithSignature'](
           account,
           inceptionDate,
           signature,

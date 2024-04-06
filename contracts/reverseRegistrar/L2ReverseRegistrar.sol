@@ -16,7 +16,7 @@ error NotOwnerOfContract();
 /**
  * A L2 reverser registrar. Deployed to each L2 chain.
  */
-contract L2ReverseRegistrar is
+contract L2ReverseResolver is
     Multicallable,
     IL2ReverseResolver,
     SignatureReverseResolver

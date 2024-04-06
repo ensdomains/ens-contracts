@@ -15,13 +15,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     `REVERSE_NAMESPACE for chainId ${chainId} is ${REVERSE_NAMESPACE}`,
   )
   console.log(
-    `Deploying L2ReverseRegistrar with REVERSENODE ${REVERSENODE} and coinType ${coinType}`,
+    `Deploying L2ReverseResolver with REVERSENODE ${REVERSENODE} and coinType ${coinType}`,
   )
-  await deploy('L2ReverseRegistrar', {
+  await deploy('L2ReverseResolver', {
     from: deployer,
     args: [REVERSENODE, coinType],
     log: true,
   })
 }
 export default func
-func.tags = ['L2ReverseRegistrar', 'l2']
+func.tags = ['L2ReverseResolver', 'l2']
