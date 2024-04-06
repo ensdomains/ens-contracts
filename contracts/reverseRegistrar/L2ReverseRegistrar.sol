@@ -1,7 +1,7 @@
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
-import "./IL2ReverseRegistrar.sol";
+import "./IL2ReverseResolver.sol";
 import "./SignatureReverseResolver.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
@@ -18,7 +18,7 @@ error NotOwnerOfContract();
  */
 contract L2ReverseRegistrar is
     Multicallable,
-    IL2ReverseRegistrar,
+    IL2ReverseResolver,
     SignatureReverseResolver
 {
     using ECDSA for bytes32;
@@ -132,7 +132,7 @@ contract L2ReverseRegistrar is
         ownerAndAuthorisedWithSignature(
             keccak256(
                 abi.encodePacked(
-                    IL2ReverseRegistrar
+                    IL2ReverseResolver
                         .setNameForAddrWithSignatureAndOwnable
                         .selector,
                     name
@@ -200,7 +200,7 @@ contract L2ReverseRegistrar is
         ownerAndAuthorisedWithSignature(
             keccak256(
                 abi.encodePacked(
-                    IL2ReverseRegistrar
+                    IL2ReverseResolver
                         .setTextForAddrWithSignatureAndOwnable
                         .selector,
                     key,
@@ -279,7 +279,7 @@ contract L2ReverseRegistrar is
         returns (bool)
     {
         return
-            interfaceID == type(IL2ReverseRegistrar).interfaceId ||
+            interfaceID == type(IL2ReverseResolver).interfaceId ||
             super.supportsInterface(interfaceID);
     }
 }

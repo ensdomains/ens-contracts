@@ -1,6 +1,6 @@
 pragma solidity >=0.8.4;
 
-interface IL2ReverseRegistrar {
+interface IL2ReverseResolver {
     function setName(string memory name) external returns (bytes32);
 
     function setNameForAddr(
