@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "../root/Controllable.sol";
+import "../utils/LowLevelCallUtils.sol";
 
 abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
@@ -23,6 +24,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     ENS public immutable ens;
     NameResolver public defaultResolver;
     using ECDSA for bytes32;
+    using LowLevelCallUtils for address;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(NameResolver indexed resolver);
@@ -86,7 +88,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address owner,
         address resolver
     ) public override authorised(addr) returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
@@ -111,7 +113,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
-        bytes32 labelHash = sha3HexAddress(addr);
+        bytes32 labelHash = addr.sha3HexAddress();
         bytes32 reverseNode = keccak256(
             abi.encodePacked(ADDR_REVERSE_NODE, labelHash)
         );
@@ -234,34 +236,8 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     function node(address addr) public pure override returns (bytes32) {
         return
             keccak256(
-                abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr))
+                abi.encodePacked(ADDR_REVERSE_NODE, addr.sha3HexAddress())
             );
-    }
-
-    /**
-     * @dev An optimised function to compute the sha3 of the lower-case
-     *      hexadecimal representation of an Ethereum address.
-     * @param addr The address to hash
-     * @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
-     *         input address.
-     */
-    function sha3HexAddress(address addr) private pure returns (bytes32 ret) {
-        assembly {
-            for {
-                let i := 40
-            } gt(i, 0) {
-
-            } {
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-                i := sub(i, 1)
-                mstore8(i, byte(and(addr, 0xf), lookup))
-                addr := div(addr, 0x10)
-            }
-
-            ret := keccak256(0, 40)
-        }
     }
 
     function ownsContract(address addr) internal view returns (bool) {

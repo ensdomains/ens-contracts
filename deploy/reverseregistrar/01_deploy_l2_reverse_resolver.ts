@@ -11,15 +11,15 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deploy } = deployments
   const { deployer } = await getNamedAccounts()
 
-  await deploy('L2ReverseRegistrar', {
+  await deploy('L2ReverseResolver', {
     from: deployer,
     args: [namehash(`${COINTYPE}.reverse`), COINTYPE],
     log: true,
   })
 }
 
-func.id = 'l2-reverse-registrar'
-func.tags = ['L2ReverseRegistrar']
+func.id = 'l2-reverse-resolver'
+func.tags = ['L2ReverseResolver']
 func.dependencies = []
 
 export default func
