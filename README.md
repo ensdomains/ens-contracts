@@ -182,6 +182,24 @@ The script will deploy the following three contracts
 - DelegatableResolverFactory = A factory contract that creates a resolver for each user. A user can add delegates which can update record on behalf of the contract owner. The potential use case is to give subname under the resolver contract and grant a permission to update the subname.
 - L2ReverseResolver = A Reverse resolver contract, following the [Evm reverse resolution draft ENSIP](https://github.com/ensdomains/docs/pull/157)
 
+NOTE: Each name owner will be deploying a dedicated resolver for the name and their subnames.
+You can predict the resolver address by calling the predictAddress
+
+```
+DelegatableResolverFactory.predictAddress(ownerAddress)
+```
+
+The function is an external function and you cannot call read function from etherscan.
+To work around, you may want to define the abi function as view function
+
+```
+const abi = [
+  "function predictAddress(address) view returns (address)"
+]
+const l2Factory = new ethers.Contract(L2_RESOLVER_FACTORY_ADDRESS, abi, l2provider);
+const l2resolverAddress = await l2Factory.predictAddress(ETH_ADDRESS)
+```
+
 ## Release flow
 
 1. Create a `feature` branch from `staging` branch
