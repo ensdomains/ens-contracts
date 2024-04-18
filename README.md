@@ -167,6 +167,21 @@ yarn test
 yarn pub
 ```
 
+## How to deploy l2 contracts
+
+There are a set of l2 contracts currently on the `feature/crosschain-resolver-with-reverse-registrar` branch
+
+```
+git checkout feature/crosschain-resolver-with-reverse-registrar
+DEPLOYER_KEY=$DEPLOYER_KEY ETHERSCAN_API_KEY=$ETHERSCAN_API_KEY npx hardhat deploy --tags l2 --network optimismSepolia/baseSepolia/arbSepolia
+```
+
+The script will deploy the following three contracts
+
+- DelegatableResolver = A template resolver contract
+- DelegatableResolverFactory = A factory contract that creates a resolver for each user. A user can add delegates which can update record on behalf of the contract owner. The potential use case is to give subname under the resolver contract and grant a permission to update the subname.
+- L2ReverseResolver = A Reverse resolver contract, following the [Evm reverse resolution draft ENSIP](https://github.com/ensdomains/docs/pull/157)
+
 ## Release flow
 
 1. Create a `feature` branch from `staging` branch
