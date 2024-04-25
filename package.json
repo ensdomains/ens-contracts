@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public",
-    "prepare": "husky install"
+    "prepare": "husky install",
+    "wikiCheck": "node wikiCheck.js "
   },
   "files": [
     "build",

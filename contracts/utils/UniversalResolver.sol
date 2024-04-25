@@ -320,9 +320,7 @@ contract UniversalResolver is ERC165, Ownable {
 
         Result memory result = results[0];
 
-        if (!result.success) {
-            revert ResolverError(result.returnData);
-        }
+        _checkResolveSingle(result);
 
         if (metaData.length > 0) {
             (string memory resolvedName, address reverseResolverAddress) = abi
@@ -658,7 +656,7 @@ contract UniversalResolver is ERC165, Ownable {
                 returnData = abi.decode(returnData, (bytes));
             }
             results[i] = Result(success, returnData);
-            extraDatas[i].data = multicallData.data[i];
+            extraDatas[i].data = item;
         }
 
         if (offchainCount == 0) {
