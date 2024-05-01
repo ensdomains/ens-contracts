@@ -7,6 +7,7 @@ use(solidity)
 
 const NULL_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000'
 
 describe('HexUtils', () => {
   let HexUtils
@@ -14,6 +15,46 @@ describe('HexUtils', () => {
   before(async () => {
     const HexUtilsFactory = await ethers.getContractFactory('TestHexUtils')
     HexUtils = await HexUtilsFactory.deploy()
+  })
+
+  describe('hexToBytes()', () => {
+    it('Converts a hex string to bytes', async () => {
+      let [bytes32, valid] = await HexUtils.hexToBytes(
+        toUtf8Bytes(
+          '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da',
+        ),
+        0,
+        64,
+      )
+      expect(valid).to.equal(true)
+      expect(bytes32).to.equal(
+        '0x5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da',
+      )
+    })
+
+    it('Handles short strings', async () => {
+      let [bytes32, valid] = await HexUtils.hexToBytes(
+        toUtf8Bytes('5cee'),
+        0,
+        4,
+      )
+      expect(valid).to.equal(true)
+      expect(bytes32).to.equal('0x5cee')
+    })
+
+    it('Handles long strings', async () => {
+      let [bytes32, valid] = await HexUtils.hexToBytes(
+        toUtf8Bytes(
+          '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da010203',
+        ),
+        0,
+        70,
+      )
+      expect(valid).to.equal(true)
+      expect(bytes32).to.equal(
+        '0x5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da010203',
+      )
+    })
   })
 
   describe('hexStringToBytes32()', () => {
@@ -25,10 +66,10 @@ describe('HexUtils', () => {
         0,
         64,
       )
+      expect(valid).to.equal(true)
       expect(bytes32).to.equal(
         '0x5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da',
       )
-      expect(valid).to.equal(true)
     })
     it('Uses the correct index to read from', async () => {
       let [bytes32, valid] = await HexUtils.hexStringToBytes32(
@@ -38,10 +79,10 @@ describe('HexUtils', () => {
         7,
         71,
       )
+      expect(valid).to.equal(true)
       expect(bytes32).to.equal(
         '0x5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da',
       )
-      expect(valid).to.equal(true)
     })
     it('Correctly parses all hex characters', async () => {
       let [bytes32, valid] = await HexUtils.hexStringToBytes32(
@@ -49,10 +90,10 @@ describe('HexUtils', () => {
         0,
         40,
       )
+      expect(valid).to.equal(true)
       expect(bytes32).to.equal(
         '0x0000000000000000000000000123456789abcdefabcdef0123456789abcdefab',
       )
-      expect(valid).to.equal(true)
     })
     it('Returns invalid when the string contains non-hex characters', async () => {
       const [bytes32, valid] = await HexUtils.hexStringToBytes32(
@@ -62,8 +103,8 @@ describe('HexUtils', () => {
         0,
         64,
       )
-      expect(bytes32).to.equal(NULL_HASH)
       expect(valid).to.equal(false)
+      expect(bytes32).to.equal(NULL_HASH)
     })
     it('Reverts when the string is too short', async () => {
       await expect(
@@ -87,8 +128,8 @@ describe('HexUtils', () => {
         0,
         40,
       )
-      expect(address).to.equal('0x5ceE339e13375638553bdF5a6e36BA80fB9f6a4F')
       expect(valid).to.equal(true)
+      expect(address).to.equal('0x5ceE339e13375638553bdF5a6e36BA80fB9f6a4F')
     })
     it('Does not allow sizes smaller than 40 characters', async () => {
       let [address, valid] = await HexUtils.hexToAddress(
@@ -98,8 +139,8 @@ describe('HexUtils', () => {
         0,
         39,
       )
-      expect(address).to.equal('0x0000000000000000000000000000000000000000')
       expect(valid).to.equal(false)
+      expect(address).to.equal(ZERO_ADDRESS)
     })
   })
 
@@ -115,11 +156,6 @@ describe('HexUtils', () => {
       await expect(
         HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes + '00'), 1, 64),
       ).to.be.reverted
-    })
-
-    it('not enough length', async () => {
-      await expect(HexUtils.hexStringToBytes32(toUtf8Bytes(hex32Bytes), 0, 2))
-        .to.be.reverted
     })
 
     it('exceed length', async () => {

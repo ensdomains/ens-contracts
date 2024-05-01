@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.11;
 
-import "../dnssec-oracle/BytesUtils.sol";
+import "../utils/BytesUtils.sol";
 
 library RecordParser {
     using BytesUtils for bytes;

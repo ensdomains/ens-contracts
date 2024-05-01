@@ -13,7 +13,7 @@ import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {BytesUtils} from "./BytesUtils.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 error Unauthorised(bytes32 node, address addr);
