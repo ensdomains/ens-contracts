@@ -14,18 +14,21 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     throw new Error('UniversalResolver: No batch gateway URLs provided')
   }
 
-  await deploy('UniversalResolver', {
+  await deploy('UniversalResolver2', {
     from: deployer,
-    args: [registry.address, batchGatewayURLs],
+    args: [
+      registry.address,
+      ['https://universal-offchain-unwrapper-dev.ens-cf.workers.dev'],
+    ],
     log: true,
   })
 
-  if (owner !== undefined && owner !== deployer) {
-    const UR = await ethers.getContract('UniversalResolver')
-    const tx = await UR.transferOwnership(owner)
-    console.log(`Transfer ownership to ${owner} (tx: ${tx.hash})...`)
-    await tx.wait()
-  }
+  // if (owner !== undefined && owner !== deployer) {
+  //   const UR = await ethers.getContract('UniversalResolver')
+  //   const tx = await UR.transferOwnership(owner)
+  //   console.log(`Transfer ownership to ${owner} (tx: ${tx.hash})...`)
+  //   await tx.wait()
+  // }
 }
 
 func.id = 'universal-resolver'

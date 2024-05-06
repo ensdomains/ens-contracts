@@ -13,6 +13,7 @@ import "../utils/HexUtils.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
+import {ERC3668Utils, OffchainLookupData} from "../utils/ERC3668Utils.sol";
 
 error InvalidOperation();
 error OffchainLookup(
@@ -268,28 +269,14 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             revertWithDefaultOffchainLookup(name, innerdata);
         }
 
-        bool result = LowLevelCallUtils.functionStaticCall(
-            address(target),
-            data
-        );
-        uint256 size = LowLevelCallUtils.returnDataSize();
-        if (result) {
-            bytes memory returnData = LowLevelCallUtils.readReturnData(0, size);
-            return abi.decode(returnData, (bytes));
-        }
-        // Failure
-        if (size >= 4) {
-            bytes memory errorId = LowLevelCallUtils.readReturnData(0, 4);
-            if (bytes4(errorId) == OffchainLookup.selector) {
-                // Offchain lookup. Decode the revert message and create our own that nests it.
-                bytes memory revertData = LowLevelCallUtils.readReturnData(
-                    4,
-                    size - 4
-                );
-                handleOffchainLookupError(revertData, target, name);
-            }
-        }
-        LowLevelCallUtils.propagateRevert();
+        (bool success, bytes4 errorId, bytes memory result) = ERC3668Utils
+            .callWithNormalisedResult(target, data);
+        if (success) return abi.decode(result, (bytes));
+
+        if (errorId == OffchainLookup.selector)
+            handleOffchainLookupError(result, target, name);
+
+        LowLevelCallUtils.propagateRevert(bytes.concat(errorId, result));
     }
 
     function revertWithDefaultOffchainLookup(
@@ -313,24 +300,23 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         address target,
         bytes memory name
     ) internal view {
-        (
-            address sender,
-            string[] memory urls,
-            bytes memory callData,
-            bytes4 innerCallbackFunction,
-            bytes memory extraData
-        ) = abi.decode(returnData, (address, string[], bytes, bytes4, bytes));
+        OffchainLookupData memory caughtLookup = ERC3668Utils
+            .getOffchainLookupData(returnData);
 
-        if (sender != target) {
+        if (caughtLookup.sender != target) {
             revert InvalidOperation();
         }
 
         revert OffchainLookup(
             address(this),
-            urls,
-            callData,
+            caughtLookup.urls,
+            caughtLookup.callData,
             OffchainDNSResolver.resolveCallback.selector,
-            abi.encode(name, extraData, innerCallbackFunction)
+            abi.encode(
+                name,
+                caughtLookup.extraData,
+                caughtLookup.callbackFunction
+            )
         );
     }
 }
