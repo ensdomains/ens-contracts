@@ -13,16 +13,9 @@ import "../utils/HexUtils.sol";
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
-import {ERC3668Utils, OffchainLookupData} from "../utils/ERC3668Utils.sol";
+import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "../utils/ERC3668Utils.sol";
 
 error InvalidOperation();
-error OffchainLookup(
-    address sender,
-    string[] urls,
-    bytes callData,
-    bytes4 callbackFunction,
-    bytes extraData
-);
 
 interface IDNSGateway {
     function resolve(

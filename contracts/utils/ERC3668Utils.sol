@@ -93,4 +93,10 @@ library ERC3668Utils {
         ) = abi.decode(data, (address, string[], bytes, bytes4, bytes));
         return result;
     }
+
+    function isOffchainLookupError(
+        bytes4 errorId
+    ) internal pure returns (bool) {
+        return errorId == OffchainLookup.selector;
+    }
 }

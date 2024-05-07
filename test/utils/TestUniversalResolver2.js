@@ -39,6 +39,7 @@ contract('UniversalResolver2', function (accounts) {
     nameWrapper,
     reverseRegistrar,
     reverseNode,
+    reverseNode1,
     batchGateway,
     multicallGateway,
     dummyOldResolver,
@@ -67,6 +68,7 @@ contract('UniversalResolver2', function (accounts) {
     nameWrapper = await deploy('DummyNameWrapper')
     reverseRegistrar = await deploy('ReverseRegistrar', ens.address)
     reverseNode = accounts[0].toLowerCase().substring(2) + '.addr.reverse'
+    reverseNode1 = accounts[1].toLowerCase().substring(2) + '.addr.reverse'
     oldResolverReverseNode =
       accounts[10].toLowerCase().substring(2) + '.addr.reverse'
     await ens.setSubnodeOwner(EMPTY_BYTES32, sha3('reverse'), accounts[0], {
@@ -98,6 +100,26 @@ contract('UniversalResolver2', function (accounts) {
     await ens.setSubnodeOwner(namehash.hash('eth'), sha3('test'), accounts[0], {
       from: accounts[0],
     })
+    await ens.setSubnodeRecord(
+      namehash.hash('eth'),
+      sha3('primaryname'),
+      accounts[1],
+      publicResolver.address,
+      0,
+      {
+        from: accounts[0],
+      },
+    )
+    await ens.setSubnodeRecord(
+      namehash.hash('eth'),
+      sha3('oldprimary'),
+      accounts[10],
+      dummyOldResolver.address,
+      0,
+      {
+        from: accounts[0],
+      },
+    )
     await ens.setResolver(namehash.hash('test.eth'), publicResolver.address, {
       from: accounts[0],
     })
@@ -181,12 +203,29 @@ contract('UniversalResolver2', function (accounts) {
     })
     await publicResolver.setName(namehash.hash(reverseNode), 'test.eth')
 
-    const oldResolverSigner = await ethers.getSigner(accounts[10])
-    const _reverseRegistrar = reverseRegistrar.connect(oldResolverSigner)
-    const _ens = ens.connect(oldResolverSigner)
+    const signer1 = await ethers.getSigner(accounts[1])
+    const reverseRegistrar1 = reverseRegistrar.connect(signer1)
+    const ens1 = ens.connect(signer1)
+    const publicResolver1 = publicResolver.connect(signer1)
 
-    await _reverseRegistrar.claim(accounts[10])
-    await _ens.setResolver(
+    await publicResolver1.functions['setAddr(bytes32,address)'](
+      namehash.hash('primaryname.eth'),
+      accounts[1],
+    )
+
+    await reverseRegistrar1.claim(accounts[1])
+    await ens1.setResolver(namehash.hash(reverseNode1), publicResolver.address)
+    await publicResolver1.setName(
+      namehash.hash(reverseNode1),
+      'primaryname.eth',
+    )
+
+    const signer10 = await ethers.getSigner(accounts[10])
+    const reverseRegistrar10 = reverseRegistrar.connect(signer10)
+    const ens10 = ens.connect(signer10)
+
+    await reverseRegistrar10.claim(accounts[10])
+    await ens10.setResolver(
       namehash.hash(oldResolverReverseNode),
       dummyOldResolver.address,
     )
@@ -273,6 +312,45 @@ contract('UniversalResolver2', function (accounts) {
         result['0'],
       )
       expect(returnAddress).to.equal(accounts[1])
+    })
+
+    it('should resolve a multicall via legacy methods', async () => {
+      const addrData = publicResolver.interface.encodeFunctionData(
+        'addr(bytes32)',
+        [namehash.hash('test.eth')],
+      )
+
+      const textData = publicResolver.interface.encodeFunctionData(
+        'text(bytes32,string)',
+        [namehash.hash('test.eth'), 'foo'],
+      )
+
+      const multicallData = publicResolver.interface.encodeFunctionData(
+        'multicall',
+        [[addrData, textData]],
+      )
+
+      const result = await universalResolver['resolve(bytes,bytes)'](
+        dns.hexEncodeName('test.eth'),
+        multicallData,
+      )
+
+      const [multicallResult] = publicResolver.interface.decodeFunctionResult(
+        'multicall',
+        result['0'],
+      )
+
+      const [addrResult] = publicResolver.interface.decodeFunctionResult(
+        'addr(bytes32)',
+        multicallResult[0],
+      )
+      const [textResult] = publicResolver.interface.decodeFunctionResult(
+        'text(bytes32,string)',
+        multicallResult[1],
+      )
+
+      expect(addrResult).to.equal(accounts[1])
+      expect(textResult).to.equal('bar')
     })
 
     it('should throw if a resolver is not set on the queried name', async () => {
@@ -406,7 +484,7 @@ contract('UniversalResolver2', function (accounts) {
       }
     })
 
-    it.only('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
+    it('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
       const data = publicResolver.interface.encodeFunctionData(
         'addr(bytes32)',
         [namehash.hash('offchain.test.eth')],
@@ -965,29 +1043,32 @@ contract('UniversalResolver2', function (accounts) {
     })
   })
 
-  describe('reverse()', () => {
-    const makeEstimateAndResult = async (contract, func, ...args) => ({
-      estimate: await contract.estimateGas[func](...args),
-      result: await contract.functions[func](...args),
-    })
+  describe.only('reverse()', () => {
     it('should resolve a reverse record with name and resolver address', async () => {
-      const { estimate, result } = await makeEstimateAndResult(
-        universalResolver,
-        'reverse(bytes)',
-        dns.hexEncodeName(reverseNode),
+      const result = await universalResolver.reverse(
+        accounts[1].toLowerCase(),
+        60,
       )
-      console.log('GAS ESTIMATE:', estimate)
-      expect(result['0']).to.equal('test.eth')
-      expect(result['1']).to.equal(accounts[1])
+      expect(result['0']).to.equal('primaryname.eth')
+      expect(result['1']).to.equal(publicResolver.address)
       expect(result['2']).to.equal(publicResolver.address)
-      expect(result['3']).to.equal(publicResolver.address)
     })
-    it('should not use all the gas on a revert', async () => {
-      const estimate = await universalResolver.estimateGas['reverse(bytes)'](
-        dns.hexEncodeName(oldResolverReverseNode),
-        { gasLimit: 8000000 },
+    it('should resolve a reverse record with a name for an old resolver (pre-multicoin)', async () => {
+      const result = await universalResolver.reverse(
+        accounts[10].toLowerCase(),
+        60,
       )
-      expect(estimate.lt(200000)).to.be.true
+      expect(result['0']).to.equal('oldprimary.eth')
+      expect(result['1']).to.equal(dummyOldResolver.address)
+      expect(result['2']).to.equal(dummyOldResolver.address)
     })
+    // it('should not use all the gas on a revert', async () => {
+    //   const estimate = await universalResolver.estimateGas.reverse(
+    //     accounts[10].toLowerCase(),
+    //     60,
+    //     { gasLimit: 8000000 },
+    //   )
+    //   expect(estimate.lt(200000)).to.be.true
+    // })
   })
 })

@@ -2,26 +2,11 @@
 pragma solidity >=0.8.17 <0.9.0;
 
 import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
-import {ERC3668Utils, OffchainLookupData} from "./ERC3668Utils.sol";
-
-error OffchainLookup(
-    address sender,
-    string[] urls,
-    bytes callData,
-    bytes4 callbackFunction,
-    bytes extraData
-);
-
-struct Result {
-    bytes data;
-    bool success;
-}
+import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "./ERC3668Utils.sol";
 
 struct InternalResult {
     bool offchain;
-    bool success;
-    bytes returnData;
-    bytes extraData;
+    bytes data;
 }
 
 interface MulticallableGateway {
@@ -43,7 +28,7 @@ abstract contract ERC3668Multicallable {
         for (uint256 i = 0; i < internalResults.length; i++) {
             if (!internalResults[i].offchain) continue;
             (bytes4 callbackFunction, bytes memory wrappedExtraData) = abi
-                .decode(internalResults[i].extraData, (bytes4, bytes));
+                .decode(internalResults[i].data, (bytes4, bytes));
             bytes memory callData = abi.encodeWithSelector(
                 callbackFunction,
                 results[offchainCount],
@@ -86,9 +71,12 @@ abstract contract ERC3668Multicallable {
             uint256 offchainIndex = 0;
             for (uint256 i = 0; i < internalResults.length; i++) {
                 if (!internalResults[i].offchain) continue;
-                offchainCallDatas[offchainIndex] = internalResults[i]
-                    .returnData;
-                internalResults[i].returnData = "";
+                (bytes memory callData, bytes memory extraData) = abi.decode(
+                    internalResults[i].data,
+                    (bytes, bytes)
+                );
+                offchainCallDatas[offchainIndex] = callData;
+                internalResults[i].data = extraData;
                 offchainIndex += 1;
             }
 
@@ -106,7 +94,7 @@ abstract contract ERC3668Multicallable {
 
         bytes[] memory results = new bytes[](internalResults.length);
         for (uint256 i = 0; i < internalResults.length; i++) {
-            results[i] = internalResults[i].returnData;
+            results[i] = internalResults[i].data;
         }
 
         return results;
@@ -116,24 +104,24 @@ abstract contract ERC3668Multicallable {
         address target,
         bytes memory data
     ) internal view returns (InternalResult memory result) {
-        bytes4 errorId;
-        (result.success, errorId, result.returnData) = ERC3668Utils
+        (bool success, bytes4 errorId, bytes memory returnData) = ERC3668Utils
             .callWithNormalisedResult(target, data);
 
-        if (result.success) {
+        if (success) {
+            result.data = returnData;
+            result.offchain = false;
             return result;
         }
 
-        if (errorId != OffchainLookup.selector) {
-            result.returnData = errorId == bytes4(0) &&
-                result.returnData.length == 0
-                ? bytes("")
-                : bytes.concat(errorId, result.returnData);
+        if (!ERC3668Utils.isOffchainLookupError(errorId)) {
+            result.offchain = false;
+            if (errorId == bytes4(0) && returnData.length == 0) return result;
+            result.data = bytes.concat(errorId, returnData);
             return result;
         }
 
         OffchainLookupData memory caughtLookup = ERC3668Utils
-            .getOffchainLookupData(result.returnData);
+            .getOffchainLookupData(returnData);
 
         require(
             caughtLookup.sender == address(this),
@@ -141,10 +129,9 @@ abstract contract ERC3668Multicallable {
         );
 
         result.offchain = true;
-        result.returnData = caughtLookup.callData;
-        result.extraData = abi.encode(
-            caughtLookup.callbackFunction,
-            caughtLookup.extraData
+        result.data = abi.encode(
+            caughtLookup.callData,
+            abi.encode(caughtLookup.callbackFunction, caughtLookup.extraData)
         );
         return result;
     }

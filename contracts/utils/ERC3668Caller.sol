@@ -16,6 +16,7 @@ abstract contract ERC3668Caller {
             bytes4 internalCallbackFunction,
             bytes4 externalCallbackFunction,
             bytes4 calldataRewriteFunction,
+            bytes4 failureCallbackFunction,
             bytes memory internalExtraData,
             bytes memory externalExtraData
         ) = _getExtraData(extraData);
@@ -29,7 +30,8 @@ abstract contract ERC3668Caller {
                 ),
                 internalExtraData,
                 internalCallbackFunction,
-                calldataRewriteFunction
+                calldataRewriteFunction,
+                failureCallbackFunction
             );
     }
 
@@ -47,6 +49,7 @@ abstract contract ERC3668Caller {
                 data,
                 internalExtraData,
                 internalCallbackFunction,
+                bytes4(0),
                 bytes4(0)
             );
     }
@@ -57,7 +60,8 @@ abstract contract ERC3668Caller {
         bytes memory data,
         bytes memory internalExtraData,
         bytes4 internalCallbackFunction,
-        bytes4 calldataRewriteFunction
+        bytes4 calldataRewriteFunction,
+        bytes4 failureCallbackFunction
     ) internal view returns (bytes memory) {
         (bool success, bytes4 errorId, bytes memory result) = ERC3668Utils
             .callWithNormalisedResult(target, data, gas);
@@ -81,6 +85,7 @@ abstract contract ERC3668Caller {
                 internalCallbackFunction,
                 lookupData.callbackFunction,
                 calldataRewriteFunction,
+                failureCallbackFunction,
                 internalExtraData,
                 lookupData.extraData
             );
@@ -101,10 +106,20 @@ abstract contract ERC3668Caller {
             );
         }
 
-        if (errorId == bytes4(0) && result.length == 0)
-            LowLevelCallUtils.propagateRevert("");
+        bool isEmpty = errorId == bytes4(0) && result.length == 0;
+        bytes memory errorData = isEmpty
+            ? bytes("")
+            : bytes.concat(errorId, result);
 
-        LowLevelCallUtils.propagateRevert(bytes.concat(errorId, result));
+        if (failureCallbackFunction != bytes4(0)) {
+            _internalCallback(
+                failureCallbackFunction,
+                errorData,
+                internalExtraData
+            );
+        }
+
+        LowLevelCallUtils.propagateRevert(errorData);
     }
 
     function _formatCalldata(
@@ -142,6 +157,7 @@ abstract contract ERC3668Caller {
         bytes4 internalCallbackFunction,
         bytes4 externalCallbackFunction,
         bytes4 calldataRewriteFunction,
+        bytes4 failureCallbackFunction,
         bytes memory internalExtraData,
         bytes memory externalExtraData
     ) private pure returns (bytes memory) {
@@ -151,6 +167,7 @@ abstract contract ERC3668Caller {
                 internalCallbackFunction,
                 externalCallbackFunction,
                 calldataRewriteFunction,
+                failureCallbackFunction,
                 internalExtraData,
                 externalExtraData
             );
@@ -166,6 +183,7 @@ abstract contract ERC3668Caller {
             bytes4 internalCallbackFunction,
             bytes4 externalCallbackFunction,
             bytes4 calldataRewriteFunction,
+            bytes4 failureCallbackFunction,
             bytes memory internalExtraData,
             bytes memory externalExtraData
         )
@@ -173,7 +191,7 @@ abstract contract ERC3668Caller {
         return
             abi.decode(
                 extraData,
-                (address, bytes4, bytes4, bytes4, bytes, bytes)
+                (address, bytes4, bytes4, bytes4, bytes4, bytes, bytes)
             );
     }
 }

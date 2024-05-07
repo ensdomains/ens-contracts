@@ -11,3 +11,9 @@ interface IMulticallable {
         bytes[] calldata data
     ) external returns (bytes[] memory results);
 }
+
+interface IMulticallableSimple {
+    function multicall(
+        bytes[] calldata data
+    ) external returns (bytes[] memory results);
+}

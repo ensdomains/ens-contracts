@@ -2,6 +2,7 @@
 pragma solidity >=0.8.17 <0.9.0;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {ENS} from "../registry/ENS.sol";
 import {ERC3668Multicallable, MulticallableGateway} from "./ERC3668Multicallable.sol";
 import {ERC3668Caller} from "./ERC3668Caller.sol";
@@ -9,20 +10,18 @@ import {ENSIP10ResolverFinder} from "./ENSIP10ResolverFinder.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {ERC3668Utils, OffchainLookupData} from "../utils/ERC3668Utils.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
-import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
+import {Resolver, INameResolver, IAddrResolver, IAddressResolver} from "../resolvers/Resolver.sol";
+import {AddrResolver} from "../resolvers/profiles/AddrResolver.sol";
+import {IMulticallable, IMulticallableSimple} from "../resolvers/IMulticallable.sol";
 import {HexUtils} from "./HexUtils.sol";
 import {BytesUtils} from "../wrapper/BytesUtils.sol";
 import {NameEncoder} from "./NameEncoder.sol";
 
-error OffchainLookup(
-    address sender,
-    string[] urls,
-    bytes callData,
-    bytes4 callbackFunction,
-    bytes extraData
-);
-
 error ResolverNotFound();
+
+error ReverseNodeNotFound();
+
+error ReverseAddressMismatch(bytes result);
 
 error ResolverWildcardNotSupported();
 
@@ -53,12 +52,14 @@ contract UniversalResolver2 is
     ERC3668Caller,
     ENSIP10ResolverFinder
 {
+    using Strings for uint256;
     using Address for address;
     using NameEncoder for string;
     using HexUtils for bytes;
     using BytesUtils for bytes;
 
     string[] public _urls;
+    uint256 private constant SLIP44_MSB = 0x80000000;
 
     constructor(
         ENS registry_,
@@ -101,17 +102,18 @@ contract UniversalResolver2 is
 
         bool resolverSupportsMulticall = _checkInterface(
             resolver,
-            MulticallableGateway.multicall.selector
-        );
+            type(IMulticallableSimple).interfaceId
+        ) || _checkInterface(resolver, type(IMulticallable).interfaceId);
 
         bool isSingleInternallyEncodedCall = bytes4(data) !=
             MulticallableGateway.multicall.selector;
         bytes[] memory calls;
+
         if (isSingleInternallyEncodedCall) {
             calls = new bytes[](1);
             calls[0] = data;
         } else {
-            calls = abi.decode(data, (bytes[]));
+            calls = abi.decode(data[4:], (bytes[]));
         }
 
         if (resolverSupportsMulticall)
@@ -168,7 +170,8 @@ contract UniversalResolver2 is
                 data,
                 "",
                 this.internalCallCallback.selector,
-                this.internalCallCalldataRewrite.selector
+                this.internalCallCalldataRewrite.selector,
+                bytes4(0)
             );
     }
 
@@ -202,27 +205,28 @@ contract UniversalResolver2 is
     }
 
     function reverse(
-        bytes calldata reverseName
+        bytes memory lookupAddress,
+        uint256 coinType
     )
         public
         view
-        returns (
-            string memory name,
-            address addr,
-            address resolver,
-            address reverseResolver
-        )
+        returns (string memory name, address resolver, address reverseResolver)
     {
-        return reverseWithGateways(reverseName, _urls);
+        return reverseWithGateways(lookupAddress, coinType, _urls);
     }
 
     function reverseWithGateways(
-        bytes calldata reverseName,
+        bytes memory lookupAddress,
+        uint256 coinType,
         string[] memory gateways
-    ) public view returns (string memory, address, address, address) {
+    ) public view returns (string memory, address, address) {
+        (
+            bytes memory reverseName,
+            bytes32 reverseNamehash
+        ) = _createReverseNode(lookupAddress, coinType).dnsEncodeName();
         bytes memory nameCall = abi.encodeWithSelector(
             INameResolver.name.selector,
-            reverseName.namehash(0)
+            reverseNamehash
         );
         bytes memory encodedCall = abi.encodeWithSelector(
             this.resolveWithGateways.selector,
@@ -235,21 +239,86 @@ contract UniversalResolver2 is
             address(this),
             0,
             encodedCall,
-            abi.encode(gateways),
-            this.reverseReverseCallback.selector
+            abi.encode(lookupAddress, coinType, gateways),
+            this.forwardLookupReverseCallback.selector,
+            bytes4(0),
+            this.defaultCoinTypeReverseCallback.selector
         );
     }
 
-    function reverseReverseCallback(
+    function defaultCoinTypeReverseCallback(
+        bytes calldata /* response */,
+        bytes calldata extraData
+    ) external view returns (string memory, address, address) {
+        (
+            bytes memory lookupAddress,
+            uint256 coinType,
+            string[] memory gateways
+        ) = abi.decode(extraData, (bytes, uint256, string[]));
+        // not sure if this should propagate the revert data or just use the custom error
+        if (coinType == SLIP44_MSB || !_isEvmChain(coinType))
+            revert ReverseNodeNotFound();
+        return reverseWithGateways(lookupAddress, SLIP44_MSB, gateways);
+    }
+
+    function forwardLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (string memory, address, address, address) {
-        string[] memory gateways = abi.decode(extraData, (string[]));
+    ) external view returns (string memory, address, address) {
+        (
+            bytes memory lookupAddress,
+            uint256 coinType,
+            string[] memory gateways
+        ) = abi.decode(extraData, (bytes, uint256, string[]));
         (bytes memory result, address reverseResolver) = abi.decode(
             response,
             (bytes, address)
         );
         string memory resolvedName = abi.decode(result, (string));
+        (bytes memory encodedName, bytes32 namehash) = resolvedName
+            .dnsEncodeName();
+        bytes memory addrCall = abi.encodeWithSelector(
+            IAddressResolver.addr.selector,
+            namehash,
+            coinType
+        );
+        bytes memory encodedCall = abi.encodeWithSelector(
+            this.resolveWithGateways.selector,
+            encodedName,
+            addrCall,
+            gateways
+        );
+        call(
+            address(this),
+            0,
+            encodedCall,
+            abi.encode(
+                lookupAddress,
+                coinType,
+                gateways,
+                resolvedName,
+                reverseResolver,
+                false
+            ),
+            this.processLookupReverseCallback.selector,
+            bytes4(0),
+            coinType == 60
+                ? this.attemptAddrResolverReverseCallback.selector
+                : bytes4(0)
+        );
+    }
+
+    function attemptAddrResolverReverseCallback(
+        bytes calldata /* response */,
+        bytes calldata extraData
+    ) external view returns (string memory, address, address) {
+        (
+            bytes memory lookupAddress,
+            uint256 coinType,
+            string[] memory gateways,
+            string memory resolvedName,
+            address reverseResolver
+        ) = abi.decode(extraData, (bytes, uint256, string[], string, address));
         (bytes memory encodedName, bytes32 namehash) = resolvedName
             .dnsEncodeName();
         bytes memory addrCall = abi.encodeWithSelector(
@@ -266,25 +335,54 @@ contract UniversalResolver2 is
             address(this),
             0,
             encodedCall,
-            abi.encode(resolvedName, reverseResolver),
-            this.reverseForwardCallback.selector
+            abi.encode(
+                lookupAddress,
+                coinType,
+                gateways,
+                resolvedName,
+                reverseResolver,
+                true
+            ),
+            this.processLookupReverseCallback.selector
         );
     }
 
-    function reverseForwardCallback(
+    function processLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (string memory, address, address, address) {
-        (string memory resolvedName, address reverseResolver) = abi.decode(
-            extraData,
-            (string, address)
-        );
+    ) external pure returns (string memory, address, address) {
+        (
+            bytes memory lookupAddress,
+            uint256 coinType,
+            ,
+            string memory resolvedName,
+            address reverseResolver,
+            bool isAddrCall
+        ) = abi.decode(
+                extraData,
+                (bytes, uint256, string[], string, address, bool)
+            );
         (bytes memory result, address resolver) = abi.decode(
             response,
             (bytes, address)
         );
-        address resolvedAddress = abi.decode(result, (address));
-        return (resolvedName, resolvedAddress, reverseResolver, resolver);
+        if (_isEvmChain(coinType)) {
+            bytes memory unwrappedResultMaybe = isAddrCall
+                ? abi.encodePacked(abi.decode(result, (address)))
+                : abi.decode(result, (bytes));
+            address resolvedAddress = _bytesToAddress(unwrappedResultMaybe);
+            address decodedLookupAddress = _bytesToAddress(lookupAddress);
+            if (resolvedAddress != decodedLookupAddress) {
+                revert ReverseAddressMismatch(
+                    abi.encodePacked(resolvedAddress)
+                );
+            }
+        } else {
+            if (keccak256(result) != keccak256(lookupAddress)) {
+                revert ReverseAddressMismatch(result);
+            }
+        }
+        return (resolvedName, reverseResolver, resolver);
     }
 
     function _externalMulticall(
@@ -442,5 +540,48 @@ contract UniversalResolver2 is
         } catch {
             return false;
         }
+    }
+
+    function _createReverseNode(
+        bytes memory lookupAddress,
+        uint256 coinType
+    ) internal pure returns (string memory) {
+        return
+            string(
+                bytes.concat(
+                    _bytesToHexStringBytes(lookupAddress),
+                    ".",
+                    coinType == 60
+                        ? bytes("addr")
+                        : bytes(coinType.toHexString()),
+                    ".reverse"
+                )
+            );
+    }
+
+    function _isEvmChain(uint256 coinType) internal pure returns (bool) {
+        if (coinType == 60) return true;
+        return (coinType & SLIP44_MSB) != 0;
+    }
+
+    function _bytesToAddress(bytes memory b) internal pure returns (address a) {
+        require(b.length == 20);
+        assembly {
+            a := div(mload(add(b, 32)), exp(256, 12))
+        }
+    }
+
+    function _bytesToHexStringBytes(
+        bytes memory data
+    ) internal pure returns (bytes memory) {
+        bytes memory result = new bytes(data.length * 2);
+        bytes16 _base = "0123456789abcdef";
+
+        for (uint256 i = 0; i < data.length; i++) {
+            result[i * 2] = _base[uint8(data[i]) / 16];
+            result[i * 2 + 1] = _base[uint8(data[i]) % 16];
+        }
+
+        return result;
     }
 }
