@@ -1,4 +1,4 @@
-interface IBulkRenewal {
+interface IStaticBulkRenewal {
     function rentPrice(
         string[] calldata names,
         uint256 duration
