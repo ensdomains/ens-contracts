@@ -1,6 +1,6 @@
-import { task } from 'hardhat/config'
+import config = require('hardhat/config')
 
-task('accounts', 'Prints the list of accounts', async (_, hre) => {
+config.task('accounts', 'Prints the list of accounts', async (_, hre) => {
   const accounts = await hre.ethers.getSigners()
 
   for (const account of accounts) {

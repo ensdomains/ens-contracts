@@ -1,24 +1,14 @@
-import { exec as _exec } from 'child_process'
-
-import '@nomiclabs/hardhat-ethers'
-import '@nomiclabs/hardhat-solhint'
-import '@nomiclabs/hardhat-truffle5'
-import '@nomiclabs/hardhat-waffle'
+import '@nomicfoundation/hardhat-toolbox-viem'
 import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
-import 'hardhat-gas-reporter'
 import { HardhatUserConfig } from 'hardhat/config'
-import { promisify } from 'util'
 
-const exec = promisify(_exec)
+import('@ensdomains/hardhat-chai-matchers-viem')
 
 // hardhat actions
-import './tasks/accounts'
-import './tasks/archive_scan'
-import './tasks/save'
-import './tasks/seed'
+import './tasks/esm_fix.cjs'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
