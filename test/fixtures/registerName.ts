@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { Address, Hex, zeroAddress } from 'viem'
 import { EnsStack } from './deployEnsFixture.js'
 
-type Mutable<T> = {
+export type Mutable<T> = {
   -readonly [K in keyof T]: Mutable<T[K]>
 }
 

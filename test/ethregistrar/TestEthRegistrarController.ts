@@ -4,13 +4,13 @@ import hre from 'hardhat'
 import {
   Address,
   encodeFunctionData,
-  getAddress,
   hexToBigInt,
   labelhash,
   namehash,
   zeroAddress,
   zeroHash,
 } from 'viem'
+import { getReverseNode } from '../fixtures/getReverseNode.js'
 import {
   commitName,
   getDefaultRegistrationOptions,
@@ -51,7 +51,6 @@ const getAccounts = async () => {
 }
 
 const labelId = (label: string) => hexToBigInt(labelhash(label))
-const getReverseNode = (address: Address) => `${address.slice(2)}.addr.reverse`
 
 async function fixture() {
   const publicClient = await hre.viem.getPublicClient()
@@ -294,24 +293,24 @@ describe('ETHRegistrarController', () => {
     ).resolves.toEqual(REGISTRATION_TIME)
 
     const nodehash = namehash('newconfigname.eth')
-    await expect(ensRegistry.read.resolver([nodehash])).resolves.toEqual(
-      getAddress(publicResolver.address),
+    await expect(ensRegistry.read.resolver([nodehash])).resolves.toEqualAddress(
+      publicResolver.address,
     )
-    await expect(ensRegistry.read.owner([nodehash])).resolves.toEqual(
-      getAddress(nameWrapper.address),
+    await expect(ensRegistry.read.owner([nodehash])).resolves.toEqualAddress(
+      nameWrapper.address,
     )
     await expect(
       baseRegistrar.read.ownerOf([labelId('newconfigname')]),
-    ).resolves.toEqual(getAddress(nameWrapper.address))
+    ).resolves.toEqualAddress(nameWrapper.address)
     await expect(
       publicResolver.read.addr([nodehash]) as Promise<Address>,
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
     await expect(publicResolver.read.text([nodehash, 'url'])).resolves.toEqual(
       'ethereum.com',
     )
     await expect(
       nameWrapper.read.ownerOf([hexToBigInt(nodehash)]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
   })
 
   it('should not permit new registrations with data and 0 resolver', async () => {
@@ -466,8 +465,8 @@ describe('ETHRegistrarController', () => {
       )
 
     const nodehash = namehash('newconfigname.eth')
-    await expect(ensRegistry.read.resolver([nodehash])).resolves.toEqual(
-      getAddress(publicResolver.address),
+    await expect(ensRegistry.read.resolver([nodehash])).resolves.toEqualAddress(
+      publicResolver.address,
     )
     await expect<Promise<Address>>(
       publicResolver.read.addr([nodehash]),
@@ -679,8 +678,8 @@ describe('ETHRegistrarController', () => {
     await expect(
       nameWrapper.read.ownerOf([hexToBigInt(nodehash)]),
     ).resolves.toEqual(zeroAddress)
-    await expect(baseRegistrar.read.ownerOf([tokenId])).resolves.toEqual(
-      getAddress(ownerAccount.address),
+    await expect(baseRegistrar.read.ownerOf([tokenId])).resolves.toEqualAddress(
+      ownerAccount.address,
     )
 
     const expires = await baseRegistrar.read.nameExpires([tokenId])
@@ -692,8 +691,8 @@ describe('ETHRegistrarController', () => {
       value: price,
     })
 
-    await expect(baseRegistrar.read.ownerOf([tokenId])).resolves.toEqual(
-      getAddress(ownerAccount.address),
+    await expect(baseRegistrar.read.ownerOf([tokenId])).resolves.toEqualAddress(
+      ownerAccount.address,
     )
     await expect(
       nameWrapper.read.ownerOf([hexToBigInt(nodehash)]),
@@ -800,14 +799,14 @@ describe('ETHRegistrarController', () => {
 
     await expect(
       nameWrapper.read.ownerOf([hexToBigInt(namehash(name))]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
 
-    await expect(ensRegistry.read.owner([namehash(name)])).resolves.toEqual(
-      getAddress(nameWrapper.address),
-    )
-    await expect(baseRegistrar.read.ownerOf([labelId(label)])).resolves.toEqual(
-      getAddress(nameWrapper.address),
-    )
+    await expect(
+      ensRegistry.read.owner([namehash(name)]),
+    ).resolves.toEqualAddress(nameWrapper.address)
+    await expect(
+      baseRegistrar.read.ownerOf([labelId(label)]),
+    ).resolves.toEqualAddress(nameWrapper.address)
   })
 
   it('should auto wrap the name and allow fuses and expiry to be set', async () => {
@@ -904,16 +903,16 @@ describe('ETHRegistrarController', () => {
 
     await expect(
       nameWrapper.read.ownerOf([hexToBigInt(node)]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
-    await expect(ensRegistry.read.owner([node])).resolves.toEqual(
-      getAddress(nameWrapper.address),
+    ).resolves.toEqualAddress(registrantAccount.address)
+    await expect(ensRegistry.read.owner([node])).resolves.toEqualAddress(
+      nameWrapper.address,
     )
-    await expect(baseRegistrar.read.ownerOf([labelId(label)])).resolves.toEqual(
-      getAddress(nameWrapper.address),
-    )
+    await expect(
+      baseRegistrar.read.ownerOf([labelId(label)]),
+    ).resolves.toEqualAddress(nameWrapper.address)
     await expect<Promise<Address>>(
       publicResolver.read.addr([node]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
   })
 
   it('should not permit new registrations with non resolver function calls', async () => {

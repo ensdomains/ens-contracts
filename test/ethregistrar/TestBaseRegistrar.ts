@@ -1,14 +1,7 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import {
-  getAddress,
-  hexToBigInt,
-  labelhash,
-  namehash,
-  zeroAddress,
-  zeroHash,
-} from 'viem'
+import { hexToBigInt, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
 
 const getAccounts = async () => {
   const [ownerClient, controllerClient, registrantClient, otherClient] =
@@ -78,10 +71,10 @@ describe('BaseRegistrar', () => {
 
     await expect(
       ensRegistry.read.owner([namehash('newname.eth')]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
       baseRegistrar.read.ownerOf([labelId('newname')]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
       baseRegistrar.read.nameExpires([labelId('newname')]),
     ).resolves.toEqual(block.timestamp + 86400n)
@@ -107,10 +100,10 @@ describe('BaseRegistrar', () => {
 
     await expect(
       ensRegistry.read.owner([namehash('silentname.eth')]),
-    ).resolves.toEqual(zeroAddress)
+    ).resolves.toEqualAddress(zeroAddress)
     await expect(
       baseRegistrar.read.ownerOf([labelId('silentname')]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
       baseRegistrar.read.nameExpires([labelId('silentname')]),
     ).resolves.toEqual(block.timestamp + 86400n)
@@ -196,7 +189,7 @@ describe('BaseRegistrar', () => {
 
     await expect(
       ensRegistry.read.owner([namehash('newname.eth')]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
   })
 
   it('should prohibit anyone else from reclaiming a name', async () => {
@@ -227,10 +220,10 @@ describe('BaseRegistrar', () => {
 
     await expect(
       baseRegistrar.read.ownerOf([labelId('newname')]),
-    ).resolves.toEqual(getAddress(otherAccount.address))
+    ).resolves.toEqualAddress(otherAccount.address)
     await expect(
       ensRegistry.read.owner([namehash('newname.eth')]),
-    ).resolves.toEqual(getAddress(registrantAccount.address))
+    ).resolves.toEqualAddress(registrantAccount.address)
 
     await baseRegistrar.write.transferFrom(
       [otherAccount.address, registrantAccount.address, labelId('newname')],
@@ -320,7 +313,7 @@ describe('BaseRegistrar', () => {
 
     await expect(
       baseRegistrar.read.ownerOf([labelId('newname')]),
-    ).resolves.toEqual(getAddress(otherAccount.address))
+    ).resolves.toEqualAddress(otherAccount.address)
   })
 
   it('should allow the owner to set a resolver address', async () => {
@@ -331,8 +324,8 @@ describe('BaseRegistrar', () => {
       account: ownerAccount,
     })
 
-    await expect(ensRegistry.read.resolver([namehash('eth')])).resolves.toEqual(
-      getAddress(controllerAccount.address),
-    )
+    await expect(
+      ensRegistry.read.resolver([namehash('eth')]),
+    ).resolves.toEqualAddress(controllerAccount.address)
   })
 })
