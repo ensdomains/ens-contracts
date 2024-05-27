@@ -1,7 +1,8 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { hexToBigInt, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+import { toLabelId } from '../fixtures/utils.js'
 
 const getAccounts = async () => {
   const [ownerClient, controllerClient, registrantClient, otherClient] =
@@ -40,15 +41,13 @@ async function fixture() {
 async function fixtureWithRegistration() {
   const existing = await loadFixture(fixture)
   await existing.baseRegistrar.write.register(
-    [labelId('newname'), existing.registrantAccount.address, 86400n],
+    [toLabelId('newname'), existing.registrantAccount.address, 86400n],
     {
       account: existing.controllerAccount,
     },
   )
   return existing
 }
-
-const labelId = (label: string) => hexToBigInt(labelhash(label))
 
 describe('BaseRegistrar', () => {
   it('should allow new registrations', async () => {
@@ -61,7 +60,7 @@ describe('BaseRegistrar', () => {
     } = await loadFixture(fixture)
 
     const hash = await baseRegistrar.write.register(
-      [labelId('newname'), registrantAccount.address, 86400n],
+      [toLabelId('newname'), registrantAccount.address, 86400n],
       {
         account: controllerAccount,
       },
@@ -73,10 +72,10 @@ describe('BaseRegistrar', () => {
       ensRegistry.read.owner([namehash('newname.eth')]),
     ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
-      baseRegistrar.read.ownerOf([labelId('newname')]),
+      baseRegistrar.read.ownerOf([toLabelId('newname')]),
     ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
-      baseRegistrar.read.nameExpires([labelId('newname')]),
+      baseRegistrar.read.nameExpires([toLabelId('newname')]),
     ).resolves.toEqual(block.timestamp + 86400n)
   })
 
@@ -90,7 +89,7 @@ describe('BaseRegistrar', () => {
     } = await loadFixture(fixture)
 
     const hash = await baseRegistrar.write.registerOnly(
-      [labelId('silentname'), registrantAccount.address, 86400n],
+      [toLabelId('silentname'), registrantAccount.address, 86400n],
       {
         account: controllerAccount,
       },
@@ -102,10 +101,10 @@ describe('BaseRegistrar', () => {
       ensRegistry.read.owner([namehash('silentname.eth')]),
     ).resolves.toEqualAddress(zeroAddress)
     await expect(
-      baseRegistrar.read.ownerOf([labelId('silentname')]),
+      baseRegistrar.read.ownerOf([toLabelId('silentname')]),
     ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
-      baseRegistrar.read.nameExpires([labelId('silentname')]),
+      baseRegistrar.read.nameExpires([toLabelId('silentname')]),
     ).resolves.toEqual(block.timestamp + 86400n)
   })
 
@@ -115,15 +114,15 @@ describe('BaseRegistrar', () => {
     )
 
     const oldExpires = await baseRegistrar.read.nameExpires([
-      labelId('newname'),
+      toLabelId('newname'),
     ])
 
-    await baseRegistrar.write.renew([labelId('newname'), 86400n], {
+    await baseRegistrar.write.renew([toLabelId('newname'), 86400n], {
       account: controllerAccount,
     })
 
     await expect(
-      baseRegistrar.read.nameExpires([labelId('newname')]),
+      baseRegistrar.read.nameExpires([toLabelId('newname')]),
     ).resolves.toEqual(oldExpires + 86400n)
   })
 
@@ -131,7 +130,7 @@ describe('BaseRegistrar', () => {
     const { baseRegistrar, otherAccount } = await loadFixture(fixture)
 
     await expect(baseRegistrar)
-      .write('register', [labelId('foo'), otherAccount.address, 86400n], {
+      .write('register', [toLabelId('foo'), otherAccount.address, 86400n], {
         account: otherAccount,
       })
       .toBeRevertedWithoutReason()
@@ -141,7 +140,7 @@ describe('BaseRegistrar', () => {
     const { baseRegistrar, otherAccount } = await loadFixture(fixture)
 
     await expect(baseRegistrar)
-      .write('renew', [labelId('foo'), 86400n], {
+      .write('renew', [toLabelId('foo'), 86400n], {
         account: otherAccount,
       })
       .toBeRevertedWithoutReason()
@@ -154,7 +153,7 @@ describe('BaseRegistrar', () => {
     await expect(baseRegistrar)
       .write(
         'register',
-        [labelId('newname'), registrantAccount.address, 86400n],
+        [toLabelId('newname'), registrantAccount.address, 86400n],
         {
           account: controllerAccount,
         },
@@ -166,7 +165,7 @@ describe('BaseRegistrar', () => {
     const { baseRegistrar, controllerAccount } = await loadFixture(fixture)
 
     await expect(baseRegistrar)
-      .write('renew', [labelId('newname'), 86400n], {
+      .write('renew', [toLabelId('newname'), 86400n], {
         account: controllerAccount,
       })
       .toBeRevertedWithoutReason()
@@ -181,7 +180,7 @@ describe('BaseRegistrar', () => {
       account: registrantAccount,
     })
     await baseRegistrar.write.reclaim(
-      [labelId('newname'), registrantAccount.address],
+      [toLabelId('newname'), registrantAccount.address],
       {
         account: registrantAccount,
       },
@@ -201,7 +200,7 @@ describe('BaseRegistrar', () => {
     })
 
     await expect(baseRegistrar)
-      .write('reclaim', [labelId('newname'), registrantAccount.address], {
+      .write('reclaim', [toLabelId('newname'), registrantAccount.address], {
         account: otherAccount,
       })
       .toBeRevertedWithoutReason()
@@ -212,21 +211,21 @@ describe('BaseRegistrar', () => {
       await loadFixture(fixtureWithRegistration)
 
     await baseRegistrar.write.transferFrom(
-      [registrantAccount.address, otherAccount.address, labelId('newname')],
+      [registrantAccount.address, otherAccount.address, toLabelId('newname')],
       {
         account: registrantAccount,
       },
     )
 
     await expect(
-      baseRegistrar.read.ownerOf([labelId('newname')]),
+      baseRegistrar.read.ownerOf([toLabelId('newname')]),
     ).resolves.toEqualAddress(otherAccount.address)
     await expect(
       ensRegistry.read.owner([namehash('newname.eth')]),
     ).resolves.toEqualAddress(registrantAccount.address)
 
     await baseRegistrar.write.transferFrom(
-      [otherAccount.address, registrantAccount.address, labelId('newname')],
+      [otherAccount.address, registrantAccount.address, toLabelId('newname')],
       {
         account: otherAccount,
       },
@@ -241,7 +240,7 @@ describe('BaseRegistrar', () => {
     await expect(baseRegistrar)
       .write(
         'transferFrom',
-        [otherAccount.address, otherAccount.address, labelId('newname')],
+        [otherAccount.address, otherAccount.address, toLabelId('newname')],
         {
           account: otherAccount,
         },
@@ -260,7 +259,7 @@ describe('BaseRegistrar', () => {
     await expect(baseRegistrar)
       .write(
         'transferFrom',
-        [registrantAccount.address, otherAccount.address, labelId('newname')],
+        [registrantAccount.address, otherAccount.address, toLabelId('newname')],
         {
           account: registrantAccount,
         },
@@ -268,7 +267,7 @@ describe('BaseRegistrar', () => {
       .toBeRevertedWithoutReason()
 
     await expect(baseRegistrar)
-      .write('reclaim', [labelId('newname'), registrantAccount.address], {
+      .write('reclaim', [toLabelId('newname'), registrantAccount.address], {
         account: registrantAccount,
       })
       .toBeRevertedWithoutReason()
@@ -283,7 +282,7 @@ describe('BaseRegistrar', () => {
     await testClient.increaseTime({ seconds: 86400 + 3600 })
     await testClient.mine({ blocks: 1 })
 
-    await baseRegistrar.write.renew([labelId('newname'), 86400n], {
+    await baseRegistrar.write.renew([toLabelId('newname'), 86400n], {
       account: controllerAccount,
     })
   })
@@ -301,18 +300,18 @@ describe('BaseRegistrar', () => {
     await testClient.mine({ blocks: 1 })
 
     await expect(baseRegistrar)
-      .read('ownerOf', [labelId('newname')])
+      .read('ownerOf', [toLabelId('newname')])
       .toBeRevertedWithoutReason()
 
     await baseRegistrar.write.register(
-      [labelId('newname'), otherAccount.address, 86400n],
+      [toLabelId('newname'), otherAccount.address, 86400n],
       {
         account: controllerAccount,
       },
     )
 
     await expect(
-      baseRegistrar.read.ownerOf([labelId('newname')]),
+      baseRegistrar.read.ownerOf([toLabelId('newname')]),
     ).resolves.toEqualAddress(otherAccount.address)
   })
 

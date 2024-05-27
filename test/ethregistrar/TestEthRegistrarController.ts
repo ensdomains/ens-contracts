@@ -10,6 +10,7 @@ import {
   zeroAddress,
   zeroHash,
 } from 'viem'
+import { DAY, FUSES } from '../fixtures/constants.js'
 import { getReverseNode } from '../fixtures/getReverseNode.js'
 import {
   commitName,
@@ -18,24 +19,9 @@ import {
   registerName,
 } from '../fixtures/registerName.js'
 
-const DAY = 24n * 60n * 60n
 const REGISTRATION_TIME = 28n * DAY
 const BUFFERED_REGISTRATION_COST = REGISTRATION_TIME + 3n * DAY
 const GRACE_PERIOD = 90n * DAY
-
-const FUSES = {
-  CAN_DO_EVERYTHING: 0,
-  CANNOT_UNWRAP: 1,
-  CANNOT_BURN_FUSES: 2,
-  CANNOT_TRANSFER: 4,
-  CANNOT_SET_RESOLVER: 8,
-  CANNOT_SET_TTL: 16,
-  CANNOT_CREATE_SUBDOMAIN: 32,
-  CANNOT_APPROVE: 64,
-  PARENT_CANNOT_CONTROL: 2 ** 16,
-  IS_DOT_ETH: 2 ** 17,
-  CAN_EXTEND_EXPIRY: 2 ** 18,
-} as const
 
 const getAccounts = async () => {
   const [ownerClient, registrantClient, otherClient] =
