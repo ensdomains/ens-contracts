@@ -12,6 +12,7 @@ import {
   labelhash,
   namehash,
   parseAbiItem,
+  parseAbiParameters,
   toFunctionSelector,
   zeroAddress,
   zeroHash,
@@ -19,6 +20,7 @@ import {
   type Hex,
   type ReadContractReturnType,
 } from 'viem'
+import { encodedRealAnchors } from '../fixtures/anchors.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import {
   getReverseNode,
@@ -66,16 +68,17 @@ async function fixture() {
     .getWalletClients()
     .then((clients) => clients.map((c) => c.account))
   const ensRegistry = await hre.viem.deployContract('ENSRegistry', [])
+  const root = await hre.viem.deployContract('Root', [ensRegistry.address])
   const nameWrapper = await hre.viem.deployContract('DummyNameWrapper', [])
   const reverseRegistrar = await hre.viem.deployContract('ReverseRegistrar', [
     ensRegistry.address,
   ])
 
-  await ensRegistry.write.setSubnodeOwner([
-    zeroHash,
-    labelhash('reverse'),
-    accounts[0].address,
-  ])
+  await root.write.setController([accounts[0].address, true])
+  await ensRegistry.write.setOwner([zeroHash, root.address])
+
+  await root.write.setSubnodeOwner([labelhash('reverse'), accounts[0].address])
+  await root.write.setSubnodeOwner([labelhash('eth'), accounts[0].address])
   await ensRegistry.write.setSubnodeOwner([
     namehash('reverse'),
     labelhash('addr'),
@@ -119,11 +122,6 @@ async function fixture() {
     ])
   }
 
-  await ensRegistry.write.setSubnodeOwner([
-    zeroHash,
-    labelhash('eth'),
-    accounts[0].address,
-  ])
   await ensRegistry.write.setSubnodeRecord([
     namehash('eth'),
     labelhash('test'),
@@ -213,6 +211,7 @@ async function fixture() {
     legacyResolver,
     accounts,
     batchGatewayAbi,
+    root,
   }
 }
 
@@ -585,6 +584,103 @@ describe('UniversalResolver', () => {
           ['http://universal-offchain-resolver.local'],
           queryCalldata,
           toFunctionSelector('function resolveCallback(bytes,bytes)'),
+          extraData,
+        )
+    })
+
+    it('should revert OffchainLookup via UniversalResolver + OffchainDNSResolver', async () => {
+      const {
+        universalResolver,
+        batchGatewayAbi,
+        publicResolver,
+        ensRegistry,
+        root,
+        accounts,
+      } = await loadFixture(fixture)
+
+      const OFFCHAIN_DNS_GATEWAY = 'https://localhost:8000/lookup'
+
+      const dnssec = await hre.viem.deployContract('DNSSECImpl', [
+        encodedRealAnchors,
+      ])
+      const suffixes = await hre.viem.deployContract(
+        'SimplePublicSuffixList',
+        [],
+      )
+      const dnsGatewayAbi = await hre.artifacts
+        .readArtifact('IDNSGateway')
+        .then(({ abi }) => abi)
+
+      await suffixes.write.addPublicSuffixes([[dnsEncodeName('test')]])
+
+      const offchainDnsResolver = await hre.viem.deployContract(
+        'OffchainDNSResolver',
+        [ensRegistry.address, dnssec.address, OFFCHAIN_DNS_GATEWAY],
+      )
+      const dnsRegistrar = await hre.viem.deployContract('DNSRegistrar', [
+        zeroAddress, // Previous registrar
+        offchainDnsResolver.address,
+        dnssec.address,
+        suffixes.address,
+        ensRegistry.address,
+      ])
+
+      await root.write.setController([dnsRegistrar.address, true])
+
+      await dnsRegistrar.write.enableNode([dnsEncodeName('test')])
+
+      const name = 'test.test'
+
+      const addrCall = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [namehash(name)],
+      })
+      const innerCalldata = encodeFunctionData({
+        abi: dnsGatewayAbi,
+        functionName: 'resolve',
+        args: [dnsEncodeName(name), 16],
+      })
+      const queryCalldata = encodeFunctionData({
+        abi: batchGatewayAbi,
+        functionName: 'query',
+        args: [
+          [
+            {
+              sender: offchainDnsResolver.address,
+              callData: innerCalldata,
+              urls: [OFFCHAIN_DNS_GATEWAY],
+            },
+          ],
+        ],
+      })
+      const innerExtraData = encodeAbiParameters(
+        parseAbiParameters('bytes, bytes, bytes4'),
+        [dnsEncodeName(name), addrCall, '0x00000000'],
+      )
+      const extraData = encodeExtraData({
+        isWildcard: true,
+        resolver: offchainDnsResolver.address,
+        gateways: ['http://universal-offchain-resolver.local'],
+        metadata: '0x',
+        extraDatas: [
+          {
+            callbackFunction: toFunctionSelector(
+              'function resolveCallback(bytes,bytes)',
+            ),
+            data: innerExtraData,
+          },
+        ],
+      })
+
+      await expect(universalResolver)
+        .read('resolve', [dnsEncodeName(name), addrCall])
+        .toBeRevertedWithCustomError('OffchainLookup')
+        .withArgs(
+          getAddress(universalResolver.address),
+          ['http://universal-offchain-resolver.local'],
+          queryCalldata,
+          toFunctionSelector('function resolveSingleCallback(bytes,bytes)'),
           extraData,
         )
     })

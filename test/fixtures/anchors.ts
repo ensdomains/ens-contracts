@@ -51,3 +51,7 @@ export const testEntries = [...realEntries, dummyEntry] as const
 export const encodedAnchors = `0x${testEntries
   .map((entry) => packet.answer.encode(entry).toString('hex'))
   .join('')}` as const
+
+export const encodedRealAnchors = `0x${realEntries
+  .map((entry) => packet.answer.encode(entry).toString('hex'))
+  .join('')}` as const
