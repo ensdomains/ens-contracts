@@ -5,7 +5,10 @@ import { labelhash, namehash, zeroHash } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 
 async function fixture() {
-  const bytesUtils = await hre.viem.deployContract('TestBytesUtils', [])
+  const bytesUtils = await hre.viem.deployContract(
+    'contracts/utils/TestBytesUtils.sol:TestBytesUtils',
+    [],
+  )
 
   return { bytesUtils }
 }
