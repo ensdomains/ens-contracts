@@ -2,7 +2,7 @@ const { utils, BigNumber: BN } = ethers
 const packet = require('dns-packet')
 
 const labelhash = (label) => utils.keccak256(utils.toUtf8Bytes(label))
-const { namehash } = require('viem/ens').hash
+const { namehash } = require('viem/ens')
 function encodeName(name) {
   return '0x' + packet.name.encode(name).toString('hex')
 }

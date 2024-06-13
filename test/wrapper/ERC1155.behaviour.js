@@ -2,7 +2,7 @@
 // Copyright (c) 2016-2020 zOS Global Limited
 // Portions Copyright (c) 2021 Nick Johnson
 
-const { namehash } = require('viem/ens').hash
+const { namehash } = require('viem/ens')
 const { BN, constants, expectEvent } = require('@openzeppelin/test-helpers')
 const { ZERO_ADDRESS } = constants
 const { ethers } = require('hardhat')

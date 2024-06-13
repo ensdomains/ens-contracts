@@ -2,7 +2,7 @@ const packet = require('dns-packet')
 const { expect } = require('chai')
 const { ethers } = require('hardhat')
 const { utils, BigNumber: BN } = ethers
-const { namehash } = require('viem/ens').hash
+const { namehash } = require('viem/ens')
 
 const NULL_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000'
