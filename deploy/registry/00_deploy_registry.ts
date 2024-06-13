@@ -1,5 +1,5 @@
 import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const ZERO_HASH =

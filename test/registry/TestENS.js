@@ -1,4 +1,4 @@
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 
 const { exceptions } = require('../test-utils')
@@ -86,7 +86,7 @@ contracts.forEach(function ([ENS, lang]) {
         from: accounts[0],
       })
 
-      assert.equal(await ens.owner(namehash.hash('eth')), accounts[1])
+      assert.equal(await ens.owner(namehash('eth')), accounts[1])
 
       assert.equal(result.logs.length, 1)
       let args = result.logs[0].args

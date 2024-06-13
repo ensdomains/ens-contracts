@@ -2,7 +2,7 @@ const TestRegistrar = artifacts.require('./registry/TestRegistrar.sol')
 const ENS = artifacts.require('./registry/ENSRegistry.sol')
 
 const { exceptions, evm } = require('../test-utils')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 
 contract('TestRegistrar', function (accounts) {
@@ -10,7 +10,7 @@ contract('TestRegistrar', function (accounts) {
   let registrar, ens
 
   beforeEach(async () => {
-    node = namehash.hash('eth')
+    node = namehash('eth')
 
     ens = await ENS.new()
     registrar = await TestRegistrar.new(ens.address, '0x0')

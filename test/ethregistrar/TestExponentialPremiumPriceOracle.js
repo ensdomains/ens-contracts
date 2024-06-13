@@ -1,5 +1,5 @@
 const { expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
 
@@ -26,7 +26,7 @@ contract('ExponentialPricePremiumOracle', function (accounts) {
 
   before(async () => {
     ens = await ENS.new()
-    registrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'))
+    registrar = await BaseRegistrar.new(ens.address, namehash('eth'))
     await ens.setSubnodeOwner('0x0', sha3('eth'), registrar.address)
     await registrar.addController(accounts[0])
 

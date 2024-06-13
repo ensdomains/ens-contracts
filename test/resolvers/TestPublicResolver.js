@@ -9,7 +9,7 @@ const {
 } = require('../test-utils/constants')
 
 const { expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 
 const { exceptions } = require('../test-utils')
@@ -24,7 +24,7 @@ contract('PublicResolver', function (accounts) {
   beforeEach(async () => {
     signers = await ethers.getSigners()
     account = await signers[0].getAddress()
-    node = namehash.hash('eth')
+    node = namehash('eth')
     ens = await ENS.new()
     nameWrapper = await NameWrapper.new()
 
@@ -34,7 +34,7 @@ contract('PublicResolver', function (accounts) {
 
     await ens.setSubnodeOwner(ROOT_NODE, labelhash('reverse'), account)
     await ens.setSubnodeOwner(
-      namehash.hash('reverse'),
+      namehash('reverse'),
       labelhash('addr'),
       ReverseRegistrar.address,
     )
@@ -1033,7 +1033,7 @@ contract('PublicResolver', function (accounts) {
 
     it('returns 0 when fetching unset interface', async () => {
       assert.equal(
-        await resolver.interfaceImplementer(namehash.hash('foo'), '0x12345678'),
+        await resolver.interfaceImplementer(namehash('foo'), '0x12345678'),
         '0x0000000000000000000000000000000000000000',
       )
     })

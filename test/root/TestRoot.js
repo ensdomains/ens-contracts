@@ -2,7 +2,7 @@ const Root = artifacts.require('./Root.sol')
 const ENS = artifacts.require('@ensdomains/ens/contracts/ENSRegistry.sol')
 
 const { exceptions, evm } = require('@ensdomains/test-utils')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('js-sha3').keccak_256
 
 contract('Root', function (accounts) {
@@ -12,7 +12,7 @@ contract('Root', function (accounts) {
   let now = Math.round(new Date().getTime() / 1000)
 
   beforeEach(async function () {
-    node = namehash.hash('eth')
+    node = namehash('eth')
 
     ens = await ENS.new()
     root = await Root.new(ens.address)

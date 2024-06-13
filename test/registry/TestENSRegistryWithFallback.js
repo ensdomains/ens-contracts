@@ -1,4 +1,4 @@
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 
 const ENS = artifacts.require('ENSRegistryWithFallback.sol')
@@ -35,7 +35,7 @@ contract('ENSRegistryWithFallback', function (accounts) {
       { from: accounts[0] },
     )
 
-    let hash = namehash.hash('test')
+    let hash = namehash('test')
     assert.equal(await ens.owner(hash), accounts[1])
     assert.equal(await ens.resolver(hash), accounts[2])
     assert.equal((await ens.ttl(hash)).toNumber(), 3600)
@@ -48,7 +48,7 @@ contract('ENSRegistryWithFallback', function (accounts) {
   })
 
   describe('fallback', async () => {
-    let hash = namehash.hash('eth')
+    let hash = namehash('eth')
 
     beforeEach(async () => {
       await old.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
@@ -57,7 +57,7 @@ contract('ENSRegistryWithFallback', function (accounts) {
     })
 
     it('should use fallback ttl if owner not set', async () => {
-      let hash = namehash.hash('eth')
+      let hash = namehash('eth')
       await old.setSubnodeOwner('0x0', sha3('eth'), accounts[0], {
         from: accounts[0],
       })

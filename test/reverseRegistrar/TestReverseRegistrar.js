@@ -1,4 +1,4 @@
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 const PublicResolver = artifacts.require('./resolvers/PublicResolver.sol')
 const ReverseRegistrar = artifacts.require('./registry/ReverseRegistrar.sol')
@@ -36,7 +36,7 @@ contract('ReverseRegistrar', function (accounts) {
       from: accounts[0],
     })
     await ens.setSubnodeOwner(
-      namehash.hash('reverse'),
+      namehash('reverse'),
       sha3('addr'),
       registrar.address,
       { from: accounts[0] },

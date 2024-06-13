@@ -1,10 +1,7 @@
-import fs from 'fs'
-
-import * as envfile from 'envfile'
-import n from 'eth-ens-namehash'
+import { namehash } from 'viem/ens'
+import * as dotenv from 'dotenv'
 import { task } from 'hardhat/config'
 
-const namehash = n.hash
 const labelhash = (utils: any, label: string) =>
   utils.keccak256(utils.toUtf8Bytes(label))
 
@@ -16,18 +13,13 @@ function getOpenSeaUrl(ethers: any, contract: string, namehashedname: string) {
 task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
   .addPositionalParam('name', 'The ENS label to seed subdomains')
   .setAction(async ({ name }, hre) => {
-    let parsedFile
-    try {
-      parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        throw error
-      }
-      console.warn(
-        '.env file is empty, fill as in README to complete seed action',
-      )
-      return
-    }
+    const { parsed: parsedFile, error } = dotenv.config({
+      path: './.env',
+      encoding: 'utf8',
+    })
+
+    if (error) throw error
+
     const ethers = hre.ethers
     const [deployer] = await ethers.getSigners()
     const CAN_DO_EVERYTHING = 0

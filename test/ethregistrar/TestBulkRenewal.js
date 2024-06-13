@@ -9,13 +9,13 @@ const NameWrapper = artifacts.require('./wrapper/NameWrapper.sol')
 const { deploy } = require('../test-utils/contracts')
 const { EMPTY_BYTES32: EMPTY_BYTES } = require('../test-utils/constants')
 
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 const toBN = require('web3-utils').toBN
 const { exceptions } = require('../test-utils')
 
 const ETH_LABEL = sha3('eth')
-const ETH_NAMEHASH = namehash.hash('eth')
+const ETH_NAMEHASH = namehash('eth')
 
 contract('BulkRenewal', function (accounts) {
   let ens
@@ -35,7 +35,7 @@ contract('BulkRenewal', function (accounts) {
     // Create a registry
     ens = await ENS.new()
     // Create a base registrar
-    baseRegistrar = await BaseRegistrar.new(ens.address, namehash.hash('eth'), {
+    baseRegistrar = await BaseRegistrar.new(ens.address, namehash('eth'), {
       from: ownerAccount,
     })
 
@@ -44,7 +44,7 @@ contract('BulkRenewal', function (accounts) {
 
     await ens.setSubnodeOwner(EMPTY_BYTES, sha3('reverse'), accounts[0])
     await ens.setSubnodeOwner(
-      namehash.hash('reverse'),
+      namehash('reverse'),
       sha3('addr'),
       reverseRegistrar.address,
     )

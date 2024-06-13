@@ -1,7 +1,7 @@
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 
 function getReverseNode(addr) {
-  return namehash.hash(addr.slice(2).toLowerCase() + '.addr.reverse')
+  return namehash(addr.slice(2).toLowerCase() + '.addr.reverse')
 }
 module.exports = {
   getReverseNode,

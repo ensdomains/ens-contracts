@@ -38,13 +38,12 @@
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
     "elliptic-solidity": "^1.0.0",
-    "envfile": "^6.17.0",
     "ethereum-waffle": "^3.3.0",
     "ethers": "^5.6.1",
     "hardhat": "^2.22.2",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
-    "hardhat-deploy": "^0.11.10",
+    "hardhat-deploy": "^0.12.4",
     "hardhat-gas-reporter": "^1.0.4",
     "husky": "^8.0.0",
     "prettier": "^2.6.2",
@@ -79,5 +78,6 @@
   "homepage": "https://github.com/ensdomains/ens-contracts#readme",
   "volta": {
     "node": "16.20.2"
-  }
+  },
+  "packageManager": "yarn@1.22.22+sha1.ac34549e6aa8e7ead463a7407e1c7390f61a6610"
 }
