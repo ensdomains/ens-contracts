@@ -1,33 +1,20 @@
-const https = require('https')
-const fs = require('fs')
-const path = require('path')
+import * as fs from 'fs'
+import * as path from 'path'
 
-const SUPPORTED_CHAINS = ['mainnet', 'sepolia', 'holesky']
+const SUPPORTED_CHAINS = ['mainnet', 'sepolia', 'holesky'] as const
 //Updates to the wiki take 5 minutes to show up on this URL
 const WIKI_DEPLOYMENTS_URL =
   'https://raw.githubusercontent.com/wiki/ensdomains/ens-contracts/ENS-Contract-Deployments.md'
 
-const getRawWikiData = (url) => {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      let data = ''
-
-      res.on('data', (chunk) => {
-        data += chunk
-      })
-
-      res.on('end', () => {
-        resolve(data)
-      })
-
-      res.on('error', (err) => {
-        reject(err)
-      })
-    })
-  })
+type CheckChainParameters = {
+  chainIndex: number
+  lines: string[]
 }
 
-const getChainDeploymentsFromWiki = (chainIndex, lines) => {
+const getChainDeploymentsFromWiki = ({
+  chainIndex,
+  lines,
+}: CheckChainParameters) => {
   const chainName = SUPPORTED_CHAINS[chainIndex]
   const indexOfChain = lines.findIndex((line) => line.includes(chainName))
   const indexOfNextChain = lines.findIndex(
@@ -48,13 +35,18 @@ const getChainDeploymentsFromWiki = (chainIndex, lines) => {
   return chainDeployments
 }
 
-const checkDeployment = (
+const checkDeployment = async ({
   chainName,
   deploymentFilenames,
   wikiDeployments,
-  i,
-) => {
-  const deploymentFilename = deploymentFilenames[i]
+  deploymentIndex,
+}: {
+  chainName: (typeof SUPPORTED_CHAINS)[number]
+  deploymentFilenames: string[]
+  wikiDeployments: string[]
+  deploymentIndex: number
+}) => {
+  const deploymentFilename = deploymentFilenames[deploymentIndex]
 
   const wikiDeploymentString = wikiDeployments.find((wikiDeployment) => {
     const wikiDeploymentName = wikiDeployment.split('|')[1].trim()
@@ -65,6 +57,11 @@ const checkDeployment = (
     return match && match?.[0] === match?.input
   })
 
+  if (!wikiDeploymentString)
+    throw new Error(
+      `Deployment ${deploymentIndex} not found in wiki for ${chainName}`,
+    )
+
   const wikiDeploymentAddress = wikiDeploymentString.substring(
     wikiDeploymentString.indexOf('[') + 1,
     wikiDeploymentString.lastIndexOf(']'),
@@ -74,36 +71,37 @@ const checkDeployment = (
     wikiDeploymentString.lastIndexOf(')'),
   )
 
-  const deployment = require(`./deployments/${chainName}/${deploymentFilename}`)
+  const deployment = await import(
+    `../deployments/${chainName}/${deploymentFilename}`
+  )
 
   if (deployment.address !== wikiDeploymentAddress) {
     throw new Error(
-      `Deployment ${i} in wiki and in the repository do not match for ${chainName}. Wiki: ${wikiDeploymentAddress}, Deployment: ${deployment.address}`,
+      `Deployment ${deploymentIndex} in wiki and in the repository do not match for ${chainName}. Wiki: ${wikiDeploymentAddress}, Deployment: ${deployment.address}`,
     )
   }
 
   if (deployment.address !== wikiEtherscanAddress) {
     throw new Error(
-      `Etherscan address ${i} in wiki and in the repository do not match for ${chainName}. Wiki Etherscan: ${wikiEtherscanAddress}, Deployment: ${deployment.address}`,
+      `Etherscan address ${deploymentIndex} in wiki and in the repository do not match for ${chainName}. Wiki Etherscan: ${wikiEtherscanAddress}, Deployment: ${deployment.address}`,
     )
   }
 }
 
-const checkChain = async (chainIndex, lines) => {
+const checkChain = async ({ chainIndex, lines }: CheckChainParameters) => {
   const chainName = SUPPORTED_CHAINS[chainIndex]
-  const directoryPath = path.join(__dirname, 'deployments', chainName)
-
-  let deploymentFilenames = []
+  const directoryPath = path.resolve(__dirname, '../', 'deployments', chainName)
 
   const files = await fs.promises.readdir(directoryPath)
-  const jsonFiles = files.filter(
-    (file) => path.extname(file).toLowerCase() === '.json',
-  )
+  const deploymentFilenames = files.filter((file) => {
+    // Don't include migrations file
+    if (file.startsWith('.')) return false
+    if (path.extname(file).toLowerCase() !== '.json') return false
 
-  //Don't include migrations file
-  deploymentFilenames = jsonFiles.slice(1)
+    return true
+  })
 
-  const wikiDeployments = getChainDeploymentsFromWiki(chainIndex, lines)
+  const wikiDeployments = getChainDeploymentsFromWiki({ chainIndex, lines })
 
   if (wikiDeployments.length !== deploymentFilenames.length) {
     throw new Error(
@@ -112,19 +110,20 @@ const checkChain = async (chainIndex, lines) => {
   }
 
   for (let i = 0; i < wikiDeployments.length; i++) {
-    checkDeployment(chainName, deploymentFilenames, wikiDeployments, i)
+    await checkDeployment({
+      chainName,
+      deploymentFilenames,
+      wikiDeployments,
+      deploymentIndex: i,
+    })
   }
 }
 
-const run = async () => {
-  const data = await getRawWikiData(WIKI_DEPLOYMENTS_URL)
-  const lines = data.split('\n')
+const data = await fetch(WIKI_DEPLOYMENTS_URL).then((res) => res.text())
+const lines = data.split('\n')
 
-  for (let i = 0; i < SUPPORTED_CHAINS.length; i++) {
-    await checkChain(i, lines)
-  }
-
-  console.log('All deployments match')
+for (let i = 0; i < SUPPORTED_CHAINS.length; i++) {
+  await checkChain({ chainIndex: i, lines })
 }
 
-run()
+console.log('All deployments match')

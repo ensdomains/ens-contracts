@@ -15,7 +15,7 @@
     "prepublishOnly": "yarn build",
     "pub": "yarn publish --access public",
     "prepare": "husky install",
-    "wikiCheck": "node wikiCheck.js ",
+    "wikiCheck": "bun ./scripts/wikiCheck.ts",
     "postinstall": "bunx patch-package"
   },
   "files": [
