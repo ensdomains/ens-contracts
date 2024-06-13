@@ -84,3 +84,7 @@ export async function deployNameWrapperFixture() {
     testClient,
   }
 }
+
+export type DeployNameWrapperFixtureResult = Awaited<
+  ReturnType<typeof deployNameWrapperFixture>
+>

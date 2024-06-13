@@ -28,7 +28,7 @@
   "main": "index.js",
   "devDependencies": {
     "@ensdomains/dnsprovejs": "^0.5.1",
-    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.5",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.6",
     "@ensdomains/test-utils": "^1.3.0",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@openzeppelin/test-helpers": "^0.5.11",
