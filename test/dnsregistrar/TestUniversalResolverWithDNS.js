@@ -1,6 +1,6 @@
 const { solidity } = require('ethereum-waffle')
 const { use, expect } = require('chai')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const sha3 = require('web3-utils').sha3
 const { ethers } = require('hardhat')
 const { dns } = require('../test-utils')
@@ -122,7 +122,7 @@ contract('UniversalResolver', function (accounts) {
   })
 
   beforeEach(async () => {
-    node = namehash.hash('eth')
+    node = namehash('eth')
     ens = await deploy('ENSRegistry')
     root = await deploy('Root', ens.address)
     dnssec = await deploy('DNSSECImpl', encodeAnchors(anchors))
@@ -182,7 +182,7 @@ contract('UniversalResolver', function (accounts) {
     it('should revert OffchainLookup via universalResolver + offchainDNSresolver', async () => {
       const addrCallData = PublicResolver.interface.encodeFunctionData(
         'addr(bytes32)',
-        [namehash.hash('test.test')],
+        [namehash('test.test')],
       )
 
       const IDNSGatewayAbi = [

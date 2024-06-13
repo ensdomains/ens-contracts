@@ -1,10 +1,8 @@
 import fs from 'fs'
-
+import { namehash } from 'viem/ens'
 import * as envfile from 'envfile'
-import n from 'eth-ens-namehash'
 import { task } from 'hardhat/config'
 
-const namehash = n.hash
 const labelhash = (utils: any, label: string) =>
   utils.keccak256(utils.toUtf8Bytes(label))
 

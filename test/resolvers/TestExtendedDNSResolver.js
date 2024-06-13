@@ -1,5 +1,5 @@
 const ExtendedDNSResolver = artifacts.require('ExtendedDNSResolver.sol')
-const namehash = require('eth-ens-namehash')
+const { namehash } = require('viem/ens')
 const { expect } = require('chai')
 const packet = require('dns-packet')
 
@@ -19,7 +19,7 @@ contract('ExtendedDNSResolver', function (accounts) {
   })
 
   async function resolve(name, method, args, context) {
-    const node = namehash.hash(name)
+    const node = namehash(name)
     const callData = PublicResolver.interface.encodeFunctionData(method, [
       node,
       ...args,
