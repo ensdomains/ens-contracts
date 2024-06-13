@@ -1,5 +1,5 @@
 import { ethers, network } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {

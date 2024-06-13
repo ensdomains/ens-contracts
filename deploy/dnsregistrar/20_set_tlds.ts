@@ -1,7 +1,7 @@
 import { namehash } from 'ethers/lib/utils'
 import { ethers } from 'hardhat'
 import packet from 'dns-packet'
-import { DeployFunction } from 'hardhat-deploy/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
 function encodeName(name: string) {

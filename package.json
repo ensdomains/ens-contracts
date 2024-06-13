@@ -43,7 +43,7 @@
     "hardhat": "^2.22.2",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
-    "hardhat-deploy": "^0.11.10",
+    "hardhat-deploy": "^0.12.4",
     "hardhat-gas-reporter": "^1.0.4",
     "husky": "^8.0.0",
     "prettier": "^2.6.2",
