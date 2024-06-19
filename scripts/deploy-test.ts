@@ -8,8 +8,9 @@ const server = createAnvil({
 
 await server.start()
 
-const exitHandler = async () => {
-  await server.stop()
+const exitHandler = async (c: number) => {
+  if (process.env.CI) process.exit(c)
+  else await server.stop()
 }
 
 process.on('exit', exitHandler)
@@ -24,4 +25,4 @@ execSync('bun run hardhat --network localhost deploy', {
   },
 })
 
-await exitHandler()
+await exitHandler(0)
