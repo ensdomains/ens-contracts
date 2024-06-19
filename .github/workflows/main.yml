@@ -47,6 +47,9 @@ jobs:
 
       - run: bun install --frozen-lockfile
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
       - name: Run deploy
         run: bun run test:deploy
         env:
