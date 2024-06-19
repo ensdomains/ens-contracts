@@ -11,10 +11,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Bun 1.0.29
+      - name: Use Bun 1.1.13
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.0.29
+          bun-version: 1.1.13
 
       - run: bun install --frozen-lockfile
 
@@ -25,10 +25,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Bun 1.0.29
+      - name: Use Bun 1.1.13
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.0.29
+          bun-version: 1.1.13
 
       - run: bun install --frozen-lockfile
 
@@ -40,10 +40,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Bun 1.0.29
+      - name: Use Bun 1.1.13
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.0.29
+          bun-version: 1.1.13
 
       - run: bun install --frozen-lockfile
 
