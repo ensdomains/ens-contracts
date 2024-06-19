@@ -1,30 +1,12 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-  await deploy('SHA1Digest', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
+  await viem.deploy('SHA1Digest', [])
+  await viem.deploy('SHA256Digest', [])
 
-  await deploy('SHA256Digest', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
-
-  if (network.tags.test) {
-    await deploy('DummyDigest', {
-      from: deployer,
-      args: [],
-      log: true,
-    })
-  }
+  if (network.tags.test) await viem.deploy('DummyDigest', [])
 }
 
 func.tags = ['dnssec-digests']

@@ -1,6 +1,5 @@
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { Address } from 'viem'
 
 const TESTNET_WRAPPER_ADDRESSES = {
   goerli: [
@@ -11,61 +10,51 @@ const TESTNET_WRAPPER_ADDRESSES = {
   ],
 }
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, getUnnamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer, owner, ...namedAccounts } = await getNamedAccounts()
-  const unnamedAccounts = await getUnnamedAccounts()
-  const accounts = [
-    deployer,
-    owner,
-    ...Object.values(namedAccounts),
-    ...unnamedAccounts,
-  ]
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
+
+  const { deployer, owner, ...namedAccounts } = await viem.getNamedClients()
+  const unnamedClients = await viem.getUnnamedClients()
+  const clients = [deployer, owner, ...unnamedClients]
 
   // only deploy on testnets
   if (network.name === 'mainnet') return
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
-  const registrar = await ethers.getContract(
-    'BaseRegistrarImplementation',
-    owner,
-  )
+  const registry = await viem.getContract('ENSRegistry', owner)
+  const registrar = await viem.getContract('BaseRegistrarImplementation', owner)
 
-  await deploy('TestUnwrap', {
-    from: deployer,
-    args: [registry.address, registrar.address],
-    log: true,
-  })
+  await viem.deploy('TestUnwrap', [registry.address, registrar.address])
 
-  const testnetWrapperAddresses =
-    TESTNET_WRAPPER_ADDRESSES[
-      network.name as keyof typeof TESTNET_WRAPPER_ADDRESSES
-    ]
+  const testnetWrapperAddresses = TESTNET_WRAPPER_ADDRESSES[
+    network.name as keyof typeof TESTNET_WRAPPER_ADDRESSES
+  ] as Address[]
 
   if (!testnetWrapperAddresses || testnetWrapperAddresses.length === 0) {
     console.log('No testnet wrappers found, skipping')
     return
   }
 
-  let testUnwrap = await ethers.getContract('TestUnwrap')
-  const contractOwner = await testUnwrap.owner()
-  const canModifyTestUnwrap = accounts.includes(contractOwner)
+  let testUnwrap = await viem.getContract('TestUnwrap')
+  const contractOwner = await testUnwrap.read.owner()
+  const contractOwnerClient = clients.find((c) => c.address === contractOwner)
+  const canModifyTestUnwrap = !!contractOwnerClient
 
   if (!canModifyTestUnwrap) {
     console.log(
       "WARNING: Can't modify TestUnwrap, will not run setWrapperApproval()",
     )
   } else {
-    testUnwrap = testUnwrap.connect(ethers.provider.getSigner(contractOwner))
+    testUnwrap = await viem.getContract('TestUnwrap', contractOwnerClient)
   }
 
   for (const wrapperAddress of testnetWrapperAddresses) {
-    let wrapper = await ethers.getContractAt('NameWrapper', wrapperAddress)
-    const upgradeContract = await wrapper.upgradeContract()
+    let wrapper = await viem.getContractAt('NameWrapper', wrapperAddress)
+    const upgradeContract = await wrapper.read.upgradeContract()
 
     const isUpgradeSet = upgradeContract === testUnwrap.address
-    const isApprovedWrapper = await testUnwrap.approvedWrapper(wrapperAddress)
+    const isApprovedWrapper = await testUnwrap.read.approvedWrapper([
+      wrapperAddress,
+    ])
 
     if (isUpgradeSet && isApprovedWrapper) {
       console.log(`Wrapper ${wrapperAddress} already set up, skipping contract`)
@@ -73,8 +62,10 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     }
 
     if (!isUpgradeSet) {
-      const owner = await wrapper.owner()
-      const canModifyWrapper = accounts.includes(owner)
+      const owner = await wrapper.read.owner()
+      const wrapperOwnerClient = clients.find((c) => c.address === owner)
+      const canModifyWrapper = !!wrapperOwnerClient
+
       if (!canModifyWrapper && !canModifyTestUnwrap) {
         console.log(
           `WARNING: Can't modify wrapper ${wrapperAddress} or TestUnwrap, skipping contract`,
@@ -85,12 +76,16 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
           `WARNING: Can't modify wrapper ${wrapperAddress}, skipping setUpgradeContract()`,
         )
       } else {
-        wrapper = wrapper.connect(ethers.provider.getSigner(owner))
-        const tx = await wrapper.setUpgradeContract(testUnwrap.address)
+        wrapper = await viem.getContractAt('NameWrapper', wrapperAddress, {
+          client: wrapperOwnerClient,
+        })
+        const hash = await wrapper.write.setUpgradeContract([
+          testUnwrap.address,
+        ])
         console.log(
-          `Setting upgrade contract for ${wrapperAddress} to ${testUnwrap.address} (tx: ${tx.hash})...`,
+          `Setting upgrade contract for ${wrapperAddress} to ${testUnwrap.address} (tx: ${hash})...`,
         )
-        await tx.wait()
+        await viem.waitForTransactionSuccess(hash)
       }
       if (isApprovedWrapper) {
         console.log(
@@ -105,9 +100,13 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       )
       continue
     }
-    const tx = await testUnwrap.setWrapperApproval(wrapperAddress, true)
-    console.log(`Approving wrapper ${wrapperAddress} (tx: ${tx.hash})...`)
-    await tx.wait()
+
+    const hash = await testUnwrap.write.setWrapperApproval([
+      wrapperAddress,
+      true,
+    ])
+    console.log(`Approving wrapper ${wrapperAddress} (tx: ${hash})...`)
+    await viem.waitForTransactionSuccess(hash)
   }
 }
 

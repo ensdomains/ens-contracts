@@ -1,7 +1,6 @@
 import packet from 'dns-packet'
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { Address, Hash, Hex } from 'viem'
 
 const realAnchors = [
   {
@@ -49,21 +48,16 @@ const dummyAnchor = {
   },
 }
 
-function encodeAnchors(anchors: any[]) {
-  return (
-    '0x' +
-    anchors
-      .map((anchor) => {
-        return packet.answer.encode(anchor).toString('hex')
-      })
-      .join('')
-  )
+function encodeAnchors(anchors: any[]): Hex {
+  return `0x${anchors
+    .map((anchor) => {
+      return packet.answer.encode(anchor).toString('hex')
+    })
+    .join('')}`
 }
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
 
   const anchors = realAnchors.slice()
   let algorithms: Record<number, string> = {
@@ -84,32 +78,46 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     digests[253] = 'DummyDigest'
   }
 
-  await deploy('DNSSECImpl', {
-    from: deployer,
-    args: [encodeAnchors(anchors)],
-    log: true,
-  })
-  const dnssec = await ethers.getContract('DNSSECImpl')
+  await viem.deploy('DNSSECImpl', [encodeAnchors(anchors)])
+  const dnssec = await viem.getContract('DNSSECImpl')
 
-  const transactions = []
+  const transactions: Hash[] = []
   for (const [id, alg] of Object.entries(algorithms)) {
-    const address = (await deployments.get(alg)).address
-    if (address != (await dnssec.algorithms(id))) {
-      transactions.push(await dnssec.setAlgorithm(id, address))
+    const deployedAlgorithmAddress = await deployments
+      .get(alg)
+      .then((d) => d.address as Address)
+    const currentAlgorithmAddress = await dnssec.read.algorithms([parseInt(id)])
+
+    if (deployedAlgorithmAddress != currentAlgorithmAddress) {
+      const hash = await dnssec.write.setAlgorithm([
+        parseInt(id),
+        deployedAlgorithmAddress,
+      ])
+      transactions.push(hash)
     }
   }
 
   for (const [id, digest] of Object.entries(digests)) {
-    const address = (await deployments.get(digest)).address
-    if (address != (await dnssec.digests(id))) {
-      transactions.push(await dnssec.setDigest(id, address))
+    const deployedDigestAddress = await deployments
+      .get(digest)
+      .then((d) => d.address as Address)
+    const currentDigestAddress = await dnssec.read.digests([parseInt(id)])
+
+    if (deployedDigestAddress != currentDigestAddress) {
+      const hash = await dnssec.write.setDigest([
+        parseInt(id),
+        deployedDigestAddress,
+      ])
+      transactions.push(hash)
     }
   }
 
   console.log(
     `Waiting on ${transactions.length} transactions setting DNSSEC parameters`,
   )
-  await Promise.all(transactions.map((tx) => tx.wait()))
+  await Promise.all(
+    transactions.map(async (hash) => viem.waitForTransactionSuccess(hash)),
+  )
 }
 
 func.tags = ['dnssec-oracle']

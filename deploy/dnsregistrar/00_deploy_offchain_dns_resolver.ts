@@ -1,25 +1,16 @@
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  const registry = await ethers.getContract('ENSRegistry')
-  const dnssec = await ethers.getContract('DNSSECImpl')
+  const registry = await viem.getContract('ENSRegistry')
+  const dnssec = await viem.getContract('DNSSECImpl')
 
-  const tx = await deploy('OffchainDNSResolver', {
-    from: deployer,
-    args: [
-      registry.address,
-      dnssec.address,
-      'https://dnssec-oracle.ens.domains/',
-    ],
-    log: true,
-  })
-  console.log(`Deployed OffchainDNSResolver to ${tx.address}`)
+  await viem.deploy('OffchainDNSResolver', [
+    registry.address,
+    dnssec.address,
+    'https://dnssec-oracle.ens.domains/',
+  ])
 }
 
 func.tags = ['OffchainDNSResolver']

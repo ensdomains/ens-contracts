@@ -37,20 +37,17 @@ jobs:
 
   deploy:
     runs-on: ubuntu-latest
-    # TODO: reenable
-    if: false
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - name: Use Node.js 16
-        uses: actions/setup-node@v3
+      - name: Use Bun 1.0.29
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 16
-          cache: 'yarn'
+          bun-version: 1.0.29
 
-      - run: yarn install --frozen-lockfile
+      - run: bun install --frozen-lockfile
 
       - name: Run deploy
-        run: yarn test:deploy
+        run: bun run test:deploy
         env:
           BATCH_GATEWAY_URLS: '["https://universal-offchain-unwrapper.ens-cf.workers.dev/"]'

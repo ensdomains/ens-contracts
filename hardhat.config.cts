@@ -4,6 +4,7 @@ import '@nomicfoundation/hardhat-verify'
 import '@nomicfoundation/hardhat-viem'
 import 'hardhat-gas-reporter'
 import 'solidity-coverage'
+import './tasks/hardhat-deploy-viem.cjs'
 
 import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
@@ -33,7 +34,7 @@ if (process.env.DEPLOYER_KEY) {
 // circular dependency shared with actions
 export const archivedDeploymentPath = './deployments/archive'
 
-const config: HardhatUserConfig = {
+const config = {
   networks: {
     hardhat: {
       saveDeployments: false,
@@ -41,7 +42,7 @@ const config: HardhatUserConfig = {
       allowUnlimitedContractSize: false,
     },
     localhost: {
-      url: 'http://127.0.0.1:8545',
+      url: 'http://127.0.0.1:8545/',
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
@@ -139,6 +140,6 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-}
+} satisfies HardhatUserConfig
 
 export default config

@@ -1,31 +1,21 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { Address } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-  let oracleAddress = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419'
+  let oracleAddress: Address = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419'
   if (network.name !== 'mainnet') {
-    const dummyOracle = await deploy('DummyOracle', {
-      from: deployer,
-      args: ['160000000000'],
-      log: true,
-    })
+    const dummyOracle = await viem.deploy('DummyOracle', [160000000000n])
     oracleAddress = dummyOracle.address
   }
 
-  await deploy('ExponentialPremiumPriceOracle', {
-    from: deployer,
-    args: [
-      oracleAddress,
-      [0, 0, '20294266869609', '5073566717402', '158548959919'],
-      '100000000000000000000000000',
-      21,
-    ],
-    log: true,
-  })
+  await viem.deploy('ExponentialPremiumPriceOracle', [
+    oracleAddress,
+    [0n, 0n, 20294266869609n, 5073566717402n, 158548959919n],
+    100000000000000000000000000n,
+    21n,
+  ])
 }
 
 func.id = 'price-oracle'

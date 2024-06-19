@@ -1,0 +1,13 @@
+diff --git a/node_modules/hardhat-deploy/dist/src/DeploymentsManager.js b/node_modules/hardhat-deploy/dist/src/DeploymentsManager.js
+index 9ff5b84..4cf3d26 100644
+--- a/node_modules/hardhat-deploy/dist/src/DeploymentsManager.js
++++ b/node_modules/hardhat-deploy/dist/src/DeploymentsManager.js
+@@ -733,7 +733,7 @@ class DeploymentsManager {
+             // console.log("fetching " + scriptFilePath);
+             try {
+                 delete require.cache[scriptFilePath]; // ensure we reload it every time, so changes are taken in consideration
+-                deployFunc = require(scriptFilePath);
++                deployFunc = await import(scriptFilePath);
+                 if (deployFunc.default) {
+                     deployFunc = deployFunc.default;
+                 }

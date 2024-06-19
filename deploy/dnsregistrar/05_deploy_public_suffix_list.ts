@@ -1,33 +1,27 @@
-import { ethers } from 'hardhat'
-import packet from 'dns-packet'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { Hash } from 'viem'
+import { dnsEncodeName } from '../../test/fixtures/dnsEncodeName.js'
 
-function encodeName(name: string) {
-  return '0x' + packet.name.encode(name).toString('hex')
-}
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const { deployer, owner } = await viem.getNamedClients()
 
-  await deploy('SimplePublicSuffixList', {
-    from: deployer,
-    gasLimit: 10000000,
-    args: [],
-    log: true,
-  })
-  const psl = await ethers.getContract('SimplePublicSuffixList')
-  const listOwner = await psl.owner()
+  await viem.deploy('SimplePublicSuffixList', [])
 
-  if (owner !== undefined && owner !== deployer && listOwner !== owner) {
+  const psl = await viem.getContract('SimplePublicSuffixList')
+  const listOwner = await psl.read.owner()
+
+  if (
+    owner !== undefined &&
+    owner.address !== deployer.address &&
+    listOwner !== owner.address
+  ) {
     console.log('Transferring ownership to owner account')
-    const tx = await psl.transferOwnership(owner)
-    console.log(`Transfer ownership (tx: ${tx.hash})...`)
-    await tx.wait()
+    const hash = await psl.write.transferOwnership([owner.address])
+    console.log(`Transfer ownership (tx: ${hash})...`)
+    await viem.waitForTransactionSuccess(hash)
   }
-  const publicSuffixList = psl.connect(await ethers.getSigner(owner))
 
   const suffixList = await (
     await fetch('https://publicsuffix.org/list/public_suffix_list.dat')
@@ -37,18 +31,26 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     .filter((suffix) => !suffix.startsWith('//') && suffix.trim() != '')
   // Right now we're only going to support top-level, non-idna suffixes
   suffixes = suffixes.filter((suffix) => suffix.match(/^[a-z0-9]+$/))
-  const txes = []
+
+  const transactionHashes: Hash[] = []
   console.log('Starting suffix transactions')
+
   for (let i = 0; i < suffixes.length; i += 100) {
-    const batch = suffixes.slice(i, i + 100).map((suffix) => encodeName(suffix))
-    const tx = await publicSuffixList.addPublicSuffixes(batch)
-    console.log(`Setting suffixes (tx: ${tx.hash})...`)
-    txes.push(tx)
+    const batch = suffixes
+      .slice(i, i + 100)
+      .map((suffix) => dnsEncodeName(suffix))
+    const hash = await psl.write.addPublicSuffixes([batch], {
+      account: owner.account,
+    })
+    console.log(`Setting suffixes (tx: ${hash})...`)
+    transactionHashes.push(hash)
   }
   console.log(
-    `Waiting on ${txes.length} suffix-setting transactions to complete...`,
+    `Waiting on ${transactionHashes.length} suffix-setting transactions to complete...`,
   )
-  await Promise.all(txes.map((tx) => tx.wait()))
+  await Promise.all(
+    transactionHashes.map((hash) => viem.waitForTransactionSuccess(hash)),
+  )
 }
 
 func.tags = ['SimplePublicSuffixList']

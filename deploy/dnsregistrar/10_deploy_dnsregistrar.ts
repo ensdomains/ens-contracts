@@ -1,45 +1,38 @@
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { zeroAddress } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  const registry = await hre.deployments.get('ENSRegistry')
-  const dnssec = await hre.deployments.get('DNSSECImpl')
-  const resolver = await hre.deployments.get('OffchainDNSResolver')
-  const oldregistrar = await hre.deployments.getOrNull('DNSRegistrar')
-  const root = await ethers.getContract('Root')
+  const { owner } = await viem.getNamedClients()
 
-  const publicSuffixList = await ethers.getContract('SimplePublicSuffixList')
+  const registry = await viem.getContract('ENSRegistry')
+  const dnssec = await viem.getContract('DNSSECImpl')
+  const resolver = await viem.getContract('OffchainDNSResolver')
+  const oldregistrar = await viem.getContractOrNull('DNSRegistrar')
+  const root = await viem.getContract('Root')
 
-  const tx = await deploy('DNSRegistrar', {
-    from: deployer,
-    args: [
-      oldregistrar?.address || '0x0000000000000000000000000000000000000000',
-      resolver.address,
-      dnssec.address,
-      publicSuffixList.address,
-      registry.address,
-    ],
-    log: true,
-  })
-  console.log(`Deployed DNSRegistrar to ${tx.address}`)
+  const publicSuffixList = await viem.getContract('SimplePublicSuffixList')
 
-  if (
-    owner !== undefined &&
-    (await root.owner()).toLowerCase() === owner.toLowerCase()
-  ) {
-    const tx2 = await root
-      .connect(await ethers.getSigner(owner))
-      .setController(tx.address, true)
-    console.log(`Set DNSRegistrar as controller of Root (${tx2.hash})`)
-    await tx2.wait()
+  const deployment = await viem.deploy('DNSRegistrar', [
+    oldregistrar?.address || zeroAddress,
+    resolver.address,
+    dnssec.address,
+    publicSuffixList.address,
+    registry.address,
+  ])
+
+  const rootOwner = await root.read.owner()
+
+  if (owner !== undefined && rootOwner === owner.address) {
+    const hash = await root.write.setController([deployment.address, true], {
+      account: owner.account,
+    })
+    console.log(`Set DNSRegistrar as controller of Root (${hash})`)
+    await viem.waitForTransactionSuccess(hash)
   } else {
     console.log(
-      `${owner} is not the owner of the root; you will need to call setController('${tx.address}', true) manually`,
+      `${owner.address} is not the owner of the root; you will need to call setController('${deployment.address}', true) manually`,
     )
   }
 }

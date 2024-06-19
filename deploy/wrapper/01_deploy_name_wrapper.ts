@@ -1,74 +1,63 @@
-import { Interface } from 'ethers/lib/utils'
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import { namehash, zeroAddress } from 'viem'
+import { getInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
-const { makeInterfaceId } = require('@openzeppelin/test-helpers')
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-function computeInterfaceId(iface: Interface) {
-  return makeInterfaceId.ERC165(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
-  )
-}
+  const { deployer, owner } = await viem.getNamedClients()
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const registry = await viem.getContract('ENSRegistry', owner)
+  const registrar = await viem.getContract('BaseRegistrarImplementation', owner)
+  const metadata = await viem.getContract('StaticMetadataService', owner)
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
-  const registrar = await ethers.getContract(
-    'BaseRegistrarImplementation',
-    owner,
-  )
-  const metadata = await ethers.getContract('StaticMetadataService', owner)
+  const nameWrapperDeployment = await viem.deploy('NameWrapper', [
+    registry.address,
+    registrar.address,
+    metadata.address,
+  ])
+  if (!nameWrapperDeployment.newlyDeployed) return
 
-  const deployArgs = {
-    from: deployer,
-    args: [registry.address, registrar.address, metadata.address],
-    log: true,
-  }
+  const nameWrapper = await viem.getContract('NameWrapper')
 
-  const nameWrapper = await deploy('NameWrapper', deployArgs)
-  if (!nameWrapper.newlyDeployed) return
-
-  if (owner !== deployer) {
-    const wrapper = await ethers.getContract('NameWrapper', deployer)
-    const tx = await wrapper.transferOwnership(owner)
+  if (owner.address !== deployer.address) {
+    const hash = await nameWrapper.write.transferOwnership([owner.address])
     console.log(
-      `Transferring ownership of NameWrapper to ${owner} (tx: ${tx.hash})...`,
+      `Transferring ownership of NameWrapper to ${owner.address} (tx: ${hash})...`,
     )
-    await tx.wait()
+    await viem.waitForTransactionSuccess(hash)
   }
 
   // Only attempt to make controller etc changes directly on testnets
   if (network.name === 'mainnet') return
 
-  const tx2 = await registrar.addController(nameWrapper.address)
+  const addControllerHash = await registrar.write.addController([
+    nameWrapper.address,
+  ])
   console.log(
-    `Adding NameWrapper as controller on registrar (tx: ${tx2.hash})...`,
+    `Adding NameWrapper as controller on registrar (tx: ${addControllerHash})...`,
   )
-  await tx2.wait()
+  await viem.waitForTransactionSuccess(addControllerHash)
 
-  const artifact = await deployments.getArtifact('INameWrapper')
-  const interfaceId = computeInterfaceId(new Interface(artifact.abi))
-  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
-  if (resolver === ethers.constants.AddressZero) {
+  const interfaceId = await getInterfaceId('INameWrapper')
+  const resolver = await registry.read.resolver([namehash('eth')])
+  if (resolver === zeroAddress) {
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for NameWrapper`,
     )
     return
   }
-  const resolverContract = await ethers.getContractAt('OwnedResolver', resolver)
-  const tx3 = await resolverContract.setInterface(
-    ethers.utils.namehash('eth'),
+
+  const resolverContract = await viem.getContractAt('OwnedResolver', resolver)
+  const setInterfaceHash = await resolverContract.write.setInterface([
+    namehash('eth'),
     interfaceId,
     nameWrapper.address,
-  )
+  ])
   console.log(
-    `Setting NameWrapper interface ID ${interfaceId} on .eth resolver (tx: ${tx3.hash})...`,
+    `Setting NameWrapper interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
   )
-  await tx3.wait()
+  await viem.waitForTransactionSuccess(setInterfaceHash)
 }
 
 func.id = 'name-wrapper'

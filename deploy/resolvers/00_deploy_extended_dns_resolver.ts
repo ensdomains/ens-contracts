@@ -1,16 +1,9 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  await deploy('ExtendedDNSResolver', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
+  await viem.deploy('ExtendedDNSResolver', [])
 }
 
 func.tags = ['resolvers', 'ExtendedDNSResolver']

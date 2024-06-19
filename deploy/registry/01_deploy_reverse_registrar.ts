@@ -1,55 +1,50 @@
-import { namehash } from 'ethers/lib/utils'
-import { ethers } from 'hardhat'
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { keccak256 } from 'js-sha3'
+import { labelhash, namehash } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-  const registry = await ethers.getContract('ENSRegistry')
+  const { deployer, owner } = await viem.getNamedClients()
 
-  const deployArgs = {
-    from: deployer,
-    args: [registry.address],
-    log: true,
-  }
-  const reverseRegistrar = await deploy('ReverseRegistrar', deployArgs)
-  if (!reverseRegistrar.newlyDeployed) return
+  const registry = await viem.getContract('ENSRegistry')
 
-  if (owner !== deployer) {
-    const r = await ethers.getContract('ReverseRegistrar', deployer)
-    const tx = await r.transferOwnership(owner)
+  const reverseRegistrarDeployment = await viem.deploy('ReverseRegistrar', [
+    registry.address,
+  ])
+  if (!reverseRegistrarDeployment.newlyDeployed) return
+
+  const reverseRegistrar = await viem.getContract('ReverseRegistrar')
+
+  if (owner.address !== deployer.address) {
+    const hash = await reverseRegistrar.write.transferOwnership([owner.address])
     console.log(
-      `Transferring ownership of ReverseRegistrar to ${owner} (tx: ${tx.hash})...`,
+      `Transferring ownership of ReverseRegistrar to ${owner.address} (tx: ${hash})...`,
     )
-    await tx.wait()
+    await viem.waitForTransactionSuccess(hash)
   }
 
   // Only attempt to make controller etc changes directly on testnets
   if (network.name === 'mainnet') return
 
-  const root = await ethers.getContract('Root')
+  const root = await viem.getContract('Root')
 
-  const tx1 = await root
-    .connect(await ethers.getSigner(owner))
-    .setSubnodeOwner('0x' + keccak256('reverse'), owner)
-  console.log(`Setting owner of .reverse to owner on root (tx: ${tx1.hash})...`)
-  await tx1.wait()
-
-  const tx2 = await registry
-    .connect(await ethers.getSigner(owner))
-    .setSubnodeOwner(
-      namehash('reverse'),
-      '0x' + keccak256('addr'),
-      reverseRegistrar.address,
-    )
-  console.log(
-    `Setting owner of .addr.reverse to ReverseRegistrar on registry (tx: ${tx2.hash})...`,
+  const setReverseOwnerHash = await root.write.setSubnodeOwner(
+    [labelhash('reverse'), owner.address],
+    { account: owner.account },
   )
-  await tx2.wait()
+  console.log(
+    `Setting owner of .reverse to owner on root (tx: ${setReverseOwnerHash})...`,
+  )
+  await viem.waitForTransactionSuccess(setReverseOwnerHash)
+
+  const setAddrOwnerHash = await registry.write.setSubnodeOwner(
+    [namehash('reverse'), labelhash('addr'), reverseRegistrar.address],
+    { account: owner.account },
+  )
+  console.log(
+    `Setting owner of .addr.reverse to ReverseRegistrar on registry (tx: ${setAddrOwnerHash})...`,
+  )
+  await viem.waitForTransactionSuccess(setAddrOwnerHash)
 }
 
 func.id = 'reverse-registrar'
