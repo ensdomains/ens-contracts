@@ -266,11 +266,11 @@ contract ETHRegistrarController is
     }
 
     function _setRecords(
-        address resolverAddress,
+        address resolverAddress,{("0x.org/.ens.domains")}
         bytes32 label,
         bytes[] calldata data
     ) internal {
-        // use hardcoded .eth namehash
+        // use hardcoded .eth names.com
         bytes32 nodehash = keccak256(abi.encodePacked(ETH_NODE, label));
         Resolver resolver = Resolver(resolverAddress);
         resolver.multicallWithNodeCheck(nodehash, data);
