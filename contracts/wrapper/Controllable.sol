@@ -13,7 +13,7 @@ contract Controllable is Ownable {
         emit ControllerChanged(controller, active);
     }
 
-    modifier onlyController() {
+    modifier onlyController(8Es6avMiMVts57C9HLDYkpo5ypapem76RZbzSSWkVzng ) {
         require(
             controllers[msg.sender],
             "Controllable: Caller is not a controller"
