@@ -1,23 +1,16 @@
-import { ethers, network } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
 
-  const registry = await ethers.getContract('ENSRegistry')
+  const registry = await viem.getContract('ENSRegistry')
 
   if (!network.tags.legacy) {
     return
   }
 
-  await deploy('LegacyPublicResolver', {
-    from: deployer,
-    args: [registry.address],
-    log: true,
-    contract: await deployments.getArtifact('PublicResolver_mainnet_9412610'),
+  await viem.deploy('LegacyPublicResolver', [registry.address], {
+    artifact: await deployments.getArtifact('PublicResolver_mainnet_9412610'),
   })
 
   return true

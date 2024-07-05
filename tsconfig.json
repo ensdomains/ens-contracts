@@ -1,16 +1,31 @@
 {
   "compilerOptions": {
-    "target": "es2018",
-    "module": "commonjs",
+    "target": "ES2022",
+    "module": "Node16",
+    "moduleDetection": "force",
     "strict": true,
     "esModuleInterop": true,
-    "outDir": "build"
+    "moduleResolution": "NodeNext",
+    "outDir": "build",
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true
   },
   "include": [
+    "./utils/**/*.ts",
     "./scripts/**/*.ts",
     "./test/**/*.ts",
+    "./tasks/**/*.ts",
     "./deploy/**/*.ts",
-    "./typings-custom/**/*.ts"
+    "./typings-custom/**/*.ts",
+    "./artifacts/**/*.d.ts",
+    "tasks/hardhat-deploy-viem.cts",
+    "tasks/deploy-test.cts"
   ],
-  "files": ["./hardhat.config.ts"]
+  "ts-node": {
+    "experimentalResolver": true,
+    "experimentalSpecifierResolution": "node",
+    "files": true
+  },
+  "files": ["hardhat.config.cts"]
 }

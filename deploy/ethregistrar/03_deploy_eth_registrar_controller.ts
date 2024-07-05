@@ -1,100 +1,83 @@
-import { Interface } from 'ethers/lib/utils'
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { namehash, zeroAddress } from 'viem'
+import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
-const { makeInterfaceId } = require('@openzeppelin/test-helpers')
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
 
-function computeInterfaceId(iface: Interface) {
-  return makeInterfaceId.ERC165(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
-  )
-}
+  const { deployer, owner } = await viem.getNamedClients()
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const registry = await viem.getContract('ENSRegistry', owner)
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
-
-  const registrar = await ethers.getContract(
-    'BaseRegistrarImplementation',
-    owner,
-  )
-  const priceOracle = await ethers.getContract(
+  const registrar = await viem.getContract('BaseRegistrarImplementation', owner)
+  const priceOracle = await viem.getContract(
     'ExponentialPremiumPriceOracle',
     owner,
   )
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
-  const nameWrapper = await ethers.getContract('NameWrapper', owner)
-  const ethOwnedResolver = await ethers.getContract('OwnedResolver', owner)
+  const reverseRegistrar = await viem.getContract('ReverseRegistrar', owner)
+  const nameWrapper = await viem.getContract('NameWrapper', owner)
 
-  const deployArgs = {
-    from: deployer,
-    args: [
-      registrar.address,
-      priceOracle.address,
-      60,
-      86400,
-      reverseRegistrar.address,
-      nameWrapper.address,
-      registry.address,
-    ],
-    log: true,
-  }
-  const controller = await deploy('ETHRegistrarController', deployArgs)
-  if (!controller.newlyDeployed) return
+  const controllerDeployment = await viem.deploy('ETHRegistrarController', [
+    registrar.address,
+    priceOracle.address,
+    60n,
+    86400n,
+    reverseRegistrar.address,
+    nameWrapper.address,
+    registry.address,
+  ])
+  if (!controllerDeployment.newlyDeployed) return
 
-  if (owner !== deployer) {
-    const c = await ethers.getContract('ETHRegistrarController', deployer)
-    const tx = await c.transferOwnership(owner)
+  const controller = await viem.getContract('ETHRegistrarController')
+
+  if (owner.address !== deployer.address) {
+    const hash = await controller.write.transferOwnership([owner.address])
     console.log(
-      `Transferring ownership of ETHRegistrarController to ${owner} (tx: ${tx.hash})...`,
+      `Transferring ownership of ETHRegistrarController to ${owner.address} (tx: ${hash})...`,
     )
-    await tx.wait()
+    await viem.waitForTransactionSuccess(hash)
   }
 
   // Only attempt to make controller etc changes directly on testnets
   if (network.name === 'mainnet') return
 
+  const nameWrapperSetControllerHash = await nameWrapper.write.setController([
+    controller.address,
+    true,
+  ])
   console.log(
-    'WRAPPER OWNER',
-    await nameWrapper.owner(),
-    await nameWrapper.signer.getAddress(),
+    `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${nameWrapperSetControllerHash})...`,
   )
-  const tx1 = await nameWrapper.setController(controller.address, true)
-  console.log(
-    `Adding ETHRegistrarController as a controller of NameWrapper (tx: ${tx1.hash})...`,
-  )
-  await tx1.wait()
+  await viem.waitForTransactionSuccess(nameWrapperSetControllerHash)
 
-  const tx2 = await reverseRegistrar.setController(controller.address, true)
+  const reverseRegistrarSetControllerHash =
+    await reverseRegistrar.write.setController([controller.address, true])
   console.log(
-    `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${tx2.hash})...`,
+    `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${reverseRegistrarSetControllerHash})...`,
   )
-  await tx2.wait()
+  await viem.waitForTransactionSuccess(reverseRegistrarSetControllerHash)
 
   const artifact = await deployments.getArtifact('IETHRegistrarController')
-  const interfaceId = computeInterfaceId(new Interface(artifact.abi))
+  const interfaceId = createInterfaceId(artifact.abi)
 
-  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
-  if (resolver === ethers.constants.AddressZero) {
+  const resolver = await registry.read.resolver([namehash('eth')])
+  if (resolver === zeroAddress) {
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
     )
     return
   }
-  const resolverContract = await ethers.getContractAt('OwnedResolver', resolver)
-  const tx3 = await resolverContract.setInterface(
-    ethers.utils.namehash('eth'),
+
+  const ethOwnedResolver = await viem.getContract('OwnedResolver')
+  const setInterfaceHash = await ethOwnedResolver.write.setInterface([
+    namehash('eth'),
     interfaceId,
     controller.address,
-  )
+  ])
   console.log(
-    `Setting ETHRegistrarController interface ID ${interfaceId} on .eth resolver (tx: ${tx3.hash})...`,
+    `Setting ETHRegistrarController interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
   )
-  await tx3.wait()
+  await viem.waitForTransactionSuccess(setInterfaceHash)
 }
 
 func.tags = ['ethregistrar', 'ETHRegistrarController']

@@ -1,13 +1,10 @@
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { zeroHash } from 'viem'
 
-const ZERO_HASH =
-  '0x0000000000000000000000000000000000000000000000000000000000000000'
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deployer, owner } = await getNamedAccounts()
+  const { deployer, owner } = await viem.getNamedClients()
 
   if (!network.tags.use_root) {
     return true
@@ -15,35 +12,37 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   console.log('Running root setup')
 
-  const registry = await ethers.getContract('ENSRegistry')
-  const root = await ethers.getContract('Root')
+  const registry = await viem.getContract('ENSRegistry')
+  const root = await viem.getContract('Root')
 
-  const tx1 = await registry.setOwner(ZERO_HASH, root.address)
+  const setOwnerHash = await registry.write.setOwner([zeroHash, root.address])
   console.log(
-    `Setting owner of root node to root contract (tx: ${tx1.hash})...`,
+    `Setting owner of root node to root contract (tx: ${setOwnerHash})...`,
   )
-  await tx1.wait()
+  await viem.waitForTransactionSuccess(setOwnerHash)
 
-  const rootOwner = await root.owner()
+  const rootOwner = await root.read.owner()
 
   switch (rootOwner) {
-    case deployer:
-      const tx2 = await root
-        .connect(await ethers.getSigner(deployer))
-        .transferOwnership(owner)
+    case deployer.address:
+      const transferOwnershipHash = await root.write.transferOwnership([
+        owner.address,
+      ])
       console.log(
-        `Transferring root ownership to final owner (tx: ${tx2.hash})...`,
+        `Transferring root ownership to final owner (tx: ${transferOwnershipHash})...`,
       )
-      await tx2.wait()
-    case owner:
-      if (!(await root.controllers(owner))) {
-        const tx2 = await root
-          .connect(await ethers.getSigner(owner))
-          .setController(owner, true)
-        console.log(
-          `Setting final owner as controller on root contract (tx: ${tx2.hash})...`,
+      await viem.waitForTransactionSuccess(transferOwnershipHash)
+    case owner.address:
+      const ownerIsRootController = await root.read.controllers([owner.address])
+      if (!ownerIsRootController) {
+        const setControllerHash = await root.write.setController(
+          [owner.address, true],
+          { account: owner.account },
         )
-        await tx2.wait()
+        console.log(
+          `Setting final owner as controller on root contract (tx: ${setControllerHash})...`,
+        )
+        await viem.waitForTransactionSuccess(setControllerHash)
       }
       break
     default:
