@@ -10,6 +10,12 @@ import {
 } from 'viem'
 import { dnsEncodeName } from '../../test/fixtures/dnsEncodeName.js'
 
+// using the Multicall3 contract, which is deployed on pretty much every live chain in existence at 0xcA11bde05977b3631167028862bE2a173976CA11
+// for devnet deployments, the same contract address can be used since we can use the pre-signed deploy transaction
+// using the multicall contract allows us to batch many enableNode txs together
+// for live network deployments, this is useful to save total gas used
+// for devnet network deployments, this is useful to save a lot of time (many minutes)
+
 const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11'
 const multicallPreparationAddress = '0x1E91557322053858cf75cFE5b2d030D27cb2cA8D'
 const multicallDeployTransaction =
