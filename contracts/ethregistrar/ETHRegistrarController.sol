@@ -2,7 +2,7 @@
 pragma solidity ~0.8.17;
 
 import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
-import {StringUtils} from "./StringUtils.sol";
+import {StringUtils} from "../utils/StringUtils.sol";
 import {Resolver} from "../resolvers/Resolver.sol";
 import {ENS} from "../registry/ENS.sol";
 import {ReverseRegistrar} from "../reverseRegistrar/ReverseRegistrar.sol";
@@ -20,7 +20,6 @@ error CommitmentTooOld(bytes32 commitment);
 error NameNotAvailable(string name);
 error DurationTooShort(uint256 duration);
 error ResolverRequiredWhenDataSupplied();
-error ResolverRequiredWhenReverseRecord();
 error UnexpiredCommitmentExists(bytes32 commitment);
 error InsufficientValue();
 error Unauthorised(bytes32 node);
@@ -121,9 +120,6 @@ contract ETHRegistrarController is
         uint16 ownerControlledFuses
     ) public pure override returns (bytes32) {
         bytes32 label = keccak256(bytes(name));
-        if (resolver == address(0) && reverseRecord == true) {
-            revert ResolverRequiredWhenReverseRecord();
-        }
         if (data.length > 0 && resolver == address(0)) {
             revert ResolverRequiredWhenDataSupplied();
         }

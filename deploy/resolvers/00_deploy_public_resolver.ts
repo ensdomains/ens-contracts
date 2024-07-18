@@ -1,52 +1,54 @@
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { namehash } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
-  const nameWrapper = await ethers.getContract('NameWrapper', owner)
-  const controller = await ethers.getContract('ETHRegistrarController', owner)
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
+  const { owner } = await viem.getNamedClients()
 
-  const deployArgs = {
-    from: deployer,
-    args: [
-      registry.address,
-      nameWrapper.address,
-      controller.address,
-      reverseRegistrar.address,
-    ],
-    log: true,
-  }
-  const publicResolver = await deploy('PublicResolver', deployArgs)
-  if (!publicResolver.newlyDeployed) return
+  const registry = await viem.getContract('ENSRegistry', owner)
+  const nameWrapper = await viem.getContract('NameWrapper')
+  const controller = await viem.getContract('ETHRegistrarController')
+  const reverseRegistrar = await viem.getContract('ReverseRegistrar', owner)
 
-  const tx = await reverseRegistrar.setDefaultResolver(publicResolver.address)
+  const publicResolverDeployment = await viem.deploy('PublicResolver', [
+    registry.address,
+    nameWrapper.address,
+    controller.address,
+    reverseRegistrar.address,
+  ])
+  if (!publicResolverDeployment.newlyDeployed) return
+
+  const reverseRegistrarSetDefaultResolverHash =
+    await reverseRegistrar.write.setDefaultResolver([
+      publicResolverDeployment.address,
+    ])
   console.log(
-    `Setting default resolver on ReverseRegistrar to PublicResolver (tx: ${tx.hash})...`,
+    `Setting default resolver on ReverseRegistrar to PublicResolver (tx: ${reverseRegistrarSetDefaultResolverHash})...`,
   )
-  await tx.wait()
+  await viem.waitForTransactionSuccess(reverseRegistrarSetDefaultResolverHash)
 
-  if ((await registry.owner(ethers.utils.namehash('resolver.eth'))) === owner) {
-    const pr = (await ethers.getContract('PublicResolver')).connect(
-      await ethers.getSigner(owner),
-    )
-    const resolverHash = ethers.utils.namehash('resolver.eth')
-    const tx2 = await registry.setResolver(resolverHash, pr.address)
-    console.log(
-      `Setting resolver for resolver.eth to PublicResolver (tx: ${tx2.hash})...`,
-    )
-    await tx2.wait()
+  const resolverEthOwner = await registry.read.owner([namehash('resolver.eth')])
 
-    const tx3 = await pr['setAddr(bytes32,address)'](resolverHash, pr.address)
+  if (resolverEthOwner === owner.address) {
+    const publicResolver = await viem.getContract('PublicResolver', owner)
+    const setResolverHash = await registry.write.setResolver([
+      namehash('resolver.eth'),
+      publicResolver.address,
+    ])
     console.log(
-      `Setting address for resolver.eth to PublicResolver (tx: ${tx3.hash})...`,
+      `Setting resolver for resolver.eth to PublicResolver (tx: ${setResolverHash})...`,
     )
-    await tx3.wait()
+    await viem.waitForTransactionSuccess(setResolverHash)
+
+    const setAddrHash = await publicResolver.write.setAddr([
+      namehash('resolver.eth'),
+      publicResolver.address,
+    ])
+    console.log(
+      `Setting address for resolver.eth to PublicResolver (tx: ${setAddrHash})...`,
+    )
+    await viem.waitForTransactionSuccess(setAddrHash)
   } else {
     console.log(
       'resolver.eth is not owned by the owner address, not setting resolver',

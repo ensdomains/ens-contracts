@@ -8,8 +8,8 @@ import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
 import {NameEncoder} from "./NameEncoder.sol";
-import {BytesUtils} from "../wrapper/BytesUtils.sol";
 import {HexUtils} from "./HexUtils.sol";
 
 error OffchainLookup(
@@ -320,9 +320,7 @@ contract UniversalResolver is ERC165, Ownable {
 
         Result memory result = results[0];
 
-        if (!result.success) {
-            revert ResolverError(result.returnData);
-        }
+        _checkResolveSingle(result);
 
         if (metaData.length > 0) {
             (string memory resolvedName, address reverseResolverAddress) = abi
@@ -658,7 +656,7 @@ contract UniversalResolver is ERC165, Ownable {
                 returnData = abi.decode(returnData, (bytes));
             }
             results[i] = Result(success, returnData);
-            extraDatas[i].data = multicallData.data[i];
+            extraDatas[i].data = item;
         }
 
         if (offchainCount == 0) {
