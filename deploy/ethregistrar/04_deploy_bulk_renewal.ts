@@ -1,60 +1,42 @@
-import { Interface } from 'ethers/lib/utils'
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { namehash, zeroAddress, type Address } from 'viem'
+import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
-const { makeInterfaceId } = require('@openzeppelin/test-helpers')
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
 
-function computeInterfaceId(iface: Interface) {
-  return makeInterfaceId.ERC165(
-    Object.values(iface.functions).map((frag) => frag.format('sighash')),
-  )
-}
+  const registry = await viem.getContract('ENSRegistry')
+  const controller = await viem.getContract('ETHRegistrarController')
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
-
-  const registry = await ethers.getContract('ENSRegistry')
-  const controller = await ethers.getContract('ETHRegistrarController')
-
-  const bulkRenewal = await deploy('StaticBulkRenewal', {
-    from: deployer,
-    args: [controller.address],
-    log: true,
-  })
+  const bulkRenewal = await viem.deploy('StaticBulkRenewal', [
+    controller.address,
+  ])
 
   // Only attempt to make resolver etc changes directly on testnets
   if (network.name === 'mainnet') return
 
   const artifact = await deployments.getArtifact('IBulkRenewal')
-  const interfaceId = computeInterfaceId(new Interface(artifact.abi))
-  const provider = new ethers.providers.StaticJsonRpcProvider(
-    ethers.provider.connection.url,
-    {
-      ...ethers.provider.network,
-      ensAddress: registry.address,
-    },
-  )
+  const interfaceId = createInterfaceId(artifact.abi)
 
-  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
-  if (resolver === ethers.constants.AddressZero) {
+  const resolver = await registry.read.resolver([namehash('eth')])
+  if (resolver === zeroAddress) {
     console.log(
       `No resolver set for .eth; not setting interface ${interfaceId} for BulkRenewal`,
     )
     return
   }
-  const resolverContract = await ethers.getContractAt('OwnedResolver', resolver)
-  const tx = await resolverContract.setInterface(
-    ethers.utils.namehash('eth'),
+
+  const ethOwnedResolver = await viem.getContract('OwnedResolver')
+  const setInterfaceHash = await ethOwnedResolver.write.setInterface([
+    namehash('eth'),
     interfaceId,
-    bulkRenewal.address,
-  )
+    bulkRenewal.address as Address,
+  ])
   console.log(
-    `Setting BulkRenewal interface ID ${interfaceId} on .eth resolver (tx: ${tx.hash})...`,
+    `Setting BulkRenewal interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
   )
-  await tx.wait()
+  await viem.waitForTransactionSuccess(setInterfaceHash)
+
   return true
 }
 
