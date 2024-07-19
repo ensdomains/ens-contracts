@@ -152,19 +152,19 @@ This repo runs a husky precommit to prettify all contract files to keep them con
 ```
 git clone https://github.com/ensdomains/ens-contracts
 cd ens-contracts
-yarn
+bun i
 ```
 
 ### How to run tests
 
 ```
-yarn test
+bun run test
 ```
 
 ### How to publish
 
 ```
-yarn pub
+bun run pub
 ```
 
 ### Release flow

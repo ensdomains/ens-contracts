@@ -442,13 +442,12 @@ RESOLVER_ADDRESS=
 
 ### Run deploy script
 
-`yarn deploy:rinkeby` will deploy to rinkeby and verify its source code
+`bun run deploy:rinkeby` will deploy to rinkeby and verify its source code
 
 NOTE: If you want to override the default metadata url, set `METADATA_HOST=` to `.env`
 
 ```
-$yarn deploy:rinkeby
-yarn run v1.22.10
+$ bun run deploy:rinkeby
 $ npx hardhat run --network rinkeby scripts/deploy.js
 Deploying contracts to rinkeby with the account:0x97bA55F61345665cF08c4233b9D6E61051A43B18
 Account balance: 1934772596667918724 true
@@ -472,11 +471,10 @@ After running the script it sets addresses to `.env`. If you want to redeploy so
 
 1. Register a name using the account you used to deploy the contract
 2. Set the label (`matoken` for `matoken.eth`) to `SEED_NAME=` on `.env`
-3. Run `yarn seed:rinkeby`
+3. Run `bun run seed:rinkeby`
 
 ```
-~/.../ens/name-wrapper (seed)$yarn seed:rinkeby
-yarn run v1.22.10
+~/.../ens/name-wrapper (seed)$ bun run seed:rinkeby
 $ npx hardhat run --network rinkeby scripts/seed.js
 Account balance: 1925134991223891632
 {
