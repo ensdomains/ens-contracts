@@ -1,10 +1,7 @@
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
   let metadataHost =
     process.env.METADATA_HOST || 'ens-metadata-service.appspot.com'
@@ -15,11 +12,7 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
 
   const metadataUrl = `${metadataHost}/name/0x{id}`
 
-  await deploy('StaticMetadataService', {
-    from: deployer,
-    args: [metadataUrl],
-    log: true,
-  })
+  await viem.deploy('StaticMetadataService', [metadataUrl])
 }
 
 func.id = 'metadata'

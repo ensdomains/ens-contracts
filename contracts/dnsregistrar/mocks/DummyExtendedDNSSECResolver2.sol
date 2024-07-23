@@ -8,7 +8,7 @@ import "../../resolvers/profiles/IAddressResolver.sol";
 import "../../resolvers/profiles/IAddrResolver.sol";
 import "../../resolvers/profiles/ITextResolver.sol";
 import "../../utils/HexUtils.sol";
-import "../../dnssec-oracle/BytesUtils.sol";
+import "../../utils/BytesUtils.sol";
 
 contract DummyExtendedDNSSECResolver2 is IExtendedDNSResolver, IERC165 {
     using HexUtils for *;

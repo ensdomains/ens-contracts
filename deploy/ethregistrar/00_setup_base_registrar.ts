@@ -1,35 +1,38 @@
-import namehash from 'eth-ens-namehash'
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { keccak256 } from 'js-sha3'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { labelhash } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
+
+  const { deployer, owner } = await viem.getNamedClients()
+  const publicClient = await viem.getPublicClient()
 
   if (!network.tags.use_root) {
     return true
   }
 
-  const root = await ethers.getContract('Root')
-  const registrar = await ethers.getContract('BaseRegistrarImplementation')
+  const root = await viem.getContract('Root')
+  const registrar = await viem.getContract('BaseRegistrarImplementation')
 
   console.log('Running base registrar setup')
 
-  const tx1 = await registrar.transferOwnership(owner, { from: deployer })
-  console.log(
-    `Transferring ownership of registrar to owner (tx: ${tx1.hash})...`,
+  const transferOwnershipHash = await registrar.write.transferOwnership(
+    [owner.address],
+    { account: deployer.account },
   )
-  await tx1.wait()
+  console.log(
+    `Transferring ownership of registrar to owner (tx: ${transferOwnershipHash})...`,
+  )
+  await viem.waitForTransactionSuccess(transferOwnershipHash)
 
-  const tx2 = await root
-    .connect(await ethers.getSigner(owner))
-    .setSubnodeOwner('0x' + keccak256('eth'), registrar.address)
-  console.log(
-    `Setting owner of eth node to registrar on root (tx: ${tx2.hash})...`,
+  const setSubnodeOwnerHash = await root.write.setSubnodeOwner(
+    [labelhash('eth'), registrar.address],
+    { account: owner.account },
   )
-  await tx2.wait()
+  console.log(
+    `Setting owner of eth node to registrar on root (tx: ${setSubnodeOwnerHash})...`,
+  )
+  await viem.waitForTransactionSuccess(setSubnodeOwnerHash)
 }
 
 func.id = 'setupRegistrar'

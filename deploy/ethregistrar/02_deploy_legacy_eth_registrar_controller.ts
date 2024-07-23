@@ -1,46 +1,44 @@
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import type { Address } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy, run } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { deployments, viem } = hre
+  const { run } = deployments
 
-  const registrar = await ethers.getContract(
-    'BaseRegistrarImplementation',
-    owner,
-  )
-  const priceOracle = await ethers.getContract('ExponentialPremiumPriceOracle')
-  const reverseRegistrar = await ethers.getContract('ReverseRegistrar', owner)
+  const { owner } = await viem.getNamedClients()
 
-  await deploy('LegacyETHRegistrarController', {
-    from: deployer,
-    args: [registrar.address, priceOracle.address, 60, 86400],
-    log: true,
-    contract: await deployments.getArtifact(
-      'ETHRegistrarController_mainnet_9380471',
-    ),
-  })
+  const registrar = await viem.getContract('BaseRegistrarImplementation') // as owner
+  const priceOracle = await viem.getContract('ExponentialPremiumPriceOracle')
+  const reverseRegistrar = await viem.getContract('ReverseRegistrar') // as owner
 
-  const controller = await ethers.getContract(
+  const controller = await viem.deploy(
     'LegacyETHRegistrarController',
-    owner,
+    [registrar.address, priceOracle.address, 60n, 86400n],
+    {
+      artifact: await deployments.getArtifact(
+        'ETHRegistrarController_mainnet_9380471',
+      ),
+    },
   )
 
-  const tx1 = await registrar.addController(controller.address)
-  console.log(
-    `Adding controller as controller on registrar (tx: ${tx1.hash})...`,
+  const registrarAddControllerHash = await registrar.write.addController(
+    [controller.address as Address],
+    { account: owner.account },
   )
-  await tx1.wait()
+  console.log(
+    `Adding controller as controller on registrar (tx: ${registrarAddControllerHash})...`,
+  )
+  await viem.waitForTransactionSuccess(registrarAddControllerHash)
 
-  const tx3 = await reverseRegistrar.setController(controller.address, {
-    from: deployer,
-  })
+  const reverseRegistrarSetControllerHash =
+    await reverseRegistrar.write.setController(
+      [controller.address as Address, true],
+      { account: owner.account },
+    )
   console.log(
-    `Setting controller of ReverseRegistrar to controller (tx: ${tx3.hash})...`,
+    `Setting controller of ReverseRegistrar to controller (tx: ${reverseRegistrarSetControllerHash})...`,
   )
-  await tx3.wait()
+  await viem.waitForTransactionSuccess(reverseRegistrarSetControllerHash)
 
   if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
     console.log('Running unwrapped name registrations...')
