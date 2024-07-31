@@ -167,6 +167,14 @@ bun run test
 bun run pub
 ```
 
+### Deployment
+
+```
+bun run hardhat --network <network_name> deploy
+```
+
+Full list of available networks for deployment is [here](hardhat.config.cts#L38).
+
 ### Release flow
 
 1. Create a `feature` branch from `staging` branch
