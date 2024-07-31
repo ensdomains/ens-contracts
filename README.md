@@ -170,7 +170,7 @@ bun run pub
 ### Deployment
 
 ```
-bun run hardhat --network <network_name> deploy
+NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' bun run hardhat --network <network_name> deploy
 ```
 
 Full list of available networks for deployment is [here](hardhat.config.cts#L38).
