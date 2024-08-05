@@ -1,27 +1,26 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { convertEVMChainIdToCoinType } from '@ensdomains/address-encoder'
+import { evmChainIdToCoinType } from '@ensdomains/address-encoder/utils'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { namehash } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
-  const { deploy } = deployments
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  const { deployer } = await getNamedAccounts()
   const chainId = hre.network.config.chainId!
-  const coinType = convertEVMChainIdToCoinType(chainId)
+  const coinType = evmChainIdToCoinType(chainId) as bigint
+
   const REVERSE_NAMESPACE = `${coinType}.reverse`
-  const REVERSENODE = ethers.utils.namehash(REVERSE_NAMESPACE)
+  const REVERSENODE = namehash(REVERSE_NAMESPACE)
+
   console.log(
     `REVERSE_NAMESPACE for chainId ${chainId} is ${REVERSE_NAMESPACE}`,
   )
   console.log(
     `Deploying L2ReverseResolver with REVERSENODE ${REVERSENODE} and coinType ${coinType}`,
   )
-  await deploy('L2ReverseResolver', {
-    from: deployer,
-    args: [REVERSENODE, coinType],
-    log: true,
-  })
+
+  await viem.deploy('L2ReverseResolver', [REVERSENODE, coinType])
 }
-export default func
+
 func.tags = ['L2ReverseResolver', 'l2']
+
+export default func

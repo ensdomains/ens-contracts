@@ -1,0 +1,103 @@
+{
+  "address": "0xB0c003d54e7c5a30C0dF72c0D43Df5876d457618",
+  "abi": [
+    {
+      "inputs": [],
+      "name": "InvalidAddressFormat",
+      "type": "error"
+    },
+    {
+      "inputs": [],
+      "name": "NotImplemented",
+      "type": "error"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "data",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "context",
+          "type": "bytes"
+        }
+      ],
+      "name": "resolve",
+      "outputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes4",
+          "name": "interfaceId",
+          "type": "bytes4"
+        }
+      ],
+      "name": "supportsInterface",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xb9ee088a23e19d5ca6467185be6b3a501281464c49b95905e42e112f378990ab",
+  "receipt": {
+    "to": null,
+    "from": "0x4Fe4e666Be5752f1FdD210F4Ab5DE2Cc26e3E0e8",
+    "contractAddress": "0xB0c003d54e7c5a30C0dF72c0D43Df5876d457618",
+    "transactionIndex": 0,
+    "gasUsed": "422726",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0xfebe2adc07542ed473d210419b18bb7ffc91bd2f3089feececa32795585c6e76",
+    "transactionHash": "0xb9ee088a23e19d5ca6467185be6b3a501281464c49b95905e42e112f378990ab",
+    "logs": [],
+    "blockNumber": 815379,
+    "cumulativeGasUsed": "422726",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "2286d90f0970dc1d34ef122ce5b9cee1",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.17+commit.8df45f5f\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"InvalidAddressFormat\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotImplemented\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"data\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"context\",\"type\":\"bytes\"}],\"name\":\"resolve\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes4\",\"name\":\"interfaceId\",\"type\":\"bytes4\"}],\"name\":\"supportsInterface\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"supportsInterface(bytes4)\":{\"details\":\"Returns true if this contract implements the interface defined by `interfaceId`. See the corresponding https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section] to learn more about how these ids are created. This function call must use less than 30 000 gas.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/resolvers/profiles/ExtendedDNSResolver.sol\":\"ExtendedDNSResolver\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1200},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/utils/introspection/IERC165.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/introspection/IERC165.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC165 standard, as defined in the\\n * https://eips.ethereum.org/EIPS/eip-165[EIP].\\n *\\n * Implementers can declare support of contract interfaces, which can then be\\n * queried by others ({ERC165Checker}).\\n *\\n * For an implementation, see {ERC165}.\\n */\\ninterface IERC165 {\\n    /**\\n     * @dev Returns true if this contract implements the interface defined by\\n     * `interfaceId`. See the corresponding\\n     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]\\n     * to learn more about how these ids are created.\\n     *\\n     * This function call must use less than 30 000 gas.\\n     */\\n    function supportsInterface(bytes4 interfaceId) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x447a5f3ddc18419d41ff92b3773fb86471b1db25773e07f877f548918a185bf1\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/ExtendedDNSResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.4;\\n\\nimport \\\"@openzeppelin/contracts/utils/introspection/IERC165.sol\\\";\\nimport \\\"../../resolvers/profiles/IExtendedDNSResolver.sol\\\";\\nimport \\\"../../resolvers/profiles/IAddressResolver.sol\\\";\\nimport \\\"../../resolvers/profiles/IAddrResolver.sol\\\";\\nimport \\\"../../utils/HexUtils.sol\\\";\\n\\ncontract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {\\n    using HexUtils for *;\\n\\n    uint256 private constant COIN_TYPE_ETH = 60;\\n\\n    error NotImplemented();\\n    error InvalidAddressFormat();\\n\\n    function supportsInterface(\\n        bytes4 interfaceId\\n    ) external view virtual override returns (bool) {\\n        return interfaceId == type(IExtendedDNSResolver).interfaceId;\\n    }\\n\\n    function resolve(\\n        bytes calldata /* name */,\\n        bytes calldata data,\\n        bytes calldata context\\n    ) external pure override returns (bytes memory) {\\n        bytes4 selector = bytes4(data);\\n        if (\\n            selector == IAddrResolver.addr.selector ||\\n            selector == IAddressResolver.addr.selector\\n        ) {\\n            if (selector == IAddressResolver.addr.selector) {\\n                (, uint256 coinType) = abi.decode(data[4:], (bytes32, uint256));\\n                if (coinType != COIN_TYPE_ETH) return abi.encode(\\\"\\\");\\n            }\\n            (address record, bool valid) = context.hexToAddress(\\n                2,\\n                context.length\\n            );\\n            if (!valid) revert InvalidAddressFormat();\\n            return abi.encode(record);\\n        }\\n        revert NotImplemented();\\n    }\\n}\\n\",\"keccak256\":\"0xe49059d038b1e57513359d5fc05f44e7697bd0d1ccb5a979173e2cac429756ed\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IAddrResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\n/**\\n * Interface for the legacy (ETH-only) addr function.\\n */\\ninterface IAddrResolver {\\n    event AddrChanged(bytes32 indexed node, address a);\\n\\n    /**\\n     * Returns the address associated with an ENS node.\\n     * @param node The ENS node to query.\\n     * @return The associated address.\\n     */\\n    function addr(bytes32 node) external view returns (address payable);\\n}\\n\",\"keccak256\":\"0x2ad7f2fc60ebe0f93745fe70247f6a854f66af732483fda2a3c5e055614445e8\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IAddressResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\n/**\\n * Interface for the new (multicoin) addr function.\\n */\\ninterface IAddressResolver {\\n    event AddressChanged(\\n        bytes32 indexed node,\\n        uint256 coinType,\\n        bytes newAddress\\n    );\\n\\n    function addr(\\n        bytes32 node,\\n        uint256 coinType\\n    ) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0x411447c1e90c51e09702815a85ec725ffbbe37cf96e8cc4d2a8bd4ad8a59d73e\",\"license\":\"MIT\"},\"contracts/resolvers/profiles/IExtendedDNSResolver.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.4;\\n\\ninterface IExtendedDNSResolver {\\n    function resolve(\\n        bytes memory name,\\n        bytes memory data,\\n        bytes memory context\\n    ) external view returns (bytes memory);\\n}\\n\",\"keccak256\":\"0x541f8799c34ff9e7035d09f06ae0f0f8a16b6065e9b60a15670b957321630f72\",\"license\":\"MIT\"},\"contracts/utils/HexUtils.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity ^0.8.4;\\n\\nlibrary HexUtils {\\n    /**\\n     * @dev Attempts to parse bytes32 from a hex string\\n     * @param str The string to parse\\n     * @param idx The offset to start parsing at\\n     * @param lastIdx The (exclusive) last index in `str` to consider. Use `str.length` to scan the whole string.\\n     */\\n    function hexStringToBytes32(\\n        bytes memory str,\\n        uint256 idx,\\n        uint256 lastIdx\\n    ) internal pure returns (bytes32 r, bool valid) {\\n        uint256 hexLength = lastIdx - idx;\\n        if ((hexLength != 64 && hexLength != 40) || hexLength % 2 == 1) {\\n            revert(\\\"Invalid string length\\\");\\n        }\\n        valid = true;\\n        assembly {\\n            // check that the index to read to is not past the end of the string\\n            if gt(lastIdx, mload(str)) {\\n                revert(0, 0)\\n            }\\n\\n            function getHex(c) -> ascii {\\n                // chars 48-57: 0-9\\n                if and(gt(c, 47), lt(c, 58)) {\\n                    ascii := sub(c, 48)\\n                    leave\\n                }\\n                // chars 65-70: A-F\\n                if and(gt(c, 64), lt(c, 71)) {\\n                    ascii := add(sub(c, 65), 10)\\n                    leave\\n                }\\n                // chars 97-102: a-f\\n                if and(gt(c, 96), lt(c, 103)) {\\n                    ascii := add(sub(c, 97), 10)\\n                    leave\\n                }\\n                // invalid char\\n                ascii := 0xff\\n            }\\n\\n            let ptr := add(str, 32)\\n            for {\\n                let i := idx\\n            } lt(i, lastIdx) {\\n                i := add(i, 2)\\n            } {\\n                let byte1 := getHex(byte(0, mload(add(ptr, i))))\\n                let byte2 := getHex(byte(0, mload(add(ptr, add(i, 1)))))\\n                // if either byte is invalid, set invalid and break loop\\n                if or(eq(byte1, 0xff), eq(byte2, 0xff)) {\\n                    valid := false\\n                    break\\n                }\\n                let combined := or(shl(4, byte1), byte2)\\n                r := or(shl(8, r), combined)\\n            }\\n        }\\n    }\\n\\n    /**\\n     * @dev Attempts to parse an address from a hex string\\n     * @param str The string to parse\\n     * @param idx The offset to start parsing at\\n     * @param lastIdx The (exclusive) last index in `str` to consider. Use `str.length` to scan the whole string.\\n     */\\n    function hexToAddress(\\n        bytes memory str,\\n        uint256 idx,\\n        uint256 lastIdx\\n    ) internal pure returns (address, bool) {\\n        if (lastIdx - idx < 40) return (address(0x0), false);\\n        (bytes32 r, bool valid) = hexStringToBytes32(str, idx, lastIdx);\\n        return (address(uint160(uint256(r))), valid);\\n    }\\n}\\n\",\"keccak256\":\"0x4a8a9c72d6f3effb80b310faa6dc273e7adbc3b949df9c7a42e290e5b13519f3\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b506106ba806100206000396000f3fe608060405234801561001057600080fd5b50600436106100365760003560e01c806301ffc9a71461003b5780638ef98a7e1461008d575b600080fd5b61007861004936600461045d565b6001600160e01b0319167f8ef98a7e000000000000000000000000000000000000000000000000000000001490565b60405190151581526020015b60405180910390f35b6100a061009b3660046104d7565b6100ad565b6040516100849190610571565b606060006100bb85876105bf565b90506001600160e01b031981167f3b3b57de00000000000000000000000000000000000000000000000000000000148061011e57506001600160e01b031981167ff1cb7e0600000000000000000000000000000000000000000000000000000000145b15610271577f0e3481fa000000000000000000000000000000000000000000000000000000006001600160e01b03198216016101b0576000610163866004818a6105ef565b8101906101709190610619565b915050603c81146101ae5760405160200161019690602080825260009082015260400190565b604051602081830303815290604052925050506102a3565b505b6000806101fc60028787905088888080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509294939250506102ad9050565b9150915080610237576040517fc9e47ee500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6040805173ffffffffffffffffffffffffffffffffffffffff841660208201520160405160208183030381529060405293505050506102a3565b6040517fd623472500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b9695505050505050565b60008060286102bc858561063b565b10156102cd575060009050806102e3565b6000806102db8787876102eb565b909450925050505b935093915050565b600080806102f9858561063b565b90508060401415801561030d575080602814155b80610322575061031e600282610662565b6001145b1561038d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601560248201527f496e76616c696420737472696e67206c656e6774680000000000000000000000604482015260640160405180910390fd5b60019150855184111561039f57600080fd5b6103f0565b6000603a8210602f831116156103bc5750602f190190565b604782106040831116156103d257506036190190565b606782106060831116156103e857506056190190565b5060ff919050565b60208601855b858110156104525761040d8183015160001a6103a4565b61041f6001830184015160001a6103a4565b60ff811460ff8314171561043857600095505050610452565b60049190911b1760089590951b94909417936002016103f6565b505050935093915050565b60006020828403121561046f57600080fd5b81356001600160e01b03198116811461048757600080fd5b9392505050565b60008083601f8401126104a057600080fd5b50813567ffffffffffffffff8111156104b857600080fd5b6020830191508360208285010111156104d057600080fd5b9250929050565b600080600080600080606087890312156104f057600080fd5b863567ffffffffffffffff8082111561050857600080fd5b6105148a838b0161048e565b9098509650602089013591508082111561052d57600080fd5b6105398a838b0161048e565b9096509450604089013591508082111561055257600080fd5b5061055f89828a0161048e565b979a9699509497509295939492505050565b600060208083528351808285015260005b8181101561059e57858101830151858201604001528201610582565b506000604082860101526040601f19601f8301168501019250505092915050565b6001600160e01b031981358181169160048510156105e75780818660040360031b1b83161692505b505092915050565b600080858511156105ff57600080fd5b8386111561060c57600080fd5b5050820193919092039150565b6000806040838503121561062c57600080fd5b50508035926020909101359150565b8181038181111561065c57634e487b7160e01b600052601160045260246000fd5b92915050565b60008261067f57634e487b7160e01b600052601260045260246000fd5b50069056fea264697066735822122048092a531a20e262efce54779239b612bcaff145bb48f1dae6c4641143e50c4164736f6c63430008110033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100365760003560e01c806301ffc9a71461003b5780638ef98a7e1461008d575b600080fd5b61007861004936600461045d565b6001600160e01b0319167f8ef98a7e000000000000000000000000000000000000000000000000000000001490565b60405190151581526020015b60405180910390f35b6100a061009b3660046104d7565b6100ad565b6040516100849190610571565b606060006100bb85876105bf565b90506001600160e01b031981167f3b3b57de00000000000000000000000000000000000000000000000000000000148061011e57506001600160e01b031981167ff1cb7e0600000000000000000000000000000000000000000000000000000000145b15610271577f0e3481fa000000000000000000000000000000000000000000000000000000006001600160e01b03198216016101b0576000610163866004818a6105ef565b8101906101709190610619565b915050603c81146101ae5760405160200161019690602080825260009082015260400190565b604051602081830303815290604052925050506102a3565b505b6000806101fc60028787905088888080601f0160208091040260200160405190810160405280939291908181526020018383808284376000920191909152509294939250506102ad9050565b9150915080610237576040517fc9e47ee500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b6040805173ffffffffffffffffffffffffffffffffffffffff841660208201520160405160208183030381529060405293505050506102a3565b6040517fd623472500000000000000000000000000000000000000000000000000000000815260040160405180910390fd5b9695505050505050565b60008060286102bc858561063b565b10156102cd575060009050806102e3565b6000806102db8787876102eb565b909450925050505b935093915050565b600080806102f9858561063b565b90508060401415801561030d575080602814155b80610322575061031e600282610662565b6001145b1561038d576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152601560248201527f496e76616c696420737472696e67206c656e6774680000000000000000000000604482015260640160405180910390fd5b60019150855184111561039f57600080fd5b6103f0565b6000603a8210602f831116156103bc5750602f190190565b604782106040831116156103d257506036190190565b606782106060831116156103e857506056190190565b5060ff919050565b60208601855b858110156104525761040d8183015160001a6103a4565b61041f6001830184015160001a6103a4565b60ff811460ff8314171561043857600095505050610452565b60049190911b1760089590951b94909417936002016103f6565b505050935093915050565b60006020828403121561046f57600080fd5b81356001600160e01b03198116811461048757600080fd5b9392505050565b60008083601f8401126104a057600080fd5b50813567ffffffffffffffff8111156104b857600080fd5b6020830191508360208285010111156104d057600080fd5b9250929050565b600080600080600080606087890312156104f057600080fd5b863567ffffffffffffffff8082111561050857600080fd5b6105148a838b0161048e565b9098509650602089013591508082111561052d57600080fd5b6105398a838b0161048e565b9096509450604089013591508082111561055257600080fd5b5061055f89828a0161048e565b979a9699509497509295939492505050565b600060208083528351808285015260005b8181101561059e57858101830151858201604001528201610582565b506000604082860101526040601f19601f8301168501019250505092915050565b6001600160e01b031981358181169160048510156105e75780818660040360031b1b83161692505b505092915050565b600080858511156105ff57600080fd5b8386111561060c57600080fd5b5050820193919092039150565b6000806040838503121561062c57600080fd5b50508035926020909101359150565b8181038181111561065c57634e487b7160e01b600052601160045260246000fd5b92915050565b60008261067f57634e487b7160e01b600052601260045260246000fd5b50069056fea264697066735822122048092a531a20e262efce54779239b612bcaff145bb48f1dae6c4641143e50c4164736f6c63430008110033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "supportsInterface(bytes4)": {
+        "details": "Returns true if this contract implements the interface defined by `interfaceId`. See the corresponding https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section] to learn more about how these ids are created. This function call must use less than 30 000 gas."
+      }
+    },
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  }
+}

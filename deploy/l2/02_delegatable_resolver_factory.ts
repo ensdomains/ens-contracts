@@ -1,20 +1,19 @@
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { DeployFunction } from 'hardhat-deploy/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
-  const DelegatableResolver = await deployments.get('DelegatableResolver')
-  const factory = await deploy('DelegatableResolverFactory', {
-    from: deployer,
-    args: [DelegatableResolver.address],
-    log: true,
-  })
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
+
+  const delagatableResolver = await viem.getContract('DelegatableResolver')
+  const factory = await viem.deploy('DelegatableResolverFactory', [
+    delagatableResolver.address,
+  ])
+
   console.log(
-    `DelegatableResolverFactory is deployed at ${factory.address} with ${DelegatableResolver.address}`,
+    `DelegatableResolverFactory is deployed at ${factory.address} with ${delagatableResolver.address}`,
   )
 }
-export default func
-module.exports.dependencies = ['DelegatableResolver']
+
+func.dependencies = ['DelegatableResolver']
 func.tags = ['DelegatableResolverFactory', 'l2']
+
+export default func
