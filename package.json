@@ -30,7 +30,7 @@
   "devDependencies": {
     "@ensdomains/address-encoder": "1.1.2",
     "@ensdomains/dnsprovejs": "^0.5.1",
-    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.6",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.7",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",

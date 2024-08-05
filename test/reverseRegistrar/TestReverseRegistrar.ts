@@ -1,7 +1,18 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+import {
+  encodePacked,
+  keccak256,
+  labelhash,
+  namehash,
+  toFunctionSelector,
+  zeroAddress,
+  zeroHash,
+  type AbiFunction,
+  type Address,
+  type Hex,
+} from 'viem'
 import { getReverseNodeHash } from '../fixtures/getReverseNode.js'
 
 async function fixture() {
@@ -48,6 +59,35 @@ async function fixture() {
     accounts,
   }
 }
+
+const createMessageHash = ({
+  functionSelector,
+  address,
+  ownerAddress,
+  resolverAddress,
+  relayerAddress,
+  signatureExpiry,
+}: {
+  functionSelector: Hex
+  address: Address
+  ownerAddress: Address
+  resolverAddress: Address
+  relayerAddress: Address
+  signatureExpiry: bigint
+}) =>
+  keccak256(
+    encodePacked(
+      ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
+      [
+        functionSelector,
+        address,
+        ownerAddress,
+        resolverAddress,
+        relayerAddress,
+        signatureExpiry,
+      ],
+    ),
+  )
 
 describe('ReverseRegistrar', () => {
   it('should calculate node hash correctly', async () => {
@@ -331,82 +371,107 @@ describe('ReverseRegistrar', () => {
   })
 
   describe('claimForAddrWithSignature', () => {
-    //   it('allows an account to sign a message to allow a relayer to claim the address', async () => {
-    //     const funcId = ethers.utils
-    //       .id(
-    //         'claimForAddrWithSignature(address,address,address,address,uint256,bytes)',
-    //       )
-    //       .substring(0, 10)
-    //     const block = await ethers.provider.getBlock('latest')
-    //     const signatureExpiry = block.timestamp + 3600
-    //     const signature = await signers[0].signMessage(
-    //       ethers.utils.arrayify(
-    //         ethers.utils.solidityKeccak256(
-    //           ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
-    //           [
-    //             funcId,
-    //             accounts[0],
-    //             accounts[1],
-    //             resolver.address,
-    //             accounts[2],
-    //             signatureExpiry,
-    //           ],
-    //         ),
-    //       ),
-    //     )
-    //     await registrar.claimForAddrWithSignature(
-    //       accounts[0],
-    //       accounts[1],
-    //       resolver.address,
-    //       accounts[2],
-    //       signatureExpiry,
-    //       signature,
-    //       {
-    //         from: accounts[2],
-    //       },
-    //     )
-    //     assert.equal(await ens.owner(node), accounts[1])
-    //   })
-    // })
-    // describe('setNameForAddrWithSignature', () => {
-    //   it('allows an account to sign a message to allow a relayer to claim the address', async () => {
-    //     const funcId = ethers.utils
-    //       .id(
-    //         'claimForAddrWithSignature(address,address,address,address,uint256,bytes)',
-    //       )
-    //       .substring(0, 10)
-    //     const block = await ethers.provider.getBlock('latest')
-    //     const signatureExpiry = block.timestamp + 3600
-    //     const signature = await signers[0].signMessage(
-    //       ethers.utils.arrayify(
-    //         ethers.utils.solidityKeccak256(
-    //           ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
-    //           [
-    //             funcId,
-    //             accounts[0],
-    //             accounts[1],
-    //             resolver.address,
-    //             accounts[2],
-    //             signatureExpiry,
-    //           ],
-    //         ),
-    //       ),
-    //     )
-    //     await registrar.setNameForAddrWithSignature(
-    //       accounts[0],
-    //       accounts[1],
-    //       resolver.address,
-    //       accounts[2],
-    //       signatureExpiry,
-    //       signature,
-    //       'hello.eth',
-    //       {
-    //         from: accounts[2],
-    //       },
-    //     )
-    //     assert.equal(await ens.owner(node), accounts[1])
-    //     assert.equal(await resolver.name(node), 'hello.eth')
-    //   })
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const { ensRegistry, reverseRegistrar, publicResolver, accounts } =
+        await loadFixture(fixture)
+
+      const [walletClient] = await hre.viem.getWalletClients()
+
+      const functionSelector = toFunctionSelector(
+        reverseRegistrar.abi.find(
+          (f) =>
+            f.type === 'function' && f.name === 'claimForAddrWithSignature',
+        ) as AbiFunction,
+      )
+      const publicClient = await hre.viem.getPublicClient()
+      const blockTimestamp = await publicClient
+        .getBlock()
+        .then((b) => b.timestamp)
+      const signatureExpiry = blockTimestamp + 3600n
+
+      const messageHash = createMessageHash({
+        functionSelector,
+        address: accounts[0].address,
+        ownerAddress: accounts[1].address,
+        resolverAddress: publicResolver.address,
+        relayerAddress: accounts[2].address,
+        signatureExpiry,
+      })
+      const signature = await walletClient.signMessage({
+        message: { raw: messageHash },
+      })
+
+      await reverseRegistrar.write.claimForAddrWithSignature(
+        [
+          accounts[0].address,
+          accounts[1].address,
+          publicResolver.address,
+          accounts[2].address,
+          signatureExpiry,
+          signature,
+        ],
+        { account: accounts[2] },
+      )
+
+      await expect(
+        ensRegistry.read.owner([getReverseNodeHash(accounts[0].address)]),
+      ).resolves.toEqualAddress(accounts[1].address)
+    })
+  })
+
+  describe('setNameForAddrWithSignature', () => {
+    it('allows an account to sign a message to allow a relayer to claim the address', async () => {
+      const { ensRegistry, reverseRegistrar, publicResolver, accounts } =
+        await loadFixture(fixture)
+
+      const [walletClient] = await hre.viem.getWalletClients()
+
+      const functionSelector = toFunctionSelector(
+        reverseRegistrar.abi.find(
+          (f) =>
+            f.type === 'function' && f.name === 'claimForAddrWithSignature',
+        ) as AbiFunction,
+      )
+      const publicClient = await hre.viem.getPublicClient()
+      const blockTimestamp = await publicClient
+        .getBlock()
+        .then((b) => b.timestamp)
+      const signatureExpiry = blockTimestamp + 3600n
+
+      const messageHash = createMessageHash({
+        functionSelector,
+        address: accounts[0].address,
+        ownerAddress: accounts[1].address,
+        resolverAddress: publicResolver.address,
+        relayerAddress: accounts[2].address,
+        signatureExpiry,
+      })
+      const signature = await walletClient.signMessage({
+        message: { raw: messageHash },
+      })
+
+      await reverseRegistrar.write.setNameForAddrWithSignature(
+        [
+          accounts[0].address,
+          accounts[1].address,
+          publicResolver.address,
+          accounts[2].address,
+          signatureExpiry,
+          signature,
+          'hello.eth',
+        ],
+        { account: accounts[2] },
+      )
+
+      const node = getReverseNodeHash(accounts[0].address)
+
+      await expect(ensRegistry.read.owner([node])).resolves.toEqualAddress(
+        accounts[1].address,
+      )
+      await expect(publicResolver.read.name([node])).resolves.toEqual(
+        'hello.eth',
+      )
+    })
   })
 
   describe('setController', () => {
