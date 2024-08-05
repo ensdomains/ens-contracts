@@ -1,36 +1,16 @@
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy } = deployments
-  const { deployer } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { network, viem } = hre
 
-  await deploy('RSASHA1Algorithm', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
-  await deploy('RSASHA256Algorithm', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
-  await deploy('P256SHA256Algorithm', {
-    from: deployer,
-    args: [],
-    log: true,
-  })
+  await viem.deploy('RSASHA1Algorithm', [])
+  await viem.deploy('RSASHA256Algorithm', [])
+  await viem.deploy('P256SHA256Algorithm', [])
 
-  if (network.tags.test) {
-    await deploy('DummyAlgorithm', {
-      from: deployer,
-      args: [],
-      log: true,
-    })
-  }
+  if (network.tags.test) await viem.deploy('DummyAlgorithm', [])
 }
 
 func.tags = ['dnssec-algorithms']
+func.dependencies = ['BaseRegistrarImplementation'] // not necessary but allows registrar to be deployed first
 
 export default func

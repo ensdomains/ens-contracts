@@ -1,31 +1,25 @@
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
-import { ethers } from 'hardhat'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { namehash } from 'viem'
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments } = hre
-  const { deploy } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+const func: DeployFunction = async function (hre) {
+  const { viem } = hre
 
-  const deployArgs = {
-    from: deployer,
-    args: [],
-    log: true,
-  }
-  const ethOwnedResolver = await deploy('OwnedResolver', deployArgs)
+  const { owner } = await viem.getNamedClients()
+
+  const ethOwnedResolver = await viem.deploy('OwnedResolver', [])
 
   if (!ethOwnedResolver.newlyDeployed) return
 
-  const registry = await ethers.getContract('ENSRegistry', owner)
-  const registrar = await ethers.getContract(
-    'BaseRegistrarImplementation',
-    owner,
+  const registry = await viem.getContract('ENSRegistry')
+  const registrar = await viem.getContract('BaseRegistrarImplementation')
+
+  const setResolverHash = await registrar.write.setResolver(
+    [ethOwnedResolver.address],
+    { account: owner.account },
   )
+  await viem.waitForTransactionSuccess(setResolverHash)
 
-  const tx = await registrar.setResolver(ethOwnedResolver.address)
-  await tx.wait()
-
-  const resolver = await registry.resolver(ethers.utils.namehash('eth'))
+  const resolver = await registry.read.resolver([namehash('eth')])
   console.log(`set resolver for .eth to ${resolver}`)
   if (!ethOwnedResolver.newlyDeployed) return
 }

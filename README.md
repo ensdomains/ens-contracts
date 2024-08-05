@@ -152,19 +152,19 @@ This repo runs a husky precommit to prettify all contract files to keep them con
 ```
 git clone https://github.com/ensdomains/ens-contracts
 cd ens-contracts
-yarn
+bun i
 ```
 
 ### How to run tests
 
 ```
-yarn test
+bun run test
 ```
 
 ### How to publish
 
 ```
-yarn pub
+bun run pub
 ```
 
 ## How to deploy l2 contracts
@@ -202,6 +202,16 @@ const l2resolverAddress = await l2Factory.predictAddress(ETH_ADDRESS)
 
 ## Release flow
 
+### Deployment
+
+```
+NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' bun run hardhat --network <network_name> deploy
+```
+
+Full list of available networks for deployment is [here](hardhat.config.cts#L38).
+
+### Release flow
+
 1. Create a `feature` branch from `staging` branch
 2. Make code updates
 3. Ensure you are synced up with `staging`
@@ -210,11 +220,20 @@ const l2resolverAddress = await l2Factory.predictAddress(ETH_ADDRESS)
 6. Have the tagged commit audited if necessary
 7. If changes are required, make the changes and then once ready for review create another GitHub release with an incremented RC value `v1.2.3-RC0` -> `v.1.2.3-RC1`. Repeat as necessary.
 8. Deploy to testnet. Open a pull request to merge the deploy artifacts into
-   the `feature` branch. Get someone to review and approve the deployment and then merge. You now MUST merge this branch into `staging` branch.
-9. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts.
+   the `feature` branch. Create GitHub release of the form `v1.2.3-testnet` from the commit that has the new deployment artifacts.
+9. Get someone to review and approve the deployment and then merge. You now MUST merge this branch into `staging` branch.
 10. If any further changes are needed, you can either make them on the existing feature branch that is in sync or create a new branch, and follow steps 1 -> 9. Repeat as necessary.
-11. Make Deployment to mainnet from `staging`. Commit build artifacts. You now MUST merge this branch into `main`.
-12. Create GitHub release of the form `v1.2.3-mainnet` from the commit that has the new deployment artifacts.
+11. Make a deployment to ethereum mainnet from `staging`. Create a GitHub release of the form `v1.2.3` from the commit that has the new deployment artifacts.
+12. Open a PR to merge into `main`. Have it reviewed and merged.
+
+### Cherry-picked release flow
+
+Certain changes can be released in isolation via cherry-picking, although ideally we would always release from `staging`.
+
+1. Create a new branch from `mainnet`.
+2. Cherry-pick from `staging` into new branch.
+3. Deploy to ethereum mainnet, tag the commit that has deployment artifacts and create a release.
+4. Merge into `mainnet`.
 
 ### Emergency release process
 
@@ -224,7 +243,8 @@ const l2resolverAddress = await l2Factory.predictAddress(ETH_ADDRESS)
 
 ### Notes
 
-- `staging` branch and `main` branch should start off in sync
+- Deployed code should always match source code in mainnet releases. This may not be the case for `staging`.
+- `staging` branch and `main` branch should start in sync
 - `staging` is intended to be a practice `main`. Only code that is intended to be released to `main` can be merged to `staging`. Consequently:
   - Feature branches will be long-lived
   - Feature branches must be kept in sync with `staging`
@@ -233,4 +253,4 @@ const l2resolverAddress = await l2Factory.predictAddress(ETH_ADDRESS)
 - It is preferable to not edit the same file on different feature branches.
 - Code on `staging` and `main` will always be a subset of what is deployed, as smart contracts cannot be undeployed.
 - Release candidates, `staging` and `main` branch are subject to our bug bounty
-- Releases follow semantic versioning and should contain a description of changes with developers being the intended audience
+- Releases follow semantic versioning and releases should contain a description of changes with developers being the intended audience
