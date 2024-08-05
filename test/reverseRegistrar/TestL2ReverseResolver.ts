@@ -118,7 +118,7 @@ describe('L2ReverseResolver', () => {
       const publicClient = await hre.viem.getPublicClient()
       const inceptionDate = await publicClient
         .getBlock()
-        .then((b) => b.timestamp)
+        .then((b) => b.timestamp * 1000n)
 
       const functionReference = keccak256(
         encodePacked(['bytes4', 'string'], [funcId, name]),

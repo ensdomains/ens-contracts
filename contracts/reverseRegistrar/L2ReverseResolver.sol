@@ -14,7 +14,7 @@ import "../utils/LowLevelCallUtils.sol";
 error NotOwnerOfContract();
 
 /**
- * A L2 reverser registrar. Deployed to each L2 chain.
+ * A L2 reverse resolver. Deployed to each L2 chain.
  */
 contract L2ReverseResolver is
     Multicallable,
@@ -176,87 +176,6 @@ contract L2ReverseResolver is
         _setName(node, name, block.timestamp);
         emit ReverseClaimed(addr, node);
         return node;
-    }
-
-    /**
-     * @dev Sets the name for a contract that is owned by a SCW using a signature
-     * @param contractAddr The reverse node to set
-     * @param owner The owner of the contract (via Ownable)
-     * @param key The name of the reverse record
-     * @param value The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
-     * @param signature The signature of an address that will return true on isValidSignature for the owner
-     * @return The ENS node hash of the reverse record.
-     */
-    function setTextForAddrWithSignatureAndOwnable(
-        address contractAddr,
-        address owner,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        ownerAndAuthorisedWithSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseResolver
-                        .setTextForAddrWithSignatureAndOwnable
-                        .selector,
-                    key,
-                    value
-                )
-            ),
-            contractAddr,
-            owner,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
-        bytes32 node = _getNamehash(contractAddr);
-        _setText(node, key, value, inceptionDate);
-    }
-
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the calling account.
-     * @param key The key for this text record.
-     * @param value The value to set for this text record.
-     * @return The ENS node hash of the reverse record.
-     */
-    function setText(
-        string calldata key,
-        string calldata value
-    ) public override returns (bytes32) {
-        return setTextForAddr(msg.sender, key, value);
-    }
-
-    /**
-     * @dev Sets the `text(key)` record for the reverse ENS record associated with
-     * the addr provided account.
-     * @param key The key for this text record.
-     * @param value The value to set for this text record.
-     * @return The ENS node hash of the reverse record.
-     */
-
-    function setTextForAddr(
-        address addr,
-        string calldata key,
-        string calldata value
-    ) public override authorised(addr) returns (bytes32) {
-        bytes32 node = _getNamehash(addr);
-        _setText(node, key, value, block.timestamp);
-        return node;
-    }
-
-    /**
-     * Increments the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     */
-    function clearRecords(address addr) public virtual authorised(addr) {
-        _clearRecords(addr);
     }
 
     function ownsContract(

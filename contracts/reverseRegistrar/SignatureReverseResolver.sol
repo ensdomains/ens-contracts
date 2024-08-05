@@ -15,9 +15,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
     using ECDSA for bytes32;
     using LowLevelCallUtils for address;
     mapping(bytes32 => uint256) public lastUpdated;
-    mapping(uint64 => mapping(bytes32 => mapping(string => string))) versionable_texts;
-    mapping(uint64 => mapping(bytes32 => string)) versionable_names;
-    mapping(bytes32 => uint64) internal recordVersions;
+    mapping(bytes32 => string) names;
 
     bytes32 public immutable parentNode;
     uint256 public immutable coinType;
@@ -124,74 +122,12 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         return node;
     }
 
-    /**
-     * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
-     * @param addr The reverse record to set
-     * @param key The key of the text record
-     * @param value The value of the text record
-     * @param inceptionDate Date from when this signature is valid from
-     * @param signature The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
-    function setTextForAddrWithSignature(
-        address addr,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    ISignatureReverseResolver
-                        .setTextForAddrWithSignature
-                        .selector,
-                    key,
-                    value
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
-        bytes32 node = _getNamehash(addr);
-        _setText(node, key, value, inceptionDate);
-        return node;
-    }
-
-    function _setText(
-        bytes32 node,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate
-    ) internal {
-        versionable_texts[recordVersions[node]][node][key] = value;
-        _setLastUpdated(node, inceptionDate);
-        emit TextChanged(node, key, key, value);
-    }
-
-    /**
-     * Returns the text data associated with an ENS node and key.
-     * @param node The ENS node to query.
-     * @param key The text data key to query.
-     * @return The associated text data.
-     */
-    function text(
-        bytes32 node,
-        string calldata key
-    ) public view returns (string memory) {
-        return versionable_texts[recordVersions[node]][node][key];
-    }
-
     function _setName(
         bytes32 node,
         string memory newName,
         uint256 inceptionDate
     ) internal virtual {
-        versionable_names[recordVersions[node]][node] = newName;
+        names[node] = newName;
         _setLastUpdated(node, inceptionDate);
         emit NameChanged(node, newName);
     }
@@ -203,47 +139,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
      * @return The associated name.
      */
     function name(bytes32 node) public view returns (string memory) {
-        return versionable_names[recordVersions[node]][node];
-    }
-
-    /**
-     * Increments the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     */
-    function _clearRecords(address addr) internal {
-        bytes32 labelHash = addr.sha3HexAddress();
-        bytes32 reverseNode = keccak256(
-            abi.encodePacked(parentNode, labelHash)
-        );
-        recordVersions[reverseNode]++;
-        emit VersionChanged(reverseNode, recordVersions[reverseNode]);
-    }
-
-    /**
-     * Increments the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     * @param signature A signature proving ownership of the node.
-     */
-    function clearRecordsWithSignature(
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    ISignatureReverseResolver.clearRecordsWithSignature.selector
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-    {
-        _clearRecords(addr);
+        return names[node];
     }
 
     /**
