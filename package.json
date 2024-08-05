@@ -28,6 +28,7 @@
   ],
   "main": "index.js",
   "devDependencies": {
+    "@ensdomains/address-encoder": "1.1.2",
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.6",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
