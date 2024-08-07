@@ -42,26 +42,6 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
 
     function isAuthorised(address addr) internal view virtual {}
 
-    function getSignedMessageHash(
-        bytes4 selector,
-        string calldata name,
-        address addr,
-        uint256 inceptionDate
-    ) public view returns (bytes32) {
-        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
-        return
-            keccak256(
-                abi.encodePacked(
-                    address(this),
-                    selector,
-                    name,
-                    addr,
-                    inceptionDate,
-                    coinType
-                )
-            ).toEthSignedMessageHash();
-    }
-
     /**
      * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
      * @param addr The reverse record to set
@@ -77,6 +57,8 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         bytes memory signature
     ) public returns (bytes32) {
         bytes32 node = _getNamehash(addr);
+
+        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
         bytes32 message = keccak256(
             abi.encodePacked(
                 address(this),
