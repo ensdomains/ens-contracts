@@ -41,19 +41,28 @@ async function fixture() {
 
 const createMessageHash = ({
   contractAddress,
-  functionReference,
+  functionSelector,
+  name,
   address,
   inceptionDate,
 }: {
   contractAddress: Address
-  functionReference: Hex
+  functionSelector: Hex
+  name: string
   address: Address
   inceptionDate: bigint
 }) =>
   keccak256(
     encodePacked(
-      ['address', 'bytes32', 'address', 'uint256', 'uint256'],
-      [contractAddress, functionReference, address, inceptionDate, coinType],
+      ['address', 'bytes4', 'string', 'address', 'uint256', 'uint256'],
+      [
+        contractAddress,
+        functionSelector,
+        name,
+        address,
+        inceptionDate,
+        coinType,
+      ],
     ),
   )
 
@@ -108,7 +117,7 @@ describe('L2ReverseResolver', () => {
 
       const name = 'myname.eth'
       const node = await l2ReverseResolver.read.node([accounts[0].address])
-      const funcId = toFunctionSelector(
+      const functionSelector = toFunctionSelector(
         l2ReverseResolver.abi.find(
           (f) =>
             f.type === 'function' && f.name === 'setNameForAddrWithSignature',
@@ -118,16 +127,13 @@ describe('L2ReverseResolver', () => {
       const publicClient = await hre.viem.getPublicClient()
       const inceptionDate = await publicClient
         .getBlock()
-        .then((b) => b.timestamp * 1000n)
-
-      const functionReference = keccak256(
-        encodePacked(['bytes4', 'string'], [funcId, name]),
-      )
+        .then((b) => b.timestamp)
 
       const [walletClient] = await hre.viem.getWalletClients()
       const messageHash = createMessageHash({
         contractAddress: l2ReverseResolver.address,
-        functionReference,
+        functionSelector,
+        name,
         address: accounts[0].address,
         inceptionDate,
       })
@@ -139,8 +145,7 @@ describe('L2ReverseResolver', () => {
         ...initial,
         name,
         node,
-        funcId,
-        functionReference,
+        functionSelector,
         inceptionDate,
         signature,
         walletClient,
@@ -189,7 +194,7 @@ describe('L2ReverseResolver', () => {
       const {
         l2ReverseResolver,
         name,
-        functionReference,
+        functionSelector,
         inceptionDate,
         walletClient,
         accounts,
@@ -198,10 +203,11 @@ describe('L2ReverseResolver', () => {
       const newInceptionDate = inceptionDate + 3600n
       const messageHash = keccak256(
         encodePacked(
-          ['address', 'bytes32', 'address', 'uint256'],
+          ['address', 'bytes4', 'string', 'address', 'uint256'],
           [
             l2ReverseResolver.address,
-            functionReference,
+            functionSelector,
+            name,
             accounts[0].address,
             newInceptionDate,
           ],
@@ -225,7 +231,7 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         node,
-        functionReference,
+        functionSelector,
         inceptionDate,
         signature,
         accounts,
@@ -242,7 +248,8 @@ describe('L2ReverseResolver', () => {
       const inceptionDate2 = 0n
       const messageHash2 = createMessageHash({
         contractAddress: l2ReverseResolver.address,
-        functionReference,
+        functionSelector,
+        name,
         address: accounts[0].address,
         inceptionDate: inceptionDate2,
       })
@@ -268,7 +275,7 @@ describe('L2ReverseResolver', () => {
 
       const name = 'ownable.eth'
       const node = await l2ReverseResolver.read.node([mockOwnable.address])
-      const funcId = toFunctionSelector(
+      const functionSelector = toFunctionSelector(
         l2ReverseResolver.abi.find(
           (f) =>
             f.type === 'function' &&
@@ -283,10 +290,19 @@ describe('L2ReverseResolver', () => {
 
       const messageHash = keccak256(
         encodePacked(
-          ['address', 'bytes32', 'address', 'address', 'uint256', 'uint256'],
+          [
+            'address',
+            'bytes4',
+            'string',
+            'address',
+            'address',
+            'uint256',
+            'uint256',
+          ],
           [
             l2ReverseResolver.address,
-            keccak256(encodePacked(['bytes4', 'string'], [funcId, name])),
+            functionSelector,
+            name,
             mockOwnable.address,
             mockSmartContractWallet.address,
             inceptionDate,
@@ -304,7 +320,7 @@ describe('L2ReverseResolver', () => {
         ...initial,
         name,
         node,
-        funcId,
+        functionSelector,
         inceptionDate,
         signature,
         walletClient,

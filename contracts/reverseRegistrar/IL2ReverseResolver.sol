@@ -1,4 +1,6 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.4;
 
 interface IL2ReverseResolver {
     function setName(string memory name) external returns (bytes32);

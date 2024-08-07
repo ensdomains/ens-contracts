@@ -151,6 +151,10 @@ const config = {
       1: '0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7',
     },
   },
+  gasReporter: {
+    enabled: true,
+    trackGasDeltas: true,
+  },
   etherscan: {
     apiKey: {
       optimismSepolia: ETHERSCAN_API_KEY,

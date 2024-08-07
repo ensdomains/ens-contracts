@@ -1,11 +1,15 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
 
-import "../registry/ENS.sol";
-import "./ISignatureReverseResolver.sol";
+pragma solidity ^0.8.4;
+
 import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+
+import "../registry/ENS.sol";
 import "../root/Controllable.sol";
-import "../utils/LowLevelCallUtils.sol";
+import "../utils/AddressUtils.sol";
+
+import "./ISignatureReverseResolver.sol";
 
 error InvalidSignature();
 error InvalidSignatureDate();
@@ -13,7 +17,8 @@ error Unauthorised();
 
 contract SignatureReverseResolver is ISignatureReverseResolver {
     using ECDSA for bytes32;
-    using LowLevelCallUtils for address;
+    using AddressUtils for address;
+
     mapping(bytes32 => uint256) public lastUpdated;
     mapping(bytes32 => string) names;
 
@@ -35,20 +40,11 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
         _;
     }
 
-    modifier authorisedSignature(
-        bytes32 hash,
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) {
-        isAuthorisedWithSignature(hash, addr, inceptionDate, signature);
-        _;
-    }
-
-    function isAuthorised(address addr) internal view virtual returns (bool) {}
+    function isAuthorised(address addr) internal view virtual {}
 
     function getSignedMessageHash(
-        bytes32 hash,
+        bytes4 selector,
+        string calldata name,
         address addr,
         uint256 inceptionDate
     ) public view returns (bytes32) {
@@ -57,33 +53,13 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
             keccak256(
                 abi.encodePacked(
                     address(this),
-                    hash,
+                    selector,
+                    name,
                     addr,
                     inceptionDate,
                     coinType
                 )
             ).toEthSignedMessageHash();
-    }
-
-    function isAuthorisedWithSignature(
-        bytes32 hash,
-        address addr,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) internal view returns (bool) {
-        bytes32 message = getSignedMessageHash(hash, addr, inceptionDate);
-        bytes32 node = _getNamehash(addr);
-
-        if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
-            revert InvalidSignature();
-        }
-
-        if (
-            inceptionDate <= lastUpdated[node] || // must be newer than current record
-            inceptionDate / 1000 >= block.timestamp // must be in the past
-        ) {
-            revert InvalidSignatureDate();
-        }
     }
 
     /**
@@ -96,27 +72,33 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
      */
     function setNameForAddrWithSignature(
         address addr,
-        string memory name,
+        string calldata name,
         uint256 inceptionDate,
         bytes memory signature
-    )
-        public
-        authorisedSignature(
-            keccak256(
-                abi.encodePacked(
-                    ISignatureReverseResolver
-                        .setNameForAddrWithSignature
-                        .selector,
-                    name
-                )
-            ),
-            addr,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
+    ) public returns (bytes32) {
         bytes32 node = _getNamehash(addr);
+        bytes32 message = keccak256(
+            abi.encodePacked(
+                address(this),
+                ISignatureReverseResolver.setNameForAddrWithSignature.selector,
+                name,
+                addr,
+                inceptionDate,
+                coinType
+            )
+        ).toEthSignedMessageHash();
+
+        if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
+            revert InvalidSignature();
+        }
+
+        if (
+            inceptionDate <= lastUpdated[node] || // must be newer than current record
+            inceptionDate >= block.timestamp // must be in the past
+        ) {
+            revert InvalidSignatureDate();
+        }
+
         _setName(node, name, inceptionDate);
         emit ReverseClaimed(addr, node);
         return node;
@@ -124,7 +106,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
 
     function _setName(
         bytes32 node,
-        string memory newName,
+        string calldata newName,
         uint256 inceptionDate
     ) internal virtual {
         names[node] = newName;
@@ -148,12 +130,11 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
      * @return The ENS node hash.
      */
     function node(address addr) public view returns (bytes32) {
-        return keccak256(abi.encodePacked(parentNode, addr.sha3HexAddress()));
+        return _getNamehash(addr);
     }
 
     function _getNamehash(address addr) internal view returns (bytes32) {
-        bytes32 labelHash = addr.sha3HexAddress();
-        return keccak256(abi.encodePacked(parentNode, labelHash));
+        return keccak256(abi.encodePacked(parentNode, addr.sha3HexAddress()));
     }
 
     function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {

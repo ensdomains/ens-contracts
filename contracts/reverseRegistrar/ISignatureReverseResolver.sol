@@ -1,4 +1,6 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.4;
 
 interface ISignatureReverseResolver {
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
