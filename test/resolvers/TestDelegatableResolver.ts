@@ -118,10 +118,9 @@ describe('DelegatableResolver', () => {
         accounts[2].address,
       ])
       const result = await getResolverAddressFromHash(tx)
-      const { result: predicted } =
-        await delegatableResolverFactory.simulate.predictAddress([
-          accounts[2].address,
-        ])
+      const predicted = await delegatableResolverFactory.read.predictAddress([
+        accounts[2].address,
+      ])
       expect(predicted).toBe(result)
     })
 

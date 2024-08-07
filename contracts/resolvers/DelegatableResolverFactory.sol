@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import "./DelegatableResolver.sol";
 import {ClonesWithImmutableArgs} from "clones-with-immutable-args/src/ClonesWithImmutableArgs.sol";
+
+import "./DelegatableResolver.sol";
 
 /**
  * A resolver factory that creates a dedicated resolver for each user
@@ -36,7 +37,9 @@ contract DelegatableResolverFactory {
      * @param address The address of the resolver owner
      * @return address The address of the newly created Resolver
      */
-    function predictAddress(address owner) external returns (address clone) {
+    function predictAddress(
+        address owner
+    ) external view returns (address clone) {
         bytes memory data = abi.encodePacked(owner);
         clone = address(implementation).addressOfClone2(data);
     }
