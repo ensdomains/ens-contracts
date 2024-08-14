@@ -65,25 +65,22 @@ const createMessageHash = ({
   address,
   ownerAddress,
   resolverAddress,
-  relayerAddress,
   signatureExpiry,
 }: {
   functionSelector: Hex
   address: Address
   ownerAddress: Address
   resolverAddress: Address
-  relayerAddress: Address
   signatureExpiry: bigint
 }) =>
   keccak256(
     encodePacked(
-      ['bytes4', 'address', 'address', 'address', 'address', 'uint256'],
+      ['bytes4', 'address', 'address', 'address', 'uint256'],
       [
         functionSelector,
         address,
         ownerAddress,
         resolverAddress,
-        relayerAddress,
         signatureExpiry,
       ],
     ),
@@ -394,7 +391,6 @@ describe('ReverseRegistrar', () => {
         address: accounts[0].address,
         ownerAddress: accounts[1].address,
         resolverAddress: publicResolver.address,
-        relayerAddress: accounts[2].address,
         signatureExpiry,
       })
       const signature = await walletClient.signMessage({
@@ -442,7 +438,6 @@ describe('ReverseRegistrar', () => {
         address: accounts[0].address,
         ownerAddress: accounts[1].address,
         resolverAddress: publicResolver.address,
-        relayerAddress: accounts[2].address,
         signatureExpiry,
       })
       const signature = await walletClient.signMessage({

@@ -12,6 +12,7 @@ import "../resolvers/Multicallable.sol";
 
 import "./IL2ReverseResolver.sol";
 import "./SignatureReverseResolver.sol";
+import "./SignatureUtils.sol";
 
 error NotOwnerOfContract();
 
@@ -23,6 +24,7 @@ contract L2ReverseResolver is
     IL2ReverseResolver,
     SignatureReverseResolver
 {
+    using SignatureUtils for bytes;
     using ECDSA for bytes32;
 
     bytes32 public immutable L2ReverseNode;
@@ -50,7 +52,7 @@ contract L2ReverseResolver is
      * @param contractAddr The reverse node to set
      * @param owner The owner of the contract (via Ownable)
      * @param name The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
+     * @param signatureExpiry Date when the signature expires
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
      */
@@ -58,7 +60,7 @@ contract L2ReverseResolver is
         address contractAddr,
         address owner,
         string calldata name,
-        uint256 inceptionDate,
+        uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
         bytes32 node = _getNamehash(contractAddr);
@@ -73,7 +75,7 @@ contract L2ReverseResolver is
                 name,
                 contractAddr,
                 owner,
-                inceptionDate,
+                signatureExpiry,
                 coinType
             )
         ).toEthSignedMessageHash();
@@ -82,24 +84,9 @@ contract L2ReverseResolver is
             revert NotOwnerOfContract();
         }
 
-        if (
-            !SignatureChecker.isValidERC1271SignatureNow(
-                owner,
-                message,
-                signature
-            )
-        ) {
-            revert InvalidSignature();
-        }
+        signature.validateSignatureWithExpiry(owner, message, signatureExpiry);
 
-        if (
-            inceptionDate <= lastUpdated[node] || // must be newer than current record
-            inceptionDate >= block.timestamp // must be in the past
-        ) {
-            revert InvalidSignatureDate();
-        }
-
-        _setName(node, name, inceptionDate);
+        _setName(node, name);
         emit ReverseClaimed(contractAddr, node);
 
         return node;
@@ -129,7 +116,7 @@ contract L2ReverseResolver is
     ) public authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
 
-        _setName(node, name, block.timestamp);
+        _setName(node, name);
         emit ReverseClaimed(addr, node);
 
         return node;

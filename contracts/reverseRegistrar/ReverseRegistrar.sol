@@ -11,6 +11,7 @@ import "../root/Controllable.sol";
 import "../utils/AddressUtils.sol";
 
 import "./IReverseRegistrar.sol";
+import "./SignatureUtils.sol";
 
 abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
@@ -20,15 +21,15 @@ bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000
 
 bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
-error InvalidSignature();
-
 // namehash('addr.reverse')
 
 contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
-    ENS public immutable ens;
-    NameResolver public defaultResolver;
+    using SignatureUtils for bytes;
     using ECDSA for bytes32;
     using AddressUtils for address;
+
+    ENS public immutable ens;
+    NameResolver public defaultResolver;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(NameResolver indexed resolver);
@@ -127,20 +128,13 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
                 addr,
                 owner,
                 resolver,
-                msg.sender,
                 signatureExpiry
             )
         );
 
         bytes32 message = hash.toEthSignedMessageHash();
 
-        if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + 1 days
-        ) {
-            revert InvalidSignature();
-        }
+        signature.validateSignatureWithExpiry(addr, message, signatureExpiry);
 
         emit ReverseClaimed(addr, reverseNode);
         ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);

@@ -10,16 +10,15 @@ import "../root/Controllable.sol";
 import "../utils/AddressUtils.sol";
 
 import "./ISignatureReverseResolver.sol";
+import "./SignatureUtils.sol";
 
-error InvalidSignature();
-error InvalidSignatureDate();
 error Unauthorised();
 
 contract SignatureReverseResolver is ISignatureReverseResolver {
+    using SignatureUtils for bytes;
     using ECDSA for bytes32;
     using AddressUtils for address;
 
-    mapping(bytes32 => uint256) public lastUpdated;
     mapping(bytes32 => string) names;
 
     bytes32 public immutable parentNode;
@@ -46,14 +45,14 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
      * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
      * @param addr The reverse record to set
      * @param name The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
+     * @param signatureExpiry Date when the signature expires
      * @param signature The resolver of the reverse node
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddrWithSignature(
         address addr,
         string calldata name,
-        uint256 inceptionDate,
+        uint256 signatureExpiry,
         bytes memory signature
     ) public returns (bytes32) {
         bytes32 node = _getNamehash(addr);
@@ -65,34 +64,20 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
                 ISignatureReverseResolver.setNameForAddrWithSignature.selector,
                 name,
                 addr,
-                inceptionDate,
+                signatureExpiry,
                 coinType
             )
         ).toEthSignedMessageHash();
 
-        if (!SignatureChecker.isValidSignatureNow(addr, message, signature)) {
-            revert InvalidSignature();
-        }
+        signature.validateSignatureWithExpiry(addr, message, signatureExpiry);
 
-        if (
-            inceptionDate <= lastUpdated[node] || // must be newer than current record
-            inceptionDate >= block.timestamp // must be in the past
-        ) {
-            revert InvalidSignatureDate();
-        }
-
-        _setName(node, name, inceptionDate);
+        _setName(node, name);
         emit ReverseClaimed(addr, node);
         return node;
     }
 
-    function _setName(
-        bytes32 node,
-        string calldata newName,
-        uint256 inceptionDate
-    ) internal virtual {
+    function _setName(bytes32 node, string calldata newName) internal virtual {
         names[node] = newName;
-        _setLastUpdated(node, inceptionDate);
         emit NameChanged(node, newName);
     }
 
@@ -117,10 +102,6 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
 
     function _getNamehash(address addr) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(parentNode, addr.sha3HexAddress()));
-    }
-
-    function _setLastUpdated(bytes32 node, uint256 inceptionDate) internal {
-        lastUpdated[node] = inceptionDate;
     }
 
     function supportsInterface(

@@ -44,13 +44,13 @@ const createMessageHash = ({
   functionSelector,
   name,
   address,
-  inceptionDate,
+  signatureExpiry,
 }: {
   contractAddress: Address
   functionSelector: Hex
   name: string
   address: Address
-  inceptionDate: bigint
+  signatureExpiry: bigint
 }) =>
   keccak256(
     encodePacked(
@@ -60,7 +60,7 @@ const createMessageHash = ({
         functionSelector,
         name,
         address,
-        inceptionDate,
+        signatureExpiry,
         coinType,
       ],
     ),
@@ -125,9 +125,10 @@ describe('L2ReverseResolver', () => {
       )
 
       const publicClient = await hre.viem.getPublicClient()
-      const inceptionDate = await publicClient
+      const blockTimestamp = await publicClient
         .getBlock()
         .then((b) => b.timestamp)
+      const signatureExpiry = blockTimestamp + 3600n
 
       const [walletClient] = await hre.viem.getWalletClients()
       const messageHash = createMessageHash({
@@ -135,7 +136,7 @@ describe('L2ReverseResolver', () => {
         functionSelector,
         name,
         address: accounts[0].address,
-        inceptionDate,
+        signatureExpiry,
       })
       const signature = await walletClient.signMessage({
         message: { raw: messageHash },
@@ -146,7 +147,7 @@ describe('L2ReverseResolver', () => {
         name,
         node,
         functionSelector,
-        inceptionDate,
+        signatureExpiry,
         signature,
         walletClient,
       }
@@ -157,13 +158,13 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         node,
-        inceptionDate,
+        signatureExpiry,
         signature,
         accounts,
       } = await loadFixture(setNameForAddrWithSignatureFixture)
 
       await l2ReverseResolver.write.setNameForAddrWithSignature(
-        [accounts[0].address, name, inceptionDate, signature],
+        [accounts[0].address, name, signatureExpiry, signature],
         { account: accounts[1] },
       )
 
@@ -175,7 +176,7 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         node,
-        inceptionDate,
+        signatureExpiry,
         signature,
         accounts,
       } = await loadFixture(setNameForAddrWithSignatureFixture)
@@ -183,7 +184,7 @@ describe('L2ReverseResolver', () => {
       await expect(l2ReverseResolver)
         .write(
           'setNameForAddrWithSignature',
-          [accounts[0].address, name, inceptionDate, signature],
+          [accounts[0].address, name, signatureExpiry, signature],
           { account: accounts[1] },
         )
         .toEmitEvent('ReverseClaimed')
@@ -195,12 +196,11 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         functionSelector,
-        inceptionDate,
+        signatureExpiry,
         walletClient,
         accounts,
       } = await loadFixture(setNameForAddrWithSignatureFixture)
 
-      const newInceptionDate = inceptionDate + 3600n
       const messageHash = keccak256(
         encodePacked(
           ['address', 'bytes4', 'string', 'address', 'uint256'],
@@ -209,7 +209,7 @@ describe('L2ReverseResolver', () => {
             functionSelector,
             name,
             accounts[0].address,
-            newInceptionDate,
+            signatureExpiry,
           ],
         ),
       )
@@ -220,50 +220,73 @@ describe('L2ReverseResolver', () => {
       await expect(l2ReverseResolver)
         .write(
           'setNameForAddrWithSignature',
-          [accounts[0].address, name, newInceptionDate, signature],
+          [accounts[0].address, name, signatureExpiry, signature],
           { account: accounts[1] },
         )
         .toBeRevertedWithCustomError('InvalidSignature')
     })
 
-    it('reverts if inception date is too low', async () => {
+    it('reverts if expiry date is too low', async () => {
       const {
         l2ReverseResolver,
         name,
-        node,
         functionSelector,
-        inceptionDate,
-        signature,
         accounts,
         walletClient,
       } = await loadFixture(setNameForAddrWithSignatureFixture)
 
-      await l2ReverseResolver.write.setNameForAddrWithSignature(
-        [accounts[0].address, name, inceptionDate, signature],
-        { account: accounts[1] },
-      )
+      const signatureExpiry = 0n
 
-      await expect(l2ReverseResolver.read.name([node])).resolves.toBe(name)
-
-      const inceptionDate2 = 0n
-      const messageHash2 = createMessageHash({
+      const messageHash = createMessageHash({
         contractAddress: l2ReverseResolver.address,
         functionSelector,
         name,
         address: accounts[0].address,
-        inceptionDate: inceptionDate2,
+        signatureExpiry,
       })
-      const signature2 = await walletClient.signMessage({
-        message: { raw: messageHash2 },
+      const signature = await walletClient.signMessage({
+        message: { raw: messageHash },
       })
 
       await expect(l2ReverseResolver)
         .write(
           'setNameForAddrWithSignature',
-          [accounts[0].address, name, inceptionDate2, signature2],
+          [accounts[0].address, name, signatureExpiry, signature],
           { account: accounts[1] },
         )
-        .toBeRevertedWithCustomError('InvalidSignatureDate')
+        .toBeRevertedWithCustomError('SignatureExpired')
+    })
+
+    it('reverts if expiry date is too high', async () => {
+      const {
+        l2ReverseResolver,
+        name,
+        functionSelector,
+        signatureExpiry: oldSignatureExpiry,
+        accounts,
+        walletClient,
+      } = await loadFixture(setNameForAddrWithSignatureFixture)
+
+      const signatureExpiry = oldSignatureExpiry + 86401n
+
+      const messageHash = createMessageHash({
+        contractAddress: l2ReverseResolver.address,
+        functionSelector,
+        name,
+        address: accounts[0].address,
+        signatureExpiry,
+      })
+      const signature = await walletClient.signMessage({
+        message: { raw: messageHash },
+      })
+
+      await expect(l2ReverseResolver)
+        .write(
+          'setNameForAddrWithSignature',
+          [accounts[0].address, name, signatureExpiry, signature],
+          { account: accounts[1] },
+        )
+        .toBeRevertedWithCustomError('SignatureExpiryTooHigh')
     })
   })
 
@@ -284,9 +307,10 @@ describe('L2ReverseResolver', () => {
       )
 
       const publicClient = await hre.viem.getPublicClient()
-      const inceptionDate = await publicClient
+      const blockTimestamp = await publicClient
         .getBlock()
         .then((b) => b.timestamp)
+      const signatureExpiry = blockTimestamp + 3600n
 
       const messageHash = keccak256(
         encodePacked(
@@ -305,7 +329,7 @@ describe('L2ReverseResolver', () => {
             name,
             mockOwnable.address,
             mockSmartContractWallet.address,
-            inceptionDate,
+            signatureExpiry,
             coinType,
           ],
         ),
@@ -321,7 +345,7 @@ describe('L2ReverseResolver', () => {
         name,
         node,
         functionSelector,
-        inceptionDate,
+        signatureExpiry,
         signature,
         walletClient,
       }
@@ -332,7 +356,7 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         node,
-        inceptionDate,
+        signatureExpiry,
         signature,
         accounts,
         mockOwnable,
@@ -344,7 +368,7 @@ describe('L2ReverseResolver', () => {
           mockOwnable.address,
           mockSmartContractWallet.address,
           name,
-          inceptionDate,
+          signatureExpiry,
           signature,
         ],
         { account: accounts[1] },
@@ -358,7 +382,7 @@ describe('L2ReverseResolver', () => {
         l2ReverseResolver,
         name,
         node,
-        inceptionDate,
+        signatureExpiry,
         signature,
         accounts,
         mockOwnable,
@@ -372,7 +396,7 @@ describe('L2ReverseResolver', () => {
             mockOwnable.address,
             mockSmartContractWallet.address,
             name,
-            inceptionDate,
+            signatureExpiry,
             signature,
           ],
           { account: accounts[1] },
