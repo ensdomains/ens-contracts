@@ -18,7 +18,7 @@ library SignatureUtils {
         if (!SignatureChecker.isValidSignatureNow(addr, message, signature))
             revert InvalidSignature();
         if (signatureExpiry < block.timestamp) revert SignatureExpired();
-        if (signatureExpiry > block.timestamp + 1 days)
+        if (signatureExpiry > block.timestamp + 1 hours)
             revert SignatureExpiryTooHigh();
     }
 }
