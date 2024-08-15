@@ -14,6 +14,7 @@ import {
   type Hex,
 } from 'viem'
 import { getReverseNodeHash } from '../fixtures/getReverseNode.js'
+import { shouldSupportInterfaces } from '../wrapper/SupportsInterface.behaviour.js'
 
 async function fixture() {
   const accounts = await hre.viem
@@ -87,6 +88,12 @@ const createMessageHash = ({
   )
 
 describe('ReverseRegistrar', () => {
+  shouldSupportInterfaces({
+    contract: () =>
+      loadFixture(fixture).then(({ reverseRegistrar }) => reverseRegistrar),
+    interfaces: ['IReverseRegistrar', 'IERC165'],
+  })
+
   it('should calculate node hash correctly', async () => {
     const { reverseRegistrar, accounts } = await loadFixture(fixture)
 

@@ -2,17 +2,17 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "../registry/ENS.sol";
-import "../resolvers/profiles/INameResolver.sol";
-import "../root/Controllable.sol";
-import "../resolvers/Multicallable.sol";
+import {ENS} from "../registry/ENS.sol";
+import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
+import {Multicallable} from "../resolvers/Multicallable.sol";
 
-import "./IL2ReverseResolver.sol";
-import "./SignatureReverseResolver.sol";
-import "./SignatureUtils.sol";
+import {IL2ReverseResolver} from "./IL2ReverseResolver.sol";
+import {SignatureReverseResolver, Unauthorised} from "./SignatureReverseResolver.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
 
 error NotOwnerOfContract();
 
@@ -20,6 +20,7 @@ error NotOwnerOfContract();
  * A L2 reverse resolver. Deployed to each L2 chain.
  */
 contract L2ReverseResolver is
+    ERC165,
     Multicallable,
     IL2ReverseResolver,
     SignatureReverseResolver
@@ -138,7 +139,7 @@ contract L2ReverseResolver is
     )
         public
         view
-        override(Multicallable, SignatureReverseResolver)
+        override(ERC165, Multicallable, SignatureReverseResolver)
         returns (bool)
     {
         return

@@ -2,19 +2,18 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "../registry/ENS.sol";
-import "../root/Controllable.sol";
-import "../utils/AddressUtils.sol";
+import {ENS} from "../registry/ENS.sol";
+import {AddressUtils} from "../utils/AddressUtils.sol";
 
-import "./ISignatureReverseResolver.sol";
-import "./SignatureUtils.sol";
+import {ISignatureReverseResolver} from "./ISignatureReverseResolver.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
 
 error Unauthorised();
 
-contract SignatureReverseResolver is ISignatureReverseResolver {
+contract SignatureReverseResolver is ISignatureReverseResolver, ERC165 {
     using SignatureUtils for bytes;
     using ECDSA for bytes32;
     using AddressUtils for address;
@@ -106,7 +105,9 @@ contract SignatureReverseResolver is ISignatureReverseResolver {
 
     function supportsInterface(
         bytes4 interfaceID
-    ) public view virtual returns (bool) {
-        return interfaceID == type(ISignatureReverseResolver).interfaceId;
+    ) public view virtual override returns (bool) {
+        return
+            interfaceID == type(ISignatureReverseResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }

@@ -11,6 +11,7 @@ import {
   type Address,
   type Hex,
 } from 'viem'
+import { shouldSupportInterfaces } from '../wrapper/SupportsInterface.behaviour.js'
 
 const coinType = 123n
 
@@ -67,6 +68,17 @@ const createMessageHash = ({
   )
 
 describe('L2ReverseResolver', () => {
+  shouldSupportInterfaces({
+    contract: () =>
+      loadFixture(fixture).then(({ l2ReverseResolver }) => l2ReverseResolver),
+    interfaces: [
+      'IL2ReverseResolver',
+      'IERC165',
+      'IMulticallable',
+      'ISignatureReverseResolver',
+    ],
+  })
+
   it('should deploy the contract', async () => {
     const { l2ReverseResolver } = await loadFixture(fixture)
 

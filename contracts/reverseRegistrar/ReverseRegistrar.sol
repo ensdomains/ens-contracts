@@ -2,16 +2,16 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import "../registry/ENS.sol";
-import "../root/Controllable.sol";
-import "../utils/AddressUtils.sol";
+import {ENS} from "../registry/ENS.sol";
+import {Controllable} from "../root/Controllable.sol";
+import {AddressUtils} from "../utils/AddressUtils.sol";
 
-import "./IReverseRegistrar.sol";
-import "./SignatureUtils.sol";
+import {IReverseRegistrar} from "./IReverseRegistrar.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
 
 abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
@@ -23,7 +23,7 @@ bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967f
 
 // namehash('addr.reverse')
 
-contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
+contract ReverseRegistrar is Ownable, Controllable, ERC165, IReverseRegistrar {
     using SignatureUtils for bytes;
     using ECDSA for bytes32;
     using AddressUtils for address;
@@ -240,5 +240,13 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         } catch {
             return false;
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view override(ERC165) returns (bool) {
+        return
+            interfaceID == type(IReverseRegistrar).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
