@@ -152,20 +152,28 @@ This repo runs a husky precommit to prettify all contract files to keep them con
 ```
 git clone https://github.com/ensdomains/ens-contracts
 cd ens-contracts
-yarn
+bun i
 ```
 
 ### How to run tests
 
 ```
-yarn test
+bun run test
 ```
 
 ### How to publish
 
 ```
-yarn pub
+bun run pub
 ```
+
+### Deployment
+
+```
+NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' bun run hardhat --network <network_name> deploy
+```
+
+Full list of available networks for deployment is [here](hardhat.config.cts#L38).
 
 ### Release flow
 
