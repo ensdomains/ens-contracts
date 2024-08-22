@@ -598,10 +598,7 @@ describe('OffchainDNSResolver', () => {
       [],
     )
 
-    const resolver2 = await hre.viem.deployContract(
-      'DummyExtendedDNSSECResolver2',
-      [],
-    )
+    const resolver2 = await hre.viem.deployContract('ExtendedDNSResolver', [])
 
     const name = 'test.test'
     const COIN_TYPE_ETH = 60
@@ -687,10 +684,7 @@ describe('OffchainDNSResolver', () => {
       fixture,
     )
 
-    const resolver = await hre.viem.deployContract(
-      'DummyExtendedDNSSECResolver2',
-      [],
-    )
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
 
     const callDataText = encodeFunctionData({
       abi: publicResolverAbi,
@@ -714,10 +708,7 @@ describe('OffchainDNSResolver', () => {
       fixture,
     )
 
-    const resolver = await hre.viem.deployContract(
-      'DummyExtendedDNSSECResolver2',
-      [],
-    )
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
 
     const callDataText = encodeFunctionData({
       abi: publicResolverAbi,
