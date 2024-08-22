@@ -655,12 +655,12 @@ describe('UniversalResolver', () => {
         ],
       })
       const innerExtraData = encodeAbiParameters(
-        parseAbiParameters('bytes, bytes, bytes4'),
-        [dnsEncodeName(name), addrCall, '0x00000000'],
+        parseAbiParameters('bytes, bytes'),
+        [dnsEncodeName(name), addrCall],
       )
       const extraData = encodeExtraData({
         isWildcard: true,
-        resolver: offchainDnsResolver.address,
+        resolver: offchainDnsResolver.address as Address,
         gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
@@ -759,7 +759,7 @@ describe('UniversalResolver', () => {
 
       const extraData = encodeExtraData({
         isWildcard: false,
-        resolver: offchainResolver.address,
+        resolver: offchainResolver.address as Address,
         gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [

@@ -96,8 +96,8 @@ async function fixture() {
     )
     const dnsName = dnsEncodeName(name)
     const extraData = encodeAbiParameters(
-      [{ type: 'bytes' }, { type: 'bytes' }, { type: 'bytes4' }],
-      [dnsName, calldata, '0x00000000'],
+      [{ type: 'bytes' }, { type: 'bytes' }],
+      [dnsName, calldata],
     )
 
     return offchainDnsResolver.read.resolveCallback([response, extraData])
@@ -150,8 +150,8 @@ describe('OffchainDNSResolver', () => {
       args: [namehash(name)],
     })
     const extraData = encodeAbiParameters(
-      [{ type: 'bytes' }, { type: 'bytes' }, { type: 'bytes4' }],
-      [dnsName, callData, '0x00000000'],
+      [{ type: 'bytes' }, { type: 'bytes' }],
+      [dnsName, callData],
     )
 
     const gatewayCall = encodeFunctionData({
@@ -523,10 +523,11 @@ describe('OffchainDNSResolver', () => {
     })
 
     const extraData = encodeAbiParameters(
-      parseAbiParameters('bytes,bytes,bytes4'),
+      parseAbiParameters('bytes,bytes,address,bytes4'),
       [
         dnsName,
         calldata,
+        offchainResolver.address,
         toFunctionSelector('function resolveCallback(bytes,bytes)'),
       ],
     )
@@ -544,7 +545,7 @@ describe('OffchainDNSResolver', () => {
         getAddress(offchainDnsResolver.address),
         ['https://example.com/'],
         calldata,
-        toFunctionSelector('function resolveCallback(bytes,bytes)'),
+        toFunctionSelector('function resolveWrappedCallback(bytes,bytes)'),
         extraData,
       )
 

@@ -44,9 +44,9 @@ contract MockOffchainResolver is IExtendedResolver, ERC165 {
         bytes calldata response,
         bytes calldata extraData
     ) external view returns (bytes memory) {
-        (, bytes memory callData, ) = abi.decode(
+        (, bytes memory callData, , ) = abi.decode(
             extraData,
-            (bytes, bytes, bytes4)
+            (bytes, bytes, address, bytes4)
         );
         if (bytes4(callData) == bytes4(keccak256("addr(bytes32)"))) {
             (bytes memory result, , ) = abi.decode(
