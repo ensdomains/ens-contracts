@@ -16,7 +16,7 @@
     "pub": "npm publish --access public",
     "prepare": "husky install",
     "wikiCheck": "bun ./scripts/wikiCheck.ts",
-    "postinstall": "bunx patch-package"
+    "postinstall": "patch-package"
   },
   "files": [
     "build",
@@ -47,7 +47,8 @@
     "prettier-plugin-solidity": "^1.0.0-beta.24",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
-    "viem": "^2.12.0"
+    "viem": "^2.12.0",
+    "patch-package": "^8.0.0"
   },
   "dependencies": {
     "@ensdomains/buffer": "^0.1.1",
