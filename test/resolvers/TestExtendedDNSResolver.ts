@@ -11,6 +11,7 @@ import {
   Abi,
   Address,
   bytesToHex,
+  encodeAbiParameters,
   encodeFunctionData,
   namehash,
   stringToHex,
@@ -89,7 +90,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('resolves Ethereum addresses using addr(bytes32,uint256)', async () => {
@@ -106,7 +109,9 @@ describe('ExtendedDNSResolver', () => {
           args: [coinType],
           context: `a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('ignores records with the wrong cointype', async () => {
@@ -157,7 +162,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `foo=bar a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('handles multiple spaces between records', async () => {
@@ -173,7 +180,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `foo=bar  a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('handles multiple spaces between quoted records', async () => {
@@ -189,7 +198,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `foo='bar'  a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('handles no spaces between quoted records', async () => {
@@ -205,7 +216,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `foo='bar'a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('works if the record comes after one for another cointype', async () => {
@@ -221,7 +234,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `a[0]=0x1234 a[60]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('uses the first matching record it finds', async () => {
@@ -237,7 +252,9 @@ describe('ExtendedDNSResolver', () => {
           args: [],
           context: `a[60]=${testAddress} a[60]=0x1234567890123456789012345678901234567890`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
 
     it('resolves addresses with coin types', async () => {
@@ -255,7 +272,9 @@ describe('ExtendedDNSResolver', () => {
           args: [optimismCoinType],
           context: `a[e${optimismChainId}]=${testAddress}`,
         }),
-      ).resolves.toEqual(testAddress.toLowerCase() as Address)
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+      )
     })
   })
 
@@ -272,7 +291,9 @@ describe('ExtendedDNSResolver', () => {
           args: ['com.twitter'],
           context: 't[com.twitter]=nicksdjohnson',
         }),
-      ).resolves.toEqual(stringToHex('nicksdjohnson'))
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'string' }], ['nicksdjohnson']),
+      )
     })
 
     it('returns 0x for a missing key', async () => {
@@ -287,7 +308,7 @@ describe('ExtendedDNSResolver', () => {
           args: ['com.discord'],
           context: 't[com.twitter]=nicksdjohnson',
         }),
-      ).resolves.toEqual('0x')
+      ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['']))
     })
 
     it('decodes a quoted t record', async () => {
@@ -302,7 +323,9 @@ describe('ExtendedDNSResolver', () => {
           args: ['url'],
           context: "t[url]='https://ens.domains/'",
         }),
-      ).resolves.toEqual(stringToHex('https://ens.domains/'))
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'string' }], ['https://ens.domains/']),
+      )
     })
 
     it('handles escaped quotes', async () => {
@@ -317,7 +340,9 @@ describe('ExtendedDNSResolver', () => {
           args: ['note'],
           context: "t[note]='I\\'m great'",
         }),
-      ).resolves.toEqual(stringToHex("I'm great"))
+      ).resolves.toEqual(
+        encodeAbiParameters([{ type: 'string' }], ["I'm great"]),
+      )
     })
 
     it('rejects a record with an unterminated quoted string', async () => {
@@ -332,7 +357,7 @@ describe('ExtendedDNSResolver', () => {
           args: ['note'],
           context: "t[note]='I\\'m great",
         }),
-      ).resolves.toEqual('0x')
+      ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['']))
     })
   })
 })
