@@ -12,6 +12,8 @@ import {
   zeroAddress,
   zeroHash,
   type Hex,
+  encodeFunctionResult,
+  stringToHex,
 } from 'viem'
 import {
   expiration,
@@ -584,5 +586,142 @@ describe('OffchainDNSResolver', () => {
         }),
       )
       .toBeRevertedWithCustomError('InvalidOperation')
+  })
+
+  it('should correctly concatenate multiple texts in the TXT record and resolve', async function () {
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract(
+      'DummyExtendedDNSSECResolver',
+      [],
+    )
+
+    const resolver2 = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const name = 'test.test'
+    const COIN_TYPE_ETH = 60
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const calldataAddr = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'addr',
+      args: [namehash(name)],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          `ENS1 ${resolver2.address} a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
+        ],
+        calldata: calldataAddr,
+      }),
+    ).resolves.toEqual(testAddress.toLowerCase() as `0x${string}`)
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    const resultText = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `a[60]=${testAddress} t[smth]=smth.eth`,
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          `ENS1 ${resolver.address} a[60]=${testAddress} t[smth]=smth.eth`,
+        ],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(resultText)
+  })
+
+  it('should correctly do text resolution regardless of order', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract(
+      'DummyExtendedDNSSECResolver',
+      [],
+    )
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    const resultText = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `t[smth]=smth.eth ${testAddress}`,
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(resultText)
+  })
+
+  it('should correctly do text resolution regardless of order', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(stringToHex('smth.eth'))
+  })
+
+  it('should correctly do text resolution regardless of key-value pair amount', async function () {
+    const name = 'test.test'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'bla'],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth t[bla]=bla.eth`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(stringToHex('bla.eth'))
   })
 })
