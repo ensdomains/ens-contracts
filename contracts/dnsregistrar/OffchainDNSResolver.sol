@@ -176,7 +176,7 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
     function checkWildcard(
         bytes memory name
     ) public pure returns (bool isWildcard) {
-        return name.length > 4 && uint8(name[0]) == 1 && name[1] == "*";
+        return name.length > 4 && uint8(name[0]) == 1 && name[1] == 0x2A;
     }
 
     function parseRR(
