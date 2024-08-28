@@ -2,6 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import {
+  Address,
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
@@ -404,7 +405,9 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} a[60]=${testAddress}`],
         calldata,
       }),
-    ).resolves.toEqual(testAddress.toLowerCase() as Hex)
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
   })
 
   it('correctly handles extra data in the TXT record when calling a resolver that supports address resolution with valid cointype', async () => {
@@ -428,7 +431,9 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} a[${ethCoinType}]=${testAddress}`],
         calldata,
       }),
-    ).resolves.toEqual(testAddress.toLowerCase() as Hex)
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
   })
 
   it('handles extra data in the TXT record when calling a resolver that supports address resolution with invalid cointype', async () => {
