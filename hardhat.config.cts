@@ -76,6 +76,12 @@ const config = {
       accounts: real_accounts,
       tags: ['l2'],
     },
+    base: {
+      url: 'https://mainnet.base.org',
+      chainId: 8453,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
     baseSepolia: {
       url: 'https://sepolia.base.org',
       chainId: 84532,
@@ -85,6 +91,18 @@ const config = {
     arbitrumSepolia: {
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
       chainId: 421614,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    scroll: {
+      url: 'https://rpc.scroll.io',
+      chainId: 534352,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    scrollSepolia: {
+      url: 'https://sepolia-rpc.scroll.io',
+      chainId: 534351,
       accounts: real_accounts,
       tags: ['l2'],
     },
