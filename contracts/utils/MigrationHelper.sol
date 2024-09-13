@@ -1,0 +1,58 @@
+//SPDX-License-Identifier: MIT
+pragma solidity >=0.8.4;
+
+import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
+import {Controllable} from "../wrapper/Controllable.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+
+contract MigrationHelper is Ownable, Controllable {
+    IBaseRegistrar public immutable registrar;
+    INameWrapper public immutable wrapper;
+    address public migrationTarget;
+
+    event MigrationTargetUpdated(address indexed target);
+
+    constructor(IBaseRegistrar _registrar, INameWrapper _wrapper) {
+        registrar = _registrar;
+        wrapper = _wrapper;
+    }
+
+    function setMigrationTarget(address target) external onlyOwner {
+        migrationTarget = target;
+        emit MigrationTargetUpdated(target);
+    }
+
+    function migrateNames(
+        address owner,
+        uint256[] memory tokenIds,
+        bytes memory data
+    ) external onlyController {
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            registrar.safeTransferFrom(
+                owner,
+                migrationTarget,
+                tokenIds[i],
+                data
+            );
+        }
+    }
+
+    function migrateWrappedNames(
+        address owner,
+        uint256[] memory tokenIds,
+        bytes memory data
+    ) external onlyController {
+        uint256[] memory amounts = new uint256[](tokenIds.length);
+        for (uint256 i = 0; i < amounts.length; i++) {
+            amounts[i] = 1;
+        }
+        wrapper.safeBatchTransferFrom(
+            owner,
+            migrationTarget,
+            tokenIds,
+            amounts,
+            data
+        );
+    }
+}
