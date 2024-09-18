@@ -11,6 +11,8 @@ contract MigrationHelper is Ownable, Controllable {
     INameWrapper public immutable wrapper;
     address public migrationTarget;
 
+    error MigrationTargetNotSet();
+
     event MigrationTargetUpdated(address indexed target);
 
     constructor(IBaseRegistrar _registrar, INameWrapper _wrapper) {
@@ -28,6 +30,10 @@ contract MigrationHelper is Ownable, Controllable {
         uint256[] memory tokenIds,
         bytes memory data
     ) external onlyController {
+        if (migrationTarget == address(0)) {
+            revert MigrationTargetNotSet();
+        }
+
         for (uint256 i = 0; i < tokenIds.length; i++) {
             registrar.safeTransferFrom(
                 owner,
@@ -43,6 +49,10 @@ contract MigrationHelper is Ownable, Controllable {
         uint256[] memory tokenIds,
         bytes memory data
     ) external onlyController {
+        if (migrationTarget == address(0)) {
+            revert MigrationTargetNotSet();
+        }
+
         uint256[] memory amounts = new uint256[](tokenIds.length);
         for (uint256 i = 0; i < amounts.length; i++) {
             amounts[i] = 1;
