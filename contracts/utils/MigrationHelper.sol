@@ -26,7 +26,7 @@ contract MigrationHelper is Ownable, Controllable {
     }
 
     function migrateNames(
-        address owner,
+        address nameOwner,
         uint256[] memory tokenIds,
         bytes memory data
     ) external onlyController {
@@ -36,7 +36,7 @@ contract MigrationHelper is Ownable, Controllable {
 
         for (uint256 i = 0; i < tokenIds.length; i++) {
             registrar.safeTransferFrom(
-                owner,
+                nameOwner,
                 migrationTarget,
                 tokenIds[i],
                 data
@@ -45,7 +45,7 @@ contract MigrationHelper is Ownable, Controllable {
     }
 
     function migrateWrappedNames(
-        address owner,
+        address nameOwner,
         uint256[] memory tokenIds,
         bytes memory data
     ) external onlyController {
@@ -58,7 +58,7 @@ contract MigrationHelper is Ownable, Controllable {
             amounts[i] = 1;
         }
         wrapper.safeBatchTransferFrom(
-            owner,
+            nameOwner,
             migrationTarget,
             tokenIds,
             amounts,
