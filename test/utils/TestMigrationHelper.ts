@@ -83,7 +83,7 @@ async function fixture() {
   }
 }
 
-describe.only('MigrationHelper', () => {
+describe('MigrationHelper', () => {
   it('should allow the owner to set a migration target', async () => {
     const { migrationHelper, ownerAccount } = await loadFixture(fixture)
 
