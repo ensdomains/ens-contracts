@@ -138,16 +138,19 @@ describe('MigrationHelper', () => {
       { account: registrantAccount },
     )
     await migrationHelper.write.setMigrationTarget([ownerAccount.address])
-    await expect(migrationHelper)
-      .write('migrateNames', [
-        registrantAccount.address,
-        ids,
-        stringToHex('test'),
-      ])
+    const tx = await migrationHelper.write.migrateNames([
+      registrantAccount.address,
+      ids,
+      stringToHex('test'),
+    ])
+    expect(migrationHelper)
+      .transaction(tx)
       .toEmitEventFrom(baseRegistrar, 'Transfer')
       .withArgs(registrantAccount.address, ownerAccount.address, ids[0])
-    // .toEmitEventFrom(baseRegistrar, 'Transfer')
-    //   .withArgs(registrantAccount.address, ownerAccount.address, ids[1])
+    expect(migrationHelper)
+      .transaction(tx)
+      .toEmitEventFrom(baseRegistrar, 'Transfer')
+      .withArgs(registrantAccount.address, ownerAccount.address, ids[1])
   })
 
   it('should only allow controllers to migrate unwrapped names', async () => {
