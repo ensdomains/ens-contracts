@@ -1,45 +1,35 @@
-import fs from 'fs'
+import { labelhash, namehash } from 'viem/ens'
+import * as dotenv from 'dotenv'
+import { task } from 'hardhat/config.js'
+import { Address, Hex, hexToBigInt } from 'viem'
 
-import * as envfile from 'envfile'
-import n from 'eth-ens-namehash'
-import { task } from 'hardhat/config'
-
-const namehash = n.hash
-const labelhash = (utils: any, label: string) =>
-  utils.keccak256(utils.toUtf8Bytes(label))
-
-function getOpenSeaUrl(ethers: any, contract: string, namehashedname: string) {
-  const tokenId = ethers.BigNumber.from(namehashedname).toString()
+function getOpenSeaUrl(contract: Address, namehashedname: Hex) {
+  const tokenId = hexToBigInt(namehashedname).toString()
   return `https://testnets.opensea.io/assets/${contract}/${tokenId}`
 }
 
 task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
   .addPositionalParam('name', 'The ENS label to seed subdomains')
-  .setAction(async ({ name }, hre) => {
-    let parsedFile
-    try {
-      parsedFile = envfile.parse(fs.readFileSync('./.env', 'utf8'))
-    } catch (error: any) {
-      if (error.code !== 'ENOENT') {
-        throw error
-      }
-      console.warn(
-        '.env file is empty, fill as in README to complete seed action',
-      )
-      return
-    }
-    const ethers = hre.ethers
-    const [deployer] = await ethers.getSigners()
+  .setAction(async ({ name }: { name: string }, hre) => {
+    const { parsed: parsedFile, error } = dotenv.config({
+      path: './.env',
+      encoding: 'utf8',
+    })
+
+    if (error) throw error
+    if (!parsedFile) throw new Error('Failed to parse .env')
+
+    const [deployer] = await hre.viem.getWalletClients()
     const CAN_DO_EVERYTHING = 0
     const CANNOT_UNWRAP = 1
     const CANNOT_SET_RESOLVER = 8
-    const firstAddress = deployer.address
+    const firstAddress = deployer.account.address
     const {
       REGISTRY_ADDRESS: registryAddress,
       REGISTRAR_ADDRESS: registrarAddress,
       WRAPPER_ADDRESS: wrapperAddress,
       RESOLVER_ADDRESS: resolverAddress,
-    } = parsedFile
+    } = parsedFile as Record<string, Address>
     if (
       !(
         registryAddress &&
@@ -50,7 +40,11 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
     ) {
       throw 'Set addresses on .env'
     }
-    console.log('Account balance:', (await deployer.getBalance()).toString())
+    const publicClient = await hre.viem.getPublicClient()
+    console.log(
+      'Account balance:',
+      publicClient.getBalance({ address: deployer.account.address }),
+    )
     console.log({
       registryAddress,
       registrarAddress,
@@ -59,137 +53,125 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
       firstAddress,
       name,
     })
-    const EnsRegistry = await (
-      await ethers.getContractFactory('ENSRegistry')
-    ).attach(registryAddress)
-    const BaseRegistrar = await (
-      await ethers.getContractFactory('BaseRegistrarImplementation')
-    ).attach(registrarAddress)
-    const NameWrapper = await (
-      await ethers.getContractFactory('NameWrapper')
-    ).attach(wrapperAddress)
-    const Resolver = await (
-      await ethers.getContractFactory('PublicResolver')
-    ).attach(resolverAddress)
+    const EnsRegistry = await hre.viem.getContractAt(
+      'ENSRegistry',
+      registryAddress,
+    )
+
+    const BaseRegistrar = await hre.viem.getContractAt(
+      'BaseRegistrarImplementation',
+      registrarAddress,
+    )
+
+    const NameWrapper = await hre.viem.getContractAt(
+      'NameWrapper',
+      wrapperAddress,
+    )
+
+    const Resolver = await hre.viem.getContractAt(
+      'PublicResolver',
+      resolverAddress,
+    )
+
     const domain = `${name}.eth`
     const namehashedname = namehash(domain)
 
-    await (
-      await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
-    ).wait()
+    await BaseRegistrar.write.setApprovalForAll([NameWrapper.address, true])
+
     console.log('BaseRegistrar setApprovalForAll successful')
 
-    await (
-      await EnsRegistry.setApprovalForAll(NameWrapper.address, true)
-    ).wait()
-    console.log('EnsRegistry setApprovalForAll successful')
+    await EnsRegistry.write.setApprovalForAll([NameWrapper.address, true])
 
-    await (
-      await NameWrapper.wrapETH2LD(
-        name,
-        firstAddress,
-        CAN_DO_EVERYTHING,
-        0,
-        resolverAddress,
-        {
-          gasLimit: 10000000,
-        },
-      )
-    ).wait()
+    await NameWrapper.write.wrapETH2LD(
+      [name, firstAddress, CAN_DO_EVERYTHING, resolverAddress],
+      {
+        gas: 10000000n,
+      },
+    )
+
     console.log(
       `Wrapped NFT for ${domain} is available at ${getOpenSeaUrl(
-        ethers,
         NameWrapper.address,
         namehashedname,
       )}`,
     )
 
-    await (
-      await NameWrapper.setSubnodeOwner(
-        namehash(`${name}.eth`),
-        'sub1',
-        firstAddress,
-        CAN_DO_EVERYTHING,
-        0,
-      )
-    ).wait()
+    await NameWrapper.write.setSubnodeOwner([
+      namehash(`${name}.eth`),
+      'sub1',
+      firstAddress,
+      CAN_DO_EVERYTHING,
+      0n,
+    ])
+
     console.log('NameWrapper setSubnodeOwner successful for sub1')
 
-    await (
-      await NameWrapper.setSubnodeOwner(
-        namehash(`${name}.eth`),
-        'sub2',
-        firstAddress,
-        CAN_DO_EVERYTHING,
-        0,
-      )
-    ).wait()
+    await NameWrapper.write.setSubnodeOwner([
+      namehash(`${name}.eth`),
+      'sub2',
+      firstAddress,
+      CAN_DO_EVERYTHING,
+      0n,
+    ])
+
     console.log('NameWrapper setSubnodeOwner successful for sub2')
 
-    await (
-      await NameWrapper.setResolver(
-        namehash(`sub2.${name}.eth`),
-        resolverAddress,
-      )
-    ).wait()
+    await NameWrapper.write.setResolver([
+      namehash(`sub2.${name}.eth`),
+      resolverAddress,
+    ])
+
     console.log('NameWrapper setResolver successful for sub2')
 
-    await (
-      await Resolver.setText(
-        namehash(`sub2.${name}.eth`),
-        'domains.ens.nft.image',
-        '',
-      )
-    ).wait()
-    await (
-      await Resolver.setText(
-        namehash(`sub2.${name}.eth`),
-        'avatar',
-        'https://i.imgur.com/1JbxP0P.png',
-      )
-    ).wait()
+    await Resolver.write.setText([
+      namehash(`sub2.${name}.eth`),
+      'domains.ens.nft.image',
+      '',
+    ])
+
+    await Resolver.write.setText([
+      namehash(`sub2.${name}.eth`),
+      'avatar',
+      'https://i.imgur.com/1JbxP0P.png',
+    ])
+
     console.log(
       `Wrapped NFT for sub2.${name}.eth is available at ${getOpenSeaUrl(
-        ethers,
         NameWrapper.address,
         namehash(`sub2.${name}.eth`),
       )}`,
     )
 
-    await (
-      await NameWrapper.setFuses(namehash(`${name}.eth`), CANNOT_UNWRAP, {
-        gasLimit: 10000000,
-      })
-    ).wait()
+    await NameWrapper.write.setFuses([namehash(`${name}.eth`), CANNOT_UNWRAP], {
+      gas: 10000000n,
+    })
+
     console.log('NameWrapper set CANNOT_UNWRAP fuse successful for sub2')
 
-    await (
-      await NameWrapper.setFuses(namehash(`sub2.${name}.eth`), CANNOT_UNWRAP, {
-        gasLimit: 10000000,
-      })
-    ).wait()
+    await NameWrapper.write.setFuses(
+      [namehash(`sub2.${name}.eth`), CANNOT_UNWRAP],
+      {
+        gas: 10000000n,
+      },
+    )
+
     console.log('NameWrapper set CANNOT_UNWRAP fuse successful for sub2')
 
-    await (
-      await NameWrapper.setFuses(
-        namehash(`sub2.${name}.eth`),
-        CANNOT_SET_RESOLVER,
-        {
-          gasLimit: 10000000,
-        },
-      )
-    ).wait()
+    await NameWrapper.write.setFuses(
+      [namehash(`sub2.${name}.eth`), CANNOT_SET_RESOLVER],
+      {
+        gas: 10000000n,
+      },
+    )
+
     console.log('NameWrapper set CANNOT_SET_RESOLVER fuse successful for sub2')
 
-    await (
-      await NameWrapper.unwrap(
-        namehash(`${name}.eth`),
-        labelhash(ethers.utils, 'sub1'),
-        firstAddress,
-        {
-          gasLimit: 10000000,
-        },
-      )
-    ).wait()
+    await NameWrapper.write.unwrap(
+      [namehash(`${name}.eth`), labelhash('sub1'), firstAddress],
+      {
+        gas: 10000000n,
+      },
+    )
+
     console.log(`NameWrapper unwrap successful for ${name}`)
   })

@@ -1,30 +1,28 @@
-import { ethers } from 'hardhat'
-import { DeployFunction } from 'hardhat-deploy/types'
-import { HardhatRuntimeEnvironment } from 'hardhat/types'
+import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { zeroAddress, zeroHash } from 'viem'
 
-const ZERO_HASH =
-  '0x0000000000000000000000000000000000000000000000000000000000000000'
+const func: DeployFunction = async function (hre) {
+  const { deployments, network, viem } = hre
+  const { run } = deployments
 
-const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { getNamedAccounts, deployments, network } = hre
-  const { deploy, run } = deployments
-  const { deployer, owner } = await getNamedAccounts()
+  const { deployer, owner } = await viem.getNamedClients()
 
   if (network.tags.legacy) {
-    const contract = await deploy('LegacyENSRegistry', {
-      from: owner,
-      args: [],
-      log: true,
-      contract: await deployments.getArtifact('ENSRegistry'),
+    const contract = await viem.deploy('LegacyENSRegistry', [], {
+      client: owner,
+      artifact: await deployments.getArtifact('ENSRegistry'),
     })
 
-    const legacyRegistry = await ethers.getContract('LegacyENSRegistry')
+    const legacyRegistry = await viem.getContract('LegacyENSRegistry', owner)
 
-    const rootTx = await legacyRegistry
-      .connect(await ethers.getSigner(owner))
-      .setOwner(ZERO_HASH, owner)
-    console.log(`Setting owner of root node to owner (tx: ${rootTx.hash})`)
-    await rootTx.wait()
+    const setRootHash = await legacyRegistry.write.setOwner(
+      [zeroHash, owner.address],
+      {
+        gas: 1000000n,
+      },
+    )
+    console.log(`Setting owner of root node to owner (tx: ${setRootHash})`)
+    await viem.waitForTransactionSuccess(setRootHash)
 
     if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
       console.log('Running legacy registry scripts...')
@@ -34,38 +32,36 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
       })
     }
 
-    const revertRootTx = await legacyRegistry
-      .connect(await ethers.getSigner(owner))
-      .setOwner(ZERO_HASH, '0x0000000000000000000000000000000000000000')
-    console.log(`Unsetting owner of root node (tx: ${rootTx.hash})`)
-    await revertRootTx.wait()
+    const revertRootHash = await legacyRegistry.write.setOwner([
+      zeroHash,
+      zeroAddress,
+    ])
+    console.log(`Unsetting owner of root node (tx: ${revertRootHash})`)
+    await viem.waitForTransactionSuccess(revertRootHash)
 
-    await deploy('ENSRegistry', {
-      from: deployer,
-      args: [contract.address],
-      log: true,
-      contract: await deployments.getArtifact('ENSRegistryWithFallback'),
+    await viem.deploy('ENSRegistry', [contract.address], {
+      artifact: await deployments.getArtifact('ENSRegistryWithFallback'),
     })
   } else {
-    await deploy('ENSRegistry', {
-      from: deployer,
-      args: [],
-      log: true,
+    await viem.deploy('ENSRegistry', [], {
+      artifact: await deployments.getArtifact('ENSRegistry'),
     })
   }
 
   if (!network.tags.use_root) {
-    const registry = await ethers.getContract('ENSRegistry')
-    const rootOwner = await registry.owner(ZERO_HASH)
+    const registry = await viem.getContract('ENSRegistry')
+    const rootOwner = await registry.read.owner([zeroHash])
     switch (rootOwner) {
-      case deployer:
-        const tx = await registry.setOwner(ZERO_HASH, owner, { from: deployer })
+      case deployer.address:
+        const hash = await registry.write.setOwner([zeroHash, owner.address], {
+          account: deployer.account,
+        })
         console.log(
-          `Setting final owner of root node on registry (tx:${tx.hash})...`,
+          `Setting final owner of root node on registry (tx:${hash})...`,
         )
-        await tx.wait()
+        await viem.waitForTransactionSuccess(hash)
         break
-      case owner:
+      case owner.address:
         break
       default:
         console.log(

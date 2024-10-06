@@ -4,12 +4,12 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
-import "../dnssec-oracle/BytesUtils.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../root/Root.sol";
 import "../resolvers/profiles/AddrResolver.sol";
+import "../utils/BytesUtils.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
 import "./IDNSRegistrar.sol";
