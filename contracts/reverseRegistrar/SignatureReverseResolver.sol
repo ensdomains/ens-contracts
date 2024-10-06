@@ -75,7 +75,7 @@ contract SignatureReverseResolver is ISignatureReverseResolver, ERC165 {
         return node;
     }
 
-    function _setName(bytes32 node, string calldata newName) internal virtual {
+    function _setName(bytes32 node, string memory newName) internal virtual {
         names[node] = newName;
         emit NameChanged(node, newName);
     }

@@ -46,24 +46,6 @@ const config = {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 4,
-      accounts: real_accounts,
-    },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 3,
-      accounts: real_accounts,
-    },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 5,
-      accounts: real_accounts,
-    },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       tags: ['test', 'legacy', 'use_root'],
@@ -177,6 +159,7 @@ const config = {
     apiKey: {
       optimismSepolia: ETHERSCAN_API_KEY,
       baseSepolia: ETHERSCAN_API_KEY,
+      base: ETHERSCAN_API_KEY,
       arbitrumSepolia: ETHERSCAN_API_KEY,
     },
     customChains: [
@@ -194,6 +177,14 @@ const config = {
         urls: {
           apiURL: 'https://api-sepolia.basescan.org/api',
           browserURL: 'https://sepolia.basescan.org',
+        },
+      },
+      {
+        network: 'base',
+        chainId: 8453,
+        urls: {
+          apiURL: 'https://api.basescan.org/api',
+          browserURL: 'https://basescan.org',
         },
       },
       {
