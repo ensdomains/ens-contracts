@@ -1,12 +1,17 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
 
-import "../registry/ENS.sol";
-import "./IReverseRegistrar.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "../root/Controllable.sol";
-import "../utils/LowLevelCallUtils.sol";
+pragma solidity ^0.8.4;
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {ENS} from "../registry/ENS.sol";
+import {Controllable} from "../root/Controllable.sol";
+import {AddressUtils} from "../utils/AddressUtils.sol";
+
+import {IReverseRegistrar} from "./IReverseRegistrar.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
 
 abstract contract NameResolver {
     function setName(bytes32 node, string memory name) public virtual;
@@ -16,15 +21,15 @@ bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000
 
 bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
-error InvalidSignature();
-
 // namehash('addr.reverse')
 
-contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
+contract ReverseRegistrar is Ownable, Controllable, ERC165, IReverseRegistrar {
+    using SignatureUtils for bytes;
+    using ECDSA for bytes32;
+    using AddressUtils for address;
+
     ENS public immutable ens;
     NameResolver public defaultResolver;
-    using ECDSA for bytes32;
-    using LowLevelCallUtils for address;
 
     event ReverseClaimed(address indexed addr, bytes32 indexed node);
     event DefaultResolverChanged(NameResolver indexed resolver);
@@ -109,7 +114,6 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
@@ -124,21 +128,13 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
                 addr,
                 owner,
                 resolver,
-                relayer,
                 signatureExpiry
             )
         );
 
         bytes32 message = hash.toEthSignedMessageHash();
 
-        if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            relayer != msg.sender ||
-            signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + 1 days
-        ) {
-            revert InvalidSignature();
-        }
+        signature.validateSignatureWithExpiry(addr, message, signatureExpiry);
 
         emit ReverseClaimed(addr, reverseNode);
         ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
@@ -166,7 +162,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    function setName(string memory name) public override returns (bytes32) {
+    function setName(string calldata name) public override returns (bytes32) {
         return
             setNameForAddr(
                 msg.sender,
@@ -190,7 +186,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
-        string memory name
+        string calldata name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddr(addr, owner, resolver);
         NameResolver(resolver).setName(node, name);
@@ -211,16 +207,14 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature,
-        string memory name
+        string calldata name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddrWithSignature(
             addr,
             owner,
             resolver,
-            relayer,
             signatureExpiry,
             signature
         );
@@ -246,5 +240,13 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         } catch {
             return false;
         }
+    }
+
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view override(ERC165) returns (bool) {
+        return
+            interfaceID == type(IReverseRegistrar).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
