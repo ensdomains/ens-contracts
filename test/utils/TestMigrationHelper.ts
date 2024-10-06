@@ -2,8 +2,6 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import {
-  Address,
-  encodeFunctionData,
   hexToBigInt,
   labelhash,
   namehash,
@@ -26,7 +24,6 @@ const getAccounts = async () => {
 }
 
 async function fixture() {
-  const publicClient = await hre.viem.getPublicClient()
   const accounts = await getAccounts()
   const ensRegistry = await hre.viem.deployContract('ENSRegistry', [])
   const baseRegistrar = await hre.viem.deployContract(
@@ -109,9 +106,15 @@ describe('MigrationHelper', () => {
   it('should refuse to migrate unwrapped names to the zero address', async () => {
     const { baseRegistrar, migrationHelper, registrantAccount } =
       await loadFixture(fixture)
-    const ids = [labelhash('test'), labelhash('test2')]
+    const ids = [labelhash('test'), labelhash('test2')].map((v) =>
+      hexToBigInt(v),
+    )
     for (let id of ids) {
-      await baseRegistrar.write.register([id, registrantAccount.address, 86400])
+      await baseRegistrar.write.register([
+        id,
+        registrantAccount.address,
+        86400n,
+      ])
     }
     await baseRegistrar.write.setApprovalForAll(
       [migrationHelper.address, true],
@@ -129,9 +132,15 @@ describe('MigrationHelper', () => {
   it('should migrate unwrapped names', async () => {
     const { baseRegistrar, migrationHelper, ownerAccount, registrantAccount } =
       await loadFixture(fixture)
-    const ids = [labelhash('test'), labelhash('test2')]
+    const ids = [labelhash('test'), labelhash('test2')].map((v) =>
+      hexToBigInt(v),
+    )
     for (let id of ids) {
-      await baseRegistrar.write.register([id, registrantAccount.address, 86400])
+      await baseRegistrar.write.register([
+        id,
+        registrantAccount.address,
+        86400n,
+      ])
     }
     await baseRegistrar.write.setApprovalForAll(
       [migrationHelper.address, true],
@@ -143,11 +152,11 @@ describe('MigrationHelper', () => {
       ids,
       stringToHex('test'),
     ])
-    expect(migrationHelper)
+    await expect(migrationHelper)
       .transaction(tx)
       .toEmitEventFrom(baseRegistrar, 'Transfer')
       .withArgs(registrantAccount.address, ownerAccount.address, ids[0])
-    expect(migrationHelper)
+    await expect(migrationHelper)
       .transaction(tx)
       .toEmitEventFrom(baseRegistrar, 'Transfer')
       .withArgs(registrantAccount.address, ownerAccount.address, ids[1])
@@ -156,9 +165,15 @@ describe('MigrationHelper', () => {
   it('should only allow controllers to migrate unwrapped names', async () => {
     const { baseRegistrar, migrationHelper, ownerAccount, registrantAccount } =
       await loadFixture(fixture)
-    const ids = [labelhash('test'), labelhash('test2')]
+    const ids = [labelhash('test'), labelhash('test2')].map((v) =>
+      hexToBigInt(v),
+    )
     for (let id of ids) {
-      await baseRegistrar.write.register([id, registrantAccount.address, 86400])
+      await baseRegistrar.write.register([
+        id,
+        registrantAccount.address,
+        86400n,
+      ])
     }
     await migrationHelper.write.setMigrationTarget([ownerAccount.address])
     await baseRegistrar.write.setApprovalForAll(
@@ -178,12 +193,12 @@ describe('MigrationHelper', () => {
     const { nameWrapper, migrationHelper, ownerAccount, registrantAccount } =
       await loadFixture(fixture)
     const labels = ['test', 'test2']
-    const ids = labels.map((label) => namehash(label + '.eth'))
+    const ids = labels.map((label) => hexToBigInt(namehash(label + '.eth')))
     for (let label of labels) {
       await nameWrapper.write.registerAndWrapETH2LD([
         label,
         registrantAccount.address,
-        86400,
+        86400n,
         zeroAddress,
         0,
       ])
@@ -204,20 +219,20 @@ describe('MigrationHelper', () => {
         registrantAccount.address,
         ownerAccount.address,
         ids,
-        ids.map(() => 1),
+        ids.map(() => 1n),
       )
   })
 
   it('should refuse to migrate wrapped names to the zero address', async () => {
-    const { nameWrapper, migrationHelper, ownerAccount, registrantAccount } =
+    const { nameWrapper, migrationHelper, registrantAccount } =
       await loadFixture(fixture)
     const labels = ['test', 'test2']
-    const ids = labels.map((label) => namehash(label + '.eth'))
+    const ids = labels.map((label) => hexToBigInt(namehash(label + '.eth')))
     for (let label of labels) {
       await nameWrapper.write.registerAndWrapETH2LD([
         label,
         registrantAccount.address,
-        86400,
+        86400n,
         zeroAddress,
         0,
       ])
@@ -238,12 +253,12 @@ describe('MigrationHelper', () => {
     const { nameWrapper, migrationHelper, ownerAccount, registrantAccount } =
       await loadFixture(fixture)
     const labels = ['test', 'test2']
-    const ids = labels.map((label) => namehash(label + '.eth'))
+    const ids = labels.map((label) => hexToBigInt(namehash(label + '.eth')))
     for (let label of labels) {
       await nameWrapper.write.registerAndWrapETH2LD([
         label,
         registrantAccount.address,
-        86400,
+        86400n,
         zeroAddress,
         0,
       ])
