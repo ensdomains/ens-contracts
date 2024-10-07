@@ -13,17 +13,16 @@ import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 import {Resolver, INameResolver, IAddrResolver, IAddressResolver} from "../resolvers/Resolver.sol";
 import {AddrResolver} from "../resolvers/profiles/AddrResolver.sol";
 import {IMulticallable, IMulticallableSimple} from "../resolvers/IMulticallable.sol";
-import {HexUtils} from "./HexUtils.sol";
-import {BytesUtils} from "../wrapper/BytesUtils.sol";
-import {NameEncoder} from "./NameEncoder.sol";
+import {HexUtils} from "../utils/HexUtils.sol";
+import {BytesArrayValidator} from "./BytesArrayValidator.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
+import {NameEncoder} from "../utils/NameEncoder.sol";
 
 error ResolverNotFound();
 
 error ReverseNodeNotFound();
 
 error ReverseAddressMismatch(bytes result);
-
-error ResolverWildcardNotSupported();
 
 error ResolverNotContract();
 
@@ -47,7 +46,7 @@ interface BatchGateway2 {
     ) external returns (bytes memory response);
 }
 
-contract UniversalResolver2 is
+contract UniversalResolver3 is
     ERC3668Multicallable,
     ERC3668Caller,
     ENSIP10ResolverFinder
@@ -57,6 +56,7 @@ contract UniversalResolver2 is
     using NameEncoder for string;
     using HexUtils for bytes;
     using BytesUtils for bytes;
+    using BytesArrayValidator for bytes;
 
     string[] public _urls;
     uint256 private constant SLIP44_MSB = 0x80000000;
@@ -82,13 +82,9 @@ contract UniversalResolver2 is
     ) public view returns (bytes memory result, address resolver) {
         uint256 finalOffset;
         (resolver, , finalOffset) = findResolver(name);
-        if (resolver == address(0)) {
-            revert ResolverNotFound();
-        }
 
-        if (!resolver.isContract()) {
-            revert ResolverNotContract();
-        }
+        if (resolver == address(0)) revert ResolverNotFound();
+        if (!resolver.isContract()) revert ResolverNotContract();
 
         bool isWildcard = finalOffset != 0;
         bool isExtendedResolver = _checkInterface(
@@ -96,14 +92,7 @@ contract UniversalResolver2 is
             type(IExtendedResolver).interfaceId
         );
 
-        if (isWildcard && !isExtendedResolver) {
-            revert ResolverWildcardNotSupported();
-        }
-
-        bool resolverSupportsMulticall = _checkInterface(
-            resolver,
-            type(IMulticallableSimple).interfaceId
-        ) || _checkInterface(resolver, type(IMulticallable).interfaceId);
+        if (isWildcard && !isExtendedResolver) revert ResolverNotFound();
 
         bool isSingleInternallyEncodedCall = bytes4(data) !=
             MulticallableGateway.multicall.selector;
@@ -116,14 +105,14 @@ contract UniversalResolver2 is
             calls = abi.decode(data[4:], (bytes[]));
         }
 
-        if (resolverSupportsMulticall)
+        if (isExtendedResolver)
             return
-                _externalMulticall(
+                _attemptResolveMulticall(
                     name,
                     calls,
                     resolver,
-                    isSingleInternallyEncodedCall,
-                    isExtendedResolver
+                    gateways,
+                    isSingleInternallyEncodedCall
                 );
 
         return
@@ -137,45 +126,136 @@ contract UniversalResolver2 is
             );
     }
 
-    function internalCallCallback(
-        bytes memory response,
-        bytes calldata /* extraData */
-    ) external pure returns (bytes memory) {
-        assembly {
-            return(add(response, 32), mload(response))
-        }
-    }
+    /**
+     * resolve(multicall(calls))
+     */
 
-    function internalCallCalldataRewrite(
-        OffchainLookupData memory data
-    ) external pure returns (bytes memory) {
+    function _createResolveMulticall(
+        bytes calldata name,
+        bytes[] memory calls
+    ) internal pure returns (bytes memory) {
         return
             abi.encodeWithSelector(
-                BatchGateway2.query.selector,
-                data.sender,
-                data.urls,
-                data.callData
+                IExtendedResolver.resolve.selector,
+                name,
+                abi.encodeWithSelector(IMulticallable.multicall.selector, calls)
             );
     }
 
-    function internalCall(
-        address target,
-        bytes calldata data,
-        uint256 gas
-    ) external view returns (bytes memory) {
-        return
-            call(
-                target,
-                gas,
-                data,
-                "",
-                this.internalCallCallback.selector,
-                this.internalCallCalldataRewrite.selector,
-                bytes4(0)
-            );
+    function _attemptResolveMulticall(
+        bytes calldata name,
+        bytes[] memory calls,
+        address resolver,
+        string[] memory gateways,
+        bool isSingleInternallyEncodedCall
+    ) internal view returns (bytes memory, address) {
+        call(
+            resolver,
+            0,
+            _createResolveMulticall(name, calls),
+            abi.encode(
+                name,
+                calls,
+                resolver,
+                gateways,
+                isSingleInternallyEncodedCall
+            ),
+            this.resolveMulticallResolveCallback.selector,
+            bytes4(0),
+            this.resolveMulticallResolveCallback.selector
+        );
     }
 
-    function resolveCallback(
+    function resolveMulticallResolveCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view returns (bytes memory, address) {
+        (
+            bytes memory name,
+            bytes[] memory calls,
+            address resolver,
+            string[] memory gateways,
+            bool isSingleInternallyEncodedCall
+        ) = abi.decode(extraData, (bytes, bytes[], address, string[], bool));
+
+        if (!BytesArrayValidator.isValidBytesArray(response)) {
+            return
+                _internalMulticall(
+                    name,
+                    calls,
+                    resolver,
+                    gateways,
+                    isSingleInternallyEncodedCall,
+                    true
+                );
+        }
+
+        if (isSingleInternallyEncodedCall)
+            return (
+                _resultFromSingleInternallyEncodedCall(response, true),
+                resolver
+            );
+        return (response, resolver);
+    }
+
+    /**
+     * multicall(calls)
+     */
+
+    function _createInternalMulticall(
+        bytes memory name,
+        bytes[] memory calls,
+        address resolver,
+        string[] memory gateways,
+        bool isExtendedResolver
+    ) internal view returns (bytes memory) {
+        for (uint256 i = 0; i < calls.length; i++) {
+            bool isSafe;
+            if (isExtendedResolver) {
+                calls[i] = _encodeCallWithResolve(name, calls[i]);
+                isSafe = true;
+            } else {
+                isSafe = _checkInterface(resolver, bytes4(calls[i]));
+            }
+            calls[i] = abi.encodeWithSelector(
+                this._internalCall.selector,
+                resolver,
+                calls[i],
+                isSafe ? 0 : 50000
+            );
+        }
+
+        return abi.encodeWithSelector(this.multicall.selector, calls, gateways);
+    }
+
+    function _internalMulticall(
+        bytes memory name,
+        bytes[] memory calls,
+        address resolver,
+        string[] memory gateways,
+        bool isSingleInternallyEncodedCall,
+        bool isExtendedResolver
+    ) internal view returns (bytes memory, address) {
+        call(
+            address(this),
+            0,
+            _createInternalMulticall(
+                name,
+                calls,
+                resolver,
+                gateways,
+                isExtendedResolver
+            ),
+            abi.encode(
+                resolver,
+                isSingleInternallyEncodedCall,
+                isExtendedResolver
+            ),
+            this.internalMulticallResolveCallback.selector
+        );
+    }
+
+    function internalMulticallResolveCallback(
         bytes calldata response,
         bytes calldata extraData
     ) external pure returns (bytes memory, address) {
@@ -203,6 +283,52 @@ contract UniversalResolver2 is
 
         return (abi.encode(results), resolver);
     }
+
+    /**
+     * Internal call
+     */
+
+    function _internalCallCallback(
+        bytes memory response,
+        bytes calldata /* extraData */
+    ) external pure returns (bytes memory) {
+        assembly {
+            return(add(response, 32), mload(response))
+        }
+    }
+
+    function _internalCallCalldataRewrite(
+        OffchainLookupData memory data
+    ) external pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                BatchGateway2.query.selector,
+                data.sender,
+                data.urls,
+                data.callData
+            );
+    }
+
+    function _internalCall(
+        address target,
+        bytes calldata data,
+        uint256 gas
+    ) external view returns (bytes memory) {
+        return
+            call(
+                target,
+                gas,
+                data,
+                "",
+                this._internalCallCallback.selector,
+                this._internalCallCalldataRewrite.selector,
+                bytes4(0)
+            );
+    }
+
+    /**
+     * Reverse
+     */
 
     function reverse(
         bytes memory lookupAddress,
@@ -240,25 +366,8 @@ contract UniversalResolver2 is
             0,
             encodedCall,
             abi.encode(lookupAddress, coinType, gateways),
-            this.forwardLookupReverseCallback.selector,
-            bytes4(0),
-            this.defaultCoinTypeReverseCallback.selector
+            this.forwardLookupReverseCallback.selector
         );
-    }
-
-    function defaultCoinTypeReverseCallback(
-        bytes calldata /* response */,
-        bytes calldata extraData
-    ) external view returns (string memory, address, address) {
-        (
-            bytes memory lookupAddress,
-            uint256 coinType,
-            string[] memory gateways
-        ) = abi.decode(extraData, (bytes, uint256, string[]));
-        // not sure if this should propagate the revert data or just use the custom error
-        if (coinType == SLIP44_MSB || !_isEvmChain(coinType))
-            revert ReverseNodeNotFound();
-        return reverseWithGateways(lookupAddress, SLIP44_MSB, gateways);
     }
 
     function forwardLookupReverseCallback(
@@ -385,113 +494,11 @@ contract UniversalResolver2 is
         return (resolvedName, reverseResolver, resolver);
     }
 
-    function _externalMulticall(
-        bytes calldata name,
-        bytes[] memory calls,
-        address resolver,
-        bool isSingleInternallyEncodedCall,
-        bool isExtendedResolver
-    ) internal view returns (bytes memory, address) {
-        call(
-            resolver,
-            0,
-            _createExternalMulticall(name, calls, resolver, isExtendedResolver),
-            abi.encode(
-                resolver,
-                isSingleInternallyEncodedCall,
-                isExtendedResolver
-            ),
-            this.resolveCallback.selector
-        );
-    }
-
-    function _internalMulticall(
-        bytes calldata name,
-        bytes[] memory calls,
-        address resolver,
-        string[] memory gateways,
-        bool isSingleInternallyEncodedCall,
-        bool isExtendedResolver
-    ) internal view returns (bytes memory, address) {
-        call(
-            address(this),
-            0,
-            _createInternalMulticall(
-                name,
-                calls,
-                resolver,
-                gateways,
-                isExtendedResolver
-            ),
-            abi.encode(
-                resolver,
-                isSingleInternallyEncodedCall,
-                isExtendedResolver
-            ),
-            this.resolveCallback.selector
-        );
-    }
-
     function _encodeCallWithResolve(
         bytes memory name,
         bytes memory data
     ) internal pure returns (bytes memory) {
         return abi.encodeCall(IExtendedResolver.resolve, (name, data));
-    }
-
-    function _createInternalMulticall(
-        bytes calldata name,
-        bytes[] memory calls,
-        address resolver,
-        string[] memory gateways,
-        bool isExtendedResolver
-    ) internal view returns (bytes memory) {
-        for (uint256 i = 0; i < calls.length; i++) {
-            bool isSafe;
-            if (isExtendedResolver) {
-                calls[i] = _encodeCallWithResolve(name, calls[i]);
-                isSafe = true;
-            } else {
-                isSafe = _checkInterface(resolver, bytes4(calls[i]));
-            }
-            calls[i] = abi.encodeWithSelector(
-                this.internalCall.selector,
-                resolver,
-                calls[i],
-                isSafe ? 0 : 50000
-            );
-        }
-
-        return abi.encodeWithSelector(this.multicall.selector, calls, gateways);
-    }
-
-    function _createExternalMulticall(
-        bytes calldata name,
-        bytes[] memory calls,
-        address resolver,
-        bool isExtendedResolver
-    ) internal view returns (bytes memory) {
-        if (isExtendedResolver) {
-            for (uint256 i = 0; i < calls.length; i++) {
-                calls[i] = _encodeCallWithResolve(name, calls[i]);
-            }
-        } else {
-            for (uint256 i = 0; i < calls.length; i++) {
-                bool interfaceSupported = _checkInterface(
-                    resolver,
-                    bytes4(calls[i])
-                );
-                // only allow explicitly supported interfaces in non-extended resolver mode
-                // this is because we can't control gas inside the multicall per call
-                // and for a function that doesn't exist in older solidity versions, it will consume all the gas and revert the whole call
-                if (!interfaceSupported) calls[i] = "";
-            }
-        }
-        return
-            abi.encodeWithSelector(
-                MulticallableGateway.multicall.selector,
-                calls
-            );
     }
 
     function _isEmptyResult(bytes memory result) internal pure returns (bool) {

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
-import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "./ERC3668Utils.sol";
+import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
+import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "../utils/ERC3668Utils.sol";
 
 error LookupSenderMismatched();
 

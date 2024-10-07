@@ -2,7 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {ENS} from "../registry/ENS.sol";
-import {HexUtils} from "./HexUtils.sol";
+import {HexUtils} from "../utils/HexUtils.sol";
 
 abstract contract ENSIP10ResolverFinder {
     using HexUtils for bytes;
