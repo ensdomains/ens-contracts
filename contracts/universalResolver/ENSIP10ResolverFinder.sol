@@ -40,6 +40,7 @@ abstract contract ENSIP10ResolverFinder {
         if (labelLength == 0) {
             return (address(0), bytes32(0), offset);
         }
+        // TODO: ensure name has enough length to avoid out-of-bounds
         uint256 nextLabel = offset + labelLength + 1;
         bytes32 labelHash;
         if (

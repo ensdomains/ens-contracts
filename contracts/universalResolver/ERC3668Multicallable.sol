@@ -23,25 +23,26 @@ abstract contract ERC3668Multicallable {
         bytes[] memory results = abi.decode(response, (bytes[]));
         (InternalResult[] memory internalResults, string[] memory urls) = abi
             .decode(extraData, (InternalResult[], string[]));
-        uint256 offchainCount = 0;
-
+        uint256 existingOffchainCount = 0;
+        uint256 newOffchainCount = 0;
         for (uint256 i = 0; i < internalResults.length; i++) {
             if (!internalResults[i].offchain) continue;
             (bytes4 callbackFunction, bytes memory wrappedExtraData) = abi
                 .decode(internalResults[i].data, (bytes4, bytes));
             bytes memory callData = abi.encodeWithSelector(
                 callbackFunction,
-                results[offchainCount],
+                results[existingOffchainCount],
                 wrappedExtraData
             );
             internalResults[i] = callWithInternalResult(
                 address(this),
                 callData
             );
-            if (internalResults[i].offchain) offchainCount += 1;
+            existingOffchainCount += 1;
+            if (internalResults[i].offchain) newOffchainCount += 1;
         }
 
-        return _getResults(internalResults, offchainCount, urls);
+        return _getResults(internalResults, newOffchainCount, urls);
     }
 
     function multicall(

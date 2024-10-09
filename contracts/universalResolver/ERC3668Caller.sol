@@ -6,6 +6,22 @@ import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "../utils/ERC3668
 
 error LookupSenderMismatched();
 
+error HttpError(uint16 status, string message);
+
+// User callback functions are encoded as a single bytes32 value
+// The first 4 bytes are the internal callback function
+// The next 4 bytes are the calldata rewrite function
+// The next 4 bytes are the failure callback function
+// The next 4 bytes are the validate response function
+// The next 4 bytes are the external callback function
+// The remaining 12 bytes are unused
+uint16 constant INTERNAL_CALLBACK_FUNCTION_OFFSET = 0;
+uint16 constant CALLDATA_REWRITE_FUNCTION_OFFSET = 32;
+uint16 constant FAILURE_CALLBACK_FUNCTION_OFFSET = 64;
+uint16 constant VALIDATE_RESPONSE_FUNCTION_OFFSET = 96;
+uint16 constant EXTERNAL_CALLBACK_FUNCTION_OFFSET = 128;
+uint32 constant FUNCTIONS_MASK = 0xffffffff;
+
 abstract contract ERC3668Caller {
     function callback(
         bytes calldata response,
@@ -13,13 +29,26 @@ abstract contract ERC3668Caller {
     ) external view returns (bytes memory) {
         (
             address target,
-            bytes4 internalCallbackFunction,
-            bytes4 externalCallbackFunction,
-            bytes4 calldataRewriteFunction,
-            bytes4 failureCallbackFunction,
+            uint256 callbackFunctions,
             bytes memory internalExtraData,
             bytes memory externalExtraData
         ) = _getExtraData(extraData);
+
+        bytes4 validateResponseFunction = bytes4(
+            uint32(
+                (callbackFunctions >> VALIDATE_RESPONSE_FUNCTION_OFFSET) &
+                    FUNCTIONS_MASK
+            )
+        );
+        if (validateResponseFunction != bytes4(0))
+            _validateResponse(validateResponseFunction, response);
+
+        bytes4 externalCallbackFunction = bytes4(
+            uint32(
+                (callbackFunctions >> EXTERNAL_CALLBACK_FUNCTION_OFFSET) &
+                    FUNCTIONS_MASK
+            )
+        );
         return
             call(
                 target,
@@ -29,9 +58,7 @@ abstract contract ERC3668Caller {
                     abi.encode(response, externalExtraData)
                 ),
                 internalExtraData,
-                internalCallbackFunction,
-                calldataRewriteFunction,
-                failureCallbackFunction
+                uint128(callbackFunctions)
             );
     }
 
@@ -40,33 +67,18 @@ abstract contract ERC3668Caller {
         uint256 gas,
         bytes memory data,
         bytes memory internalExtraData,
-        bytes4 internalCallbackFunction
-    ) internal view returns (bytes memory) {
-        return
-            call(
-                target,
-                gas,
-                data,
-                internalExtraData,
-                internalCallbackFunction,
-                bytes4(0),
-                bytes4(0)
-            );
-    }
-
-    function call(
-        address target,
-        uint256 gas,
-        bytes memory data,
-        bytes memory internalExtraData,
-        bytes4 internalCallbackFunction,
-        bytes4 calldataRewriteFunction,
-        bytes4 failureCallbackFunction
+        uint128 userCallbackFunctions
     ) internal view returns (bytes memory) {
         (bool success, bytes4 errorId, bytes memory result) = ERC3668Utils
             .callWithNormalisedResult(target, data, gas);
 
         if (success) {
+            bytes4 internalCallbackFunction = bytes4(
+                uint32(
+                    (userCallbackFunctions >>
+                        INTERNAL_CALLBACK_FUNCTION_OFFSET) & FUNCTIONS_MASK
+                )
+            );
             _internalCallback(
                 internalCallbackFunction,
                 result,
@@ -82,14 +94,18 @@ abstract contract ERC3668Caller {
 
             bytes memory extraData = _createExtraData(
                 target,
-                internalCallbackFunction,
+                userCallbackFunctions,
                 lookupData.callbackFunction,
-                calldataRewriteFunction,
-                failureCallbackFunction,
                 internalExtraData,
                 lookupData.extraData
             );
 
+            bytes4 calldataRewriteFunction = bytes4(
+                uint32(
+                    (userCallbackFunctions >>
+                        CALLDATA_REWRITE_FUNCTION_OFFSET) & FUNCTIONS_MASK
+                )
+            );
             if (calldataRewriteFunction != bytes4(0)) {
                 lookupData.callData = abi.decode(
                     _formatCalldata(calldataRewriteFunction, lookupData),
@@ -111,6 +127,12 @@ abstract contract ERC3668Caller {
             ? bytes("")
             : bytes.concat(errorId, result);
 
+        bytes4 failureCallbackFunction = bytes4(
+            uint32(
+                (userCallbackFunctions >> FAILURE_CALLBACK_FUNCTION_OFFSET) &
+                    FUNCTIONS_MASK
+            )
+        );
         if (failureCallbackFunction != bytes4(0)) {
             _internalCallback(
                 failureCallbackFunction,
@@ -120,6 +142,22 @@ abstract contract ERC3668Caller {
         }
 
         LowLevelCallUtils.propagateRevert(errorData);
+    }
+
+    function createUserCallbackFunctions(
+        bytes4 internalCallbackFunction,
+        bytes4 calldataRewriteFunction,
+        bytes4 failureCallbackFunction,
+        bytes4 validateResponseFunction
+    ) internal pure returns (uint128) {
+        return
+            (uint128(uint32(validateResponseFunction)) <<
+                VALIDATE_RESPONSE_FUNCTION_OFFSET) |
+            (uint128(uint32(failureCallbackFunction)) <<
+                FAILURE_CALLBACK_FUNCTION_OFFSET) |
+            (uint128(uint32(calldataRewriteFunction)) <<
+                CALLDATA_REWRITE_FUNCTION_OFFSET) |
+            uint128(uint32(internalCallbackFunction));
     }
 
     function _formatCalldata(
@@ -139,6 +177,18 @@ abstract contract ERC3668Caller {
             );
     }
 
+    function _validateResponse(
+        bytes4 validateResponseFunction,
+        bytes memory response
+    ) private view {
+        bool success = LowLevelCallUtils.functionStaticCall(
+            address(this),
+            abi.encodeWithSelector(validateResponseFunction, response)
+        );
+        if (!success) LowLevelCallUtils.propagateRevert();
+        return;
+    }
+
     function _internalCallback(
         bytes4 callbackFunction,
         bytes memory response,
@@ -154,20 +204,17 @@ abstract contract ERC3668Caller {
 
     function _createExtraData(
         address target,
-        bytes4 internalCallbackFunction,
+        uint128 userCallbackFunctions,
         bytes4 externalCallbackFunction,
-        bytes4 calldataRewriteFunction,
-        bytes4 failureCallbackFunction,
         bytes memory internalExtraData,
         bytes memory externalExtraData
-    ) private pure returns (bytes memory) {
+    ) private view returns (bytes memory) {
+        uint256 callbackFunctions = uint256(userCallbackFunctions) |
+            (uint256(uint32(externalCallbackFunction)) << 128);
         return
             abi.encode(
                 target,
-                internalCallbackFunction,
-                externalCallbackFunction,
-                calldataRewriteFunction,
-                failureCallbackFunction,
+                callbackFunctions,
                 internalExtraData,
                 externalExtraData
             );
@@ -180,18 +227,11 @@ abstract contract ERC3668Caller {
         pure
         returns (
             address target,
-            bytes4 internalCallbackFunction,
-            bytes4 externalCallbackFunction,
-            bytes4 calldataRewriteFunction,
-            bytes4 failureCallbackFunction,
+            uint256 callbackFunctions,
             bytes memory internalExtraData,
             bytes memory externalExtraData
         )
     {
-        return
-            abi.decode(
-                extraData,
-                (address, bytes4, bytes4, bytes4, bytes4, bytes, bytes)
-            );
+        return abi.decode(extraData, (address, uint256, bytes, bytes));
     }
 }

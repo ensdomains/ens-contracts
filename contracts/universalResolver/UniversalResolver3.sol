@@ -2,7 +2,7 @@
 pragma solidity >=0.8.17 <0.9.0;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
+import {PrefixlessHexStrings} from "../utils/PrefixlessHexStrings.sol";
 import {ENS} from "../registry/ENS.sol";
 import {ERC3668Multicallable, MulticallableGateway} from "./ERC3668Multicallable.sol";
 import {ERC3668Caller} from "./ERC3668Caller.sol";
@@ -51,7 +51,8 @@ contract UniversalResolver3 is
     ERC3668Caller,
     ENSIP10ResolverFinder
 {
-    using Strings for uint256;
+    using PrefixlessHexStrings for uint256;
+    using PrefixlessHexStrings for bytes;
     using Address for address;
     using NameEncoder for string;
     using HexUtils for bytes;
@@ -160,14 +161,17 @@ contract UniversalResolver3 is
                 gateways,
                 isSingleInternallyEncodedCall
             ),
-            this.resolveMulticallResolveCallback.selector,
-            bytes4(0),
-            this.resolveMulticallResolveCallback.selector
+            createUserCallbackFunctions(
+                this.resolveMulticallResolveCallback.selector,
+                bytes4(0),
+                this.resolveMulticallResolveCallback.selector,
+                bytes4(0)
+            )
         );
     }
 
     function resolveMulticallResolveCallback(
-        bytes calldata response,
+        bytes memory response,
         bytes calldata extraData
     ) external view returns (bytes memory, address) {
         (
@@ -178,7 +182,13 @@ contract UniversalResolver3 is
             bool isSingleInternallyEncodedCall
         ) = abi.decode(extraData, (bytes, bytes[], address, string[], bool));
 
-        if (!BytesArrayValidator.isValidBytesArray(response)) {
+        if (
+            _isErrorResult(response) ||
+            _isEmptyResult(response) ||
+            !BytesArrayValidator.isValidBytesArray(
+                response = abi.decode(response, (bytes))
+            )
+        )
             return
                 _internalMulticall(
                     name,
@@ -188,13 +198,13 @@ contract UniversalResolver3 is
                     isSingleInternallyEncodedCall,
                     true
                 );
-        }
 
         if (isSingleInternallyEncodedCall)
             return (
-                _resultFromSingleInternallyEncodedCall(response, true),
+                _resultFromSingleInternallyEncodedCall(response, false),
                 resolver
             );
+
         return (response, resolver);
     }
 
@@ -251,14 +261,14 @@ contract UniversalResolver3 is
                 isSingleInternallyEncodedCall,
                 isExtendedResolver
             ),
-            this.internalMulticallResolveCallback.selector
+            uint32(this.internalMulticallResolveCallback.selector)
         );
     }
 
     function internalMulticallResolveCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (bytes memory, address) {
+    ) external view returns (bytes memory, address) {
         (
             address resolver,
             bool isSingleInternallyEncodedCall,
@@ -291,7 +301,7 @@ contract UniversalResolver3 is
     function _internalCallCallback(
         bytes memory response,
         bytes calldata /* extraData */
-    ) external pure returns (bytes memory) {
+    ) external view returns (bytes memory) {
         assembly {
             return(add(response, 32), mload(response))
         }
@@ -299,7 +309,7 @@ contract UniversalResolver3 is
 
     function _internalCallCalldataRewrite(
         OffchainLookupData memory data
-    ) external pure returns (bytes memory) {
+    ) external view returns (bytes memory) {
         return
             abi.encodeWithSelector(
                 BatchGateway2.query.selector,
@@ -307,6 +317,18 @@ contract UniversalResolver3 is
                 data.urls,
                 data.callData
             );
+    }
+
+    function _internalCallValidateResponse(
+        bytes calldata response
+    ) external view {
+        if (bytes4(response) == HttpError.selector) {
+            (uint16 status, string memory message) = abi.decode(
+                response[4:],
+                (uint16, string)
+            );
+            revert HttpError(status, message);
+        }
     }
 
     function _internalCall(
@@ -320,9 +342,12 @@ contract UniversalResolver3 is
                 gas,
                 data,
                 "",
-                this._internalCallCallback.selector,
-                this._internalCallCalldataRewrite.selector,
-                bytes4(0)
+                createUserCallbackFunctions(
+                    this._internalCallCallback.selector,
+                    this._internalCallCalldataRewrite.selector,
+                    bytes4(0),
+                    this._internalCallValidateResponse.selector
+                )
             );
     }
 
@@ -366,7 +391,7 @@ contract UniversalResolver3 is
             0,
             encodedCall,
             abi.encode(lookupAddress, coinType, gateways),
-            this.forwardLookupReverseCallback.selector
+            uint32(this.forwardLookupReverseCallback.selector)
         );
     }
 
@@ -397,6 +422,14 @@ contract UniversalResolver3 is
             addrCall,
             gateways
         );
+        uint128 userCallbackFunctions = createUserCallbackFunctions(
+            this.processLookupReverseCallback.selector,
+            bytes4(0),
+            coinType == 60
+                ? this.attemptAddrResolverReverseCallback.selector
+                : bytes4(0),
+            bytes4(0)
+        );
         call(
             address(this),
             0,
@@ -409,11 +442,7 @@ contract UniversalResolver3 is
                 reverseResolver,
                 false
             ),
-            this.processLookupReverseCallback.selector,
-            bytes4(0),
-            coinType == 60
-                ? this.attemptAddrResolverReverseCallback.selector
-                : bytes4(0)
+            userCallbackFunctions
         );
     }
 
@@ -452,7 +481,7 @@ contract UniversalResolver3 is
                 reverseResolver,
                 true
             ),
-            this.processLookupReverseCallback.selector
+            uint32(this.processLookupReverseCallback.selector)
         );
     }
 
@@ -475,11 +504,11 @@ contract UniversalResolver3 is
             response,
             (bytes, address)
         );
+        bytes memory unwrappedResult = isAddrCall
+            ? abi.encodePacked(abi.decode(result, (address)))
+            : abi.decode(result, (bytes));
         if (_isEvmChain(coinType)) {
-            bytes memory unwrappedResultMaybe = isAddrCall
-                ? abi.encodePacked(abi.decode(result, (address)))
-                : abi.decode(result, (bytes));
-            address resolvedAddress = _bytesToAddress(unwrappedResultMaybe);
+            address resolvedAddress = _bytesToAddress(unwrappedResult);
             address decodedLookupAddress = _bytesToAddress(lookupAddress);
             if (resolvedAddress != decodedLookupAddress) {
                 revert ReverseAddressMismatch(
@@ -487,8 +516,8 @@ contract UniversalResolver3 is
                 );
             }
         } else {
-            if (keccak256(result) != keccak256(lookupAddress)) {
-                revert ReverseAddressMismatch(result);
+            if (keccak256(unwrappedResult) != keccak256(lookupAddress)) {
+                revert ReverseAddressMismatch(unwrappedResult);
             }
         }
         return (resolvedName, reverseResolver, resolver);
@@ -518,8 +547,8 @@ contract UniversalResolver3 is
     }
 
     function _resultFromSingleInternallyEncodedCall(
-        bytes calldata result,
-        bool isExtendedResolver
+        bytes memory result,
+        bool shouldDecodeResult
     ) internal pure returns (bytes memory) {
         bytes[] memory results = abi.decode(result, (bytes[]));
         bytes memory item = results[0];
@@ -531,7 +560,7 @@ contract UniversalResolver3 is
             revert ResolverError(item);
         }
 
-        if (isExtendedResolver) return abi.decode(item, (bytes));
+        if (shouldDecodeResult) return abi.decode(item, (bytes));
 
         return item;
     }
@@ -552,15 +581,13 @@ contract UniversalResolver3 is
     function _createReverseNode(
         bytes memory lookupAddress,
         uint256 coinType
-    ) internal pure returns (string memory) {
+    ) internal view returns (string memory) {
         return
             string(
                 bytes.concat(
-                    _bytesToHexStringBytes(lookupAddress),
+                    lookupAddress.toHexString(),
                     ".",
-                    coinType == 60
-                        ? bytes("addr")
-                        : bytes(coinType.toHexString()),
+                    coinType == 60 ? bytes("addr") : coinType.toHexString(),
                     ".reverse"
                 )
             );
@@ -576,19 +603,5 @@ contract UniversalResolver3 is
         assembly {
             a := div(mload(add(b, 32)), exp(256, 12))
         }
-    }
-
-    function _bytesToHexStringBytes(
-        bytes memory data
-    ) internal pure returns (bytes memory) {
-        bytes memory result = new bytes(data.length * 2);
-        bytes16 _base = "0123456789abcdef";
-
-        for (uint256 i = 0; i < data.length; i++) {
-            result[i * 2] = _base[uint8(data[i]) / 16];
-            result[i * 2 + 1] = _base[uint8(data[i]) % 16];
-        }
-
-        return result;
     }
 }

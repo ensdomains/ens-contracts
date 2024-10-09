@@ -48,14 +48,34 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
     function resolveCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (bytes memory) {
-        require(
-            keccak256(response) == keccak256(extraData),
-            "Response data error"
-        );
-        if (bytes4(extraData) == bytes4(keccak256("name(bytes32)"))) {
-            return abi.encode("offchain.test.eth");
+    ) external pure returns (bytes memory) {
+        if (bytes4(extraData) == bytes4(keccak256("pubkey(bytes32)"))) {
+            revert();
         }
-        return abi.encode(address(this));
+        if (bytes4(extraData) == bytes4(keccak256("contenthash(bytes32)"))) {
+            revert("Unsupported call");
+        }
+        if (bytes4(extraData) != bytes4(keccak256("multicall(bytes[])"))) {
+            return response;
+        }
+
+        bytes[] memory results = abi.decode(response, (bytes[]));
+        bytes[] memory calls = abi.decode(extraData[4:], (bytes[]));
+        for (uint256 i = 0; i < calls.length; i++) {
+            if (bytes4(calls[i]) == bytes4(keccak256("text(bytes32,string)"))) {
+                calls[i] = results[i];
+            } else if (bytes4(calls[i]) == bytes4(keccak256("addr(bytes32)"))) {
+                calls[i] = results[i];
+            } else if (bytes4(calls[i]) == bytes4(keccak256("name(bytes32)"))) {
+                return "";
+            } else if (
+                bytes4(calls[i]) == bytes4(keccak256("pubkey(bytes32)"))
+            ) {
+                calls[i] = "";
+            } else {
+                revert("Unsupported call");
+            }
+        }
+        return abi.encode(calls);
     }
 }
