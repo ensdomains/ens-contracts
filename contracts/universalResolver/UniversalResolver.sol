@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {PrefixlessHexUtils} from "../utils/PrefixlessHexUtils.sol";
 import {ENS} from "../registry/ENS.sol";
@@ -120,6 +120,61 @@ contract UniversalResolver is
     }
 
     /*//////////////////////////////////////////////////////////////
+                                REVERSE
+    //////////////////////////////////////////////////////////////*/
+
+    /// @inheritdoc IUniversalResolver
+    function reverse(
+        bytes memory lookupAddress,
+        uint256 coinType
+    )
+        public
+        view
+        returns (string memory name, address resolver, address reverseResolver)
+    {
+        return reverseWithGateways(lookupAddress, coinType, _urls);
+    }
+
+    /// @notice Performs ENS reverse resolution for the supplied address, coin type, and batch gateway URLs.
+    /// @param lookupAddress The address to reverse resolve, in encoded form.
+    /// @param coinType The coin type to use for the reverse resolution.
+    ///                 For ETH, this is 60.
+    ///                 For other EVM chains, coinType is calculated as `0x80000000 | chainId`.
+    /// @param gateways The batch gateway URLs to use for offchain resolution.
+    ///                 Gateways should implement IBatchGateway.
+    /// @return name The reverse resolution result.
+    /// @return resolver The resolver that was used to resolve the name.
+    /// @return reverseResolver The resolver that was used to resolve the reverse name.
+    function reverseWithGateways(
+        bytes memory lookupAddress,
+        uint256 coinType,
+        string[] memory gateways
+    ) public view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
+        (
+            bytes memory reverseName,
+            bytes32 reverseNamehash
+        ) = NameEncoder.dnsEncodeName(_createReverseNode(lookupAddress, coinType));
+        bytes memory nameCall = abi.encodeWithSelector(
+            INameResolver.name.selector,
+            reverseNamehash
+        );
+        bytes memory encodedCall = abi.encodeWithSelector(
+            this.resolveWithGateways.selector,
+            reverseName,
+            nameCall,
+            gateways
+        );
+
+        call(
+            address(this),
+            0,
+            encodedCall,
+            abi.encode(lookupAddress, coinType, gateways),
+            uint32(this._forwardLookupReverseCallback.selector)
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
                             RESOLVE MULTICALL
     //////////////////////////////////////////////////////////////*/
 
@@ -144,7 +199,7 @@ contract UniversalResolver is
         address resolver,
         string[] memory gateways,
         bool isSingleInternallyEncodedCall
-    ) internal view returns (bytes memory, address) {
+    ) internal view returns (bytes memory /* result */, address /* resolver */) {
         call(
             resolver,
             0,
@@ -157,15 +212,21 @@ contract UniversalResolver is
                 isSingleInternallyEncodedCall
             ),
             createUserCallbackFunctions(
-                this.resolveMulticallResolveCallback.selector,
+                this._resolveMulticallResolveCallback.selector,
                 bytes4(0),
-                this.resolveMulticallResolveCallback.selector,
+                // setting this allows a callback to _resolveMulticallResolveCallback even if the call fails
+                // meaning that the data in _resolveMulticallResolveCallback can potentially be invalid/error data
+                this._resolveMulticallResolveCallback.selector,
                 bytes4(0)
             )
         );
     }
 
-    function resolveMulticallResolveCallback(
+    /// @dev Callback for resolving a name with `resolve(multicall(calls))` using `call`.
+    ///      Will fallback to `_internalMulticall` if the result is not valid.
+    ///      `response` can potentially be invalid/error data.
+    /// @notice This function should never be called directly.
+    function _resolveMulticallResolveCallback(
         bytes memory response,
         bytes calldata extraData
     ) external view returns (bytes memory, address) {
@@ -207,6 +268,10 @@ contract UniversalResolver is
                             INTERNAL MULTICALL
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Creates a call to resolve a name with `multicall(calls)` or `multicall(...resolve(name, call))`.
+    ///      A call is made to `multicall` on this contract, which is possible since it extends `ERC3668Multicallable`.
+    ///      Calls are also wrapped in `_internalCall`, which routes all the external calls through this contract
+    ///      meaning that a batch gateway can be used (via calldata rewriting in `_internalCallCalldataRewrite`).
     function _createInternalMulticall(
         bytes memory name,
         bytes[] memory calls,
@@ -217,15 +282,22 @@ contract UniversalResolver is
         for (uint256 i = 0; i < calls.length; i++) {
             bool isSafe;
             if (isExtendedResolver) {
+                // extended resolver calls need to be wrapped with `resolve(name, call)`
                 calls[i] = _encodeCallWithResolve(name, calls[i]);
+                // extended resolver calls are assumed safe because they are
+                // almost definitely all deployed with solidity > 0.4.11
+                // (also we can't check that the interface is supported)
                 isSafe = true;
             } else {
+                // this is required to prevent calls from using all the gas
+                // if it reverts (solidity < 0.4.11)
                 isSafe = _checkInterface(resolver, bytes4(calls[i]));
             }
             calls[i] = abi.encodeWithSelector(
                 this._internalCall.selector,
                 resolver,
                 calls[i],
+                // 50k gas is arbitrary, but should be more than enough where required
                 isSafe ? 0 : 50000
             );
         }
@@ -233,6 +305,7 @@ contract UniversalResolver is
         return abi.encodeWithSelector(this.multicall.selector, calls, gateways);
     }
 
+    /// @dev Resolves a name with `multicall(calls)` or `multicall(...resolve(name, call))`.
     function _internalMulticall(
         bytes memory name,
         bytes[] memory calls,
@@ -240,7 +313,7 @@ contract UniversalResolver is
         string[] memory gateways,
         bool isSingleInternallyEncodedCall,
         bool isExtendedResolver
-    ) internal view returns (bytes memory, address) {
+    ) internal view returns (bytes memory /* result */, address /* resolver */) {
         call(
             address(this),
             0,
@@ -256,14 +329,16 @@ contract UniversalResolver is
                 isSingleInternallyEncodedCall,
                 isExtendedResolver
             ),
-            uint32(this.internalMulticallResolveCallback.selector)
+            uint32(this._internalMulticallResolveCallback.selector)
         );
     }
 
-    function internalMulticallResolveCallback(
+    /// @dev Callback for resolving a name with `multicall(calls)` or `multicall(...resolve(name, call))`.
+    /// @notice This function should never be called directly.
+    function _internalMulticallResolveCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (bytes memory, address) {
+    ) external pure returns (bytes memory /* result */, address /* resolver */) {
         (
             address resolver,
             bool isSingleInternallyEncodedCall,
@@ -290,109 +365,17 @@ contract UniversalResolver is
     }
 
     /*//////////////////////////////////////////////////////////////
-                            INTERNAL CALL
+                            REVERSE CALLBACKS
     //////////////////////////////////////////////////////////////*/
 
-    function _internalCallCallback(
-        bytes memory response,
-        bytes calldata /* extraData */
-    ) external pure returns (bytes memory) {
-        assembly {
-            return(add(response, 32), mload(response))
-        }
-    }
-
-    function _internalCallCalldataRewrite(
-        OffchainLookupData memory data
-    ) external pure returns (bytes memory) {
-        return
-            abi.encodeWithSelector(
-                IBatchGateway.query.selector,
-                data.sender,
-                data.urls,
-                data.callData
-            );
-    }
-
-    function _internalCallValidateResponse(
-        bytes calldata response
-    ) external pure {
-        if (bytes4(response) == HttpError.selector) {
-            (uint16 status, string memory message) = abi.decode(
-                response[4:],
-                (uint16, string)
-            );
-            revert HttpError(status, message);
-        }
-    }
-
-    function _internalCall(
-        address target,
-        bytes calldata data,
-        uint256 gas
-    ) external view {
-        call(
-            target,
-            gas,
-            data,
-            "",
-            createUserCallbackFunctions(
-                this._internalCallCallback.selector,
-                this._internalCallCalldataRewrite.selector,
-                bytes4(0),
-                this._internalCallValidateResponse.selector
-            )
-        );
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                REVERSE
-    //////////////////////////////////////////////////////////////*/
-
-    function reverse(
-        bytes memory lookupAddress,
-        uint256 coinType
-    )
-        public
-        view
-        returns (string memory name, address resolver, address reverseResolver)
-    {
-        return reverseWithGateways(lookupAddress, coinType, _urls);
-    }
-
-    function reverseWithGateways(
-        bytes memory lookupAddress,
-        uint256 coinType,
-        string[] memory gateways
-    ) public view returns (string memory, address, address) {
-        (
-            bytes memory reverseName,
-            bytes32 reverseNamehash
-        ) = NameEncoder.dnsEncodeName(_createReverseNode(lookupAddress, coinType));
-        bytes memory nameCall = abi.encodeWithSelector(
-            INameResolver.name.selector,
-            reverseNamehash
-        );
-        bytes memory encodedCall = abi.encodeWithSelector(
-            this.resolveWithGateways.selector,
-            reverseName,
-            nameCall,
-            gateways
-        );
-
-        call(
-            address(this),
-            0,
-            encodedCall,
-            abi.encode(lookupAddress, coinType, gateways),
-            uint32(this.forwardLookupReverseCallback.selector)
-        );
-    }
-
-    function forwardLookupReverseCallback(
+    /// @dev Callback for resolving `addr(bytes32, uint256)` based on the name
+    ///      from reverse resolution. For ETH, there is a fallback to
+    ///      `addr(bytes32)` if the `addr(bytes32, uint256)` call reverts.
+    /// @notice This function should never be called directly.
+    function _forwardLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (string memory, address, address) {
+    ) external view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -416,10 +399,11 @@ contract UniversalResolver is
             gateways
         );
         uint128 userCallbackFunctions = createUserCallbackFunctions(
-            this.processLookupReverseCallback.selector,
+            this._processLookupReverseCallback.selector,
             bytes4(0),
+            // for ETH coinType, fallback to `addr(bytes32)` on failure
             coinType == 60
-                ? this.attemptAddrResolverReverseCallback.selector
+                ? this._attemptAddrResolverReverseCallback.selector
                 : bytes4(0),
             bytes4(0)
         );
@@ -433,16 +417,19 @@ contract UniversalResolver is
                 gateways,
                 resolvedName,
                 reverseResolver,
-                false
+                false // isAddrCall (i.e. `addr(bytes32)`)
             ),
             userCallbackFunctions
         );
     }
 
-    function attemptAddrResolverReverseCallback(
+    /// @dev Callback for attempting a fallback to `addr(bytes32)` if
+    ///      `addr(bytes32, uint256)` reverts.
+    /// @notice This function should never be called directly.
+    function _attemptAddrResolverReverseCallback(
         bytes calldata /* response */,
         bytes calldata extraData
-    ) external view returns (string memory, address, address) {
+    ) external view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -475,16 +462,18 @@ contract UniversalResolver is
                 gateways,
                 resolvedName,
                 reverseResolver,
-                true
+                true // isAddrCall (i.e. `addr(bytes32)`)
             ),
-            uint32(this.processLookupReverseCallback.selector)
+            uint32(this._processLookupReverseCallback.selector)
         );
     }
 
-    function processLookupReverseCallback(
+    /// @dev Callback for handling the result from reverse resolution.
+    /// @notice This function should never be called directly.
+    function _processLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (string memory, address, address) {
+    ) external pure returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -500,6 +489,7 @@ contract UniversalResolver is
             response,
             (bytes, address)
         );
+        // for `addr(bytes32)` the result needs to be unwrapped to a left-padded bytes32
         bytes memory unwrappedResult = isAddrCall
             ? abi.encodePacked(abi.decode(result, (address)))
             : abi.decode(result, (bytes));
@@ -520,9 +510,82 @@ contract UniversalResolver is
     }
 
     /*//////////////////////////////////////////////////////////////
+                            INTERNAL CALL
+    //////////////////////////////////////////////////////////////*/
+
+    /// @dev Callback for handling a single internal call.
+    ///      Just returns the response directly since no validation is needed.
+    /// @notice This function should never be called directly.
+    function _internalCallCallback(
+        bytes memory response,
+        bytes calldata /* extraData */
+    ) external pure returns (bytes memory) {
+        assembly {
+            return(add(response, 32), mload(response))
+        }
+    }
+
+    /// @dev Callback for rewriting the OffchainLookup calldata.
+    ///      Rewrites to be compatible with `IBatchGateway.query`.
+    /// @notice This function should never be called directly.
+    function _internalCallCalldataRewrite(
+        OffchainLookupData memory data
+    ) external pure returns (bytes memory) {
+        return
+            abi.encodeWithSelector(
+                IBatchGateway.query.selector,
+                data.sender,
+                data.urls,
+                data.callData
+            );
+    }
+
+    /// @dev Callback for validating the response from an internal call.
+    ///      Since calls are routed through a BatchGateway, the response
+    ///      can be an HTTP error. This needs to be handled immediately before
+    ///      calling the external callback since the external function won't
+    ///      understand the error format.
+    /// @notice This function should never be called directly.
+    function _internalCallValidateResponse(
+        bytes calldata response
+    ) external pure {
+        if (bytes4(response) == HttpError.selector) {
+            (uint16 status, string memory message) = abi.decode(
+                response[4:],
+                (uint16, string)
+            );
+            revert HttpError(status, message);
+        }
+    }
+
+    /// @dev Routes an internal call through this contract.
+    ///      This allows rewriting for BatchGateway, and also validating the
+    ///      response to ensure it's not an HTTP error.
+    /// @notice This function should never be called directly.
+    function _internalCall(
+        address target,
+        bytes calldata data,
+        uint256 gas
+    ) external view {
+        call(
+            target,
+            gas,
+            data,
+            "",
+            createUserCallbackFunctions(
+                this._internalCallCallback.selector,
+                this._internalCallCalldataRewrite.selector,
+                bytes4(0),
+                this._internalCallValidateResponse.selector
+            )
+        );
+    }
+
+    /*//////////////////////////////////////////////////////////////
                                 HELPERS
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Encodes a call with `resolve(name, call)`.
     function _encodeCallWithResolve(
         bytes memory name,
         bytes memory data
@@ -530,14 +593,24 @@ contract UniversalResolver is
         return abi.encodeCall(IExtendedResolver.resolve, (name, data));
     }
 
+    /// @dev Checks if a result is empty.
     function _isEmptyResult(bytes memory result) internal pure returns (bool) {
         return result.length == 0;
     }
 
+    /// @dev Checks if a result is an error.
     function _isErrorResult(bytes memory result) internal pure returns (bool) {
         return result.length % 32 == 4;
     }
 
+    /// @dev Decodes a result from an extended resolver.
+    ///      This is required since all extended resolver calls are
+    ///      wrapped in `resolve(name, call)`, which returns `bytes`.
+    ///      `bytes` should be unwrapped to get the actual result,
+    ///      but if the result is an error or empty, it needs to be 
+    ///      left as is since it can't be decoded. For a client, 
+    ///      this is fine since they will handle error/empty results
+    ///      anyway.
     function _decodeExtendedResolverResult(
         bytes memory result
     ) internal pure returns (bytes memory) {
@@ -546,6 +619,10 @@ contract UniversalResolver is
         return abi.decode(result, (bytes));
     }
 
+    /// @dev Decodes a result from a single internally encoded call.
+    ///      This is required since the default encoding assumes a multicall, 
+    ///      so it needs to be unwrapped. Or, if the result is an error, 
+    ///      it needs to be propagated directly.
     function _resultFromSingleInternallyEncodedCall(
         bytes memory result,
         bool shouldDecodeResult
@@ -565,6 +642,7 @@ contract UniversalResolver is
         return item;
     }
 
+    /// @dev Checks if a resolver supports an interface.
     function _checkInterface(
         address resolver,
         bytes4 interfaceId
@@ -578,6 +656,12 @@ contract UniversalResolver is
         }
     }
 
+    /// @dev Creates the DNS-encoded reverse name for a given address and coin type.
+    ///      For ETH, this is `[address].addr.reverse`
+    ///      Example: 0x123...456 => 123...456.addr.reverse
+    ///      For other coinTypes, this is `[address].[coinType].reverse`
+    ///      EVM chain example: 0x123...456, 0x8000000a => 123...456.8000000a.reverse
+    ///      Non-EVM chain example: 0x123...456, 0x1fa => 123...456.01fa.reverse
     function _createReverseNode(
         bytes memory lookupAddress,
         uint256 coinType
@@ -593,11 +677,13 @@ contract UniversalResolver is
             );
     }
 
+    /// @dev Checks if a coin type is for an EVM chain.
     function _isEvmChain(uint256 coinType) internal pure returns (bool) {
         if (coinType == 60) return true;
         return (coinType & SLIP44_MSB) != 0;
     }
 
+    /// @dev Converts a bytes value to an address.
     function _bytesToAddress(bytes memory b) internal pure returns (address a) {
         require(b.length == 20);
         assembly {
@@ -609,6 +695,7 @@ contract UniversalResolver is
                                 ERC165
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IERC165
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {

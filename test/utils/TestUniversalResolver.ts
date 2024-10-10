@@ -183,21 +183,21 @@ const encodeForwardLookupReverseCallbackExtraData = ({
 
 const baseResolveMulticallExtraData = {
   internalCallbackFunction: toFunctionSelector(
-    'function resolveMulticallResolveCallback(bytes,bytes)',
+    'function _resolveMulticallResolveCallback(bytes,bytes)',
   ),
   externalCallbackFunction: toFunctionSelector(
     'function resolveCallback(bytes,bytes)',
   ),
   calldataRewriteFunction: emptyBytes4,
   failureCallbackFunction: toFunctionSelector(
-    'function resolveMulticallResolveCallback(bytes,bytes)',
+    'function _resolveMulticallResolveCallback(bytes,bytes)',
   ),
   validateResponseFunction: emptyBytes4,
 } as const
 
 const baseInternalMulticallExtraData = {
   internalCallbackFunction: toFunctionSelector(
-    'function internalMulticallResolveCallback(bytes,bytes)',
+    'function _internalMulticallResolveCallback(bytes,bytes)',
   ),
   externalCallbackFunction: toFunctionSelector(
     'function multicallCallback(bytes,bytes)',
@@ -1292,7 +1292,7 @@ describe('UniversalResolver', () => {
     })
   })
 
-  describe('resolveMulticallResolveCallback()', () => {
+  describe('_resolveMulticallResolveCallback()', () => {
     it('should resolve a single record (single internally encoded call)', async () => {
       const { universalResolver, publicResolver, offchainResolver } =
         await loadFixture(fixture)
@@ -1655,7 +1655,7 @@ describe('UniversalResolver', () => {
     })
   })
 
-  describe('internalMulticallResolveCallback()', () => {
+  describe('_internalMulticallResolveCallback()', () => {
     it('should resolve a single record (single internally encoded call) - standard resolver', async () => {
       const {
         universalResolver,
@@ -2552,7 +2552,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -2618,7 +2618,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -2698,7 +2698,7 @@ describe('UniversalResolver', () => {
     })
   })
 
-  describe('forwardLookupReverseCallback()', () => {
+  describe('_forwardLookupReverseCallback()', () => {
     it('should finish remaining resolution steps based on offchain response', async () => {
       const { universalResolver, publicResolver, offchainResolver, accounts } =
         await loadFixture(fixture)
@@ -2728,7 +2728,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -2800,7 +2800,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -2842,14 +2842,14 @@ describe('UniversalResolver', () => {
       const revertingExtraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function processLookupReverseCallback(bytes,bytes)',
+          'function _processLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
         calldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
-          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+          'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
         validateResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
@@ -2920,7 +2920,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -2966,14 +2966,14 @@ describe('UniversalResolver', () => {
       const revertingExtraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function processLookupReverseCallback(bytes,bytes)',
+          'function _processLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
         calldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
-          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+          'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
         validateResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
@@ -3060,7 +3060,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function forwardLookupReverseCallback(bytes,bytes)',
+          'function _forwardLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
@@ -3094,7 +3094,7 @@ describe('UniversalResolver', () => {
     })
   })
 
-  describe('processLookupReverseCallback()', () => {
+  describe('_processLookupReverseCallback()', () => {
     it('should finish resolution based on offchain response', async () => {
       const { universalResolver, publicResolver, offchainResolver, accounts } =
         await loadFixture(fixture)
@@ -3126,14 +3126,14 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function processLookupReverseCallback(bytes,bytes)',
+          'function _processLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
         calldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
-          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+          'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
         validateResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
@@ -3205,14 +3205,14 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function processLookupReverseCallback(bytes,bytes)',
+          'function _processLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
         calldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
-          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+          'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
         validateResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
@@ -3276,14 +3276,14 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         resolverAddress: universalResolver.address,
         internalCallbackFunction: toFunctionSelector(
-          'function processLookupReverseCallback(bytes,bytes)',
+          'function _processLookupReverseCallback(bytes,bytes)',
         ),
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
         calldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
-          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+          'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
         validateResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
