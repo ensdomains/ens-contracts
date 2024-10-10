@@ -18,15 +18,11 @@ import {BytesArrayValidator} from "./BytesArrayValidator.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {NameEncoder} from "../utils/NameEncoder.sol";
 
-error ResolverNotFound();
-
-error ReverseNodeNotFound();
+error ResolverNotFound(bytes name);
 
 error ReverseAddressMismatch(bytes result);
 
-error ResolverNotContract();
-
-error LookupSenderMismatched();
+error ResolverNotContract(bytes name);
 
 error ResolverError(bytes returnData);
 
@@ -38,7 +34,7 @@ struct OffchainLookupCallData {
     bytes callData;
 }
 
-interface BatchGateway2 {
+interface BatchGateway {
     function query(
         address sender,
         string[] memory urls,
@@ -46,7 +42,7 @@ interface BatchGateway2 {
     ) external returns (bytes memory response);
 }
 
-contract UniversalResolver3 is
+contract UniversalResolver is
     ERC3668Multicallable,
     ERC3668Caller,
     ENSIP10ResolverFinder
@@ -88,8 +84,8 @@ contract UniversalResolver3 is
         uint256 finalOffset;
         (resolver, , finalOffset) = findResolver(name);
 
-        if (resolver == address(0)) revert ResolverNotFound();
-        if (!resolver.isContract()) revert ResolverNotContract();
+        if (resolver == address(0)) revert ResolverNotFound(name);
+        if (!resolver.isContract()) revert ResolverNotContract(name);
 
         bool isWildcard = finalOffset != 0;
         bool isExtendedResolver = _checkInterface(
@@ -97,7 +93,7 @@ contract UniversalResolver3 is
             type(IExtendedResolver).interfaceId
         );
 
-        if (isWildcard && !isExtendedResolver) revert ResolverNotFound();
+        if (isWildcard && !isExtendedResolver) revert ResolverNotFound(name);
 
         bool isSingleInternallyEncodedCall = bytes4(data) !=
             MulticallableGateway.multicall.selector;
@@ -316,7 +312,7 @@ contract UniversalResolver3 is
     ) external pure returns (bytes memory) {
         return
             abi.encodeWithSelector(
-                BatchGateway2.query.selector,
+                BatchGateway.query.selector,
                 data.sender,
                 data.urls,
                 data.callData
