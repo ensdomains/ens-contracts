@@ -1,7 +1,11 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+/// @notice Validates bytes[] arrays according to the ABI specification.
 library BytesArrayValidator {
+    /// @notice Validates that the data is a valid ABI-encoded bytes[] array.
+    /// @param data The data to validate.
+    /// @return True if the data is a valid ABI-encoded bytes[] array, false otherwise.
     function isValidBytesArray(bytes memory data) internal pure returns (bool) {
         // The data must be at least 32 bytes long to contain the array length
         if (data.length < 32) return false;

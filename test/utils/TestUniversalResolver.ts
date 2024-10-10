@@ -386,7 +386,7 @@ async function fixture() {
     { account: accounts[10] },
   )
   const batchGatewayAbi = await hre.artifacts
-    .readArtifact('BatchGateway')
+    .readArtifact('IBatchGateway')
     .then(({ abi }) => abi)
 
   // offchain primary

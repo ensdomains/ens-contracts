@@ -1,63 +1,45 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.17 <0.9.0;
+pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {PrefixlessHexStrings} from "../utils/PrefixlessHexStrings.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {PrefixlessHexUtils} from "../utils/PrefixlessHexUtils.sol";
 import {ENS} from "../registry/ENS.sol";
-import {ERC3668Multicallable, MulticallableGateway} from "./ERC3668Multicallable.sol";
+import {IMulticallGateway} from "./IMulticallGateway.sol";
+import {IBatchGateway} from "./IBatchGateway.sol";
+import {ERC3668Multicallable} from "./ERC3668Multicallable.sol";
 import {ERC3668Caller} from "./ERC3668Caller.sol";
 import {ENSIP10ResolverFinder} from "./ENSIP10ResolverFinder.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
-import {ERC3668Utils, OffchainLookupData} from "../utils/ERC3668Utils.sol";
+import {OffchainLookupData} from "../utils/ERC3668Utils.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
-import {Resolver, INameResolver, IAddrResolver, IAddressResolver} from "../resolvers/Resolver.sol";
-import {AddrResolver} from "../resolvers/profiles/AddrResolver.sol";
-import {IMulticallable, IMulticallableSimple} from "../resolvers/IMulticallable.sol";
-import {HexUtils} from "../utils/HexUtils.sol";
+import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
+import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
+import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {BytesArrayValidator} from "./BytesArrayValidator.sol";
-import {BytesUtils} from "../utils/BytesUtils.sol";
 import {NameEncoder} from "../utils/NameEncoder.sol";
+import {IUniversalResolver} from "./IUniversalResolver.sol";
 
-error ResolverNotFound(bytes name);
-
-error ReverseAddressMismatch(bytes result);
-
-error ResolverNotContract(bytes name);
-
-error ResolverError(bytes returnData);
-
-error HttpError(uint16 status, string message);
-
-struct OffchainLookupCallData {
-    address sender;
-    string[] urls;
-    bytes callData;
-}
-
-interface BatchGateway {
-    function query(
-        address sender,
-        string[] memory urls,
-        bytes memory callData
-    ) external returns (bytes memory response);
-}
-
+/// @title UniversalResolver
+/// @notice The universal entrypoint for ENS resolution.
 contract UniversalResolver is
     ERC3668Multicallable,
     ERC3668Caller,
-    ENSIP10ResolverFinder
+    ENSIP10ResolverFinder,
+    ERC165,
+    IUniversalResolver
 {
-    using PrefixlessHexStrings for uint256;
-    using PrefixlessHexStrings for bytes;
-    using Address for address;
-    using NameEncoder for string;
-    using HexUtils for bytes;
-    using BytesUtils for bytes;
-    using BytesArrayValidator for bytes;
-
+    /// @notice Batch gateway URLs to use for offchain resolution.
+    ///         Gateways should implement IBatchGateway.
     string[] public _urls;
+    /// @notice The SLIP44 most-significant bit for EVM chains.
+    ///         See ENSIP-11 for reference: https://docs.ens.domains/ensip/11
     uint256 private constant SLIP44_MSB = 0x80000000;
 
+    /// @notice Sets the batch gateway URLs and ENS registry.
+    /// @param registry_ The ENS registry.
+    /// @param urls_ The batch gateway URLs.
     constructor(
         ENS registry_,
         string[] memory urls_
@@ -69,6 +51,7 @@ contract UniversalResolver is
                                 RESOLVE
     //////////////////////////////////////////////////////////////*/
 
+    /// @inheritdoc IUniversalResolver
     function resolve(
         bytes calldata name,
         bytes calldata data
@@ -76,6 +59,15 @@ contract UniversalResolver is
         return resolveWithGateways(name, data, _urls);
     }
 
+    /// @notice Performs ENS name resolution for the supplied name, resolution data, and batch gateway URLs.
+    /// @param name The name to resolve, in normalised and DNS-encoded form.
+    /// @param data The resolution data, as specified in ENSIP-10.
+    ///             For a multicall, the data should be encoded as `(bytes[])`.
+    /// @param gateways The batch gateway URLs to use for offchain resolution.
+    ///                 Gateways should implement IBatchGateway.
+    /// @return result The result of the resolution.
+    ///                For a multicall, the result is encoded as `(bytes[])`.
+    /// @return resolver The resolver that was used to resolve the name.
     function resolveWithGateways(
         bytes calldata name,
         bytes calldata data,
@@ -85,7 +77,7 @@ contract UniversalResolver is
         (resolver, , finalOffset) = findResolver(name);
 
         if (resolver == address(0)) revert ResolverNotFound(name);
-        if (!resolver.isContract()) revert ResolverNotContract(name);
+        if (!Address.isContract(resolver)) revert ResolverNotContract(name);
 
         bool isWildcard = finalOffset != 0;
         bool isExtendedResolver = _checkInterface(
@@ -96,7 +88,7 @@ contract UniversalResolver is
         if (isWildcard && !isExtendedResolver) revert ResolverNotFound(name);
 
         bool isSingleInternallyEncodedCall = bytes4(data) !=
-            MulticallableGateway.multicall.selector;
+            IMulticallGateway.multicall.selector;
         bytes[] memory calls;
 
         if (isSingleInternallyEncodedCall) {
@@ -131,6 +123,7 @@ contract UniversalResolver is
                             RESOLVE MULTICALL
     //////////////////////////////////////////////////////////////*/
 
+    /// @dev Creates a call to resolve a name using an extended resolver.
     function _createResolveMulticall(
         bytes calldata name,
         bytes[] memory calls
@@ -139,10 +132,12 @@ contract UniversalResolver is
             abi.encodeWithSelector(
                 IExtendedResolver.resolve.selector,
                 name,
-                abi.encodeWithSelector(IMulticallable.multicall.selector, calls)
+                abi.encodeWithSelector(IMulticallGateway.multicall.selector, calls)
             );
     }
 
+    /// @dev Attempts to resolve a name with `resolve(multicall(calls))` using `call`.
+    ///      Will fallback to `_internalMulticall` if it fails
     function _attemptResolveMulticall(
         bytes calldata name,
         bytes[] memory calls,
@@ -312,7 +307,7 @@ contract UniversalResolver is
     ) external pure returns (bytes memory) {
         return
             abi.encodeWithSelector(
-                BatchGateway.query.selector,
+                IBatchGateway.query.selector,
                 data.sender,
                 data.urls,
                 data.callData
@@ -335,20 +330,19 @@ contract UniversalResolver is
         address target,
         bytes calldata data,
         uint256 gas
-    ) external view returns (bytes memory) {
-        return
-            call(
-                target,
-                gas,
-                data,
-                "",
-                createUserCallbackFunctions(
-                    this._internalCallCallback.selector,
-                    this._internalCallCalldataRewrite.selector,
-                    bytes4(0),
-                    this._internalCallValidateResponse.selector
-                )
-            );
+    ) external view {
+        call(
+            target,
+            gas,
+            data,
+            "",
+            createUserCallbackFunctions(
+                this._internalCallCallback.selector,
+                this._internalCallCalldataRewrite.selector,
+                bytes4(0),
+                this._internalCallValidateResponse.selector
+            )
+        );
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -374,7 +368,7 @@ contract UniversalResolver is
         (
             bytes memory reverseName,
             bytes32 reverseNamehash
-        ) = _createReverseNode(lookupAddress, coinType).dnsEncodeName();
+        ) = NameEncoder.dnsEncodeName(_createReverseNode(lookupAddress, coinType));
         bytes memory nameCall = abi.encodeWithSelector(
             INameResolver.name.selector,
             reverseNamehash
@@ -409,8 +403,7 @@ contract UniversalResolver is
             (bytes, address)
         );
         string memory resolvedName = abi.decode(result, (string));
-        (bytes memory encodedName, bytes32 namehash) = resolvedName
-            .dnsEncodeName();
+        (bytes memory encodedName, bytes32 namehash) = NameEncoder.dnsEncodeName(resolvedName);
         bytes memory addrCall = abi.encodeWithSelector(
             IAddressResolver.addr.selector,
             namehash,
@@ -461,8 +454,7 @@ contract UniversalResolver is
                 extraData,
                 (bytes, uint256, string[], string, address, bool)
             );
-        (bytes memory encodedName, bytes32 namehash) = resolvedName
-            .dnsEncodeName();
+        (bytes memory encodedName, bytes32 namehash) = NameEncoder.dnsEncodeName(resolvedName);
         bytes memory addrCall = abi.encodeWithSelector(
             IAddrResolver.addr.selector,
             namehash
@@ -578,7 +570,7 @@ contract UniversalResolver is
         bytes4 interfaceId
     ) internal view returns (bool) {
         try
-            Resolver(resolver).supportsInterface{gas: 50000}(interfaceId)
+            ERC165(resolver).supportsInterface{gas: 50000}(interfaceId)
         returns (bool supported) {
             return supported;
         } catch {
@@ -589,13 +581,13 @@ contract UniversalResolver is
     function _createReverseNode(
         bytes memory lookupAddress,
         uint256 coinType
-    ) internal view returns (string memory) {
+    ) internal pure returns (string memory) {
         return
             string(
                 bytes.concat(
-                    lookupAddress.toHexString(),
+                    PrefixlessHexUtils.toHexString(lookupAddress),
                     ".",
-                    coinType == 60 ? bytes("addr") : coinType.toHexString(),
+                    coinType == 60 ? bytes("addr") : PrefixlessHexUtils.toHexString(coinType),
                     ".reverse"
                 )
             );
@@ -611,5 +603,17 @@ contract UniversalResolver is
         assembly {
             a := div(mload(add(b, 32)), exp(256, 12))
         }
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                                ERC165
+    //////////////////////////////////////////////////////////////*/
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override returns (bool) {
+        return
+            interfaceId == type(IUniversalResolver).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
