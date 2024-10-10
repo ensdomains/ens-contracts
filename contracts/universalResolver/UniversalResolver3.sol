@@ -69,6 +69,10 @@ contract UniversalResolver3 is
         _urls = urls_;
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                RESOLVE
+    //////////////////////////////////////////////////////////////*/
+
     function resolve(
         bytes calldata name,
         bytes calldata data
@@ -127,9 +131,9 @@ contract UniversalResolver3 is
             );
     }
 
-    /**
-     * resolve(multicall(calls))
-     */
+    /*//////////////////////////////////////////////////////////////
+                            RESOLVE MULTICALL
+    //////////////////////////////////////////////////////////////*/
 
     function _createResolveMulticall(
         bytes calldata name,
@@ -208,9 +212,9 @@ contract UniversalResolver3 is
         return (response, resolver);
     }
 
-    /**
-     * multicall(calls)
-     */
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL MULTICALL
+    //////////////////////////////////////////////////////////////*/
 
     function _createInternalMulticall(
         bytes memory name,
@@ -268,7 +272,7 @@ contract UniversalResolver3 is
     function internalMulticallResolveCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (bytes memory, address) {
+    ) external pure returns (bytes memory, address) {
         (
             address resolver,
             bool isSingleInternallyEncodedCall,
@@ -294,14 +298,14 @@ contract UniversalResolver3 is
         return (abi.encode(results), resolver);
     }
 
-    /**
-     * Internal call
-     */
+    /*//////////////////////////////////////////////////////////////
+                            INTERNAL CALL
+    //////////////////////////////////////////////////////////////*/
 
     function _internalCallCallback(
         bytes memory response,
         bytes calldata /* extraData */
-    ) external view returns (bytes memory) {
+    ) external pure returns (bytes memory) {
         assembly {
             return(add(response, 32), mload(response))
         }
@@ -309,7 +313,7 @@ contract UniversalResolver3 is
 
     function _internalCallCalldataRewrite(
         OffchainLookupData memory data
-    ) external view returns (bytes memory) {
+    ) external pure returns (bytes memory) {
         return
             abi.encodeWithSelector(
                 BatchGateway2.query.selector,
@@ -321,7 +325,7 @@ contract UniversalResolver3 is
 
     function _internalCallValidateResponse(
         bytes calldata response
-    ) external view {
+    ) external pure {
         if (bytes4(response) == HttpError.selector) {
             (uint16 status, string memory message) = abi.decode(
                 response[4:],
@@ -351,9 +355,9 @@ contract UniversalResolver3 is
             );
     }
 
-    /**
-     * Reverse
-     */
+    /*//////////////////////////////////////////////////////////////
+                                REVERSE
+    //////////////////////////////////////////////////////////////*/
 
     function reverse(
         bytes memory lookupAddress,
@@ -455,8 +459,12 @@ contract UniversalResolver3 is
             uint256 coinType,
             string[] memory gateways,
             string memory resolvedName,
-            address reverseResolver
-        ) = abi.decode(extraData, (bytes, uint256, string[], string, address));
+            address reverseResolver,
+
+        ) = abi.decode(
+                extraData,
+                (bytes, uint256, string[], string, address, bool)
+            );
         (bytes memory encodedName, bytes32 namehash) = resolvedName
             .dnsEncodeName();
         bytes memory addrCall = abi.encodeWithSelector(
@@ -520,8 +528,12 @@ contract UniversalResolver3 is
                 revert ReverseAddressMismatch(unwrappedResult);
             }
         }
-        return (resolvedName, reverseResolver, resolver);
+        return (resolvedName, resolver, reverseResolver);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                                HELPERS
+    //////////////////////////////////////////////////////////////*/
 
     function _encodeCallWithResolve(
         bytes memory name,

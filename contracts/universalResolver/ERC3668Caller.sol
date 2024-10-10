@@ -208,9 +208,10 @@ abstract contract ERC3668Caller {
         bytes4 externalCallbackFunction,
         bytes memory internalExtraData,
         bytes memory externalExtraData
-    ) private view returns (bytes memory) {
+    ) private pure returns (bytes memory) {
         uint256 callbackFunctions = uint256(userCallbackFunctions) |
-            (uint256(uint32(externalCallbackFunction)) << 128);
+            (uint256(uint32(externalCallbackFunction)) <<
+                EXTERNAL_CALLBACK_FUNCTION_OFFSET);
         return
             abi.encode(
                 target,

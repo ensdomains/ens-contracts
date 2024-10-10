@@ -26,7 +26,10 @@ import {
 import { optimism } from 'viem/chains'
 import { encodedRealAnchors } from '../fixtures/anchors.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
-import { getReverseNodeHash } from '../fixtures/getReverseNode.js'
+import {
+  getReverseNode,
+  getReverseNodeHash,
+} from '../fixtures/getReverseNode.js'
 
 const emptyBytes4 = '0x00000000'
 
@@ -136,6 +139,48 @@ const encodeMulticallExtraData = ({
     urls,
   ])
 
+const encodeReverseWithGatewaysExtraData = ({
+  lookupAddress,
+  coinType,
+  gateways,
+}: {
+  lookupAddress: Hex
+  coinType: bigint
+  gateways: string[]
+}) =>
+  encodeAbiParameters(parseAbiParameters('bytes,uint256,string[]'), [
+    lookupAddress,
+    coinType,
+    gateways,
+  ])
+
+const encodeForwardLookupReverseCallbackExtraData = ({
+  lookupAddress,
+  coinType,
+  gateways,
+  resolvedName,
+  reverseResolverAddress,
+  isAddrCall,
+}: {
+  lookupAddress: Hex
+  coinType: bigint
+  gateways: string[]
+  resolvedName: string
+  reverseResolverAddress: Address
+  isAddrCall: boolean
+}) =>
+  encodeAbiParameters(
+    parseAbiParameters('bytes,uint256,string[],string,address,bool'),
+    [
+      lookupAddress,
+      coinType,
+      gateways,
+      resolvedName,
+      reverseResolverAddress,
+      isAddrCall,
+    ],
+  )
+
 const baseResolveMulticallExtraData = {
   internalCallbackFunction: toFunctionSelector(
     'function resolveMulticallResolveCallback(bytes,bytes)',
@@ -225,6 +270,14 @@ async function fixture() {
     'DummyAddrOffchainResolver',
     [],
   )
+  const addressOffchainResolver = await hre.viem.deployContract(
+    'DummyAddressOffchainResolver',
+    [],
+  )
+  const nameOffchainResolver = await hre.viem.deployContract(
+    'DummyNameOffchainResolver',
+    [],
+  )
   const oldResolver = await hre.viem.deployContract('DummyOldResolver', [])
   const revertResolver = await hre.viem.deployContract(
     'DummyRevertResolver',
@@ -284,6 +337,10 @@ async function fixture() {
     resolverAddress: addrOffchainResolver.address,
   })
   await createTestEthSub({
+    label: 'address-offchain',
+    resolverAddress: addressOffchainResolver.address,
+  })
+  await createTestEthSub({
     label: 'no-resolver',
   })
   await createTestEthSub({
@@ -332,6 +389,36 @@ async function fixture() {
     .readArtifact('BatchGateway2')
     .then(({ abi }) => abi)
 
+  // offchain primary
+  await reverseRegistrar.write.claim([accounts[2].address], {
+    account: accounts[2],
+  })
+  await ensRegistry.write.setResolver(
+    [getReverseNodeHash(accounts[2].address), offchainResolver.address],
+    { account: accounts[2] },
+  )
+  await createTestEthSub({
+    label: 'onchain-from-offchain-primary',
+    resolverAddress: publicResolver.address,
+  })
+  await publicResolver.write.setAddr([
+    namehash('onchain-from-offchain-primary.test.eth'),
+    accounts[2].address,
+  ])
+  await createTestEthSub({
+    label: 'offchain-from-offchain-primary',
+    resolverAddress: offchainResolver.address,
+  })
+
+  // name offchain primary
+  await reverseRegistrar.write.claim([accounts[3].address], {
+    account: accounts[3],
+  })
+  await ensRegistry.write.setResolver(
+    [getReverseNodeHash(accounts[3].address), nameOffchainResolver.address],
+    { account: accounts[3] },
+  )
+
   // OP reverse resolver (evm)
   const opReverseLabel = accounts[1].address.slice(2).toLowerCase()
   const opReverseNamespace = `${opHexCoinType}.reverse`
@@ -369,7 +456,6 @@ async function fixture() {
   const solReverseLabel = solAddressHex.slice(2).toLowerCase()
   const solReverseNamespace = `${solHexCoinType}.reverse`
   const solReverseNode = namehash(solReverseNamespace)
-  console.log({ solReverseNamespace, solReverseLabel })
   await ensRegistry.write.setSubnodeOwner([
     namehash('reverse'),
     labelhash(solHexCoinType),
@@ -407,6 +493,8 @@ async function fixture() {
     universalResolver,
     offchainResolver,
     addrOffchainResolver,
+    nameOffchainResolver,
+    addressOffchainResolver,
     oldResolver,
     revertResolver,
     legacyResolver,
@@ -816,73 +904,6 @@ describe('UniversalResolver3', () => {
         )
     })
 
-    // it('should return a wrapped revert with resolve() wrapped calls in extraData when combining onchain and offchain', async () => {
-    //   const {
-    //     universalResolver,
-    //     publicResolver,
-    //     offchainResolver,
-    //     batchGatewayAbi,
-    //   } = await loadFixture(fixture)
-
-    //   const addrCall = encodeFunctionData({
-    //     abi: publicResolver.abi,
-    //     functionName: 'addr',
-    //     args: [namehash('offchain.test.eth')],
-    //   })
-    //   const onchainDataCall = '0x12345678'
-
-    //   const extraData = encodeExtraData({
-    //     isWildcard: false,
-    //     resolver: offchainResolver.address,
-    //     gateways: ['http://universal-offchain-resolver.local'],
-    //     metadata: '0x',
-    //     extraDatas: [
-    //       {
-    //         callbackFunction: toFunctionSelector(
-    //           'function resolveCallback(bytes,bytes)',
-    //         ),
-    //         data: addrCall,
-    //       },
-    //       {
-    //         callbackFunction: '0x00000000',
-    //         data: encodeFunctionData({
-    //           abi: universalResolver.abi,
-    //           functionName: 'resolve',
-    //           args: [dnsEncodeName('offchain.test.eth'), onchainDataCall],
-    //         }),
-    //       },
-    //     ],
-    //   })
-
-    //   const queryCalldata = encodeFunctionData({
-    //     abi: batchGatewayAbi,
-    //     functionName: 'query',
-    //     args: [
-    //       [
-    //         {
-    //           sender: offchainResolver.address,
-    //           urls: ['https://example.com/'],
-    //           callData: addrCall,
-    //         },
-    //       ],
-    //     ],
-    //   })
-
-    //   await expect(universalResolver)
-    //     .read('resolve', [
-    //       dnsEncodeName('offchain.test.eth'),
-    //       [addrCall, onchainDataCall],
-    //     ])
-    //     .toBeRevertedWithCustomError('OffchainLookup')
-    //     .withArgs(
-    //       getAddress(universalResolver.address),
-    //       ['http://universal-offchain-resolver.local'],
-    //       queryCalldata,
-    //       toFunctionSelector('function resolveCallback(bytes,bytes)'),
-    //       extraData,
-    //     )
-    // })
-
     it('should revert OffchainLookup via UniversalResolver + OffchainDNSResolver', async () => {
       const { universalResolver, publicResolver, ensRegistry, root } =
         await loadFixture(fixture)
@@ -1269,7 +1290,6 @@ describe('UniversalResolver3', () => {
   })
 
   describe('resolveMulticallResolveCallback()', () => {
-    // TODO: should resolve a single record (single internally encoded call)
     it('should resolve a single record (single internally encoded call)', async () => {
       const { universalResolver, publicResolver, offchainResolver } =
         await loadFixture(fixture)
@@ -1422,8 +1442,6 @@ describe('UniversalResolver3', () => {
       expect(decodedTextResult).toEqual('bar')
       expect(resolverAddress).toEqualAddress(offchainResolver.address)
     })
-    // TODO: should resolve multiple records
-    // TODO: should handle empty/error response with internal multicall
     it('should handle error response with internal multicall', async () => {
       const {
         universalResolver,
@@ -1432,11 +1450,7 @@ describe('UniversalResolver3', () => {
         batchGatewayAbi,
       } = await loadFixture(fixture)
 
-      const callData = encodeFunctionData({
-        abi: publicResolver.abi,
-        functionName: 'contenthash',
-        args: [namehash('offchain.test.eth')],
-      })
+      const callData = toFunctionSelector('function revertWithData()')
 
       const originalMulticallCalldata = encodeFunctionData({
         abi: publicResolver.abi,
@@ -1445,13 +1459,7 @@ describe('UniversalResolver3', () => {
       })
 
       const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
-        [
-          encodeFunctionResult({
-            abi: publicResolver.abi,
-            functionName: 'contenthash',
-            result: '0x1234',
-          }),
-        ],
+        ['0x'],
       ])
 
       const resolveMulticallExtraData = encodeExtraData({
@@ -1527,11 +1535,7 @@ describe('UniversalResolver3', () => {
         batchGatewayAbi,
       } = await loadFixture(fixture)
 
-      const callData = encodeFunctionData({
-        abi: publicResolver.abi,
-        functionName: 'name',
-        args: [namehash('offchain.test.eth')],
-      })
+      const callData = toFunctionSelector('function emptyResponse()')
 
       const originalMulticallCalldata = encodeFunctionData({
         abi: publicResolver.abi,
@@ -1540,13 +1544,7 @@ describe('UniversalResolver3', () => {
       })
 
       const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
-        [
-          encodeFunctionResult({
-            abi: publicResolver.abi,
-            functionName: 'name',
-            result: 'idk',
-          }),
-        ],
+        ['0x'],
       ])
 
       const resolveMulticallExtraData = encodeExtraData({
@@ -1614,18 +1612,13 @@ describe('UniversalResolver3', () => {
           revertExtraData,
         )
     })
-    // TODO: should propagate empty response error when single internally encoded call
     it('should propagate empty response error when single internally encoded call', async () => {
-      const {
-        universalResolver,
-        publicResolver,
-        offchainResolver,
-        batchGatewayAbi,
-      } = await loadFixture(fixture)
+      const { universalResolver, publicResolver, offchainResolver } =
+        await loadFixture(fixture)
 
       const callData = encodeFunctionData({
         abi: publicResolver.abi,
-        functionName: 'pubkey',
+        functionName: 'addr',
         args: [namehash('offchain.test.eth')],
       })
 
@@ -1636,13 +1629,7 @@ describe('UniversalResolver3', () => {
       })
 
       const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
-        [
-          encodeFunctionResult({
-            abi: publicResolver.abi,
-            functionName: 'pubkey',
-            result: [zeroHash, zeroHash],
-          }),
-        ],
+        ['0x'],
       ])
 
       const resolveMulticallExtraData = encodeExtraData({
@@ -1666,7 +1653,6 @@ describe('UniversalResolver3', () => {
   })
 
   describe('internalMulticallResolveCallback()', () => {
-    // TODO: should resolve a single record (single internally encoded call)
     it('should resolve a single record (single internally encoded call) - standard resolver', async () => {
       const {
         universalResolver,
@@ -2136,23 +2122,12 @@ describe('UniversalResolver3', () => {
       )
     })
     it('should propagate empty response error when single internally encoded call', async () => {
-      const { universalResolver, publicResolver, offchainResolver } =
-        await loadFixture(fixture)
+      const { universalResolver, offchainResolver } = await loadFixture(fixture)
 
-      const callData = encodeFunctionData({
-        abi: publicResolver.abi,
-        functionName: 'pubkey',
-        args: [namehash('offchain.test.eth')],
-      })
+      const callData = toFunctionSelector('function emptyResponse()')
 
       const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
-        [
-          encodeFunctionResult({
-            abi: publicResolver.abi,
-            functionName: 'pubkey',
-            result: [zeroHash, zeroHash],
-          }),
-        ],
+        ['0x'],
       ])
 
       const extraData = encodeExtraData({
@@ -2190,23 +2165,12 @@ describe('UniversalResolver3', () => {
         .withArgs('0x')
     })
     it('should propagate error response when single internally encoded call', async () => {
-      const { universalResolver, publicResolver, offchainResolver } =
-        await loadFixture(fixture)
+      const { universalResolver, offchainResolver } = await loadFixture(fixture)
 
-      const callData = encodeFunctionData({
-        abi: publicResolver.abi,
-        functionName: 'contenthash',
-        args: [namehash('offchain.test.eth')],
-      })
+      const callData = toFunctionSelector('function revertWithData()')
 
       const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
-        [
-          encodeFunctionResult({
-            abi: publicResolver.abi,
-            functionName: 'contenthash',
-            result: zeroHash,
-          }),
-        ],
+        ['0x'],
       ])
 
       const extraData = encodeExtraData({
@@ -2518,7 +2482,6 @@ describe('UniversalResolver3', () => {
   })
 
   describe('reverse()', () => {
-    // TODO: should resolve with onchain resolution
     it('should resolve eth', async () => {
       const { universalResolver, publicResolver, accounts } = await loadFixture(
         fixture,
@@ -2530,7 +2493,6 @@ describe('UniversalResolver3', () => {
       expect(resolver).toEqualAddress(publicResolver.address)
       expect(reverseResolver).toEqualAddress(publicResolver.address)
     })
-    // TODO: should fallback to resolving eth via legacy addr(bytes32) if addr(bytes32,uint256) fails
     it('should fallback to resolving eth via legacy addr(bytes32) when addr(bytes32,uint256) fails', async () => {
       const { universalResolver, oldResolver, accounts } = await loadFixture(
         fixture,
@@ -2541,7 +2503,6 @@ describe('UniversalResolver3', () => {
       expect(resolver).toEqualAddress(oldResolver.address)
       expect(reverseResolver).toEqualAddress(oldResolver.address)
     })
-    // TODO: should resolve evm chains
     it('should resolve evm chains', async () => {
       const { universalResolver, publicResolver, accounts } = await loadFixture(
         fixture,
@@ -2556,18 +2517,10 @@ describe('UniversalResolver3', () => {
       expect(resolver).toEqualAddress(publicResolver.address)
       expect(reverseResolver).toEqualAddress(publicResolver.address)
     })
-    // TODO: should resolve non-evm chains
     it('should resolve non-evm chains', async () => {
       const { universalResolver, publicResolver, accounts } = await loadFixture(
         fixture,
       )
-      const resolverData = await universalResolver.read.findResolver([
-        dnsEncodeName(`${solAddressHex.slice(2)}.${solHexCoinType}.reverse`),
-      ])
-      console.log(
-        dnsEncodeName(`${solAddressHex.slice(2)}.${solHexCoinType}.reverse`),
-      )
-      console.log(resolverData)
       const [name, resolver, reverseResolver] =
         await universalResolver.read.reverse([
           solAddressHex,
@@ -2577,191 +2530,777 @@ describe('UniversalResolver3', () => {
       expect(resolver).toEqualAddress(publicResolver.address)
       expect(reverseResolver).toEqualAddress(publicResolver.address)
     })
-    // TODO: should use provided gateways
-    // TODO: should propagate HttpError
-    // TODO: should revert with mismatching evm chain address
-    // TODO: should revert with mismatching non-evm chain address
+    it('should revert with OffchainLookup when reverse node resolver is offchain', async () => {
+      const { universalResolver, offchainResolver, publicResolver, accounts } =
+        await loadFixture(fixture)
+
+      const callData = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        args: [getReverseNodeHash(accounts[2].address)],
+      })
+
+      const multicallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[callData]],
+      })
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName(getReverseNode(accounts[2].address)),
+            calls: [callData],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: multicallCalldata,
+        }),
+      })
+
+      await expect(universalResolver)
+        .read('reverse', [accounts[2].address, 60n])
+        .toBeRevertedWithCustomError('OffchainLookup')
+        .withArgs(
+          getAddress(universalResolver.address),
+          ['https://example.com/'],
+          multicallCalldata,
+          toFunctionSelector('function callback(bytes,bytes)'),
+          extraData,
+        )
+    })
+    it('should use custom gateways when specified', async () => {
+      const {
+        universalResolver,
+        nameOffchainResolver,
+        batchGatewayAbi,
+        publicResolver,
+        accounts,
+      } = await loadFixture(fixture)
+
+      const fnRevertData = encodeFunctionResult({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        result: 'name-offchain.eth',
+      })
+
+      const fnRevertDataWithRewrite = encodeFunctionData({
+        abi: batchGatewayAbi,
+        functionName: 'query',
+        args: [
+          nameOffchainResolver.address,
+          ['https://example.com/'],
+          fnRevertData,
+        ],
+      })
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[3].address,
+          coinType: 60n,
+          gateways: ['http://custom.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: universalResolver.address,
+          ...baseInternalMulticallExtraData,
+          internalExtraData: encodeInternalMulticallExtraData({
+            resolverAddress: nameOffchainResolver.address,
+            isSingleInternallyEncodedCall: true,
+            isExtendedResolver: false,
+          }),
+          externalExtraData: encodeMulticallExtraData({
+            calls: [
+              {
+                data: encodeExtraData({
+                  resolverAddress: nameOffchainResolver.address,
+                  ...baseInternalCallExtraData,
+                  externalCallbackFunction: toFunctionSelector(
+                    'function nameCallback(bytes,bytes)',
+                  ),
+                  externalExtraData: fnRevertData,
+                }),
+                callbackFunction: toFunctionSelector(
+                  'function callback(bytes,bytes)',
+                ),
+                offchain: true,
+              },
+            ],
+            urls: ['http://custom.local'],
+          }),
+        }),
+      })
+
+      const multicallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[fnRevertDataWithRewrite]],
+      })
+
+      await expect(universalResolver)
+        .read('reverseWithGateways', [
+          accounts[3].address,
+          60n,
+          ['http://custom.local'],
+        ])
+        .toBeRevertedWithCustomError('OffchainLookup')
+        .withArgs(
+          getAddress(universalResolver.address),
+          ['http://custom.local'],
+          multicallCalldata,
+          toFunctionSelector('function callback(bytes,bytes)'),
+          extraData,
+        )
+    })
+    it('should propagate error in resolution', async () => {
+      const { universalResolver, accounts } = await loadFixture(fixture)
+
+      await expect(universalResolver)
+        .read('reverse', [accounts[9].address, BigInt(1234)])
+        .toBeRevertedWithCustomError('ResolverNotFound')
+    })
   })
 
-  // describe('reverseCallback', () => {
-  //   it('should revert with metadata for initial forward resolution if required', async () => {
-  //     const { universalResolver, offchainResolver, batchGatewayAbi } =
-  //       await loadFixture(fixture)
+  describe('forwardLookupReverseCallback()', () => {
+    it('should finish remaining resolution steps based on offchain response', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
 
-  //     const metadata = encodeAbiParameters(
-  //       [{ type: 'string' }, { type: 'address' }],
-  //       ['offchain.test.eth', offchainResolver.address],
-  //     )
-  //     const addrCall = encodeFunctionData({
-  //       abi: offchainResolver.abi,
-  //       functionName: 'addr',
-  //       args: [namehash('offchain.test.eth')],
-  //     })
+      const callData = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        args: [getReverseNodeHash(accounts[2].address)],
+      })
 
-  //     const extraData = encodeExtraData({
-  //       isWildcard: false,
-  //       resolver: offchainResolver.address,
-  //       gateways: ['http://universal-offchain-resolver.local'],
-  //       metadata: '0x',
-  //       extraDatas: [
-  //         {
-  //           callbackFunction: toFunctionSelector(
-  //             'function resolveCallback(bytes,bytes)',
-  //           ),
-  //           data: '0x691f3431',
-  //         },
-  //       ],
-  //     })
-  //     const extraDataForResult = encodeExtraData({
-  //       isWildcard: false,
-  //       resolver: offchainResolver.address,
-  //       gateways: ['http://universal-offchain-resolver.local'],
-  //       metadata,
-  //       extraDatas: [
-  //         {
-  //           callbackFunction: toFunctionSelector(
-  //             'function resolveCallback(bytes,bytes)',
-  //           ),
-  //           data: addrCall,
-  //         },
-  //       ],
-  //     })
-  //     const response = encodeFunctionResult({
-  //       abi: batchGatewayAbi,
-  //       functionName: 'query',
-  //       result: [[false], ['0x691f3431']],
-  //     })
+      const multicallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[callData]],
+      })
 
-  //     await expect(universalResolver)
-  //       .read('reverseCallback', [response, extraData])
-  //       .toBeRevertedWithCustomError('OffchainLookup')
-  //       .withArgs(
-  //         getAddress(universalResolver.address),
-  //         ['http://universal-offchain-resolver.local'],
-  //         expect.anyValue,
-  //         toFunctionSelector('function reverseCallback(bytes,bytes)'),
-  //         extraDataForResult,
-  //       )
-  //   })
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: publicResolver.abi,
+            functionName: 'name',
+            result: 'onchain-from-offchain-primary.test.eth',
+          }),
+        ],
+      ])
 
-  //   it('should resolve address record via a callback from offchain lookup', async () => {
-  //     const { universalResolver, offchainResolver, batchGatewayAbi } =
-  //       await loadFixture(fixture)
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName(getReverseNode(accounts[2].address)),
+            calls: [callData],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: multicallCalldata,
+        }),
+      })
 
-  //     const metadata = encodeAbiParameters(
-  //       [{ type: 'string' }, { type: 'address' }],
-  //       ['offchain.test.eth', offchainResolver.address],
-  //     )
-  //     const extraData = encodeExtraData({
-  //       isWildcard: false,
-  //       resolver: offchainResolver.address,
-  //       gateways: ['http://universal-offchain-resolver.local'],
-  //       metadata,
-  //       extraDatas: [
-  //         {
-  //           callbackFunction: toFunctionSelector(
-  //             'function resolveCallback(bytes,bytes)',
-  //           ),
-  //           data: '0x',
-  //         },
-  //       ],
-  //     })
-  //     const response = encodeFunctionResult({
-  //       abi: batchGatewayAbi,
-  //       functionName: 'query',
-  //       result: [[false], ['0x']],
-  //     })
+      const publicClient = await hre.viem.getPublicClient()
+      const [name, resolver, reverseResolver] = await publicClient.readContract(
+        {
+          abi: parseAbi([
+            'function callback(bytes,bytes) view returns (string,address,address)',
+          ]),
+          functionName: 'callback',
+          address: universalResolver.address,
+          args: [response, extraData],
+        },
+      )
 
-  //     const [name, a1, a2, a3] = await universalResolver.read.reverseCallback([
-  //       response,
-  //       extraData,
-  //     ])
+      expect(name).toEqual('onchain-from-offchain-primary.test.eth')
+      expect(resolver).toEqualAddress(publicResolver.address)
+      expect(reverseResolver).toEqualAddress(offchainResolver.address)
+    })
+    it('should revert with OffchainLookup when addr resolver is offchain', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
 
-  //     expect(name).toEqual('offchain.test.eth')
-  //     expect(a1).toEqualAddress(offchainResolver.address)
-  //     expect(a2).toEqualAddress(offchainResolver.address)
-  //     expect(a3).toEqualAddress(offchainResolver.address)
-  //   })
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        args: [getReverseNodeHash(accounts[2].address)],
+      })
 
-  //   it('should propagate HttpError', async () => {
-  //     const { universalResolver, offchainResolver, batchGatewayAbi } =
-  //       await loadFixture(fixture)
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
 
-  //     const publicClient = await hre.viem.getPublicClient()
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: publicResolver.abi,
+            functionName: 'name',
+            result: 'offchain-from-offchain-primary.test.eth',
+          }),
+        ],
+      ])
 
-  //     const universalResolverWithHttpError = getContract({
-  //       abi: [
-  //         ...universalResolver.abi,
-  //         parseAbiItem('error HttpError((uint16,string)[])'),
-  //       ],
-  //       address: universalResolver.address,
-  //       client: publicClient,
-  //     })
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName(getReverseNode(accounts[2].address)),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
 
-  //     const errorData = encodeErrorResult({
-  //       abi: universalResolverWithHttpError.abi,
-  //       errorName: 'HttpError',
-  //       args: [[[404, 'Not Found']]],
-  //     })
+      const revertingCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [namehash('offchain-from-offchain-primary.test.eth'), 60n],
+      })
 
-  //     const metadata = encodeAbiParameters(
-  //       [{ type: 'string' }, { type: 'address' }],
-  //       ['offchain.test.eth', offchainResolver.address],
-  //     )
-  //     const extraData = encodeExtraData({
-  //       isWildcard: false,
-  //       resolver: offchainResolver.address,
-  //       gateways: ['http://universal-offchain-resolver.local'],
-  //       metadata,
-  //       extraDatas: [
-  //         {
-  //           callbackFunction: toFunctionSelector(
-  //             'function resolveCallback(bytes,bytes)',
-  //           ),
-  //           data: errorData,
-  //         },
-  //       ],
-  //     })
-  //     const response = encodeFunctionResult({
-  //       abi: batchGatewayAbi,
-  //       functionName: 'query',
-  //       result: [[true], [errorData]],
-  //     })
+      const revertingMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[revertingCalldata]],
+      })
 
-  //     await expect(universalResolverWithHttpError)
-  //       .read('reverseCallback', [response, extraData])
-  //       .toBeRevertedWithCustomError('HttpError')
-  //       .withArgs([[404, 'Not Found']])
-  //   })
-  // })
+      const revertingExtraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function processLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: toFunctionSelector(
+          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+        ),
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeForwardLookupReverseCallbackExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+          resolvedName: 'offchain-from-offchain-primary.test.eth',
+          reverseResolverAddress: offchainResolver.address,
+          isAddrCall: false,
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName('offchain-from-offchain-primary.test.eth'),
+            calls: [revertingCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: revertingMulticallCalldata,
+        }),
+      })
 
-  // describe('reverse()', () => {
-  //   it('should resolve a reverse record with name and resolver address', async () => {
-  //     const { universalResolver, accounts, publicResolver } = await loadFixture(
-  //       fixture,
-  //     )
+      await expect(universalResolver)
+        .read('callback', [response, extraData])
+        .toBeRevertedWithCustomError('OffchainLookup')
+        .withArgs(
+          getAddress(universalResolver.address),
+          ['https://example.com/'],
+          revertingMulticallCalldata,
+          toFunctionSelector('function callback(bytes,bytes)'),
+          revertingExtraData,
+        )
+    })
+    it('should use custom gateways when specified', async () => {
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        addressOffchainResolver,
+        batchGatewayAbi,
+        accounts,
+      } = await loadFixture(fixture)
 
-  //     const [name, resolvedAddress, reverseResolverAddress, resolverAddress] =
-  //       (await universalResolver.read.reverse([
-  //         dnsEncodeName(getReverseNode(accounts[0].address)),
-  //       ])) as ReadContractReturnType<
-  //         (typeof universalResolver)['abi'],
-  //         'reverse',
-  //         [Hex]
-  //       >
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        args: [getReverseNodeHash(accounts[2].address)],
+      })
 
-  //     expect(name).toEqual('test.eth')
-  //     expect(resolvedAddress).toEqualAddress(accounts[1].address)
-  //     expect(reverseResolverAddress).toEqualAddress(publicResolver.address)
-  //     expect(resolverAddress).toEqualAddress(publicResolver.address)
-  //   })
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
 
-  //   it('should not use all the gas on a internal resolver revert', async () => {
-  //     const { universalResolver, accounts } = await loadFixture(fixture)
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: publicResolver.abi,
+            functionName: 'name',
+            result: 'address-offchain.test.eth',
+          }),
+        ],
+      ])
 
-  //     await expect(universalResolver)
-  //       .read('reverse', [dnsEncodeName(getReverseNode(accounts[10].address))])
-  //       .not.toBeReverted()
-  //   })
-  // })
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://custom.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName(getReverseNode(accounts[2].address)),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://custom.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
+
+      const fnRevertData = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [namehash('address-offchain.test.eth'), 60n],
+      })
+
+      const fnRevertDataWithRewrite = encodeFunctionData({
+        abi: batchGatewayAbi,
+        functionName: 'query',
+        args: [
+          addressOffchainResolver.address,
+          ['https://example.com/'],
+          fnRevertData,
+        ],
+      })
+
+      const revertingExtraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function processLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: toFunctionSelector(
+          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+        ),
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeForwardLookupReverseCallbackExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://custom.local'],
+          resolvedName: 'address-offchain.test.eth',
+          reverseResolverAddress: offchainResolver.address,
+          isAddrCall: false,
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: universalResolver.address,
+          ...baseInternalMulticallExtraData,
+          internalExtraData: encodeInternalMulticallExtraData({
+            resolverAddress: addressOffchainResolver.address,
+            isSingleInternallyEncodedCall: true,
+            isExtendedResolver: false,
+          }),
+          externalExtraData: encodeMulticallExtraData({
+            calls: [
+              {
+                data: encodeExtraData({
+                  resolverAddress: addressOffchainResolver.address,
+                  ...baseInternalCallExtraData,
+                  externalCallbackFunction: toFunctionSelector(
+                    'function addrCallback(bytes,bytes)',
+                  ),
+                  externalExtraData: fnRevertData,
+                }),
+                callbackFunction: toFunctionSelector(
+                  'function callback(bytes,bytes)',
+                ),
+                offchain: true,
+              },
+            ],
+            urls: ['http://custom.local'],
+          }),
+        }),
+      })
+
+      const revertingMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[fnRevertDataWithRewrite]],
+      })
+
+      await expect(universalResolver)
+        .read('callback', [response, extraData])
+        .toBeRevertedWithCustomError('OffchainLookup')
+        .withArgs(
+          getAddress(universalResolver.address),
+          ['http://custom.local'],
+          revertingMulticallCalldata,
+          toFunctionSelector('function callback(bytes,bytes)'),
+          revertingExtraData,
+        )
+    })
+    it('should propagate error in addr resolution', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
+
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'name',
+        args: [getReverseNodeHash(accounts[2].address)],
+      })
+
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
+
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: publicResolver.abi,
+            functionName: 'name',
+            result: 'nonexistent.test.eth',
+          }),
+        ],
+      ])
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function forwardLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: emptyBytes4,
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeReverseWithGatewaysExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName(getReverseNode(accounts[2].address)),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
+
+      await expect(universalResolver)
+        .read('callback', [response, extraData])
+        .toBeRevertedWithCustomError('ResolverNotFound')
+    })
+  })
+
+  describe('processLookupReverseCallback()', () => {
+    it('should finish resolution based on offchain response', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
+
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [namehash('offchain-from-offchain-primary.test.eth'), 60n],
+      })
+
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
+
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: parseAbi([
+              'function addr(bytes32,uint256) view returns (bytes)',
+            ]),
+            functionName: 'addr',
+            result: accounts[2].address,
+          }),
+        ],
+      ])
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function processLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: toFunctionSelector(
+          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+        ),
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeForwardLookupReverseCallbackExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+          resolvedName: 'offchain-from-offchain-primary.test.eth',
+          reverseResolverAddress: offchainResolver.address,
+          isAddrCall: false,
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName('offchain-from-offchain-primary.test.eth'),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
+
+      const publicClient = await hre.viem.getPublicClient()
+      const [name, resolver, reverseResolver] = await publicClient.readContract(
+        {
+          address: universalResolver.address,
+          abi: parseAbi([
+            'function callback(bytes,bytes) view returns (string,address,address)',
+          ]),
+          functionName: 'callback',
+          args: [response, extraData],
+        },
+      )
+
+      expect(name).toEqual('offchain-from-offchain-primary.test.eth')
+      expect(resolver).toEqualAddress(offchainResolver.address)
+      expect(reverseResolver).toEqualAddress(offchainResolver.address)
+    })
+    it('should revert with mismatching evm chain address', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
+
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [namehash('offchain-from-offchain-primary.test.eth'), 60n],
+      })
+
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
+
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: parseAbi([
+              'function addr(bytes32,uint256) view returns (bytes)',
+            ]),
+            functionName: 'addr',
+            result: accounts[3].address,
+          }),
+        ],
+      ])
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function processLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: toFunctionSelector(
+          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+        ),
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeForwardLookupReverseCallbackExtraData({
+          lookupAddress: accounts[2].address,
+          coinType: 60n,
+          gateways: ['http://universal-offchain-resolver.local'],
+          resolvedName: 'offchain-from-offchain-primary.test.eth',
+          reverseResolverAddress: offchainResolver.address,
+          isAddrCall: false,
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName('offchain-from-offchain-primary.test.eth'),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
+
+      await expect(universalResolver)
+        .read('callback', [response, extraData])
+        .toBeRevertedWithCustomError('ReverseAddressMismatch')
+        .withArgs(accounts[3].address)
+    })
+    it('should revert with mismatching non-evm chain address', async () => {
+      const { universalResolver, publicResolver, offchainResolver, accounts } =
+        await loadFixture(fixture)
+
+      const responseCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'addr',
+        args: [
+          namehash('offchain-from-offchain-primary.test.eth'),
+          BigInt(solCoinType),
+        ],
+      })
+
+      const responseMulticallCalldata = encodeFunctionData({
+        abi: publicResolver.abi,
+        functionName: 'multicall',
+        args: [[responseCalldata]],
+      })
+
+      const response = encodeAbiParameters(parseAbiParameters('bytes[]'), [
+        [
+          encodeFunctionResult({
+            abi: parseAbi([
+              'function addr(bytes32,uint256) view returns (bytes)',
+            ]),
+            functionName: 'addr',
+            result: '0x00deadbeef',
+          }),
+        ],
+      ])
+
+      const extraData = encodeExtraData({
+        resolverAddress: universalResolver.address,
+        internalCallbackFunction: toFunctionSelector(
+          'function processLookupReverseCallback(bytes,bytes)',
+        ),
+        externalCallbackFunction: toFunctionSelector(
+          'function callback(bytes,bytes)',
+        ),
+        calldataRewriteFunction: emptyBytes4,
+        failureCallbackFunction: toFunctionSelector(
+          'function attemptAddrResolverReverseCallback(bytes,bytes)',
+        ),
+        validateResponseFunction: emptyBytes4,
+        internalExtraData: encodeForwardLookupReverseCallbackExtraData({
+          lookupAddress: solAddressHex,
+          coinType: BigInt(solCoinType),
+          gateways: ['http://universal-offchain-resolver.local'],
+          resolvedName: 'offchain-from-offchain-primary.test.eth',
+          reverseResolverAddress: offchainResolver.address,
+          isAddrCall: false,
+        }),
+        externalExtraData: encodeExtraData({
+          resolverAddress: offchainResolver.address,
+          ...baseResolveMulticallExtraData,
+          internalExtraData: encodeResolveMulticallExtraData({
+            name: dnsEncodeName('offchain-from-offchain-primary.test.eth'),
+            calls: [responseCalldata],
+            resolverAddress: offchainResolver.address,
+            gateways: ['http://universal-offchain-resolver.local'],
+            isSingleInternallyEncodedCall: true,
+          }),
+          externalExtraData: responseMulticallCalldata,
+        }),
+      })
+
+      await expect(universalResolver)
+        .read('callback', [response, extraData])
+        .toBeRevertedWithCustomError('ReverseAddressMismatch')
+        .withArgs('0x00deadbeef')
+    })
+  })
 })

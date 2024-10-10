@@ -49,10 +49,10 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
         bytes calldata response,
         bytes calldata extraData
     ) external pure returns (bytes memory) {
-        if (bytes4(extraData) == bytes4(keccak256("pubkey(bytes32)"))) {
+        if (bytes4(extraData) == bytes4(keccak256("emptyResponse()"))) {
             revert();
         }
-        if (bytes4(extraData) == bytes4(keccak256("contenthash(bytes32)"))) {
+        if (bytes4(extraData) == bytes4(keccak256("revertWithData()"))) {
             revert("Unsupported call");
         }
         if (bytes4(extraData) != bytes4(keccak256("multicall(bytes[])"))) {
@@ -62,16 +62,18 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
         bytes[] memory results = abi.decode(response, (bytes[]));
         bytes[] memory calls = abi.decode(extraData[4:], (bytes[]));
         for (uint256 i = 0; i < calls.length; i++) {
-            if (bytes4(calls[i]) == bytes4(keccak256("text(bytes32,string)"))) {
-                calls[i] = results[i];
-            } else if (bytes4(calls[i]) == bytes4(keccak256("addr(bytes32)"))) {
-                calls[i] = results[i];
-            } else if (bytes4(calls[i]) == bytes4(keccak256("name(bytes32)"))) {
-                return "";
-            } else if (
-                bytes4(calls[i]) == bytes4(keccak256("pubkey(bytes32)"))
+            if (
+                bytes4(calls[i]) == bytes4(keccak256("text(bytes32,string)")) ||
+                bytes4(calls[i]) == bytes4(keccak256("addr(bytes32)")) ||
+                bytes4(calls[i]) ==
+                bytes4(keccak256("addr(bytes32,uint256)")) ||
+                bytes4(calls[i]) == bytes4(keccak256("name(bytes32)"))
             ) {
-                calls[i] = "";
+                calls[i] = results[i];
+            } else if (
+                bytes4(calls[i]) == bytes4(keccak256("emptyResponse()"))
+            ) {
+                return "";
             } else {
                 revert("Unsupported call");
             }
