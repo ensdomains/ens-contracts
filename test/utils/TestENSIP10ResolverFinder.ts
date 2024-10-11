@@ -1,8 +1,15 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { getAddress, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
-import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
+import {
+  bytesToHex,
+  getAddress,
+  labelhash,
+  namehash,
+  zeroAddress,
+  zeroHash,
+} from 'viem'
+import { dnsEncodeName, packetToBytes } from '../fixtures/dnsEncodeName.js'
 
 async function fixture() {
   const accounts = await hre.viem
@@ -123,6 +130,17 @@ describe('ENSIP10ResolverFinder', () => {
         namehash('test.eth'),
         0n,
       ])
+    })
+
+    it('should revert on invalid name encoding', async () => {
+      const { ensip10ResolverFinder } = await loadFixture(fixture)
+
+      const encodedName = packetToBytes('test.eth')
+      encodedName[5] = 6
+
+      await expect(ensip10ResolverFinder)
+        .read('findResolver', [bytesToHex(encodedName)])
+        .toBeRevertedWithCustomError('InvalidNameEncoding')
     })
   })
 })

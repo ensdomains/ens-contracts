@@ -12,6 +12,9 @@ abstract contract ENSIP10ResolverFinder {
     /// @notice The ENS registry.
     ENS internal immutable _registry;
 
+    /// @notice The name is not encoded correctly.
+    error InvalidNameEncoding();
+
     /// @notice Sets the ENS registry.
     /// @param registry_ The ENS registry.
     constructor(ENS registry_) {
@@ -39,8 +42,9 @@ abstract contract ENSIP10ResolverFinder {
         if (labelLength == 0) {
             return (address(0), bytes32(0), offset);
         }
-        // TODO: ensure name has enough length to avoid out-of-bounds
         uint256 nextLabel = offset + labelLength + 1;
+        if (nextLabel > name.length) revert InvalidNameEncoding();
+
         bytes32 labelHash;
         // Check if the label is encoded
         if (
