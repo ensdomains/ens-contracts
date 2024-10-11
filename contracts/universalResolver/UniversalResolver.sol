@@ -21,6 +21,54 @@ import {BytesArrayValidator} from "./BytesArrayValidator.sol";
 import {NameEncoder} from "../utils/NameEncoder.sol";
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 
+//                                             ENS:E   ENS                                             
+//                                         ENS:ENS:     ENS:EN                                         
+//                                     ENS:ENS:ENS       ENS:ENS:                                      
+//                                 ENS:ENS:ENS:E           ENS:ENS:EN                                  
+//                              ENS:ENS:ENS:ENS             ENS:ENS:ENS:                               
+//                           ENS:ENS:ENS:ENS:                 ENS:ENS:ENS:EN                           
+//                        ENS:ENS:ENS:ENS:EN                    ENS:ENS:ENS:ENS                        
+//                     ENS:ENS:ENS:ENS:ENS                       ENS:ENS:ENS:ENS:EN                    
+//                  ENS:ENS:ENS:ENS:ENS:E                          ENS:ENS:ENS:ENS:ENS                 
+//                ENS:ENS:ENS:ENS:ENS:E                              ENS:ENS:ENS:ENS:ENS:              
+//              ENS:ENS:ENS:ENS:ENS:EN                                ENS:ENS:ENS:ENS:ENS:E            
+//            ENS:ENS:ENS:ENS:ENS:EN                                    ENS:ENS:ENS:ENS:ENS:E          
+//           ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN        
+//           ENS:ENS:ENS:ENS:ENS:                                          ENS:ENS:ENS:ENS:ENS:E       
+//          ENS:ENS:ENS:ENS:ENS:                                            ENS:ENS:ENS:ENS:ENS:E      
+//          ENS:ENS:ENS:ENS:EN                                                ENS:ENS:ENS:ENS:ENS:E    
+//   ENS    ENS:ENS:ENS:ENS:E                                                  ENS:ENS:ENS:ENS:ENS:E   
+//   ENS     ENS:ENS:ENS:EN                                                      ENS:ENS:ENS:ENS:ENS:  
+//  ENS:E    ENS:ENS:ENS:E                                                         ENS:ENS:ENS:ENS:EN  
+// ENS:ENS    ENS:ENS:EN                                                            ENS:ENS:ENS:ENS:EN 
+// ENS:ENS:     ENS:ENS                                                               ENS:ENS:ENS:ENS: 
+// ENS:ENS:E     ENS:                                                                  ENS:ENS:ENS:ENS:
+// ENS:ENS:ENS                                                                           ENS:ENS:ENS:EN
+// ENS:ENS:ENS:                                                                            ENS:ENS:ENS:
+// ENS:ENS:ENS:EN                                                                           ENS:ENS:ENS
+// ENS:ENS:ENS:ENS:                                                                 ENS:     ENS:ENS:EN
+// ENS:ENS:ENS:ENS:E                                                               ENS:ENS     ENS:ENS:
+//  ENS:ENS:ENS:ENS:E                                                             ENS:ENS:E     ENS:EN 
+//  ENS:ENS:ENS:ENS:ENS                                                         ENS:ENS:ENS:     ENS:E 
+//   ENS:ENS:ENS:ENS:ENS:                                                      ENS:ENS:ENS:EN     ENS  
+//    ENS:ENS:ENS:ENS:ENS:                                                   ENS:ENS:ENS:ENS:     ENS  
+//     ENS:ENS:ENS:ENS:ENS:E                                                ENS:ENS:ENS:ENS:EN         
+//      ENS:ENS:ENS:ENS:ENS:EN                                            ENS:ENS:ENS:ENS:ENS:         
+//        ENS:ENS:ENS:ENS:ENS:E                                          ENS:ENS:ENS:ENS:ENS:          
+//         ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN          
+//           ENS:ENS:ENS:ENS:ENS:E                                    ENS:ENS:ENS:ENS:ENS:E            
+//             ENS:ENS:ENS:ENS:ENS:E                                ENS:ENS:ENS:ENS:ENS:EN             
+//               ENS:ENS:ENS:ENS:ENS:                              ENS:ENS:ENS:ENS:ENS:E               
+//                  ENS:ENS:ENS:ENS:ENS                          ENS:ENS:ENS:ENS:ENS:E                 
+//                     ENS:ENS:ENS:ENS:EN                       ENS:ENS:ENS:ENS:ENS                    
+//                        ENS:ENS:ENS:ENS:                    ENS:ENS:ENS:ENS:EN                       
+//                            ENS:ENS:ENS:EN                 ENS:ENS:ENS:ENS:                          
+//                               ENS:ENS:ENS:              ENS:ENS:ENS:ENS                             
+//                                   ENS:ENS:EN           ENS:ENS:ENS:                                 
+//                                      ENS:ENS:E       ENS:ENS:ENS                                    
+//                                         ENS:ENS     ENS:ENS:                                        
+//                                             ENS:   ENS:                                             
+
 /// @title UniversalResolver
 /// @notice The universal entrypoint for ENS resolution.
 contract UniversalResolver is
