@@ -2,6 +2,7 @@
 pragma solidity ^0.8.17;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import {PrefixlessHexUtils} from "../utils/PrefixlessHexUtils.sol";
@@ -72,11 +73,12 @@ import {IUniversalResolver} from "./IUniversalResolver.sol";
 /// @title UniversalResolver
 /// @notice The universal entrypoint for ENS resolution.
 contract UniversalResolver is
+    IUniversalResolver,
     ERC3668Multicallable,
     ERC3668Caller,
     ENSIP10ResolverFinder,
     ERC165,
-    IUniversalResolver
+    Ownable
 {
     /// @notice Batch gateway URLs to use for offchain resolution.
     ///         Gateways should implement IBatchGateway.
@@ -92,6 +94,12 @@ contract UniversalResolver is
         ENS registry_,
         string[] memory urls_
     ) ENSIP10ResolverFinder(registry_) {
+        _urls = urls_;
+    }
+
+    /// @notice Sets the batch gateway URLs.
+    /// @param urls_ The batch gateway URLs.
+    function setUrls(string[] memory urls_) external onlyOwner {
         _urls = urls_;
     }
 

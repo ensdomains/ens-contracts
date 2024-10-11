@@ -505,6 +505,23 @@ async function fixture() {
 }
 
 describe('UniversalResolver', () => {
+  describe('setUrls()', () => {
+    // TODO: should set the URLs
+    it('should set the URLs', async () => {
+      const { universalResolver, accounts } = await loadFixture(fixture)
+
+      await universalResolver.write.setUrls([['http://new-url.local']], {
+        account: accounts[0],
+      })
+    })
+    it('should revert if not owner', async () => {
+      const { universalResolver, accounts } = await loadFixture(fixture)
+
+      await expect(universalResolver)
+        .write('setUrls', [['http://new-url.local']], { account: accounts[1] })
+        .toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+  })
   describe('resolve()', () => {
     it('should resolve a record via legacy methods', async () => {
       const { universalResolver, publicResolver, accounts } = await loadFixture(
