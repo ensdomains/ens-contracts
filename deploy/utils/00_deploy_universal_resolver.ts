@@ -13,19 +13,16 @@ const func: DeployFunction = async function (hre) {
     throw new Error('UniversalResolver: No batch gateway URLs provided')
   }
 
-  await viem.deploy('UniversalResolver2', [
-    registry.address,
-    ['https://universal-offchain-unwrapper-dev.ens-cf.workers.dev'],
-  ])
+  await viem.deploy('UniversalResolver', [registry.address, batchGatewayURLs])
 
-  // if (owner !== undefined && owner.address !== deployer.address) {
-  //   const universalResolver = await viem.getContract('UniversalResolver')
-  //   const hash = await universalResolver.write.transferOwnership([
-  //     owner.address,
-  //   ])
-  //   console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
-  //   await viem.waitForTransactionSuccess(hash)
-  // }
+  if (owner !== undefined && owner.address !== deployer.address) {
+    const universalResolver = await viem.getContract('UniversalResolver')
+    const hash = await universalResolver.write.transferOwnership([
+      owner.address,
+    ])
+    console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
+    await viem.waitForTransactionSuccess(hash)
+  }
 }
 
 func.id = 'universal-resolver'
