@@ -6,17 +6,43 @@ import {ERC3668Utils, OffchainLookup, OffchainLookupData} from "../utils/ERC3668
 
 /// @notice Allows contracts to easily make ERC3668-compatible calls.
 abstract contract ERC3668Caller {
+    // This contract uses callback functions for data manipulation and error handling.
+    // The user-definable callback functions are as follows:
+    // - internalCallbackFunction:
+    //   - Called when the call is successful.
+    //   - Used to get the final result for the call.
+    //   - Can return anything.
+    //   - Signature: `function (bytes calldata response, bytes calldata extraData) external`
+    // - lookupCalldataRewriteFunction:
+    //   - Called when the call reverted with an OffchainLookup.
+    //   - Used to rewrite the calldata for the offchain lookup.
+    //   - Should return the rewritten calldata as bytes.
+    //   - Signature: `function (OffchainLookupData calldata data) external returns (bytes)`
+    // - failureCallbackFunction:
+    //   - Called when the call reverted with an error.
+    //   - Used to get the final result for the call.
+    //   - Can return anything.
+    //   - Signature: `function (bytes calldata response, bytes calldata extraData) external`
+    // - validateLookupResponseFunction:
+    //   - Called when the offchain lookup response is received.
+    //   - Used to validate the response from the offchain lookup.
+    //   - Should not return anything, instead it should revert if the response is invalid.
+    //   - Signature: `function (bytes calldata response) external`
+    // The user-definable callback functions can be encoded with `createUserCallbackFunctions`,
+    // into a single uint128 value. The serialised value can then be passed into `call`.
+    // The callbackFunctions value stored in `extraData` also includes the external callback function.
+
     // Callback functions are encoded as a single uint256 value
     // The first 4 bytes are the internal callback function
-    // The next 4 bytes are the calldata rewrite function
+    // The next 4 bytes are the lookup calldata rewrite function
     // The next 4 bytes are the failure callback function
-    // The next 4 bytes are the validate response function
+    // The next 4 bytes are the validate lookup response function
     // The next 4 bytes are the external callback function
     // The remaining 12 bytes are unused
     uint16 constant INTERNAL_CALLBACK_FUNCTION_OFFSET = 0;
-    uint16 constant CALLDATA_REWRITE_FUNCTION_OFFSET = 32;
+    uint16 constant LOOKUP_CALLDATA_REWRITE_FUNCTION_OFFSET = 32;
     uint16 constant FAILURE_CALLBACK_FUNCTION_OFFSET = 64;
-    uint16 constant VALIDATE_RESPONSE_FUNCTION_OFFSET = 96;
+    uint16 constant VALIDATE_LOOKUP_RESPONSE_FUNCTION_OFFSET = 96;
     uint16 constant EXTERNAL_CALLBACK_FUNCTION_OFFSET = 128;
     uint32 constant FUNCTIONS_MASK = 0xffffffff;
 
@@ -68,15 +94,15 @@ abstract contract ERC3668Caller {
                 lookupData.extraData
             );
 
-            bytes4 calldataRewriteFunction = bytes4(
+            bytes4 lookupCalldataRewriteFunction = bytes4(
                 uint32(
                     (userCallbackFunctions >>
-                        CALLDATA_REWRITE_FUNCTION_OFFSET) & FUNCTIONS_MASK
+                        LOOKUP_CALLDATA_REWRITE_FUNCTION_OFFSET) & FUNCTIONS_MASK
                 )
             );
-            if (calldataRewriteFunction != bytes4(0)) {
+            if (lookupCalldataRewriteFunction != bytes4(0)) {
                 lookupData.callData = abi.decode(
-                    _formatCalldata(calldataRewriteFunction, lookupData),
+                    _formatLookupCalldata(lookupCalldataRewriteFunction, lookupData),
                     (bytes)
                 );
             }
@@ -129,12 +155,12 @@ abstract contract ERC3668Caller {
 
         bytes4 validateResponseFunction = bytes4(
             uint32(
-                (callbackFunctions >> VALIDATE_RESPONSE_FUNCTION_OFFSET) &
+                (callbackFunctions >> VALIDATE_LOOKUP_RESPONSE_FUNCTION_OFFSET) &
                     FUNCTIONS_MASK
             )
         );
         if (validateResponseFunction != bytes4(0))
-            _validateResponse(validateResponseFunction, response);
+            _validateLookupResponse(validateResponseFunction, response);
 
         bytes4 externalCallbackFunction = bytes4(
             uint32(
@@ -158,52 +184,47 @@ abstract contract ERC3668Caller {
     /// @notice Defines the callback functions to be used with `call`.
     /// If only using `internalCallbackFunction`, use `uint32(internalCallbackFunction)` instead of this function.
     /// @param internalCallbackFunction The internal callback function.
-    /// @param calldataRewriteFunction The calldata rewrite function.
+    /// @param lookupCalldataRewriteFunction The lookup calldata rewrite function.
     /// @param failureCallbackFunction The failure callback function.
-    /// @param validateResponseFunction The validate response function.
+    /// @param validateLookupResponseFunction The validate lookup response function.
     /// @return The encoded callback functions.
     function createUserCallbackFunctions(
         bytes4 internalCallbackFunction,
-        bytes4 calldataRewriteFunction,
+        bytes4 lookupCalldataRewriteFunction,
         bytes4 failureCallbackFunction,
-        bytes4 validateResponseFunction
+        bytes4 validateLookupResponseFunction
     ) internal pure returns (uint128) {
         return
-            (uint128(uint32(validateResponseFunction)) <<
-                VALIDATE_RESPONSE_FUNCTION_OFFSET) |
+            (uint128(uint32(validateLookupResponseFunction)) <<
+                VALIDATE_LOOKUP_RESPONSE_FUNCTION_OFFSET) |
             (uint128(uint32(failureCallbackFunction)) <<
                 FAILURE_CALLBACK_FUNCTION_OFFSET) |
-            (uint128(uint32(calldataRewriteFunction)) <<
-                CALLDATA_REWRITE_FUNCTION_OFFSET) |
+            (uint128(uint32(lookupCalldataRewriteFunction)) <<
+                LOOKUP_CALLDATA_REWRITE_FUNCTION_OFFSET) |
             uint128(uint32(internalCallbackFunction));
     }
 
     /// @dev Formats the calldata for the offchain lookup.
-    function _formatCalldata(
-        bytes4 calldataRewriteFunction,
+    function _formatLookupCalldata(
+        bytes4 lookupCalldataRewriteFunction,
         OffchainLookupData memory data
     ) private view returns (bytes memory) {
-        bool success = LowLevelCallUtils.functionStaticCall(
-            address(this),
-            abi.encodeWithSelector(calldataRewriteFunction, data)
+        (bool success, bytes memory result) = address(this).staticcall(
+            abi.encodeWithSelector(lookupCalldataRewriteFunction, data)
         );
 
-        if (!success) LowLevelCallUtils.propagateRevert();
-        return
-            LowLevelCallUtils.readReturnData(
-                0,
-                LowLevelCallUtils.returnDataSize()
-            );
+        if (!success) LowLevelCallUtils.propagateRevert(result);
+        return result;
     }
 
     /// @dev Validates the response from the offchain lookup.
-    function _validateResponse(
-        bytes4 validateResponseFunction,
+    function _validateLookupResponse(
+        bytes4 validateLookupResponseFunction,
         bytes memory response
     ) private view {
         bool success = LowLevelCallUtils.functionStaticCall(
             address(this),
-            abi.encodeWithSelector(validateResponseFunction, response)
+            abi.encodeWithSelector(validateLookupResponseFunction, response)
         );
         if (!success) LowLevelCallUtils.propagateRevert();
         return;

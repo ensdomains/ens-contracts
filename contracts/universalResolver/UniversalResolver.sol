@@ -584,7 +584,7 @@ contract UniversalResolver is
     /// @dev Callback for rewriting the OffchainLookup calldata.
     ///      Rewrites to be compatible with `IBatchGateway.query`.
     /// @notice This function should never be called directly.
-    function _internalCallCalldataRewrite(
+    function _internalCallLookupCalldataRewrite(
         OffchainLookupData memory data
     ) external pure returns (bytes memory) {
         return
@@ -602,7 +602,7 @@ contract UniversalResolver is
     ///      calling the external callback since the external function won't
     ///      understand the error format.
     /// @notice This function should never be called directly.
-    function _internalCallValidateResponse(
+    function _internalCallValidateLookupResponse(
         bytes calldata response
     ) external pure {
         if (bytes4(response) == HttpError.selector) {
@@ -630,9 +630,9 @@ contract UniversalResolver is
             "",
             createUserCallbackFunctions(
                 this._internalCallCallback.selector,
-                this._internalCallCalldataRewrite.selector,
+                this._internalCallLookupCalldataRewrite.selector,
                 bytes4(0),
-                this._internalCallValidateResponse.selector
+                this._internalCallValidateLookupResponse.selector
             )
         );
     }

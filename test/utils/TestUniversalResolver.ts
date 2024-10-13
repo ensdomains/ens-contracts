@@ -70,9 +70,9 @@ type SingleCallExtraData = {
   resolverAddress: Address
   internalCallbackFunction: Hex
   externalCallbackFunction: Hex
-  calldataRewriteFunction: Hex
+  lookupCalldataRewriteFunction: Hex
   failureCallbackFunction: Hex
-  validateResponseFunction: Hex
+  validateLookupResponseFunction: Hex
   internalExtraData: Hex
   externalExtraData: Hex
 }
@@ -81,9 +81,9 @@ const encodeExtraData = ({
   resolverAddress,
   internalCallbackFunction,
   externalCallbackFunction,
-  calldataRewriteFunction,
+  lookupCalldataRewriteFunction,
   failureCallbackFunction,
-  validateResponseFunction,
+  validateLookupResponseFunction,
   internalExtraData,
   externalExtraData,
 }: SingleCallExtraData) =>
@@ -101,9 +101,9 @@ const encodeExtraData = ({
           ['bytes4', 'bytes4', 'bytes4', 'bytes4', 'bytes4'],
           [
             externalCallbackFunction,
-            validateResponseFunction,
+            validateLookupResponseFunction,
             failureCallbackFunction,
-            calldataRewriteFunction,
+            lookupCalldataRewriteFunction,
             internalCallbackFunction,
           ],
         ),
@@ -188,11 +188,11 @@ const baseResolveMulticallExtraData = {
   externalCallbackFunction: toFunctionSelector(
     'function resolveCallback(bytes,bytes)',
   ),
-  calldataRewriteFunction: emptyBytes4,
+  lookupCalldataRewriteFunction: emptyBytes4,
   failureCallbackFunction: toFunctionSelector(
     'function _resolveMulticallResolveCallback(bytes,bytes)',
   ),
-  validateResponseFunction: emptyBytes4,
+  validateLookupResponseFunction: emptyBytes4,
 } as const
 
 const baseInternalMulticallExtraData = {
@@ -202,21 +202,21 @@ const baseInternalMulticallExtraData = {
   externalCallbackFunction: toFunctionSelector(
     'function multicallCallback(bytes,bytes)',
   ),
-  calldataRewriteFunction: emptyBytes4,
+  lookupCalldataRewriteFunction: emptyBytes4,
   failureCallbackFunction: emptyBytes4,
-  validateResponseFunction: emptyBytes4,
+  validateLookupResponseFunction: emptyBytes4,
 } as const
 
 const baseInternalCallExtraData = {
   internalCallbackFunction: toFunctionSelector(
     'function _internalCallCallback(bytes,bytes)',
   ),
-  calldataRewriteFunction: toFunctionSelector(
-    'function _internalCallCalldataRewrite((address,string[],bytes,bytes4,bytes))',
+  lookupCalldataRewriteFunction: toFunctionSelector(
+    'function _internalCallLookupCalldataRewrite((address,string[],bytes,bytes4,bytes))',
   ),
   failureCallbackFunction: emptyBytes4,
-  validateResponseFunction: toFunctionSelector(
-    'function _internalCallValidateResponse(bytes)',
+  validateLookupResponseFunction: toFunctionSelector(
+    'function _internalCallValidateLookupResponse(bytes)',
   ),
   internalExtraData: '0x',
 } as const
@@ -2574,9 +2574,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2640,9 +2640,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[3].address,
           coinType: 60n,
@@ -2750,9 +2750,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2822,9 +2822,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2864,11 +2864,11 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2942,9 +2942,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2988,11 +2988,11 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3082,9 +3082,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3148,11 +3148,11 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3227,11 +3227,11 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3298,11 +3298,11 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        calldataRewriteFunction: emptyBytes4,
+        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateResponseFunction: emptyBytes4,
+        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: solAddressHex,
           coinType: BigInt(solCoinType),
