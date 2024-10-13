@@ -45,7 +45,7 @@ contract TestBytesArrayValidator {
         require(isValid, "Empty array should be valid");
     }
 
-    function largeEmptyBytesArray() public pure {
+    function testLargeEmptyBytesArray() public pure {
         bytes[] memory largeArray = new bytes[](1000);
         bytes memory encodedLargeArray = abi.encode(largeArray);
 
@@ -75,5 +75,28 @@ contract TestBytesArrayValidator {
 
         bool isValid = BytesArrayValidator.isValidBytesArray(invalidOffsets);
         require(!isValid, "Array with invalid offsets should be invalid");
+    }
+
+    function test64ByteArrayOffset() public pure {
+        bytes memory data = new bytes(320);
+        
+        assembly {
+            // Set array offset
+            mstore(add(data, 32), 64)
+            // Set array length
+            mstore(add(data, 96), 2)
+            // Set offset elements
+            mstore(add(data, 128), 64)
+            mstore(add(data, 160), 128)
+            // Encode first element
+            mstore(add(data, 192), 5)
+            mstore(add(data, 224), shl(216, 0x48656C6C6F)) // "Hello"
+            // Encode second element
+            mstore(add(data, 256), 5)
+            mstore(add(data, 288), shl(216, 0x576F726C64)) // "World"
+        }
+
+        bool isValid = BytesArrayValidator.isValidBytesArray(data);
+        require(isValid, "Array with 64 byte offset should be valid");
     }
 }

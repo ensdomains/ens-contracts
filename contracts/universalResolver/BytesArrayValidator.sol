@@ -10,15 +10,17 @@ library BytesArrayValidator {
         // The data must be at least 32 bytes long to contain the array length
         if (data.length < 32) return false;
 
+        uint256 arrayOffset;
         uint256 arrayLength;
         assembly {
-            arrayLength := mload(add(data, 64))
+            arrayOffset := mload(add(data, 32))
+            arrayLength := mload(add(data, add(arrayOffset, 32)))
         }
 
         // Limit length to a reasonable size to prevent excessive computation
         if (arrayLength > 1e6) return false;
 
-        uint256 offsetsStart = 64;
+        uint256 offsetsStart = arrayOffset + 32;
         uint256 offsetsEnd = offsetsStart + arrayLength * 32;
 
         if (arrayLength > 0) {
