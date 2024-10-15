@@ -1,3 +1,4 @@
+import type { DeployContractConfig } from '@nomicfoundation/hardhat-viem/types'
 import { extendEnvironment } from 'hardhat/config'
 import { lazyObject } from 'hardhat/plugins'
 import 'hardhat/types/config.js'
@@ -12,8 +13,8 @@ function getParameters<TConfig extends {} | undefined>(
   config: TConfig,
 ) {
   const defaultParameters = isDevelopmentNetwork(chain.id)
-    ? { pollingInterval: 50, cacheTime: 0 }
-    : {}
+    ? { pollingInterval: 50, cacheTime: 0, ccipRead: false }
+    : { ccipRead: false }
 
   const transportParameters = isDevelopmentNetwork(chain.id)
     ? { retryCount: 0 }
@@ -29,6 +30,7 @@ extendEnvironment((hre) => {
   const { provider } = hre.network
   const prevViem = hre.viem
   const prevGetPublicClient = prevViem.getPublicClient
+  const prevDeployContract = prevViem.deployContract
   hre.viem = lazyObject(() => {
     prevViem.getPublicClient = async (
       publicClientConfig?: Partial<PublicClientConfig>,
@@ -42,11 +44,26 @@ extendEnvironment((hre) => {
       const publicClient = viem.createPublicClient({
         chain,
         transport: viem.custom(provider, transportParameters),
-        ccipRead: false,
         ...clientParameters,
       })
       return publicClient
     }
+    prevViem.deployContract = (async (
+      contractName: string,
+      constructorArgs: any[] = [],
+      config: DeployContractConfig = {},
+    ) => {
+      if (config.client?.public)
+        return prevDeployContract(contractName, constructorArgs, config)
+      const publicClient = await prevViem.getPublicClient()
+      return prevDeployContract(contractName, constructorArgs, {
+        ...config,
+        client: {
+          ...config.client,
+          public: publicClient,
+        },
+      })
+    }) as typeof prevViem.deployContract
     return prevViem
   })
 })
