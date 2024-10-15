@@ -87,6 +87,15 @@ const config = {
   solidity: {
     compilers: [
       {
+        version: '0.8.26',
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 1_000_000,
+          },
+        },
+      },
+      {
         version: '0.8.17',
         settings: {
           optimizer: {

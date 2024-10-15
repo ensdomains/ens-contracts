@@ -9,6 +9,7 @@ import {
   encodeFunctionResult,
   encodePacked,
   getAddress,
+  getContract,
   hexToBigInt,
   labelhash,
   namehash,
@@ -19,10 +20,12 @@ import {
   toHex,
   zeroAddress,
   zeroHash,
+  type Abi,
   type Address,
   type Hex,
   type ReadContractReturnType,
 } from 'viem'
+import { mnemonicToAccount } from 'viem/accounts'
 import { optimism } from 'viem/chains'
 import { encodedRealAnchors } from '../fixtures/anchors.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -70,9 +73,7 @@ type SingleCallExtraData = {
   resolverAddress: Address
   internalCallbackFunction: Hex
   externalCallbackFunction: Hex
-  lookupCalldataRewriteFunction: Hex
   failureCallbackFunction: Hex
-  validateLookupResponseFunction: Hex
   internalExtraData: Hex
   externalExtraData: Hex
 }
@@ -81,30 +82,25 @@ const encodeExtraData = ({
   resolverAddress,
   internalCallbackFunction,
   externalCallbackFunction,
-  lookupCalldataRewriteFunction,
   failureCallbackFunction,
-  validateLookupResponseFunction,
   internalExtraData,
   externalExtraData,
 }: SingleCallExtraData) =>
   encodeAbiParameters(
     [
-      { name: 'target', type: 'address' },
-      { name: 'callbackFunctions', type: 'uint256' },
+      { name: 'callbackFunctionsAndTarget', type: 'uint256' },
       { name: 'internalExtraData', type: 'bytes' },
       { name: 'externalExtraData', type: 'bytes' },
     ],
     [
-      resolverAddress,
       hexToBigInt(
         encodePacked(
-          ['bytes4', 'bytes4', 'bytes4', 'bytes4', 'bytes4'],
+          ['bytes4', 'bytes4', 'bytes4', 'address'],
           [
             externalCallbackFunction,
-            validateLookupResponseFunction,
             failureCallbackFunction,
-            lookupCalldataRewriteFunction,
             internalCallbackFunction,
+            resolverAddress,
           ],
         ),
       ),
@@ -188,11 +184,9 @@ const baseResolveMulticallExtraData = {
   externalCallbackFunction: toFunctionSelector(
     'function resolveCallback(bytes,bytes)',
   ),
-  lookupCalldataRewriteFunction: emptyBytes4,
   failureCallbackFunction: toFunctionSelector(
     'function _resolveMulticallResolveCallback(bytes,bytes)',
   ),
-  validateLookupResponseFunction: emptyBytes4,
 } as const
 
 const baseInternalMulticallExtraData = {
@@ -202,22 +196,14 @@ const baseInternalMulticallExtraData = {
   externalCallbackFunction: toFunctionSelector(
     'function multicallCallback(bytes,bytes)',
   ),
-  lookupCalldataRewriteFunction: emptyBytes4,
   failureCallbackFunction: emptyBytes4,
-  validateLookupResponseFunction: emptyBytes4,
 } as const
 
 const baseInternalCallExtraData = {
   internalCallbackFunction: toFunctionSelector(
     'function _internalCallCallback(bytes,bytes)',
   ),
-  lookupCalldataRewriteFunction: toFunctionSelector(
-    'function _internalCallLookupCalldataRewrite((address,string[],bytes,bytes4,bytes))',
-  ),
   failureCallbackFunction: emptyBytes4,
-  validateLookupResponseFunction: toFunctionSelector(
-    'function _internalCallValidateLookupResponse(bytes)',
-  ),
   internalExtraData: '0x',
 } as const
 
@@ -229,6 +215,56 @@ const solCoinType = 501
 const solHexCoinType = toHex(toBytes(solCoinType)).slice(2)
 const solAddressHex =
   '0x18f9d8d877393bbbe8d697a8a2e52879cc7e84f467656d1cce6bab5a8d2637ec'
+
+let _currentTest: string = ''
+const gasMap: Record<string, bigint[]> = {}
+
+let getPublicClient = hre.viem.getPublicClient
+if (process.env.GAS_REPORT) {
+  getPublicClient = async () => {
+    const localAccount = mnemonicToAccount(
+      'test test test test test test test test test test test junk',
+    )
+    const publicClient = await hre.viem.getPublicClient()
+    const originalReadContract = publicClient.readContract
+    publicClient.readContract = async (parameters) => {
+      if (process.env.GAS_REPORT) {
+        const serializedTransaction = await localAccount.signTransaction({
+          to: parameters.address,
+          data: encodeFunctionData({
+            abi: parameters.abi as Abi,
+            functionName: parameters.functionName as string,
+            args: parameters.args as readonly unknown[],
+          }),
+          gas: 10000000n,
+          gasPrice: await publicClient.getGasPrice(),
+          nonce: await publicClient.getTransactionCount({
+            address: localAccount.address,
+          }),
+        })
+        await publicClient
+          .sendRawTransaction({ serializedTransaction })
+          .catch(() => {})
+        const latestBlock = await publicClient.getBlock()
+        const receipt = await publicClient.getTransactionReceipt({
+          hash: latestBlock.transactions[0],
+        })
+        gasMap[_currentTest].push(receipt!.gasUsed)
+      }
+      return originalReadContract(parameters)
+    }
+    return publicClient
+  }
+
+  beforeEach(function () {
+    _currentTest = this.currentTest?.fullTitle() ?? ''
+    gasMap[_currentTest] = []
+  })
+
+  after(() => {
+    console.log(gasMap)
+  })
+}
 
 async function fixture() {
   const accounts = await hre.viem
@@ -257,10 +293,6 @@ async function fixture() {
     nameWrapper.address,
     zeroAddress,
     zeroAddress,
-  ])
-  const universalResolver = await hre.viem.deployContract('UniversalResolver', [
-    ensRegistry.address,
-    ['http://universal-offchain-resolver.local'],
   ])
   const offchainResolver = await hre.viem.deployContract(
     'DummyOffchainResolver',
@@ -485,6 +517,17 @@ async function fixture() {
     solAddressHex,
   ])
 
+  const publicClient = await getPublicClient()
+  const universalResolverDeployed = await hre.viem.deployContract(
+    'UniversalResolver',
+    [ensRegistry.address, ['http://universal-offchain-resolver.local']],
+  )
+  const universalResolver = getContract({
+    abi: universalResolverDeployed.abi,
+    address: universalResolverDeployed.address,
+    client: publicClient,
+  })
+
   return {
     ensRegistry,
     nameWrapper,
@@ -501,6 +544,7 @@ async function fixture() {
     accounts,
     batchGatewayAbi,
     root,
+    publicClient,
   }
 }
 
@@ -536,14 +580,10 @@ describe('UniversalResolver', () => {
         args,
       })
 
-      const [result] = (await universalResolver.read.resolve([
+      const [result] = await universalResolver.read.resolve([
         dnsEncodeName('test.eth'),
         data,
-      ])) as ReadContractReturnType<
-        (typeof universalResolver)['abi'],
-        'resolve',
-        [Hex, Hex]
-      >
+      ])
 
       const decodedAddress = decodeFunctionResult<
         (typeof publicResolver)['abi'],
@@ -1311,8 +1351,12 @@ describe('UniversalResolver', () => {
 
   describe('_resolveMulticallResolveCallback()', () => {
     it('should resolve a single record (single internally encoded call)', async () => {
-      const { universalResolver, publicResolver, offchainResolver } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const addrArgs = [namehash('offchain.test.eth')] as [Hex]
       const callData = encodeFunctionData({
@@ -1350,7 +1394,6 @@ describe('UniversalResolver', () => {
         externalExtraData: multicallCalldata,
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [encodedAddrResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -1376,8 +1419,12 @@ describe('UniversalResolver', () => {
       expect(resolverAddress).toEqualAddress(offchainResolver.address)
     })
     it('should resolve multiple records', async () => {
-      const { universalResolver, publicResolver, offchainResolver } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const addrArgs = [namehash('offchain.test.eth')] as [Hex]
       const addrCalldata = encodeFunctionData({
@@ -1425,7 +1472,6 @@ describe('UniversalResolver', () => {
         externalExtraData: multicallCalldata,
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -1679,6 +1725,7 @@ describe('UniversalResolver', () => {
         publicResolver,
         addrOffchainResolver,
         accounts,
+        publicClient,
       } = await loadFixture(fixture)
 
       const fnRevertData = encodeFunctionResult({
@@ -1722,7 +1769,6 @@ describe('UniversalResolver', () => {
         result: [[fnRevertData]] as unknown as [Hex],
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [encodedAddrResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -1747,8 +1793,13 @@ describe('UniversalResolver', () => {
       expect(decodedAddrResult).toEqualAddress(accounts[0].address)
     })
     it('should resolve a single record (single internally encoded call) - extended resolver', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        accounts,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const fnRevertData = encodeFunctionResult({
         abi: publicResolver.abi,
@@ -1791,7 +1842,6 @@ describe('UniversalResolver', () => {
         result: [[fnRevertData]] as unknown as [Hex],
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [encodedAddrResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -1821,6 +1871,7 @@ describe('UniversalResolver', () => {
         publicResolver,
         addrOffchainResolver,
         accounts,
+        publicClient,
       } = await loadFixture(fixture)
 
       const response1 = encodeFunctionResult({
@@ -1882,7 +1933,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -1923,8 +1973,13 @@ describe('UniversalResolver', () => {
       expect(decodedAddrResult2).toEqualAddress(accounts[1].address)
     })
     it('should resolve multiple records - extended resolver', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        accounts,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const addrArgs = [namehash('offchain.test.eth')] as [Hex]
       const addrCalldata = encodeFunctionData({
@@ -1991,7 +2046,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -2038,6 +2092,7 @@ describe('UniversalResolver', () => {
         publicResolver,
         addrOffchainResolver,
         accounts,
+        publicClient,
       } = await loadFixture(fixture)
 
       const addrArgs = [namehash('addr-offchain.test.eth')] as [Hex]
@@ -2097,7 +2152,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -2288,8 +2342,13 @@ describe('UniversalResolver', () => {
         .withArgs(404, 'Not Found')
     })
     it('should not revert if there is an error in a call', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        accounts,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const addrArgs = [namehash('offchain.test.eth')] as [Hex]
       const addrCalldata = encodeFunctionData({
@@ -2358,7 +2417,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -2396,6 +2454,7 @@ describe('UniversalResolver', () => {
         publicResolver,
         addrOffchainResolver,
         accounts,
+        publicClient,
       } = await loadFixture(fixture)
 
       const addrArgs = [namehash('addr-offchain.test.eth')] as [Hex]
@@ -2455,7 +2514,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [multicallResult, resolverAddress] =
         await publicClient.readContract({
           abi: parseAbi([
@@ -2574,9 +2632,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2640,9 +2696,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[3].address,
           coinType: 60n,
@@ -2717,8 +2771,13 @@ describe('UniversalResolver', () => {
 
   describe('_forwardLookupReverseCallback()', () => {
     it('should finish remaining resolution steps based on offchain response', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        accounts,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const callData = encodeFunctionData({
         abi: publicResolver.abi,
@@ -2750,9 +2809,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2772,7 +2829,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [name, resolver, reverseResolver] = await publicClient.readContract(
         {
           abi: parseAbi([
@@ -2822,9 +2878,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2864,11 +2918,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2942,9 +2994,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -2988,11 +3038,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3082,9 +3130,7 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: emptyBytes4,
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeReverseWithGatewaysExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3113,8 +3159,13 @@ describe('UniversalResolver', () => {
 
   describe('_processLookupReverseCallback()', () => {
     it('should finish resolution based on offchain response', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
-        await loadFixture(fixture)
+      const {
+        universalResolver,
+        publicResolver,
+        offchainResolver,
+        accounts,
+        publicClient,
+      } = await loadFixture(fixture)
 
       const responseCalldata = encodeFunctionData({
         abi: publicResolver.abi,
@@ -3148,11 +3199,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3175,7 +3224,6 @@ describe('UniversalResolver', () => {
         }),
       })
 
-      const publicClient = await hre.viem.getPublicClient()
       const [name, resolver, reverseResolver] = await publicClient.readContract(
         {
           address: universalResolver.address,
@@ -3227,11 +3275,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: accounts[2].address,
           coinType: 60n,
@@ -3260,7 +3306,7 @@ describe('UniversalResolver', () => {
         .withArgs(accounts[3].address)
     })
     it('should revert with mismatching non-evm chain address', async () => {
-      const { universalResolver, publicResolver, offchainResolver, accounts } =
+      const { universalResolver, publicResolver, offchainResolver } =
         await loadFixture(fixture)
 
       const responseCalldata = encodeFunctionData({
@@ -3298,11 +3344,9 @@ describe('UniversalResolver', () => {
         externalCallbackFunction: toFunctionSelector(
           'function callback(bytes,bytes)',
         ),
-        lookupCalldataRewriteFunction: emptyBytes4,
         failureCallbackFunction: toFunctionSelector(
           'function _attemptAddrResolverReverseCallback(bytes,bytes)',
         ),
-        validateLookupResponseFunction: emptyBytes4,
         internalExtraData: encodeForwardLookupReverseCallbackExtraData({
           lookupAddress: solAddressHex,
           coinType: BigInt(solCoinType),

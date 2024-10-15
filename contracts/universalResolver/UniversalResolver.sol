@@ -22,53 +22,53 @@ import {BytesArrayValidator} from "./BytesArrayValidator.sol";
 import {NameEncoder} from "../utils/NameEncoder.sol";
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 
-//                                             ENS:E   ENS                                             
-//                                         ENS:ENS:     ENS:EN                                         
-//                                     ENS:ENS:ENS       ENS:ENS:                                      
-//                                 ENS:ENS:ENS:E           ENS:ENS:EN                                  
-//                              ENS:ENS:ENS:ENS             ENS:ENS:ENS:                               
-//                           ENS:ENS:ENS:ENS:                 ENS:ENS:ENS:EN                           
-//                        ENS:ENS:ENS:ENS:EN                    ENS:ENS:ENS:ENS                        
-//                     ENS:ENS:ENS:ENS:ENS                       ENS:ENS:ENS:ENS:EN                    
-//                  ENS:ENS:ENS:ENS:ENS:E                          ENS:ENS:ENS:ENS:ENS                 
-//                ENS:ENS:ENS:ENS:ENS:E                              ENS:ENS:ENS:ENS:ENS:              
-//              ENS:ENS:ENS:ENS:ENS:EN                                ENS:ENS:ENS:ENS:ENS:E            
-//            ENS:ENS:ENS:ENS:ENS:EN                                    ENS:ENS:ENS:ENS:ENS:E          
-//           ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN        
-//           ENS:ENS:ENS:ENS:ENS:                                          ENS:ENS:ENS:ENS:ENS:E       
-//          ENS:ENS:ENS:ENS:ENS:                                            ENS:ENS:ENS:ENS:ENS:E      
-//          ENS:ENS:ENS:ENS:EN                                                ENS:ENS:ENS:ENS:ENS:E    
-//   ENS    ENS:ENS:ENS:ENS:E                                                  ENS:ENS:ENS:ENS:ENS:E   
-//   ENS     ENS:ENS:ENS:EN                                                      ENS:ENS:ENS:ENS:ENS:  
-//  ENS:E    ENS:ENS:ENS:E                                                         ENS:ENS:ENS:ENS:EN  
-// ENS:ENS    ENS:ENS:EN                                                            ENS:ENS:ENS:ENS:EN 
-// ENS:ENS:     ENS:ENS                                                               ENS:ENS:ENS:ENS: 
+//                                             ENS:E   ENS
+//                                         ENS:ENS:     ENS:EN
+//                                     ENS:ENS:ENS       ENS:ENS:
+//                                 ENS:ENS:ENS:E           ENS:ENS:EN
+//                              ENS:ENS:ENS:ENS             ENS:ENS:ENS:
+//                           ENS:ENS:ENS:ENS:                 ENS:ENS:ENS:EN
+//                        ENS:ENS:ENS:ENS:EN                    ENS:ENS:ENS:ENS
+//                     ENS:ENS:ENS:ENS:ENS                       ENS:ENS:ENS:ENS:EN
+//                  ENS:ENS:ENS:ENS:ENS:E                          ENS:ENS:ENS:ENS:ENS
+//                ENS:ENS:ENS:ENS:ENS:E                              ENS:ENS:ENS:ENS:ENS:
+//              ENS:ENS:ENS:ENS:ENS:EN                                ENS:ENS:ENS:ENS:ENS:E
+//            ENS:ENS:ENS:ENS:ENS:EN                                    ENS:ENS:ENS:ENS:ENS:E
+//           ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN
+//           ENS:ENS:ENS:ENS:ENS:                                          ENS:ENS:ENS:ENS:ENS:E
+//          ENS:ENS:ENS:ENS:ENS:                                            ENS:ENS:ENS:ENS:ENS:E
+//          ENS:ENS:ENS:ENS:EN                                                ENS:ENS:ENS:ENS:ENS:E
+//   ENS    ENS:ENS:ENS:ENS:E                                                  ENS:ENS:ENS:ENS:ENS:E
+//   ENS     ENS:ENS:ENS:EN                                                      ENS:ENS:ENS:ENS:ENS:
+//  ENS:E    ENS:ENS:ENS:E                                                         ENS:ENS:ENS:ENS:EN
+// ENS:ENS    ENS:ENS:EN                                                            ENS:ENS:ENS:ENS:EN
+// ENS:ENS:     ENS:ENS                                                               ENS:ENS:ENS:ENS:
 // ENS:ENS:E     ENS:                                                                  ENS:ENS:ENS:ENS:
 // ENS:ENS:ENS                                                                           ENS:ENS:ENS:EN
 // ENS:ENS:ENS:                                                                            ENS:ENS:ENS:
 // ENS:ENS:ENS:EN                                                                           ENS:ENS:ENS
 // ENS:ENS:ENS:ENS:                                                                 ENS:     ENS:ENS:EN
 // ENS:ENS:ENS:ENS:E                                                               ENS:ENS     ENS:ENS:
-//  ENS:ENS:ENS:ENS:E                                                             ENS:ENS:E     ENS:EN 
-//  ENS:ENS:ENS:ENS:ENS                                                         ENS:ENS:ENS:     ENS:E 
-//   ENS:ENS:ENS:ENS:ENS:                                                      ENS:ENS:ENS:EN     ENS  
-//    ENS:ENS:ENS:ENS:ENS:                                                   ENS:ENS:ENS:ENS:     ENS  
-//     ENS:ENS:ENS:ENS:ENS:E                                                ENS:ENS:ENS:ENS:EN         
-//      ENS:ENS:ENS:ENS:ENS:EN                                            ENS:ENS:ENS:ENS:ENS:         
-//        ENS:ENS:ENS:ENS:ENS:E                                          ENS:ENS:ENS:ENS:ENS:          
-//         ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN          
-//           ENS:ENS:ENS:ENS:ENS:E                                    ENS:ENS:ENS:ENS:ENS:E            
-//             ENS:ENS:ENS:ENS:ENS:E                                ENS:ENS:ENS:ENS:ENS:EN             
-//               ENS:ENS:ENS:ENS:ENS:                              ENS:ENS:ENS:ENS:ENS:E               
-//                  ENS:ENS:ENS:ENS:ENS                          ENS:ENS:ENS:ENS:ENS:E                 
-//                     ENS:ENS:ENS:ENS:EN                       ENS:ENS:ENS:ENS:ENS                    
-//                        ENS:ENS:ENS:ENS:                    ENS:ENS:ENS:ENS:EN                       
-//                            ENS:ENS:ENS:EN                 ENS:ENS:ENS:ENS:                          
-//                               ENS:ENS:ENS:              ENS:ENS:ENS:ENS                             
-//                                   ENS:ENS:EN           ENS:ENS:ENS:                                 
-//                                      ENS:ENS:E       ENS:ENS:ENS                                    
-//                                         ENS:ENS     ENS:ENS:                                        
-//                                             ENS:   ENS:                                             
+//  ENS:ENS:ENS:ENS:E                                                             ENS:ENS:E     ENS:EN
+//  ENS:ENS:ENS:ENS:ENS                                                         ENS:ENS:ENS:     ENS:E
+//   ENS:ENS:ENS:ENS:ENS:                                                      ENS:ENS:ENS:EN     ENS
+//    ENS:ENS:ENS:ENS:ENS:                                                   ENS:ENS:ENS:ENS:     ENS
+//     ENS:ENS:ENS:ENS:ENS:E                                                ENS:ENS:ENS:ENS:EN
+//      ENS:ENS:ENS:ENS:ENS:EN                                            ENS:ENS:ENS:ENS:ENS:
+//        ENS:ENS:ENS:ENS:ENS:E                                          ENS:ENS:ENS:ENS:ENS:
+//         ENS:ENS:ENS:ENS:ENS:EN                                      ENS:ENS:ENS:ENS:ENS:EN
+//           ENS:ENS:ENS:ENS:ENS:E                                    ENS:ENS:ENS:ENS:ENS:E
+//             ENS:ENS:ENS:ENS:ENS:E                                ENS:ENS:ENS:ENS:ENS:EN
+//               ENS:ENS:ENS:ENS:ENS:                              ENS:ENS:ENS:ENS:ENS:E
+//                  ENS:ENS:ENS:ENS:ENS                          ENS:ENS:ENS:ENS:ENS:E
+//                     ENS:ENS:ENS:ENS:EN                       ENS:ENS:ENS:ENS:ENS
+//                        ENS:ENS:ENS:ENS:                    ENS:ENS:ENS:ENS:EN
+//                            ENS:ENS:ENS:EN                 ENS:ENS:ENS:ENS:
+//                               ENS:ENS:ENS:              ENS:ENS:ENS:ENS
+//                                   ENS:ENS:EN           ENS:ENS:ENS:
+//                                      ENS:ENS:E       ENS:ENS:ENS
+//                                         ENS:ENS     ENS:ENS:
+//                                             ENS:   ENS:
 
 /// @title UniversalResolver
 /// @notice The universal entrypoint for ENS resolution.
@@ -205,11 +205,17 @@ contract UniversalResolver is
         bytes memory lookupAddress,
         uint256 coinType,
         string[] memory gateways
-    ) public view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
-        (
-            bytes memory reverseName,
-            bytes32 reverseNamehash
-        ) = NameEncoder.dnsEncodeName(_createReverseNode(lookupAddress, coinType));
+    )
+        public
+        view
+        returns (
+            string memory /* name */,
+            address /* resolver */,
+            address /* reverseResolver */
+        )
+    {
+        (bytes memory reverseName, bytes32 reverseNamehash) = NameEncoder
+            .dnsEncodeName(_createReverseNode(lookupAddress, coinType));
         bytes memory nameCall = abi.encodeWithSelector(
             INameResolver.name.selector,
             reverseNamehash
@@ -226,7 +232,8 @@ contract UniversalResolver is
             0,
             encodedCall,
             abi.encode(lookupAddress, coinType, gateways),
-            uint32(this._forwardLookupReverseCallback.selector)
+            this._forwardLookupReverseCallback.selector,
+            bytes4(0)
         );
     }
 
@@ -243,7 +250,10 @@ contract UniversalResolver is
             abi.encodeWithSelector(
                 IExtendedResolver.resolve.selector,
                 name,
-                abi.encodeWithSelector(IMulticallGateway.multicall.selector, calls)
+                abi.encodeWithSelector(
+                    IMulticallGateway.multicall.selector,
+                    calls
+                )
             );
     }
 
@@ -255,7 +265,11 @@ contract UniversalResolver is
         address resolver,
         string[] memory gateways,
         bool isSingleInternallyEncodedCall
-    ) internal view returns (bytes memory /* result */, address /* resolver */) {
+    )
+        internal
+        view
+        returns (bytes memory /* result */, address /* resolver */)
+    {
         call(
             resolver,
             0,
@@ -267,14 +281,10 @@ contract UniversalResolver is
                 gateways,
                 isSingleInternallyEncodedCall
             ),
-            createUserCallbackFunctions(
-                this._resolveMulticallResolveCallback.selector,
-                bytes4(0),
-                // setting this allows a callback to _resolveMulticallResolveCallback even if the call fails
-                // meaning that the data in _resolveMulticallResolveCallback can potentially be invalid/error data
-                this._resolveMulticallResolveCallback.selector,
-                bytes4(0)
-            )
+            this._resolveMulticallResolveCallback.selector,
+            // setting this allows a callback to _resolveMulticallResolveCallback even if the call fails
+            // meaning that the data in _resolveMulticallResolveCallback can potentially be invalid/error data
+            this._resolveMulticallResolveCallback.selector
         );
     }
 
@@ -369,7 +379,11 @@ contract UniversalResolver is
         string[] memory gateways,
         bool isSingleInternallyEncodedCall,
         bool isExtendedResolver
-    ) internal view returns (bytes memory /* result */, address /* resolver */) {
+    )
+        internal
+        view
+        returns (bytes memory /* result */, address /* resolver */)
+    {
         call(
             address(this),
             0,
@@ -385,7 +399,8 @@ contract UniversalResolver is
                 isSingleInternallyEncodedCall,
                 isExtendedResolver
             ),
-            uint32(this._internalMulticallResolveCallback.selector)
+            this._internalMulticallResolveCallback.selector,
+            bytes4(0)
         );
     }
 
@@ -394,7 +409,11 @@ contract UniversalResolver is
     function _internalMulticallResolveCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (bytes memory /* result */, address /* resolver */) {
+    )
+        external
+        pure
+        returns (bytes memory /* result */, address /* resolver */)
+    {
         (
             address resolver,
             bool isSingleInternallyEncodedCall,
@@ -431,7 +450,15 @@ contract UniversalResolver is
     function _forwardLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
+    )
+        external
+        view
+        returns (
+            string memory /* name */,
+            address /* resolver */,
+            address /* reverseResolver */
+        )
+    {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -442,7 +469,8 @@ contract UniversalResolver is
             (bytes, address)
         );
         string memory resolvedName = abi.decode(result, (string));
-        (bytes memory encodedName, bytes32 namehash) = NameEncoder.dnsEncodeName(resolvedName);
+        (bytes memory encodedName, bytes32 namehash) = NameEncoder
+            .dnsEncodeName(resolvedName);
         bytes memory addrCall = abi.encodeWithSelector(
             IAddressResolver.addr.selector,
             namehash,
@@ -453,15 +481,6 @@ contract UniversalResolver is
             encodedName,
             addrCall,
             gateways
-        );
-        uint128 userCallbackFunctions = createUserCallbackFunctions(
-            this._processLookupReverseCallback.selector,
-            bytes4(0),
-            // for ETH coinType, fallback to `addr(bytes32)` on failure
-            coinType == 60
-                ? this._attemptAddrResolverReverseCallback.selector
-                : bytes4(0),
-            bytes4(0)
         );
         call(
             address(this),
@@ -475,7 +494,11 @@ contract UniversalResolver is
                 reverseResolver,
                 false // isAddrCall (i.e. `addr(bytes32)`)
             ),
-            userCallbackFunctions
+            this._processLookupReverseCallback.selector,
+            // for ETH coinType, fallback to `addr(bytes32)` on failure
+            coinType == 60
+                ? this._attemptAddrResolverReverseCallback.selector
+                : bytes4(0)
         );
     }
 
@@ -485,7 +508,15 @@ contract UniversalResolver is
     function _attemptAddrResolverReverseCallback(
         bytes calldata /* response */,
         bytes calldata extraData
-    ) external view returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
+    )
+        external
+        view
+        returns (
+            string memory /* name */,
+            address /* resolver */,
+            address /* reverseResolver */
+        )
+    {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -497,7 +528,8 @@ contract UniversalResolver is
                 extraData,
                 (bytes, uint256, string[], string, address, bool)
             );
-        (bytes memory encodedName, bytes32 namehash) = NameEncoder.dnsEncodeName(resolvedName);
+        (bytes memory encodedName, bytes32 namehash) = NameEncoder
+            .dnsEncodeName(resolvedName);
         bytes memory addrCall = abi.encodeWithSelector(
             IAddrResolver.addr.selector,
             namehash
@@ -520,7 +552,8 @@ contract UniversalResolver is
                 reverseResolver,
                 true // isAddrCall (i.e. `addr(bytes32)`)
             ),
-            uint32(this._processLookupReverseCallback.selector)
+            this._processLookupReverseCallback.selector,
+            bytes4(0)
         );
     }
 
@@ -529,7 +562,15 @@ contract UniversalResolver is
     function _processLookupReverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external pure returns (string memory /* name */, address /* resolver */, address /* reverseResolver */) {
+    )
+        external
+        pure
+        returns (
+            string memory /* name */,
+            address /* resolver */,
+            address /* reverseResolver */
+        )
+    {
         (
             bytes memory lookupAddress,
             uint256 coinType,
@@ -569,6 +610,36 @@ contract UniversalResolver is
                             INTERNAL CALL
     //////////////////////////////////////////////////////////////*/
 
+    function validateLookupResponse(
+        bytes calldata response,
+        bytes4 internalCallbackFunction
+    ) internal view override {
+        if (internalCallbackFunction != this._internalCallCallback.selector)
+            return;
+        if (bytes4(response) == HttpError.selector) {
+            (uint16 status, string memory message) = abi.decode(
+                response[4:],
+                (uint16, string)
+            );
+            revert HttpError(status, message);
+        }
+    }
+
+    function lookupCalldataRewrite(
+        OffchainLookupData memory lookupData,
+        bytes4 internalCallbackFunction
+    ) internal view override returns (bytes memory) {
+        if (internalCallbackFunction != this._internalCallCallback.selector)
+            return "";
+        return
+            abi.encodeWithSelector(
+                IBatchGateway.query.selector,
+                lookupData.sender,
+                lookupData.urls,
+                lookupData.callData
+            );
+    }
+
     /// @dev Callback for handling a single internal call.
     ///      Just returns the response directly since no validation is needed.
     /// @notice This function should never be called directly.
@@ -578,39 +649,6 @@ contract UniversalResolver is
     ) external pure returns (bytes memory) {
         assembly {
             return(add(response, 32), mload(response))
-        }
-    }
-
-    /// @dev Callback for rewriting the OffchainLookup calldata.
-    ///      Rewrites to be compatible with `IBatchGateway.query`.
-    /// @notice This function should never be called directly.
-    function _internalCallLookupCalldataRewrite(
-        OffchainLookupData memory data
-    ) external pure returns (bytes memory) {
-        return
-            abi.encodeWithSelector(
-                IBatchGateway.query.selector,
-                data.sender,
-                data.urls,
-                data.callData
-            );
-    }
-
-    /// @dev Callback for validating the response from an internal call.
-    ///      Since calls are routed through a BatchGateway, the response
-    ///      can be an HTTP error. This needs to be handled immediately before
-    ///      calling the external callback since the external function won't
-    ///      understand the error format.
-    /// @notice This function should never be called directly.
-    function _internalCallValidateLookupResponse(
-        bytes calldata response
-    ) external pure {
-        if (bytes4(response) == HttpError.selector) {
-            (uint16 status, string memory message) = abi.decode(
-                response[4:],
-                (uint16, string)
-            );
-            revert HttpError(status, message);
         }
     }
 
@@ -628,12 +666,8 @@ contract UniversalResolver is
             gas,
             data,
             "",
-            createUserCallbackFunctions(
-                this._internalCallCallback.selector,
-                this._internalCallLookupCalldataRewrite.selector,
-                bytes4(0),
-                this._internalCallValidateLookupResponse.selector
-            )
+            this._internalCallCallback.selector,
+            bytes4(0)
         );
     }
 
@@ -663,8 +697,8 @@ contract UniversalResolver is
     ///      This is required since all extended resolver calls are
     ///      wrapped in `resolve(name, call)`, which returns `bytes`.
     ///      `bytes` should be unwrapped to get the actual result,
-    ///      but if the result is an error or empty, it needs to be 
-    ///      left as is since it can't be decoded. For a client, 
+    ///      but if the result is an error or empty, it needs to be
+    ///      left as is since it can't be decoded. For a client,
     ///      this is fine since they will handle error/empty results
     ///      anyway.
     function _decodeExtendedResolverResult(
@@ -676,8 +710,8 @@ contract UniversalResolver is
     }
 
     /// @dev Decodes a result from a single internally encoded call.
-    ///      This is required since the default encoding assumes a multicall, 
-    ///      so it needs to be unwrapped. Or, if the result is an error, 
+    ///      This is required since the default encoding assumes a multicall,
+    ///      so it needs to be unwrapped. Or, if the result is an error,
     ///      it needs to be propagated directly.
     function _resultFromSingleInternallyEncodedCall(
         bytes memory result,
@@ -727,7 +761,9 @@ contract UniversalResolver is
                 bytes.concat(
                     PrefixlessHexUtils.toHexString(lookupAddress),
                     ".",
-                    coinType == 60 ? bytes("addr") : PrefixlessHexUtils.toHexString(coinType),
+                    coinType == 60
+                        ? bytes("addr")
+                        : PrefixlessHexUtils.toHexString(coinType),
                     ".reverse"
                 )
             );
