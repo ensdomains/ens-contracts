@@ -20,12 +20,10 @@ import {
   toHex,
   zeroAddress,
   zeroHash,
-  type Abi,
   type Address,
   type Hex,
   type ReadContractReturnType,
 } from 'viem'
-import { mnemonicToAccount } from 'viem/accounts'
 import { optimism } from 'viem/chains'
 import { encodedRealAnchors } from '../fixtures/anchors.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -33,6 +31,7 @@ import {
   getReverseNode,
   getReverseNodeHash,
 } from '../fixtures/getReverseNode.js'
+import { withGasReportPublicClient } from '../fixtures/readContractGasReport.js'
 
 const emptyBytes4 = '0x00000000'
 
@@ -216,55 +215,7 @@ const solHexCoinType = toHex(toBytes(solCoinType)).slice(2)
 const solAddressHex =
   '0x18f9d8d877393bbbe8d697a8a2e52879cc7e84f467656d1cce6bab5a8d2637ec'
 
-let _currentTest: string = ''
-const gasMap: Record<string, bigint[]> = {}
-
-let getPublicClient = hre.viem.getPublicClient
-if (process.env.GAS_REPORT) {
-  getPublicClient = async () => {
-    const localAccount = mnemonicToAccount(
-      'test test test test test test test test test test test junk',
-    )
-    const publicClient = await hre.viem.getPublicClient()
-    const originalReadContract = publicClient.readContract
-    publicClient.readContract = async (parameters) => {
-      if (process.env.GAS_REPORT) {
-        const serializedTransaction = await localAccount.signTransaction({
-          to: parameters.address,
-          data: encodeFunctionData({
-            abi: parameters.abi as Abi,
-            functionName: parameters.functionName as string,
-            args: parameters.args as readonly unknown[],
-          }),
-          gas: 10000000n,
-          gasPrice: await publicClient.getGasPrice(),
-          nonce: await publicClient.getTransactionCount({
-            address: localAccount.address,
-          }),
-        })
-        await publicClient
-          .sendRawTransaction({ serializedTransaction })
-          .catch(() => {})
-        const latestBlock = await publicClient.getBlock()
-        const receipt = await publicClient.getTransactionReceipt({
-          hash: latestBlock.transactions[0],
-        })
-        gasMap[_currentTest].push(receipt!.gasUsed)
-      }
-      return originalReadContract(parameters)
-    }
-    return publicClient
-  }
-
-  beforeEach(function () {
-    _currentTest = this.currentTest?.fullTitle() ?? ''
-    gasMap[_currentTest] = []
-  })
-
-  after(() => {
-    console.log(gasMap)
-  })
-}
+const getPublicClient = withGasReportPublicClient()
 
 async function fixture() {
   const accounts = await hre.viem

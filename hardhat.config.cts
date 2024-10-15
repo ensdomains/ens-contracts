@@ -5,6 +5,7 @@ import '@nomicfoundation/hardhat-viem'
 import 'hardhat-gas-reporter'
 import 'solidity-coverage'
 import './tasks/hardhat-deploy-viem.cjs'
+import './tasks/hardhat-viem-custom.cjs'
 
 import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'

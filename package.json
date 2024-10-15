@@ -4,19 +4,19 @@
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
-    "compile": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat compile",
-    "test": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat test",
-    "test:parallel": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat test ./test/**/Test*.ts --parallel",
-    "test:local": "hardhat --network localhost test",
+    "hh": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' hardhat",
+    "compile": "bun hh compile",
+    "test": "bun hh test",
+    "test:parallel": "bun hh test ./test/**/Test*.ts --parallel",
+    "test:local": "bun hh --network localhost test",
     "test:deploy": "bun ./scripts/deploy-test.ts",
-    "lint": "hardhat check",
-    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "lint": "bun hh check",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && bun hh compile && tsc",
     "format": "prettier --write .",
     "prepublishOnly": "bun run build",
     "pub": "npm publish --access public",
     "prepare": "husky install",
-    "wikiCheck": "bun ./scripts/wikiCheck.ts",
-    "postinstall": "npx patch-package"
+    "wikiCheck": "bun ./scripts/wikiCheck.ts"
   },
   "files": [
     "build",
@@ -29,19 +29,20 @@
   "devDependencies": {
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.6",
-    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@nomicfoundation/hardhat-viem": "^2.0.5",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
     "@vitest/expect": "^1.6.0",
     "abitype": "^1.0.2",
     "chai": "^5.1.1",
+    "chalk": "^5.3.0",
     "dotenv": "^16.4.5",
-    "hardhat": "^2.22.2",
+    "hardhat": "^2.22.12",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-deploy": "^0.12.4",
-    "hardhat-gas-reporter": "^1.0.4",
+    "hardhat-gas-reporter": "^2.2.1",
     "husky": "^8.0.0",
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
@@ -70,5 +71,8 @@
   "homepage": "https://github.com/ensdomains/ens-contracts#readme",
   "volta": {
     "node": "16.20.2"
+  },
+  "patchedDependencies": {
+    "hardhat-deploy@0.12.4": "patches/hardhat-deploy@0.12.4.patch"
   }
 }
