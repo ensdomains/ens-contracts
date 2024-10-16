@@ -9,7 +9,7 @@ contract DummyRevertResolver {
         revert("Not Supported");
     }
 
-    function supportsInterface(bytes4) external pure returns (bool) {
-        return true;
+    function supportsInterface(bytes4 id) external pure returns (bool) {
+        return id == bytes4(0x9061b923);
     }
 }

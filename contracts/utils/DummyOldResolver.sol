@@ -7,6 +7,10 @@ contract DummyOldResolver {
     }
 
     function name(bytes32) public returns (string memory) {
-        return "test.eth";
+        return "oldprimary.eth";
+    }
+
+    function addr(bytes32) public returns (address) {
+        return 0xBcd4042DE499D14e55001CcbB24a551F3b954096;
     }
 }
