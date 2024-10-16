@@ -3,7 +3,6 @@ import hre from 'hardhat'
 const contracts = [
   'contracts/test/TestBytesUtils.sol:TestBytesUtils',
   'contracts/test/TestRRUtils.sol:TestRRUtils',
-  'contracts/test/TestBytesArrayValidator.sol:TestBytesArrayValidator',
 ] as const
 
 contracts.forEach((contract) => {

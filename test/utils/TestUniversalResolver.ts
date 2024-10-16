@@ -184,7 +184,7 @@ const baseResolveMulticallExtraData = {
     'function resolveCallback(bytes,bytes)',
   ),
   failureCallbackFunction: toFunctionSelector(
-    'function _resolveMulticallResolveCallback(bytes,bytes)',
+    'function _resolveMulticallResolveFailureCallback(bytes,bytes)',
   ),
 } as const
 
@@ -1545,12 +1545,8 @@ describe('UniversalResolver', () => {
         )
     })
     it('should handle empty response with internal multicall', async () => {
-      const {
-        universalResolver,
-        publicResolver,
-        offchainResolver,
-        batchGatewayAbi,
-      } = await loadFixture(fixture)
+      const { universalResolver, publicResolver, offchainResolver } =
+        await loadFixture(fixture)
 
       const callData = toFunctionSelector('function emptyResponse()')
 
@@ -1577,57 +1573,10 @@ describe('UniversalResolver', () => {
         externalExtraData: originalMulticallCalldata,
       })
 
-      const fnRevertDataWithRewrite = encodeFunctionData({
-        abi: batchGatewayAbi,
-        functionName: 'query',
-        args: [offchainResolver.address, ['https://example.com/'], callData],
-      })
-
-      const revertExtraData = encodeExtraData({
-        resolverAddress: universalResolver.address,
-        ...baseInternalMulticallExtraData,
-        internalExtraData: encodeInternalMulticallExtraData({
-          resolverAddress: offchainResolver.address,
-          isSingleInternallyEncodedCall: true,
-          isExtendedResolver: true,
-        }),
-        externalExtraData: encodeMulticallExtraData({
-          calls: [
-            {
-              data: encodeExtraData({
-                resolverAddress: offchainResolver.address,
-                ...baseInternalCallExtraData,
-                externalCallbackFunction: toFunctionSelector(
-                  'function resolveCallback(bytes,bytes)',
-                ),
-                externalExtraData: callData,
-              }),
-              callbackFunction: toFunctionSelector(
-                'function callback(bytes,bytes)',
-              ),
-              offchain: true,
-            },
-          ],
-          urls: ['http://universal-offchain-resolver.local'],
-        }),
-      })
-
-      const multicallCalldata = encodeFunctionData({
-        abi: publicResolver.abi,
-        functionName: 'multicall',
-        args: [[fnRevertDataWithRewrite]],
-      })
-
       await expect(universalResolver)
         .read('callback', [response, resolveMulticallExtraData])
-        .toBeRevertedWithCustomError('OffchainLookup')
-        .withArgs(
-          getAddress(universalResolver.address),
-          ['http://universal-offchain-resolver.local'],
-          multicallCalldata,
-          toFunctionSelector('function callback(bytes,bytes)'),
-          revertExtraData,
-        )
+        .toBeRevertedWithCustomError('ResolverError')
+        .withArgs('0x')
     })
     it('should propagate empty response error when single internally encoded call', async () => {
       const { universalResolver, publicResolver, offchainResolver } =
@@ -2249,7 +2198,7 @@ describe('UniversalResolver', () => {
       })
 
       const httpError = encodeErrorResult({
-        abi: parseAbi(['error HttpError(uint16 status, string message)']),
+        abi: universalResolver.abi,
         errorName: 'HttpError',
         args: [404, 'Not Found'],
       })

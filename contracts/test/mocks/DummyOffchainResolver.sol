@@ -73,7 +73,7 @@ contract DummyOffchainResolver is IExtendedResolver, ERC165 {
             } else if (
                 bytes4(calls[i]) == bytes4(keccak256("emptyResponse()"))
             ) {
-                return "";
+                calls[i] = "";
             } else {
                 revert("Unsupported call");
             }

@@ -38,7 +38,7 @@ export const withGasReportPublicClient = () => {
     const previousValue = previousGasMap[_currentTest]
     const diff = currentTestGas - previousValue
     const diffWithColour = (() => {
-      if (diff < 0) return chalk.green(`(-${diff})`)
+      if (diff < 0) return chalk.green(`(${diff})`)
       if (diff > 0) return chalk.red(`(+${diff})`)
       return info('(unchanged)')
     })()

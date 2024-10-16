@@ -18,7 +18,6 @@ import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
-import {BytesArrayValidator} from "./BytesArrayValidator.sol";
 import {NameEncoder} from "../utils/NameEncoder.sol";
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 
@@ -282,18 +281,15 @@ contract UniversalResolver is
                 isSingleInternallyEncodedCall
             ),
             this._resolveMulticallResolveCallback.selector,
-            // setting this allows a callback to _resolveMulticallResolveCallback even if the call fails
-            // meaning that the data in _resolveMulticallResolveCallback can potentially be invalid/error data
-            this._resolveMulticallResolveCallback.selector
+            this._resolveMulticallResolveFailureCallback.selector
         );
     }
 
     /// @dev Callback for resolving a name with `resolve(multicall(calls))` using `call`.
-    ///      Will fallback to `_internalMulticall` if the result is not valid.
-    ///      `response` can potentially be invalid/error data.
+    ///      Is only called if the call to `resolve(multicall(calls))` fails.
     /// @notice This function should never be called directly.
-    function _resolveMulticallResolveCallback(
-        bytes memory response,
+    function _resolveMulticallResolveFailureCallback(
+        bytes calldata /* response */,
         bytes calldata extraData
     ) external view returns (bytes memory, address) {
         (
@@ -304,22 +300,26 @@ contract UniversalResolver is
             bool isSingleInternallyEncodedCall
         ) = abi.decode(extraData, (bytes, bytes[], address, string[], bool));
 
-        if (
-            _isErrorResult(response) ||
-            _isEmptyResult(response) ||
-            !BytesArrayValidator.isValidBytesArray(
-                response = abi.decode(response, (bytes))
-            )
-        )
-            return
-                _internalMulticall(
-                    name,
-                    calls,
-                    resolver,
-                    gateways,
-                    isSingleInternallyEncodedCall,
-                    true
-                );
+        return
+            _internalMulticall(
+                name,
+                calls,
+                resolver,
+                gateways,
+                isSingleInternallyEncodedCall,
+                true
+            );
+    }
+
+    /// @dev Callback for resolving a name with `resolve(multicall(calls))` using `call`.
+    /// @notice This function should never be called directly.
+    function _resolveMulticallResolveCallback(
+        bytes calldata encodedResponse,
+        bytes calldata extraData
+    ) external pure returns (bytes memory, address) {
+        bytes memory response = abi.decode(encodedResponse, (bytes));
+        (, , address resolver, , bool isSingleInternallyEncodedCall) = abi
+            .decode(extraData, (bytes, bytes[], address, string[], bool));
 
         if (isSingleInternallyEncodedCall)
             return (
@@ -613,22 +613,17 @@ contract UniversalResolver is
     function validateLookupResponse(
         bytes calldata response,
         bytes4 internalCallbackFunction
-    ) internal view override {
+    ) internal pure override {
         if (internalCallbackFunction != this._internalCallCallback.selector)
             return;
-        if (bytes4(response) == HttpError.selector) {
-            (uint16 status, string memory message) = abi.decode(
-                response[4:],
-                (uint16, string)
-            );
-            revert HttpError(status, message);
-        }
+        if (bytes4(response) == HttpError.selector)
+            LowLevelCallUtils.propagateRevert(response);
     }
 
     function lookupCalldataRewrite(
         OffchainLookupData memory lookupData,
         bytes4 internalCallbackFunction
-    ) internal view override returns (bytes memory) {
+    ) internal pure override returns (bytes memory) {
         if (internalCallbackFunction != this._internalCallCallback.selector)
             return "";
         return
@@ -646,7 +641,7 @@ contract UniversalResolver is
     function _internalCallCallback(
         bytes memory response,
         bytes calldata /* extraData */
-    ) external pure returns (bytes memory) {
+    ) external pure {
         assembly {
             return(add(response, 32), mload(response))
         }
@@ -684,13 +679,13 @@ contract UniversalResolver is
     }
 
     /// @dev Checks if a result is empty.
-    function _isEmptyResult(bytes memory result) internal pure returns (bool) {
-        return result.length == 0;
+    function _isEmptyResult(uint256 resultLength) internal pure returns (bool) {
+        return resultLength == 0;
     }
 
     /// @dev Checks if a result is an error.
-    function _isErrorResult(bytes memory result) internal pure returns (bool) {
-        return result.length % 32 == 4;
+    function _isErrorResult(uint256 resultLength) internal pure returns (bool) {
+        return resultLength % 32 == 4;
     }
 
     /// @dev Decodes a result from an extended resolver.
@@ -704,8 +699,8 @@ contract UniversalResolver is
     function _decodeExtendedResolverResult(
         bytes memory result
     ) internal pure returns (bytes memory) {
-        if (_isEmptyResult(result)) return result;
-        if (_isErrorResult(result)) return result;
+        if (_isEmptyResult(result.length)) return result;
+        if (_isErrorResult(result.length)) return result;
         return abi.decode(result, (bytes));
     }
 
@@ -720,7 +715,7 @@ contract UniversalResolver is
         bytes[] memory results = abi.decode(result, (bytes[]));
         bytes memory item = results[0];
 
-        if (_isEmptyResult(item) || _isErrorResult(item)) {
+        if (_isEmptyResult(item.length) || _isErrorResult(item.length)) {
             if (bytes4(item) == HttpError.selector)
                 LowLevelCallUtils.propagateRevert(item);
 
