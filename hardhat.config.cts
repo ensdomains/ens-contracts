@@ -88,6 +88,18 @@ const config = {
       accounts: real_accounts,
       tags: ['l2'],
     },
+    linea: {
+      url: 'https://rpc.linea.build',
+      chainId: 59144,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    lineaSepolia: {
+      url: 'https://rpc.sepolia.linea.build',
+      chainId: 59141,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
     holesky: {
       url: `https://holesky-rpc.nocturnode.tech`,
       tags: ['test', 'legacy', 'use_root'],
