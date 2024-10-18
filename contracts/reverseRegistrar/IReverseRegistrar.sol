@@ -1,4 +1,6 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
+
+pragma solidity ^0.8.4;
 
 interface IReverseRegistrar {
     function setDefaultResolver(address resolver) external;
@@ -15,7 +17,6 @@ interface IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes calldata signature
     ) external returns (bytes32);
@@ -38,7 +39,6 @@ interface IReverseRegistrar {
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes calldata signature,
         string memory name

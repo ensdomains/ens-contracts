@@ -1,4 +1,8 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.17;
+
+import {Clone} from "clones-with-immutable-args/src/Clone.sol";
+
 import "./profiles/ABIResolver.sol";
 import "./profiles/AddrResolver.sol";
 import "./profiles/ContentHashResolver.sol";
@@ -10,7 +14,6 @@ import "./profiles/TextResolver.sol";
 import "./profiles/ExtendedResolver.sol";
 import "./Multicallable.sol";
 import "./IDelegatableResolver.sol";
-import {Clone} from "clones-with-immutable-args/src/Clone.sol";
 
 /**
  * A delegated resolver that allows the resolver owner to add an operator to update records of a node on behalf of the owner.
@@ -100,7 +103,7 @@ contract DelegatableResolver is
      * Returns the owner address passed set by the Factory
      * @return address The owner address
      */
-    function owner() public view returns (address) {
+    function owner() public pure returns (address) {
         return _getArgAddress(0);
     }
 

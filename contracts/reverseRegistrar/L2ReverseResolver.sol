@@ -1,26 +1,31 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
 
-import "../registry/ENS.sol";
-import "./IL2ReverseResolver.sol";
-import "./SignatureReverseResolver.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "../resolvers/profiles/ITextResolver.sol";
-import "../resolvers/profiles/INameResolver.sol";
-import "../root/Controllable.sol";
-import "../resolvers/Multicallable.sol";
-import "../utils/LowLevelCallUtils.sol";
+pragma solidity ^0.8.4;
+
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {ENS} from "../registry/ENS.sol";
+import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
+import {Multicallable} from "../resolvers/Multicallable.sol";
+
+import {IL2ReverseResolver} from "./IL2ReverseResolver.sol";
+import {SignatureReverseResolver, Unauthorised} from "./SignatureReverseResolver.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
 
 error NotOwnerOfContract();
 
 /**
- * A L2 reverser registrar. Deployed to each L2 chain.
+ * A L2 reverse resolver. Deployed to each L2 chain.
  */
 contract L2ReverseResolver is
+    ERC165,
     Multicallable,
     IL2ReverseResolver,
     SignatureReverseResolver
 {
+    using SignatureUtils for bytes;
     using ECDSA for bytes32;
 
     bytes32 public immutable L2ReverseNode;
@@ -37,78 +42,9 @@ contract L2ReverseResolver is
         L2ReverseNode = _L2ReverseNode;
     }
 
-    modifier ownerAndAuthorisedWithSignature(
-        bytes32 hash,
-        address addr,
-        address owner,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) {
-        isOwnerAndAuthorisedWithSignature(
-            hash,
-            addr,
-            owner,
-            inceptionDate,
-            signature
-        );
-        _;
-    }
-
-    function isAuthorised(address addr) internal view override returns (bool) {
+    function isAuthorised(address addr) internal view override {
         if (addr != msg.sender && !ownsContract(addr, msg.sender)) {
             revert Unauthorised();
-        }
-    }
-
-    function computeOwnerMessage(
-        bytes32 hash,
-        address addr,
-        address owner,
-        uint256 inceptionDate
-    ) public view returns (bytes32) {
-        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
-        return
-            keccak256(
-                abi.encodePacked(
-                    address(this),
-                    hash,
-                    addr,
-                    owner,
-                    inceptionDate,
-                    coinType
-                )
-            ).toEthSignedMessageHash();
-    }
-
-    function isOwnerAndAuthorisedWithSignature(
-        bytes32 hash,
-        address addr,
-        address owner,
-        uint256 inceptionDate,
-        bytes memory signature
-    ) internal view returns (bool) {
-        bytes32 message = computeOwnerMessage(hash, addr, owner, inceptionDate);
-        bytes32 node = _getNamehash(addr);
-
-        if (!ownsContract(addr, owner)) {
-            revert NotOwnerOfContract();
-        }
-
-        if (
-            !SignatureChecker.isValidERC1271SignatureNow(
-                owner,
-                message,
-                signature
-            )
-        ) {
-            revert InvalidSignature();
-        }
-
-        if (
-            inceptionDate <= lastUpdated[node] || // must be newer than current record
-            inceptionDate / 1000 >= block.timestamp // must be in the past
-        ) {
-            revert InvalidSignatureDate();
         }
     }
 
@@ -117,37 +53,44 @@ contract L2ReverseResolver is
      * @param contractAddr The reverse node to set
      * @param owner The owner of the contract (via Ownable)
      * @param name The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
+     * @param signatureExpiry Date when the signature expires
      * @param signature The signature of an address that will return true on isValidSignature for the owner
      * @return The ENS node hash of the reverse record.
      */
     function setNameForAddrWithSignatureAndOwnable(
         address contractAddr,
         address owner,
-        string memory name,
-        uint256 inceptionDate,
+        string calldata name,
+        uint256 signatureExpiry,
         bytes memory signature
-    )
-        public
-        ownerAndAuthorisedWithSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseResolver
-                        .setNameForAddrWithSignatureAndOwnable
-                        .selector,
-                    name
-                )
-            ),
-            contractAddr,
-            owner,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
+    ) public returns (bytes32) {
         bytes32 node = _getNamehash(contractAddr);
-        _setName(node, name, inceptionDate);
+
+        // Follow ERC191 version 0 https://eips.ethereum.org/EIPS/eip-191
+        bytes32 message = keccak256(
+            abi.encodePacked(
+                address(this),
+                IL2ReverseResolver
+                    .setNameForAddrWithSignatureAndOwnable
+                    .selector,
+                name,
+                contractAddr,
+                owner,
+                signatureExpiry,
+                coinType
+            )
+        ).toEthSignedMessageHash();
+
+        if (!ownsContract(contractAddr, owner)) {
+            revert NotOwnerOfContract();
+        }
+
+        signature.validateSignatureWithExpiry(owner, message, signatureExpiry);
+
+        _setName(node, name);
         emit ReverseClaimed(contractAddr, node);
+
+        return node;
     }
 
     /**
@@ -156,7 +99,7 @@ contract L2ReverseResolver is
      * @param name The name to set for this address.
      * @return The ENS node hash of the reverse record.
      */
-    function setName(string memory name) public override returns (bytes32) {
+    function setName(string calldata name) public override returns (bytes32) {
         return setNameForAddr(msg.sender, name);
     }
 
@@ -170,93 +113,14 @@ contract L2ReverseResolver is
 
     function setNameForAddr(
         address addr,
-        string memory name
+        string calldata name
     ) public authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
-        _setName(node, name, block.timestamp);
+
+        _setName(node, name);
         emit ReverseClaimed(addr, node);
+
         return node;
-    }
-
-    /**
-     * @dev Sets the name for a contract that is owned by a SCW using a signature
-     * @param contractAddr The reverse node to set
-     * @param owner The owner of the contract (via Ownable)
-     * @param key The name of the reverse record
-     * @param value The name of the reverse record
-     * @param inceptionDate Date from when this signature is valid from
-     * @param signature The signature of an address that will return true on isValidSignature for the owner
-     * @return The ENS node hash of the reverse record.
-     */
-    function setTextForAddrWithSignatureAndOwnable(
-        address contractAddr,
-        address owner,
-        string calldata key,
-        string calldata value,
-        uint256 inceptionDate,
-        bytes memory signature
-    )
-        public
-        ownerAndAuthorisedWithSignature(
-            keccak256(
-                abi.encodePacked(
-                    IL2ReverseResolver
-                        .setTextForAddrWithSignatureAndOwnable
-                        .selector,
-                    key,
-                    value
-                )
-            ),
-            contractAddr,
-            owner,
-            inceptionDate,
-            signature
-        )
-        returns (bytes32)
-    {
-        bytes32 node = _getNamehash(contractAddr);
-        _setText(node, key, value, inceptionDate);
-    }
-
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the calling account.
-     * @param key The key for this text record.
-     * @param value The value to set for this text record.
-     * @return The ENS node hash of the reverse record.
-     */
-    function setText(
-        string calldata key,
-        string calldata value
-    ) public override returns (bytes32) {
-        return setTextForAddr(msg.sender, key, value);
-    }
-
-    /**
-     * @dev Sets the `text(key)` record for the reverse ENS record associated with
-     * the addr provided account.
-     * @param key The key for this text record.
-     * @param value The value to set for this text record.
-     * @return The ENS node hash of the reverse record.
-     */
-
-    function setTextForAddr(
-        address addr,
-        string calldata key,
-        string calldata value
-    ) public override authorised(addr) returns (bytes32) {
-        bytes32 node = _getNamehash(addr);
-        _setText(node, key, value, block.timestamp);
-        return node;
-    }
-
-    /**
-     * Increments the record version associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param addr The node to update.
-     */
-    function clearRecords(address addr) public virtual authorised(addr) {
-        _clearRecords(addr);
     }
 
     function ownsContract(
@@ -275,7 +139,7 @@ contract L2ReverseResolver is
     )
         public
         view
-        override(Multicallable, SignatureReverseResolver)
+        override(ERC165, Multicallable, SignatureReverseResolver)
         returns (bool)
     {
         return
