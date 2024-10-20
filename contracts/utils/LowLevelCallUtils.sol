@@ -83,4 +83,17 @@ library LowLevelCallUtils {
             revert(0, returndatasize())
         }
     }
+
+    function propagateRevert(bytes memory revertData) internal pure {
+        assembly {
+            revert(add(revertData, 32), mload(revertData))
+        }
+    }
+
+    function propagateResult() internal pure {
+        assembly {
+            returndatacopy(0, 0, returndatasize())
+            return(0, returndatasize())
+        }
+    }
 }

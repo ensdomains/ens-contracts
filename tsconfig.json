@@ -20,7 +20,8 @@
     "./typings-custom/**/*.ts",
     "./artifacts/**/*.d.ts",
     "tasks/hardhat-deploy-viem.cts",
-    "tasks/deploy-test.cts"
+    "tasks/deploy-test.cts",
+    "tasks/hardhat-viem-custom.cts"
   ],
   "ts-node": {
     "experimentalResolver": true,
