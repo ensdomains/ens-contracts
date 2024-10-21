@@ -1,4 +1,7 @@
-interface IBulkRenewal {
+//SPDX-License-Identifier: MIT
+pragma solidity ~0.8.17;
+
+interface IStaticBulkRenewal {
     function rentPrice(
         string[] calldata names,
         uint256 duration

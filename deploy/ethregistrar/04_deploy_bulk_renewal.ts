@@ -1,41 +1,48 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
 import { namehash, zeroAddress, type Address } from 'viem'
-import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
+import { getInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
 const func: DeployFunction = async function (hre) {
-  const { deployments, network, viem } = hre
+  const { network, viem } = hre
 
   const registry = await viem.getContract('ENSRegistry')
+  const baseRegistrar = await viem.getContract('BaseRegistrarImplementation')
   const controller = await viem.getContract('ETHRegistrarController')
 
-  const bulkRenewal = await viem.deploy('StaticBulkRenewal', [
+  const bulkRenewal = await viem.deploy('BulkRenewal', [
+    baseRegistrar.address,
     controller.address,
   ])
 
   // Only attempt to make resolver etc changes directly on testnets
   if (network.name === 'mainnet') return
 
-  const artifact = await deployments.getArtifact('IBulkRenewal')
-  const interfaceId = createInterfaceId(artifact.abi)
+  const interfaceIds = [
+    await getInterfaceId('IFixedDurationBulkRenewal'),
+    await getInterfaceId('IFixedItemPriceBulkRenewal'),
+    await getInterfaceId('ITargetExpiryBulkRenewal'),
+  ]
 
   const resolver = await registry.read.resolver([namehash('eth')])
   if (resolver === zeroAddress) {
     console.log(
-      `No resolver set for .eth; not setting interface ${interfaceId} for BulkRenewal`,
+      `No resolver set for .eth; not setting interfaces for BulkRenewal`,
     )
     return
   }
 
-  const ethOwnedResolver = await viem.getContract('OwnedResolver')
-  const setInterfaceHash = await ethOwnedResolver.write.setInterface([
-    namehash('eth'),
-    interfaceId,
-    bulkRenewal.address as Address,
-  ])
-  console.log(
-    `Setting BulkRenewal interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
-  )
-  await viem.waitForTransactionSuccess(setInterfaceHash)
+  for (const interfaceId of interfaceIds) {
+    const ethOwnedResolver = await viem.getContract('OwnedResolver')
+    const setInterfaceHash = await ethOwnedResolver.write.setInterface([
+      namehash('eth'),
+      interfaceId,
+      bulkRenewal.address as Address,
+    ])
+    console.log(
+      `Setting BulkRenewal interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
+    )
+    await viem.waitForTransactionSuccess(setInterfaceHash)
+  }
 
   return true
 }
