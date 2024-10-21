@@ -4,7 +4,7 @@ pragma solidity ~0.8.17;
 import {IPriceOracle} from "../IPriceOracle.sol";
 
 import {IFixedItemPriceBulkRenewal} from "./IFixedItemPriceBulkRenewal.sol";
-import {BulkRenewalBase, NameHasPremium} from "./BulkRenewalBase.sol";
+import {BulkRenewalBase, NameAvailable} from "./BulkRenewalBase.sol";
 
 error NameMismatchedPrice(string name);
 
@@ -19,12 +19,11 @@ abstract contract FixedItemPriceBulkRenewal is
         uint256 length = names.length;
         for (uint256 i = 0; i < length; i++) {
             string memory name = names[i];
+            if (controller.available(name)) revert NameAvailable(name);
             IPriceOracle.Price memory price = controller.rentPrice(
                 name,
                 duration
             );
-
-            if (price.premium > 0) revert NameHasPremium(name);
 
             total += price.base;
 

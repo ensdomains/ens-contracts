@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IETHRegistrarController} from "../IETHRegistrarController.sol";
 import {IBaseRegistrar} from "../IBaseRegistrar.sol";
 
-error NameHasPremium(string name);
+error NameAvailable(string name);
 
 abstract contract BulkRenewalBase is ERC165 {
     IBaseRegistrar immutable base;

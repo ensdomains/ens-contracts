@@ -4,7 +4,7 @@ pragma solidity ~0.8.17;
 import {IPriceOracle} from "../IPriceOracle.sol";
 
 import {ITargetExpiryBulkRenewal} from "./ITargetExpiryBulkRenewal.sol";
-import {BulkRenewalBase, NameHasPremium} from "./BulkRenewalBase.sol";
+import {BulkRenewalBase, NameAvailable} from "./BulkRenewalBase.sol";
 
 error NameBeyondWantedExpiryDate(string name);
 
@@ -31,6 +31,7 @@ abstract contract TargetExpiryBulkRenewal is
             string memory name = names[i];
             uint256 expiry = base.nameExpires(uint256(keccak256(bytes(name))));
             if (expiry > targetExpiry) revert NameBeyondWantedExpiryDate(name);
+            if (controller.available(name)) revert NameAvailable(name);
 
             durations[i] = targetExpiry - expiry;
 
@@ -38,8 +39,6 @@ abstract contract TargetExpiryBulkRenewal is
                 name,
                 durations[i]
             );
-
-            if (price.premium > 0) revert NameHasPremium(name);
 
             total += price.base;
             prices[i] = price.base;
