@@ -27,7 +27,7 @@ let real_accounts = undefined
 if (process.env.DEPLOYER_KEY) {
   real_accounts = [
     process.env.DEPLOYER_KEY,
-    process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
+    ...(process.env.OWNER_KEY ? [process.env.OWNER_KEY] : []),
   ]
 }
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY!
@@ -159,7 +159,7 @@ const config = {
       default: 0,
     },
     owner: {
-      default: 1,
+      default: process.env.OWNER_KEY ? 1 : 0,
       1: '0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7',
     },
   },
