@@ -27,7 +27,7 @@ let real_accounts = undefined
 if (process.env.DEPLOYER_KEY) {
   real_accounts = [
     process.env.DEPLOYER_KEY,
-    process.env.OWNER_KEY || process.env.DEPLOYER_KEY,
+    ...(process.env.OWNER_KEY ? [process.env.OWNER_KEY] : []),
   ]
 }
 const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY!
@@ -46,24 +46,6 @@ const config = {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 4,
-      accounts: real_accounts,
-    },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 3,
-      accounts: real_accounts,
-    },
-    goerli: {
-      url: `https://goerli.infura.io/v3/${process.env.INFURA_API_KEY}`,
-      tags: ['test', 'legacy', 'use_root'],
-      chainId: 5,
-      accounts: real_accounts,
-    },
     sepolia: {
       url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
       tags: ['test', 'legacy', 'use_root'],
@@ -76,6 +58,12 @@ const config = {
       accounts: real_accounts,
       tags: ['l2'],
     },
+    base: {
+      url: 'https://mainnet.base.org',
+      chainId: 8453,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
     baseSepolia: {
       url: 'https://sepolia.base.org',
       chainId: 84532,
@@ -85,6 +73,30 @@ const config = {
     arbitrumSepolia: {
       url: 'https://sepolia-rollup.arbitrum.io/rpc',
       chainId: 421614,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    scroll: {
+      url: 'https://rpc.scroll.io',
+      chainId: 534352,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    scrollSepolia: {
+      url: 'https://sepolia-rpc.scroll.io',
+      chainId: 534351,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    linea: {
+      url: 'https://rpc.linea.build',
+      chainId: 59144,
+      accounts: real_accounts,
+      tags: ['l2'],
+    },
+    lineaSepolia: {
+      url: 'https://rpc.sepolia.linea.build',
+      chainId: 59141,
       accounts: real_accounts,
       tags: ['l2'],
     },
@@ -147,14 +159,19 @@ const config = {
       default: 0,
     },
     owner: {
-      default: 1,
+      default: process.env.OWNER_KEY ? 1 : 0,
       1: '0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7',
     },
+  },
+  gasReporter: {
+    enabled: true,
+    trackGasDeltas: true,
   },
   etherscan: {
     apiKey: {
       optimismSepolia: ETHERSCAN_API_KEY,
       baseSepolia: ETHERSCAN_API_KEY,
+      base: ETHERSCAN_API_KEY,
       arbitrumSepolia: ETHERSCAN_API_KEY,
     },
     customChains: [
@@ -172,6 +189,14 @@ const config = {
         urls: {
           apiURL: 'https://api-sepolia.basescan.org/api',
           browserURL: 'https://sepolia.basescan.org',
+        },
+      },
+      {
+        network: 'base',
+        chainId: 8453,
+        urls: {
+          apiURL: 'https://api.basescan.org/api',
+          browserURL: 'https://basescan.org',
         },
       },
       {

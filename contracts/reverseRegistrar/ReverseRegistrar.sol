@@ -1,38 +1,41 @@
-pragma solidity >=0.8.4;
+// SPDX-License-Identifier: MIT
 
-import "../registry/ENS.sol";
-import "./IReverseRegistrar.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "../root/Controllable.sol";
-import "../utils/LowLevelCallUtils.sol";
+pragma solidity ^0.8.4;
 
-abstract contract NameResolver {
-    function setName(bytes32 node, string memory name) public virtual;
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
+import {ENS} from "../registry/ENS.sol";
+import {Controllable} from "../root/Controllable.sol";
+import {AddressUtils} from "../utils/AddressUtils.sol";
+
+import {IReverseRegistrar} from "./IReverseRegistrar.sol";
+import {SignatureUtils} from "./SignatureUtils.sol";
+
+interface INameSetterResolver {
+    function setName(bytes32 node, string memory name) external;
 }
 
-bytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000000000000000;
-
-bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
-
-error InvalidSignature();
-
-// namehash('addr.reverse')
-
-contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
-    ENS public immutable ens;
-    NameResolver public defaultResolver;
+/// @title ENS Reverse Registrar
+/// @notice The registrar for reverse records on ENS
+contract ReverseRegistrar is Ownable, Controllable, ERC165, IReverseRegistrar {
+    using SignatureUtils for bytes;
     using ECDSA for bytes32;
-    using LowLevelCallUtils for address;
+    using AddressUtils for address;
 
-    event ReverseClaimed(address indexed addr, bytes32 indexed node);
-    event DefaultResolverChanged(NameResolver indexed resolver);
+    /// @dev `namehash('addr.reverse')`
+    bytes32 constant ADDR_REVERSE_NODE =
+        0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
 
-    /**
-     * @dev Constructor
-     * @param ensAddr The address of the ENS registry.
-     */
+    /// @notice The ENS registry
+    ENS public immutable ens;
+
+    /// @notice The default resolver
+    INameSetterResolver public defaultResolver;
+
+    /// @notice Sets the ENS registry and claims `addr.reverse`
+    /// @param ensAddr The address of the ENS registry
     constructor(ENS ensAddr) {
         ens = ensAddr;
 
@@ -45,44 +48,33 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         }
     }
 
+    /// @notice Modifier to check if the caller is authorised to perform an action.
+    /// @param addr The address to check
     modifier authorised(address addr) {
-        require(
-            addr == msg.sender ||
-                controllers[msg.sender] ||
-                ens.isApprovedForAll(addr, msg.sender) ||
-                ownsContract(addr),
-            "ReverseRegistrar: Caller is not a controller or authorised by address or the address itself"
-        );
+        if (
+            addr != msg.sender &&
+            !controllers[msg.sender] &&
+            !ens.isApprovedForAll(addr, msg.sender) &&
+            !ownsContract(addr)
+        ) {
+            revert Unauthorised();
+        }
         _;
     }
 
+    /// @inheritdoc IReverseRegistrar
     function setDefaultResolver(address resolver) public override onlyOwner {
-        require(
-            address(resolver) != address(0),
-            "ReverseRegistrar: Resolver address must not be 0"
-        );
-        defaultResolver = NameResolver(resolver);
-        emit DefaultResolverChanged(NameResolver(resolver));
+        if (address(resolver) == address(0)) revert ResolverAddressZero();
+        defaultResolver = INameSetterResolver(resolver);
+        emit DefaultResolverChanged(resolver);
     }
 
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function claim(address owner) public override returns (bytes32) {
         return claimForAddr(msg.sender, owner, address(defaultResolver));
     }
 
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param addr The reverse record to set
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function claimForAddr(
         address addr,
         address owner,
@@ -97,19 +89,11 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         return reverseNode;
     }
 
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param addr The reverse record to set
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function claimForAddrWithSignature(
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature
     ) public override returns (bytes32) {
@@ -124,34 +108,20 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
                 addr,
                 owner,
                 resolver,
-                relayer,
                 signatureExpiry
             )
         );
 
         bytes32 message = hash.toEthSignedMessageHash();
 
-        if (
-            !SignatureChecker.isValidSignatureNow(addr, message, signature) ||
-            relayer != msg.sender ||
-            signatureExpiry < block.timestamp ||
-            signatureExpiry > block.timestamp + 1 days
-        ) {
-            revert InvalidSignature();
-        }
+        signature.validateSignatureWithExpiry(addr, message, signatureExpiry);
 
         emit ReverseClaimed(addr, reverseNode);
         ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);
         return reverseNode;
     }
 
-    /**
-     * @dev Transfers ownership of the reverse ENS record associated with the
-     *      calling account.
-     * @param owner The address to set as the owner of the reverse record in ENS.
-     * @param resolver The address of the resolver to set; 0 to leave unchanged.
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function claimWithResolver(
         address owner,
         address resolver
@@ -159,14 +129,8 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         return claimForAddr(msg.sender, owner, resolver);
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the calling account. First updates the resolver to the default reverse
-     * resolver if necessary.
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
-    function setName(string memory name) public override returns (bytes32) {
+    /// @inheritdoc IReverseRegistrar
+    function setName(string calldata name) public override returns (bytes32) {
         return
             setNameForAddr(
                 msg.sender,
@@ -176,63 +140,39 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
             );
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the account provided. Updates the resolver to a designated resolver
-     * Only callable by controllers and authorised users
-     * @param addr The reverse record to set
-     * @param owner The owner of the reverse node
-     * @param resolver The resolver of the reverse node
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function setNameForAddr(
         address addr,
         address owner,
         address resolver,
-        string memory name
+        string calldata name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddr(addr, owner, resolver);
-        NameResolver(resolver).setName(node, name);
+        INameSetterResolver(resolver).setName(node, name);
         return node;
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the account provided. Updates the resolver to a designated resolver
-     * Only callable by controllers and authorised users
-     * @param addr The reverse record to set
-     * @param owner The owner of the reverse node
-     * @param resolver The resolver of the reverse node
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IReverseRegistrar
     function setNameForAddrWithSignature(
         address addr,
         address owner,
         address resolver,
-        address relayer,
         uint256 signatureExpiry,
         bytes memory signature,
-        string memory name
+        string calldata name
     ) public override returns (bytes32) {
         bytes32 node = claimForAddrWithSignature(
             addr,
             owner,
             resolver,
-            relayer,
             signatureExpiry,
             signature
         );
-        NameResolver(resolver).setName(node, name);
+        INameSetterResolver(resolver).setName(node, name);
         return node;
     }
 
-    /**
-     * @dev Returns the node hash for a given account's reverse records.
-     * @param addr The address to hash
-     * @return The ENS node hash.
-     */
+    /// @inheritdoc IReverseRegistrar
     function node(address addr) public pure override returns (bytes32) {
         return
             keccak256(
@@ -240,11 +180,23 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
             );
     }
 
+    /// @dev Checks if the provided address is a contract and is owned by the
+    ///      caller.
     function ownsContract(address addr) internal view returns (bool) {
+        if (addr.code.length == 0) return false;
         try Ownable(addr).owner() returns (address owner) {
             return owner == msg.sender;
-        } catch {
+        } catch (bytes memory /* lowLevelData */) {
             return false;
         }
+    }
+
+    /// @inheritdoc ERC165
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view override(ERC165) returns (bool) {
+        return
+            interfaceID == type(IReverseRegistrar).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
