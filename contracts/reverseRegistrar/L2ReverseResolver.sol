@@ -6,19 +6,13 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
-import {ENS} from "../registry/ENS.sol";
-import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {Multicallable} from "../resolvers/Multicallable.sol";
-
 import {IL2ReverseResolver} from "./IL2ReverseResolver.sol";
-import {SignatureReverseResolver, Unauthorised} from "./SignatureReverseResolver.sol";
+import {SignatureReverseResolver} from "./SignatureReverseResolver.sol";
 import {SignatureUtils} from "./SignatureUtils.sol";
 
-error NotOwnerOfContract();
-
-/**
- * A L2 reverse resolver. Deployed to each L2 chain.
- */
+/// @title L2 Reverse Resolver
+/// @notice An L2 reverse resolver. Deployed to each L2 chain.
 contract L2ReverseResolver is
     ERC165,
     Multicallable,
@@ -28,13 +22,13 @@ contract L2ReverseResolver is
     using SignatureUtils for bytes;
     using ECDSA for bytes32;
 
+    /// @notice The addr namespace. Equal to the namehash of
+    ///         `${coinTypeHex}.reverse`.
     bytes32 public immutable L2ReverseNode;
 
-    /*
-     * @dev Constructor
-     * @param _L2ReverseNode The namespace to set. The converntion is '${coinType}.reverse'
-     * @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
-     */
+    /// @notice Sets the namespace and coin type
+    /// @param _L2ReverseNode The namespace to set. The converntion is '${coinType}.reverse'
+    /// @param _coinType The cointype converted from the chainId of the chain this contract is deployed to.
     constructor(
         bytes32 _L2ReverseNode,
         uint256 _coinType
@@ -42,21 +36,14 @@ contract L2ReverseResolver is
         L2ReverseNode = _L2ReverseNode;
     }
 
+    /// @dev Checks if the caller is authorised
     function isAuthorised(address addr) internal view override {
         if (addr != msg.sender && !ownsContract(addr, msg.sender)) {
             revert Unauthorised();
         }
     }
 
-    /**
-     * @dev Sets the name for a contract that is owned by a SCW using a signature
-     * @param contractAddr The reverse node to set
-     * @param owner The owner of the contract (via Ownable)
-     * @param name The name of the reverse record
-     * @param signatureExpiry Date when the signature expires
-     * @param signature The signature of an address that will return true on isValidSignature for the owner
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IL2ReverseResolver
     function setNameForAddrWithSignatureAndOwnable(
         address contractAddr,
         address owner,
@@ -87,46 +74,33 @@ contract L2ReverseResolver is
 
         signature.validateSignatureWithExpiry(owner, message, signatureExpiry);
 
-        _setName(node, name);
-        emit ReverseClaimed(contractAddr, node);
-
+        _setName(contractAddr, node, name);
         return node;
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the calling account.
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc IL2ReverseResolver
     function setName(string calldata name) public override returns (bytes32) {
         return setNameForAddr(msg.sender, name);
     }
 
-    /**
-     * @dev Sets the `name()` record for the reverse ENS record associated with
-     * the addr provided account.
-     * Can be used if the addr is a contract that is owned by a SCW.
-     * @param name The name to set for this address.
-     * @return The ENS node hash of the reverse record.
-     */
-
+    /// @inheritdoc IL2ReverseResolver
     function setNameForAddr(
         address addr,
         string calldata name
     ) public authorised(addr) returns (bytes32) {
         bytes32 node = _getNamehash(addr);
 
-        _setName(node, name);
-        emit ReverseClaimed(addr, node);
-
+        _setName(addr, node, name);
         return node;
     }
 
+    /// @dev Checks if the provided contractAddr is a contract and is owned by the
+    ///      provided addr.
     function ownsContract(
         address contractAddr,
         address addr
     ) internal view returns (bool) {
+        if (contractAddr.code.length == 0) return false;
         try Ownable(contractAddr).owner() returns (address owner) {
             return owner == addr;
         } catch {
@@ -134,6 +108,7 @@ contract L2ReverseResolver is
         }
     }
 
+    /// @inheritdoc ERC165
     function supportsInterface(
         bytes4 interfaceID
     )

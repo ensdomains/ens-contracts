@@ -167,7 +167,7 @@ describe('ReverseRegistrar', () => {
           accounts[0].address,
           publicResolver.address,
         ])
-        .toBeRevertedWithoutReason()
+        .toBeRevertedWithCustomError('Unauthorised')
     })
 
     it('allows an authorised account to claim a different address', async () => {
@@ -304,7 +304,7 @@ describe('ReverseRegistrar', () => {
           publicResolver.address,
           'testname',
         ])
-        .toBeRevertedWithoutReason()
+        .toBeRevertedWithCustomError('Unauthorised')
     })
 
     it('allows name to be set for an address if the sender is the address', async () => {

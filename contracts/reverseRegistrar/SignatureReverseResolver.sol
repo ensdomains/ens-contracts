@@ -11,8 +11,7 @@ import {AddressUtils} from "../utils/AddressUtils.sol";
 import {ISignatureReverseResolver} from "./ISignatureReverseResolver.sol";
 import {SignatureUtils} from "./SignatureUtils.sol";
 
-error Unauthorised();
-
+/// @notice A reverse resolver that allows setting names with signatures
 contract SignatureReverseResolver is ISignatureReverseResolver, ERC165 {
     using SignatureUtils for bytes;
     using ECDSA for bytes32;
@@ -23,31 +22,27 @@ contract SignatureReverseResolver is ISignatureReverseResolver, ERC165 {
     bytes32 public immutable parentNode;
     uint256 public immutable coinType;
 
-    /*
-     * @dev Constructor
-     * @param parentNode The namespace to set.
-     * @param _coinType The coinType converted from the chainId of the chain this contract is deployed to.
-     */
+    /// @notice The caller is not authorised to perform the action
+    error Unauthorised();
+
+    /// @notice Sets the namespace and coin type
+    /// @param _parentNode The namespace to set
+    /// @param _coinType The coin type converted from the chain ID of the chain this contract is deployed to
     constructor(bytes32 _parentNode, uint256 _coinType) {
         parentNode = _parentNode;
         coinType = _coinType;
     }
 
+    /// @dev Checks if the caller is authorised
     modifier authorised(address addr) {
         isAuthorised(addr);
         _;
     }
 
+    /// @dev Checks if the caller is authorised
     function isAuthorised(address addr) internal view virtual {}
 
-    /**
-     * @dev Sets the name for an addr using a signature that can be verified with ERC1271.
-     * @param addr The reverse record to set
-     * @param name The name of the reverse record
-     * @param signatureExpiry Date when the signature expires
-     * @param signature The resolver of the reverse node
-     * @return The ENS node hash of the reverse record.
-     */
+    /// @inheritdoc ISignatureReverseResolver
     function setNameForAddrWithSignature(
         address addr,
         string calldata name,
@@ -70,39 +65,36 @@ contract SignatureReverseResolver is ISignatureReverseResolver, ERC165 {
 
         signature.validateSignatureWithExpiry(addr, message, signatureExpiry);
 
-        _setName(node, name);
-        emit ReverseClaimed(addr, node);
+        _setName(addr, node, name);
         return node;
     }
 
-    function _setName(bytes32 node, string memory newName) internal virtual {
+    /// @dev Sets the name for an address
+    function _setName(
+        address addr,
+        bytes32 node,
+        string memory newName
+    ) internal virtual {
         names[node] = newName;
-        emit NameChanged(node, newName);
+        emit NameChanged(addr, node, newName);
     }
 
-    /**
-     * Returns the name associated with an ENS node, for reverse records.
-     * Defined in EIP181.
-     * @param node The ENS node to query.
-     * @return The associated name.
-     */
+    /// @inheritdoc ISignatureReverseResolver
     function name(bytes32 node) public view returns (string memory) {
         return names[node];
     }
 
-    /**
-     * @dev Returns the node hash for a given account's reverse records.
-     * @param addr The address to hash
-     * @return The ENS node hash.
-     */
+    /// @inheritdoc ISignatureReverseResolver
     function node(address addr) public view returns (bytes32) {
         return _getNamehash(addr);
     }
 
+    /// @dev Gets the namehash for an address
     function _getNamehash(address addr) internal view returns (bytes32) {
         return keccak256(abi.encodePacked(parentNode, addr.sha3HexAddress()));
     }
 
+    /// @inheritdoc ERC165
     function supportsInterface(
         bytes4 interfaceID
     ) public view virtual override returns (bool) {

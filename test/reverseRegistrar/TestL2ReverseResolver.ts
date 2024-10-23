@@ -110,15 +110,15 @@ describe('L2ReverseResolver', () => {
       await expect(l2ReverseResolver.read.name([node])).resolves.toBe(name)
     })
 
-    it('event ReverseClaimed is emitted', async () => {
+    it('event NameChanged is emitted', async () => {
       const { l2ReverseResolver, name, node, accounts } = await loadFixture(
         setNameFixture,
       )
 
       await expect(l2ReverseResolver)
         .write('setName', [name])
-        .toEmitEvent('ReverseClaimed')
-        .withArgs(getAddress(accounts[0].address), node)
+        .toEmitEvent('NameChanged')
+        .withArgs(getAddress(accounts[0].address), node, name)
     })
   })
 
@@ -183,7 +183,7 @@ describe('L2ReverseResolver', () => {
       await expect(l2ReverseResolver.read.name([node])).resolves.toBe(name)
     })
 
-    it('event ReverseClaimed is emitted', async () => {
+    it('event NameChanged is emitted', async () => {
       const {
         l2ReverseResolver,
         name,
@@ -199,8 +199,8 @@ describe('L2ReverseResolver', () => {
           [accounts[0].address, name, signatureExpiry, signature],
           { account: accounts[1] },
         )
-        .toEmitEvent('ReverseClaimed')
-        .withArgs(getAddress(accounts[0].address), node)
+        .toEmitEvent('NameChanged')
+        .withArgs(getAddress(accounts[0].address), node, name)
     })
 
     it('reverts if signature parameters do not match', async () => {
@@ -389,7 +389,7 @@ describe('L2ReverseResolver', () => {
       await expect(l2ReverseResolver.read.name([node])).resolves.toBe(name)
     })
 
-    it('event ReverseClaimed is emitted', async () => {
+    it('event NameChanged is emitted', async () => {
       const {
         l2ReverseResolver,
         name,
@@ -413,8 +413,8 @@ describe('L2ReverseResolver', () => {
           ],
           { account: accounts[1] },
         )
-        .toEmitEvent('ReverseClaimed')
-        .withArgs(getAddress(mockOwnable.address), node)
+        .toEmitEvent('NameChanged')
+        .withArgs(getAddress(mockOwnable.address), node, name)
     })
   })
 })
