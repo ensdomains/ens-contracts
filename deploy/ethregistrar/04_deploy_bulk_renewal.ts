@@ -49,6 +49,10 @@ const func: DeployFunction = async function (hre) {
 
 func.id = 'bulk-renewal'
 func.tags = ['BulkRenewal']
-func.dependencies = ['registry']
+func.dependencies = [
+  'ENSRegistry',
+  'BaseRegistrarImplementation',
+  'ETHRegistrarController',
+]
 
 export default func
