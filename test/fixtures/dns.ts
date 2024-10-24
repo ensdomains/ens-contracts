@@ -42,7 +42,7 @@ export const rrsetWithTexts = ({
         inception,
         keyTag: 1278,
         signersName: '.',
-        signature: new Buffer([]),
+        signature: Buffer.from([]),
       },
     },
     rrs: texts.map(
@@ -81,7 +81,7 @@ export const testRrset = ({
         inception,
         keyTag: 1278,
         signersName: '.',
-        signature: new Buffer([]),
+        signature: Buffer.from([]),
       },
     },
     rrs: [
@@ -118,7 +118,7 @@ export const rootKeys = ({
       inception,
       keyTag: 1278,
       signersName: '.',
-      signature: new Buffer([]),
+      signature: Buffer.from([]),
     },
   } as const
 

@@ -258,7 +258,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -297,7 +297,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -338,7 +338,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -379,7 +379,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -420,7 +420,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: 'com',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -461,7 +461,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -494,7 +494,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: 'xample',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -535,7 +535,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -568,7 +568,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1275,
             signersName: 'test',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -667,7 +667,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -680,7 +680,7 @@ describe('DNSSEC', () => {
               keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
               algorithm: 253,
               digestType: 253,
-              digest: new Buffer('', 'hex'),
+              digest: Buffer.from('', 'hex'),
             },
           },
         ],
@@ -701,7 +701,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: 'foo',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -746,7 +746,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: '.',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
@@ -759,7 +759,7 @@ describe('DNSSEC', () => {
               keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
               algorithm: 253,
               digestType: 253,
-              digest: new Buffer('', 'hex'),
+              digest: Buffer.from('', 'hex'),
             },
           },
         ],
@@ -780,7 +780,7 @@ describe('DNSSEC', () => {
             inception,
             keyTag: 1278,
             signersName: 'test',
-            signature: new Buffer([]),
+            signature: Buffer.from([]),
           },
         },
         rrs: [
