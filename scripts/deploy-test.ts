@@ -21,7 +21,7 @@ execSync('bun run hardhat --network localhost deploy', {
   stdio: 'inherit',
   env: {
     ...process.env,
-    NODE_OPTIONS: '--experimental-loader ts-node/esm/transpile-only',
+    NODE_OPTIONS: '--import=./loader.mjs',
     BATCH_GATEWAY_URLS: '["https://example.com/"]',
   },
 })
