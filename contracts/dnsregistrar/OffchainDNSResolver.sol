@@ -86,8 +86,10 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         ) {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
+            uint256 nameOffset = 0;
+
             if (
-                !rrname.equals(name) ||
+                !name.equals(nameOffset, rrname, 0, name.length - nameOffset) ||
                 iter.class != CLASS_INET ||
                 iter.dnstype != TYPE_TXT
             ) {
@@ -199,10 +201,24 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         uint256 startIdx,
         uint256 lastIdx
     ) internal pure returns (bytes memory) {
-        // TODO: Concatenate multiple text fields
-        uint256 fieldLength = data.readUint8(startIdx);
-        assert(startIdx + fieldLength < lastIdx);
-        return data.substring(startIdx + 1, fieldLength);
+        uint256 totalLength = 0;
+        uint256 idx = startIdx;
+        while (idx < lastIdx) {
+            uint256 fieldLength = data.readUint8(idx);
+            totalLength += fieldLength;
+            idx += fieldLength + 1;
+        }
+
+        bytes memory result = new bytes(totalLength);
+        idx = startIdx;
+        uint256 resultIdx = 0;
+        while (idx < lastIdx) {
+            uint256 fieldLength = data.readUint8(idx);
+            result.strcpy(resultIdx, data, idx + 1, fieldLength);
+            resultIdx += fieldLength;
+            idx += fieldLength + 1;
+        }
+        return result;
     }
 
     function parseAndResolve(

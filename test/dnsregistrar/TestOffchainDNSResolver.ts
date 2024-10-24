@@ -2,6 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import {
+  Address,
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
@@ -12,6 +13,7 @@ import {
   zeroAddress,
   zeroHash,
   type Hex,
+  encodeFunctionResult,
 } from 'viem'
 import {
   expiration,
@@ -404,7 +406,9 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} a[60]=${testAddress}`],
         calldata,
       }),
-    ).resolves.toEqual(testAddress.toLowerCase() as Hex)
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
   })
 
   it('correctly handles extra data in the TXT record when calling a resolver that supports address resolution with valid cointype', async () => {
@@ -428,7 +432,9 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} a[${ethCoinType}]=${testAddress}`],
         calldata,
       }),
-    ).resolves.toEqual(testAddress.toLowerCase() as Hex)
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
   })
 
   it('handles extra data in the TXT record when calling a resolver that supports address resolution with invalid cointype', async () => {
@@ -584,5 +590,144 @@ describe('OffchainDNSResolver', () => {
         }),
       )
       .toBeRevertedWithCustomError('InvalidOperation')
+  })
+
+  it('should correctly concatenate multiple texts in the TXT record and resolve', async function () {
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract(
+      'DummyExtendedDNSSECResolver',
+      [],
+    )
+
+    const resolver2 = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const name = 'test.test'
+    const COIN_TYPE_ETH = 60
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+    const calldataAddr = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'addr',
+      args: [namehash(name)],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          `ENS1 ${resolver2.address} a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
+        ],
+        calldata: calldataAddr,
+      }),
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    const resultText = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `a[60]=${testAddress} t[smth]=smth.eth`,
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          `ENS1 ${resolver.address} a[60]=${testAddress} t[smth]=smth.eth`,
+        ],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(resultText)
+  })
+
+  it('should correctly do text resolution regardless of order', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract(
+      'DummyExtendedDNSSECResolver',
+      [],
+    )
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    const resultText = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `t[smth]=smth.eth ${testAddress}`,
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(resultText)
+  })
+
+  it('should correctly do text resolution regardless of order', async function () {
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'smth'],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['smth.eth']))
+  })
+
+  it('should correctly do text resolution regardless of key-value pair amount', async function () {
+    const name = 'test.test'
+
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
+      fixture,
+    )
+
+    const resolver = await hre.viem.deployContract('ExtendedDNSResolver', [])
+
+    const callDataText = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      args: [namehash(name), 'bla'],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${resolver.address} t[smth]=smth.eth t[bla]=bla.eth`],
+        calldata: callDataText,
+      }),
+    ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['bla.eth']))
   })
 })
