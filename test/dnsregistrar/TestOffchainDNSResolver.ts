@@ -14,7 +14,6 @@ import {
   zeroHash,
   type Hex,
   encodeFunctionResult,
-  stringToHex,
 } from 'viem'
 import {
   expiration,
@@ -622,7 +621,9 @@ describe('OffchainDNSResolver', () => {
         ],
         calldata: calldataAddr,
       }),
-    ).resolves.toEqual(testAddress.toLowerCase() as `0x${string}`)
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
+    )
 
     const callDataText = encodeFunctionData({
       abi: publicResolverAbi,
@@ -703,7 +704,7 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} t[smth]=smth.eth ${testAddress}`],
         calldata: callDataText,
       }),
-    ).resolves.toEqual(stringToHex('smth.eth'))
+    ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['smth.eth']))
   })
 
   it('should correctly do text resolution regardless of key-value pair amount', async function () {
@@ -727,6 +728,6 @@ describe('OffchainDNSResolver', () => {
         texts: [`ENS1 ${resolver.address} t[smth]=smth.eth t[bla]=bla.eth`],
         calldata: callDataText,
       }),
-    ).resolves.toEqual(stringToHex('bla.eth'))
+    ).resolves.toEqual(encodeAbiParameters([{ type: 'string' }], ['bla.eth']))
   })
 })

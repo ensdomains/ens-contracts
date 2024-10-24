@@ -87,9 +87,6 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
             uint256 nameOffset = 0;
-            if (checkWildcard(name)) {
-                nameOffset = 2;
-            }
 
             if (
                 !name.equals(nameOffset, rrname, 0, name.length - nameOffset) ||
@@ -171,12 +168,6 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
                 innerExtraData,
                 abi.encodeWithSelector(selector, response, innerExtraData)
             );
-    }
-
-    function checkWildcard(
-        bytes memory name
-    ) public pure returns (bool isWildcard) {
-        return name.length > 4 && uint8(name[0]) == 1 && name[1] == 0x2A;
     }
 
     function parseRR(
