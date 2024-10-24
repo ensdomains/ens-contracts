@@ -4,6 +4,12 @@ import hre from 'hardhat'
 import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
 import { getInterfaceId } from '../fixtures/createInterfaceId.js'
 import { toLabelId } from '../fixtures/utils.js'
+import { shouldSupportInterfaces } from '../wrapper/SupportsInterface.behaviour.js'
+
+const basePrice = 1n
+const fourCharPrice = 2n
+const threeCharPrice = 4n
+const secondsInDay = 86400n
 
 async function fixture() {
   const accounts = await hre.viem
@@ -51,7 +57,7 @@ async function fixture() {
   const dummyOracle = await hre.viem.deployContract('DummyOracle', [100000000n])
   const priceOracle = await hre.viem.deployContract('StablePriceOracle', [
     dummyOracle.address,
-    [0n, 0n, 4n, 2n, 1n],
+    [0n, 0n, threeCharPrice, fourCharPrice, basePrice],
   ])
   const controller = await hre.viem.deployContract('ETHRegistrarController', [
     baseRegistrar.address,
@@ -70,7 +76,8 @@ async function fixture() {
 
   // Create the bulk renewal contract
   const bulkRenewal = await hre.viem.deployContract('BulkRenewal', [
-    ensRegistry.address,
+    baseRegistrar.address,
+    controller.address,
   ])
 
   // Configure a resolver for .eth and register the controller interface
@@ -91,7 +98,7 @@ async function fixture() {
   await ensRegistry.write.setOwner([namehash('eth'), baseRegistrar.address])
 
   // Register some names
-  for (const name of ['test1', 'test2', 'test3']) {
+  for (const name of ['test1', 'test2', 'test3', 'abc', 'abcd']) {
     await baseRegistrar.write.register([
       toLabelId(name),
       accounts[1].address,
@@ -99,43 +106,410 @@ async function fixture() {
     ])
   }
 
-  return { ensRegistry, baseRegistrar, bulkRenewal, accounts }
+  return { ensRegistry, baseRegistrar, controller, bulkRenewal, accounts }
 }
 
 describe('BulkRenewal', () => {
-  it('should return the cost of a bulk renewal', async () => {
-    const { bulkRenewal } = await loadFixture(fixture)
-
-    await expect(
-      bulkRenewal.read.rentPrice([['test1', 'test2'], 86400n]),
-    ).resolves.toEqual(86400n * 2n)
+  shouldSupportInterfaces({
+    contract: () => loadFixture(fixture).then(({ bulkRenewal }) => bulkRenewal),
+    interfaces: [
+      'IFixedDurationBulkRenewal',
+      'IFixedItemPriceBulkRenewal',
+      'ITargetExpiryBulkRenewal',
+    ],
   })
 
-  it('should raise an error trying to renew a nonexistent name', async () => {
-    const { bulkRenewal } = await loadFixture(fixture)
+  describe('FixedDurationBulkRenewal', () => {
+    describe('getFixedDurationPriceData', () => {
+      it('should return the total and array of prices for a bulk renewal', async () => {
+        const { bulkRenewal } = await loadFixture(fixture)
 
-    await expect(bulkRenewal)
-      .write('renewAll', [['foobar'], 86400n])
-      .toBeRevertedWithoutReason()
+        await expect(
+          bulkRenewal.read.getFixedDurationPriceData([
+            ['abc', 'abcd', 'test1'],
+            secondsInDay,
+          ]),
+        ).resolves.toEqual([
+          secondsInDay * (threeCharPrice + fourCharPrice + basePrice),
+          [
+            secondsInDay * threeCharPrice,
+            secondsInDay * fourCharPrice,
+            secondsInDay * basePrice,
+          ],
+        ])
+      })
+      it('should revert when a name is available', async () => {
+        const { bulkRenewal } = await loadFixture(fixture)
+
+        await expect(bulkRenewal)
+          .read('getFixedDurationPriceData', [
+            ['abc', 'test1', 'test4-not-registered'],
+            secondsInDay,
+          ])
+          .toBeRevertedWithCustomError('NameAvailable')
+          .withArgs('test4-not-registered')
+      })
+    })
+    describe('renewAllWithFixedDuration', () => {
+      it('should renew all names with the fixed duration', async () => {
+        const { bulkRenewal, baseRegistrar } = await loadFixture(fixture)
+        const expiryBefore1 = await baseRegistrar.read.nameExpires([
+          toLabelId('abc'),
+        ])
+        const expiryBefore2 = await baseRegistrar.read.nameExpires([
+          toLabelId('abcd'),
+        ])
+        const expiryBefore3 = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+
+        await bulkRenewal.write.renewAllWithFixedDuration(
+          [
+            ['abc', 'abcd', 'test1'],
+            secondsInDay,
+            [
+              secondsInDay * threeCharPrice,
+              secondsInDay * fourCharPrice,
+              secondsInDay * basePrice,
+            ],
+          ],
+          {
+            value: secondsInDay * (threeCharPrice + fourCharPrice + basePrice),
+          },
+        )
+
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abc')]),
+        ).resolves.toBe(expiryBefore1 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abcd')]),
+        ).resolves.toBe(expiryBefore2 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test1')]),
+        ).resolves.toBe(expiryBefore3 + secondsInDay)
+      })
+      it('should send any excess funds back to the sender', async () => {
+        const { bulkRenewal, accounts, baseRegistrar } = await loadFixture(
+          fixture,
+        )
+
+        const expiryBefore1 = await baseRegistrar.read.nameExpires([
+          toLabelId('abc'),
+        ])
+        const expiryBefore2 = await baseRegistrar.read.nameExpires([
+          toLabelId('abcd'),
+        ])
+        const expiryBefore3 = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+
+        const publicClient = await hre.viem.getPublicClient()
+        const balanceBefore = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+
+        const tx = await bulkRenewal.write.renewAllWithFixedDuration(
+          [
+            ['abc', 'abcd', 'test1'],
+            secondsInDay,
+            [
+              secondsInDay * threeCharPrice,
+              secondsInDay * fourCharPrice,
+              secondsInDay * basePrice,
+            ],
+          ],
+          {
+            value:
+              secondsInDay * (threeCharPrice + fourCharPrice + basePrice) +
+              basePrice,
+          },
+        )
+        const receipt = await publicClient.getTransactionReceipt({ hash: tx })
+        const balanceAfter = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+        const gasValue = receipt.gasUsed * receipt.effectiveGasPrice
+        const usedValue =
+          secondsInDay * (threeCharPrice + fourCharPrice + basePrice)
+        expect(balanceBefore - balanceAfter).toBe(gasValue + usedValue)
+        await expect(
+          publicClient.getBalance({ address: bulkRenewal.address }),
+        ).resolves.toEqual(0n)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abc')]),
+        ).resolves.toBe(expiryBefore1 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abcd')]),
+        ).resolves.toBe(expiryBefore2 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test1')]),
+        ).resolves.toBe(expiryBefore3 + secondsInDay)
+      })
+    })
   })
 
-  it('should permit bulk renewal of names', async () => {
-    const { baseRegistrar, bulkRenewal } = await loadFixture(fixture)
-    const publicClient = await hre.viem.getPublicClient()
+  describe('FixedItemPriceBulkRenewal', () => {
+    describe('getFixedItemPricePriceData', () => {
+      it('should return the cost of a bulk renewal', async () => {
+        const { bulkRenewal } = await loadFixture(fixture)
 
-    const oldExpiry = await baseRegistrar.read.nameExpires([toLabelId('test2')])
+        await expect(
+          bulkRenewal.read.getFixedItemPricePriceData([
+            ['test1', 'test2'],
+            secondsInDay,
+          ]),
+        ).resolves.toEqual([
+          secondsInDay * basePrice * 2n,
+          secondsInDay * basePrice,
+        ])
+      })
+      it('should revert when name is available', async () => {
+        const { bulkRenewal } = await loadFixture(fixture)
 
-    await bulkRenewal.write.renewAll([['test1', 'test2'], 86400n], {
-      value: 86400n * 2n,
+        await expect(bulkRenewal)
+          .read('getFixedItemPricePriceData', [
+            ['test1', 'test4-not-registered'],
+            secondsInDay,
+          ])
+          .toBeRevertedWithCustomError('NameAvailable')
+          .withArgs('test4-not-registered')
+      })
+      it('should revert when a name has a different price', async () => {
+        const { bulkRenewal } = await loadFixture(fixture)
+
+        await expect(bulkRenewal)
+          .read('getFixedItemPricePriceData', [['abc', 'test1'], secondsInDay])
+          .toBeRevertedWithCustomError('NameMismatchedPrice')
+          .withArgs('test1')
+      })
+    })
+    describe('renewAllWithFixedItemPrice', () => {
+      it('should renew all names with the fixed item price', async () => {
+        const { bulkRenewal, baseRegistrar } = await loadFixture(fixture)
+        const expiryBefore1 = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+        const expiryBefore2 = await baseRegistrar.read.nameExpires([
+          toLabelId('test2'),
+        ])
+
+        await bulkRenewal.write.renewAllWithFixedItemPrice(
+          [['test1', 'test2'], secondsInDay, secondsInDay * basePrice],
+          {
+            value: secondsInDay * basePrice * 2n,
+          },
+        )
+
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test1')]),
+        ).resolves.toBe(expiryBefore1 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test2')]),
+        ).resolves.toBe(expiryBefore2 + secondsInDay)
+      })
+      it('should send any excess funds back to the sender', async () => {
+        const { bulkRenewal, accounts, baseRegistrar } = await loadFixture(
+          fixture,
+        )
+
+        const expiryBefore1 = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+        const expiryBefore2 = await baseRegistrar.read.nameExpires([
+          toLabelId('test2'),
+        ])
+
+        const publicClient = await hre.viem.getPublicClient()
+        const balanceBefore = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+
+        const tx = await bulkRenewal.write.renewAllWithFixedItemPrice(
+          [['test1', 'test2'], secondsInDay, secondsInDay * basePrice],
+          {
+            value: secondsInDay * basePrice * 2n + basePrice,
+          },
+        )
+        const receipt = await publicClient.getTransactionReceipt({ hash: tx })
+        const balanceAfter = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+        const gasValue = receipt.gasUsed * receipt.effectiveGasPrice
+        const usedValue = secondsInDay * basePrice * 2n
+        expect(balanceBefore - balanceAfter).toBe(gasValue + usedValue)
+        await expect(
+          publicClient.getBalance({ address: bulkRenewal.address }),
+        ).resolves.toEqual(0n)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test1')]),
+        ).resolves.toBe(expiryBefore1 + secondsInDay)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test2')]),
+        ).resolves.toBe(expiryBefore2 + secondsInDay)
+      })
+    })
+  })
+
+  describe('TargetExpiryBulkRenewal', () => {
+    describe('getTargetExpiryPriceData', () => {
+      it('should return the total and array of durations and prices for a bulk renewal', async () => {
+        const { bulkRenewal, baseRegistrar, controller } = await loadFixture(
+          fixture,
+        )
+
+        await controller.write.renew(['abcd', secondsInDay], {
+          value: secondsInDay * fourCharPrice,
+        })
+        await controller.write.renew(['test1', secondsInDay * 2n], {
+          value: secondsInDay * basePrice * 2n,
+        })
+
+        const currentExpiry1 = await baseRegistrar.read.nameExpires([
+          toLabelId('abc'),
+        ])
+        const currentExpiry2 = await baseRegistrar.read.nameExpires([
+          toLabelId('abcd'),
+        ])
+        const currentExpiry3 = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+
+        const targetExpiry = currentExpiry3 + secondsInDay
+
+        const expectedDurations = [
+          targetExpiry - currentExpiry1,
+          targetExpiry - currentExpiry2,
+          targetExpiry - currentExpiry3,
+        ]
+        const expectedValues = [
+          (targetExpiry - currentExpiry1) * threeCharPrice,
+          (targetExpiry - currentExpiry2) * fourCharPrice,
+          (targetExpiry - currentExpiry3) * basePrice,
+        ]
+
+        await expect(
+          bulkRenewal.read.getTargetExpiryPriceData([
+            ['abc', 'abcd', 'test1'],
+            targetExpiry,
+          ]),
+        ).resolves.toEqual([
+          expectedValues.reduce((a, b) => a + b, 0n),
+          expectedDurations,
+          expectedValues,
+        ])
+      })
+      it('should revert when a name is available', async () => {
+        const { bulkRenewal, baseRegistrar } = await loadFixture(fixture)
+
+        const currentExpiry = await baseRegistrar.read.nameExpires([
+          toLabelId('abc'),
+        ])
+
+        await expect(bulkRenewal)
+          .read('getTargetExpiryPriceData', [
+            ['abc', 'test4-not-registered'],
+            currentExpiry + secondsInDay,
+          ])
+          .toBeRevertedWithCustomError('NameAvailable')
+          .withArgs('test4-not-registered')
+      })
+      it('should revert when a name is beyond the target expiry', async () => {
+        const { bulkRenewal, baseRegistrar } = await loadFixture(fixture)
+
+        const currentExpiry = await baseRegistrar.read.nameExpires([
+          toLabelId('abc'),
+        ])
+
+        await expect(bulkRenewal)
+          .read('getTargetExpiryPriceData', [['abc'], currentExpiry - 1n])
+          .toBeRevertedWithCustomError('NameBeyondWantedExpiryDate')
+          .withArgs('abc')
+      })
     })
 
-    const newExpiry = await baseRegistrar.read.nameExpires([toLabelId('test2')])
+    describe('renewAllWithTargetExpiry', () => {
+      it('should renew all names with the target expiry', async () => {
+        const { bulkRenewal, baseRegistrar, controller } = await loadFixture(
+          fixture,
+        )
 
-    expect(newExpiry - oldExpiry).toBe(86400n)
+        await controller.write.renew(['abcd', secondsInDay], {
+          value: secondsInDay * fourCharPrice,
+        })
+        await controller.write.renew(['test1', secondsInDay * 2n], {
+          value: secondsInDay * basePrice * 2n,
+        })
 
-    // Check any excess funds are returned
-    await expect(
-      publicClient.getBalance({ address: bulkRenewal.address }),
-    ).resolves.toEqual(0n)
+        const currentExpiry = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+
+        const targetExpiry = currentExpiry + secondsInDay
+
+        const names = ['abc', 'abcd', 'test1'] as const
+        const [value, durations, prices] =
+          await bulkRenewal.read.getTargetExpiryPriceData([names, targetExpiry])
+
+        await bulkRenewal.write.renewAllWithTargetExpiry(
+          [names, durations, prices],
+          {
+            value,
+          },
+        )
+
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abc')]),
+        ).resolves.toBe(targetExpiry)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('abcd')]),
+        ).resolves.toBe(targetExpiry)
+        await expect(
+          baseRegistrar.read.nameExpires([toLabelId('test1')]),
+        ).resolves.toBe(targetExpiry)
+      })
+      it('should send any excess funds back to the sender', async () => {
+        const { bulkRenewal, accounts, controller, baseRegistrar } =
+          await loadFixture(fixture)
+
+        await controller.write.renew(['abcd', secondsInDay], {
+          value: secondsInDay * fourCharPrice,
+        })
+        await controller.write.renew(['test1', secondsInDay * 2n], {
+          value: secondsInDay * basePrice * 2n,
+        })
+
+        const publicClient = await hre.viem.getPublicClient()
+        const balanceBefore = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+
+        const currentExpiry = await baseRegistrar.read.nameExpires([
+          toLabelId('test1'),
+        ])
+
+        const targetExpiry = currentExpiry + secondsInDay
+
+        const names = ['abc', 'abcd', 'test1'] as const
+        const [value, durations, prices] =
+          await bulkRenewal.read.getTargetExpiryPriceData([names, targetExpiry])
+
+        const tx = await bulkRenewal.write.renewAllWithTargetExpiry(
+          [names, durations, prices],
+          {
+            value: value + secondsInDay,
+          },
+        )
+        const receipt = await publicClient.getTransactionReceipt({ hash: tx })
+
+        const balanceAfter = await publicClient.getBalance({
+          address: accounts[0].address,
+        })
+        const gasValue = receipt.gasUsed * receipt.effectiveGasPrice
+        expect(balanceBefore - balanceAfter).toBe(gasValue + value)
+        await expect(
+          publicClient.getBalance({ address: bulkRenewal.address }),
+        ).resolves.toEqual(0n)
+      })
+    })
   })
 })

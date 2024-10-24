@@ -9,7 +9,7 @@ interface IETHRegistrarController {
         uint256
     ) external view returns (IPriceOracle.Price memory);
 
-    function available(string memory) external returns (bool);
+    function available(string memory) external view returns (bool);
 
     function makeCommitment(
         string memory,
