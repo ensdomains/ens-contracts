@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "1.0.1",
+  "version": "1.2.2",
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "pub": "npm publish --access public",
     "prepare": "husky install",
     "wikiCheck": "bun ./scripts/wikiCheck.ts",
-    "postinstall": "bunx patch-package"
+    "postinstall": "npx patch-package"
   },
   "files": [
     "build",

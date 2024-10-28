@@ -121,9 +121,9 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         if (value.length == 0) {
             return value;
         }
-        (bytes memory record, bool valid) = value.hexToBytes(2, value.length);
+        (address record, bool valid) = value.hexToAddress(2, value.length);
         if (!valid) revert InvalidAddressFormat(value);
-        return record;
+        return abi.encode(record);
     }
 
     function _resolveAddr(
@@ -133,9 +133,9 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
         if (value.length == 0) {
             return value;
         }
-        (bytes memory record, bool valid) = value.hexToBytes(2, value.length);
+        (address record, bool valid) = value.hexToAddress(2, value.length);
         if (!valid) revert InvalidAddressFormat(value);
-        return record;
+        return abi.encode(record);
     }
 
     function _resolveText(
@@ -147,7 +147,7 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
             context,
             bytes.concat("t[", bytes(key), "]=")
         );
-        return value;
+        return abi.encode(value);
     }
 
     uint256 constant STATE_START = 0;
