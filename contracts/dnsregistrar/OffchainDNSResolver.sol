@@ -86,10 +86,9 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         ) {
             // Ignore records with wrong name, type, or class
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
-            uint256 nameOffset = 0;
 
             if (
-                !name.equals(nameOffset, rrname, 0, name.length - nameOffset) ||
+                !rrname.equals(name) ||
                 iter.class != CLASS_INET ||
                 iter.dnstype != TYPE_TXT
             ) {
