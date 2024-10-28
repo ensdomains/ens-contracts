@@ -65,13 +65,13 @@ const config = {
       accounts: real_accounts,
     },
     sepolia: {
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: 'https://rpc.ankr.com/eth_sepolia',
       tags: ['test', 'legacy', 'use_root'],
       chainId: 11155111,
       accounts: real_accounts,
     },
     holesky: {
-      url: `https://holesky-rpc.nocturnode.tech`,
+      url: 'https://rpc.ankr.com/eth_holesky',
       tags: ['test', 'legacy', 'use_root'],
       chainId: 17000,
       accounts: real_accounts,
