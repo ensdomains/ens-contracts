@@ -77,7 +77,7 @@ async function fixture() {
     calldata,
   }: {
     name: string
-    texts: string[]
+    texts: (string | string[])[]
     calldata: Hex
   }) => {
     const proof = [
@@ -596,14 +596,10 @@ describe('OffchainDNSResolver', () => {
     const { doDnsResolveCallback, publicResolverAbi } = await loadFixture(
       fixture,
     )
-
     const resolver = await hre.viem.deployContract(
       'DummyExtendedDNSSECResolver',
       [],
     )
-
-    const resolver2 = await hre.viem.deployContract('ExtendedDNSResolver', [])
-
     const name = 'test.test'
     const COIN_TYPE_ETH = 60
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
@@ -613,39 +609,66 @@ describe('OffchainDNSResolver', () => {
       args: [namehash(name)],
     })
 
-    await expect(
-      doDnsResolveCallback({
-        name,
-        texts: [
-          `ENS1 ${resolver2.address} a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
-        ],
-        calldata: calldataAddr,
-      }),
-    ).resolves.toEqual(
-      encodeAbiParameters([{ type: 'address' }], [testAddress as Address]),
-    )
-
-    const callDataText = encodeFunctionData({
-      abi: publicResolverAbi,
-      functionName: 'text',
-      args: [namehash(name), 'smth'],
-    })
-
-    const resultText = encodeFunctionResult({
+    const resultTextSingle = encodeFunctionResult({
       abi: publicResolverAbi,
       functionName: 'text',
       result: `a[60]=${testAddress} t[smth]=smth.eth`,
     })
 
+    // test with single string
     await expect(
       doDnsResolveCallback({
         name,
         texts: [
-          `ENS1 ${resolver.address} a[60]=${testAddress} t[smth]=smth.eth`,
+          `ENS1 ${resolver.address} a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
         ],
-        calldata: callDataText,
+        calldata: calldataAddr,
       }),
-    ).resolves.toEqual(resultText)
+    ).resolves.toEqual(resultTextSingle)
+
+    const resultTextSplit = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `a[${COIN_TYPE_ETH}]=${testAddress} t[smth]=smth.eth`,
+    })
+
+    // test with split strings
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          [
+            `ENS1 ${resolver.address}`,
+            ` a[${COIN_TYPE_ETH}]=${testAddress}`,
+            ` t[smth]=smth.eth`,
+          ],
+        ],
+        calldata: calldataAddr,
+      }),
+    ).resolves.toEqual(resultTextSplit)
+
+    // test with very long string
+    const longData = 'x'.repeat(300)
+
+    const resultTextLongData = encodeFunctionResult({
+      abi: publicResolverAbi,
+      functionName: 'text',
+      result: `a[${COIN_TYPE_ETH}]=${testAddress} ${longData}`,
+    })
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [
+          [
+            `ENS1 ${resolver.address} a[${COIN_TYPE_ETH}]=${testAddress}`,
+            ' ',
+            longData.slice(0, 255),
+            longData.slice(255),
+          ],
+        ],
+        calldata: calldataAddr,
+      }),
+    ).resolves.toEqual(resultTextLongData)
   })
 
   it('should correctly do text resolution regardless of order', async function () {

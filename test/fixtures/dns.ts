@@ -24,7 +24,7 @@ export const rrsetWithTexts = ({
   texts,
 }: {
   name: string
-  texts: (string | { name: string; value: string })[]
+  texts: (string | string[])[]
 }) =>
   ({
     sig: {
@@ -48,13 +48,13 @@ export const rrsetWithTexts = ({
     rrs: texts.map(
       (text) =>
         ({
-          name: typeof text === 'string' ? name : text.name,
+          name,
           type: 'TXT',
           class: 'IN',
           ttl: 3600,
-          data: [
-            Buffer.from(typeof text === 'string' ? text : text.value, 'ascii'),
-          ] as Buffer[],
+          data: Array.isArray(text)
+            ? text.map((t) => Buffer.from(t, 'ascii'))
+            : [Buffer.from(text, 'ascii')],
         } as const),
     ),
   } as const)
