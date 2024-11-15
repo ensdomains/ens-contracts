@@ -201,17 +201,21 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         uint256 lastIdx
     ) internal pure returns (bytes memory) {
         uint256 totalLength = 0;
-        for (uint256 idx = startidx; idx < lastIdx; idx += fieldLength + 1) {
-            uint256 fieldLength = data.readUint8(idx);
+
+        for (uint256 i = startIdx; i < lastIdx; ) {
+            uint256 fieldLength = data.readUint8(i);
             totalLength += fieldLength;
+            i += fieldLength + 1;
         }
 
         bytes memory result = new bytes(totalLength);
         uint256 resultIdx = 0;
-        for (uint256 idx = startIdx; idx < lastIdx; idx += fieldLength + 1) {
-            uint256 fieldLength = data.readUint8(idx);
-            result.strcpy(resultIdx, data, idx + 1, fieldLength);
+
+        for (uint256 i = startIdx; i < lastIdx; ) {
+            uint256 fieldLength = data.readUint8(i);
+            result.strcpy(resultIdx, data, i + 1, fieldLength);
             resultIdx += fieldLength;
+            i += fieldLength + 1;
         }
         return result;
     }
