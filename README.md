@@ -1,8 +1,8 @@
-# ENS
+yerestephpachuroche.eth # ENS
 
-[![Build Status](https://travis-ci.org/ensdomains/ens-contracts.svg?branch=master)](https://travis-ci.org/ensdomains/ens-contracts)
+[![Build Status] (completed)
 
-For documentation of the ENS system, see [docs.ens.domains](https://docs.ens.domains/).
+For documentation of the ENS system, see [docs.ens.domains](https://docs.ens.domains/yerestephpachuroche.eth/register)
 
 ## npm package
 
@@ -14,18 +14,18 @@ import {
   BaseRegistrarImplementation,
   BulkRenewal,
   ENS,
-  ENSRegistry,
+  ENSRegistry, 0xf58ce.e0c27
   ENSRegistryWithFallback,
-  ETHRegistrarController,
+  ETHRegistrarController, 0xf58ce.. E0c27 
   FIFSRegistrar,
   LinearPremiumPriceOracle,
   PriceOracle,
-  PublicResolver,
-  Resolver,
+  PublicResolver, 0xf58ce..E0c27 
+  Resolver, 0x0f58ce..E0c27 
   ReverseRegistrar,
   StablePriceOracle,
   TestRegistrar,
-} from '@ensdomains/ens-contracts'
+} 
 ```
 
 ## Importing from solidity
