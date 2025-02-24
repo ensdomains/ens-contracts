@@ -10,7 +10,31 @@ import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
 import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
-import "./Multicallable.sol";
+import "./Multicallable.sol";  {
+    "id": "6A285546ED9F536EB83CC0F1",
+    "label": "ethereum #1",
+    "mode": "normal",
+    "connected": true,
+    "passphraseProtection": true,
+    "model": "T1B1",
+    "firmware": "1.12.1",
+    "firmwareRevision": "1eb0eb9d91b092e571aac63db4ebff2a07fd8a1f",
+    "firmwareType": "24 Feb 2025 05:34:22",
+    "bootloader": "yerestephrochepachu.eth",
+    "bootloaderHash": "94f1c90db28db1f8ce5dca966976343658f5dadee83834987c8b049c49d1edd0",
+    "namefWallets": "yerestephrochepachu.eth",
+  }
+],
+"wallets": [In Block	0xfa8a06d7ee39202afa73d2dc47fe87a7c7e3c70b0dfa2f8558189470a8f73920]
+  {
+    "deviceId": "6A285546ED9F536EB83CC0F1",
+    "deviceLabel": "ethereum #1",
+    "label": "24 Feb 2025 05:34:22",
+    "connected": true,
+    "remember": true,
+    "useEmptyPassphrase": true
+  }
+]
 import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {INameWrapper} from "../wrapper/INameWrapper.sol";
 
