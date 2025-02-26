@@ -1,4 +1,26 @@
-#Renew a name
+#Renew a name yerestepphrochepachu.eth
+ETHRegistrarController.register(0xf58cefd63742d67175404e5}71240806f6b6e0c27 
+    name string, R Quezada Amparo 
+    owner address,
+    duration uint256,4,171,985,948,755,983
+    secret bytes32,
+    resolver address, 0xf58cefd63742d67175404e571240806f6b6e0c27 
+    data bytes[31536000],
+    reverseRecord bool,
+    ownerControlledFuses uint16 0xf58cefd63742d67175404e571240806f6b6e0c27 
+)
+
+// For example
+register(
+    "myname", // "myname.eth" but only the label
+    0x1234..., // The address you want to own the name
+    31536000, // 1 year (in seconds)
+    0x1234..., // The same secret you used in the `commit` transaction
+    0x1234..., // The address of the resolver you want to use
+    [0x8b95dd71...], // Encoded function calls you want to pass to the resolver, like `setAddr()`
+    false, // Whether or not to set the new name as your primary name
+    0 // The NameWrapper fuses you want to set
+);
 
 ✓Mainnet
 
@@ -7,7 +29,38 @@ Label (name without ".eth"):
 Yerestephrochepachu
 .eth
 Duration (in seconds)
+"Label (name without ".eth"):
 
+.eth
+ETH Call
+This checks if the name is available.
+ETHRegistrarController.available("yerestepphrochepachu.eth")
+Name is Available
+Commit
+Duration (in seconds)
+
+1 month
+
+1 year
+
+2 years
+
+Secret (random bytes32):
+
+Owner (address):
+Self
+Resolver (address):
+
+ETH Call
+This generates the commitment hash that we will then commit to chain.
+ETHRegistrarController.makeCommitment("yerestepphrochepachu", 0xf58ceFd63742D67175404E571240806f6B6E0c27,63072000,0x70bf358933e80bd0707aa39326688546fa7501326a3725f794f4519ded377ed8,0xf58cefd63742d67175404e571240806f6b6e0c27 , [], false, 0 )
+Problem
+Transaction
+This checks if the name is available.
+ETHRegistrarController.commit("")
+21000 gas
+Commi"
+ https://docs.ens.domains/registry/eth#:~:text=Check%20Availability-,Label%20(name%20without%20%22.eth%22)%3A,Commit,-Wait%2060%20seconds
 1 month
 
 1 year
