@@ -107,7 +107,15 @@ The `node` program is also built as a shared library for compatibility with futu
 
 For these reasons, using `npm run ...` will not work from the terminal, but entering the command (`webpack`) directly in the terminal will work.
 
-## NPM Install
+## NPM Install ETH Call
+Get the price of the name.
+ETHRegistrarController.rentPrice("yerestepphrochepachu", 63072000)
+Rent Price: (Base: 4,171,985,948,755,983, Premium: 0)
+Transaction
+Register the name.
+ETHRegistrarController.register("yerestepphrochepachu", 0x225f137127d9067788314bc7fcc1f36746a3c3B5,63072000,0x70bf358933e80bd0707aa39326688546fa7501326a3725f794f4519ded377ed8,0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63, [], false, 0 )
+gas
+0.004171985948755983 eth
 
 On external storage and SD cards, it is commonly using FAT32 or exFAT filesystems. These filesystems do not support symbolic links which is why npm dependencies that uses symlinks (mostly npm dependencies with command line usage symlinks) will fail on external storage.
 
