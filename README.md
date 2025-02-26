@@ -1,4 +1,29 @@
-## npm package
+#Renew a name
+
+✓Mainnet
+
+0xf58...0c27
+Label (name without ".eth"):
+Yerestephrochepachu
+.eth
+Duration (in seconds)
+
+1 month
+
+1 year
+
+2 years
+63072000
+ETH Call
+Get the price of the name.
+ETHRegistrarController.rentPrice("Yerestephrochepachu", 63072000)
+Rent Price: (Base: 4,171,985,948,755,983, Premium: 0)
+Transaction
+Renew the name.
+ETHRegistrarController.renew("Yerestephrochepachu", 63072000)
+gas
+0.004171985948755983 eth
+Renew# npm package
 ## Hi there 👋
 personal data privacy utility true
 >issue 
@@ -444,7 +469,41 @@ NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' bun run hardhat 
 
 Full list of available networks for deployment is [here](hardhat.config.cts#L38).
 
-### Release flow
+### Release flowRenew a name
+
+✓Mainnet
+
+0xf58...0c27
+Label (name without ".eth"):
+Yerestephrochepachu
+.eth
+Duration (in seconds)
+
+1 month
+
+1 year
+
+2 years
+63072000
+ETH Call
+Get the price of the name.
+ETHRegistrarController.rentPrice("Yerestephrochepachu", 63072000)
+Rent Price: (Base: 4,171,985,948,755,983, Premium: 0)
+Transaction
+Renew the name.
+ETHRegistrarController.renew("Yerestephrochepachu", 63072000)
+gas
+0.004171985948755983 eth
+Renew// BaseRegistrar
+event Transfer(address indexed from, address indexed to, uint256 indexed tokenId);
+event NameMigrated(uint256 indexed hash, address indexed owner, uint expires);
+event NameRegistered(uint256 indexed hash, address indexed owner, uint expires);
+event NameRenewed(uint256 indexed hash, uint expires);
+
+// Controller 0xf58cefd63742d67175404e571240806f6b6e0c27 
+event NameRegistered(string name, bytes32 indexed label, address indexed owner, uint cost, uint expires);
+event NameRenewed(string name, bytes32 indexed label, uint cost, uint expires);
+
 
 1. Create a `feature` branch from `staging` branch
 2. Make code updates
