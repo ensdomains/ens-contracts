@@ -433,7 +433,7 @@ export const setFusesTests = () => {
       ).resolves.toEqual(false)
 
       // can create before burn
-      // revert not approved and isn't sender because subdomain isnt owned by contract?
+      // revert not approved and isn't sender because subdomain isn't owned by contract?
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
         label: 'creatable',
