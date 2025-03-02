@@ -1,13 +1,43 @@
 name: CI
 
-on:
-  push:
+on:Token Supply Checker
+You can look up the historical supply of a token (ERC-20) at a specific block number or date.
+
+Token Contract Address *
+0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+Filter by:
+Date
+Block Number
+Date for the snapshot
+02/03/2025
+ Total Supply for Contract Address: 0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2
+date
+Snapshot Date
+3/2/2025
+block
+Block
+21960697
+token
+Token Quantity
+2,885,651.667040732425892513 WETH
+Back to Top
+Ethereum Logo
+Powered by Ethereum
+Etherscan is a Block Explorer and Analytics Platform for Ethereum, a decentralized smart contracts platform.
+
+Company true
+About wrapped ethereum/weth true
+Brand Assets true
+Contact true
+ This website uses cookies to improve
+ https://app.safe.global/home?safe=eth:0x02D61347e5c6EA5604f3f814C5b5498421cEBdEB
+  push:0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
     branches: [staging, mainnet]
-  pull_request:
+  pull_request: governance 
 
 jobs:
   wiki_address_check:
-    runs-on: ubuntu-latest
+    runs-on: test
     steps:
       - uses: actions/checkout@v4
 
