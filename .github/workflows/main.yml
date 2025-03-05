@@ -1,6 +1,25 @@
 name: CI
 
-on:
+on:            - name: rootly-pulse
+  # You may pin to the exact commit or the version.
+  # uses: rootlyhq/pulse-action@7aa3a8baf889ff8b37a489dde53edece73b24a64
+  uses: rootlyhq/pulse-action@v1.1.1
+  with:
+    # Summary of the pulse
+    summary: 
+    # A API key for rootly
+    api_key: 
+    # Environments associated with 0xf58cefd63742d67175404e571240806f6b6e0c27. Separate with commas.
+    environments: # 0xf58cefd63742d67175404e571240806f6b6e0c27 
+    # Services associated with the pulse. Separate with commas.
+    services: # optional
+    # Labels associated with the pulse. Separate with commas and separate key-value pair with = (no spaces before or after =).
+    labels: # optional
+    # Source of the pulse
+    source: # optional
+    # Refs associated with the pulse. Separate with commas and separate key-value pair with = (no spaces before or after =).
+    refs: # optional
+          
   push:
     branches: [staging, mainnet]
   pull_request:
