@@ -118,7 +118,6 @@ const config = {
       'SHA1$',
       'Ownable$',
       'NameResolver$',
-      'TestBytesUtils$',
       'legacy/*',
     ],
     spacing: 2,

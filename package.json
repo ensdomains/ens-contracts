@@ -27,6 +27,7 @@
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@types/bun": "^1.2.4",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
@@ -34,6 +35,7 @@
     "abitype": "^1.0.2",
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
+    "ethers": "^6.13.5",
     "hardhat": "^2.22.2",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
@@ -47,6 +49,7 @@
     "viem": "2.12.0"
   },
   "dependencies": {
+    "@adraffy/blocksmith": "^0.1.52",
     "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",

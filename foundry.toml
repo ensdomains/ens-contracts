@@ -1,0 +1,23 @@
+# https://book.getfoundry.sh/reference/config/overview
+
+# forge i foundry-rs/forge-std
+# forge i OpenZeppelin/openzeppelin-contracts@release-v4.1
+# forge i ensdomains/buffer
+# forge i ensdomains/solsha1
+
+[profile.default]
+src = "contracts"
+libs = ["lib"]
+evm_version = "cancun"
+optimizer = true
+optimizer_runs = 1
+remappings = [
+	'@openzeppelin/contracts=lib/openzeppelin-contracts/contracts/',
+	'@ensdomains/buffer=lib/buffer',
+	'@ensdomains/solsha1=lib/solsha1',
+]
+
+[profile.dist]
+test = "contracts" # disables tests
+out = "artifacts"
+cache = false
