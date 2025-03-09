@@ -28,7 +28,7 @@ library ENSIP19 {
         return
             dnsReverseName(
                 abi.encodePacked(addr),
-                chain == 1 ? COIN_TYPE_ETH : chain & EVM_BIT
+                chain == 1 ? COIN_TYPE_ETH : chain | EVM_BIT
             );
     }
 

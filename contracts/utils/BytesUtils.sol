@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "forge-std/console2.sol";
-
 library BytesUtils {
     error OffsetOutOfBoundsError(uint256 offset, uint256 length);
 
@@ -131,15 +129,12 @@ library BytesUtils {
                     a >>= tail; // drop
                     b >>= tail; // them
                 }
-                console2.logBytes32(bytes32(a));
-                console2.logBytes32(bytes32(b));
                 if (a < b) return -1;
                 if (a > b) return 1;
             }
             selfptr += 32;
             otherptr += 32;
         }
-        console2.log("LEN %s %s", len, otherlen);
         return
             len == otherlen
                 ? int256(0)

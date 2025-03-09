@@ -2,7 +2,7 @@ import { describe, afterAll } from 'bun:test'
 import { Foundry } from '@adraffy/blocksmith'
 import { ethers } from 'ethers'
 
-describe('a', async () => {
+describe('ForwardResolution', async () => {
   const foundry = await Foundry.launch({
     fork: 'https://rpc.ankr.com/eth',
   })
