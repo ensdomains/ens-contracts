@@ -4,30 +4,36 @@ pragma solidity ^0.8.0;
 import {Test} from "forge-std/Test.sol";
 
 import {ENSIP19} from "../../contracts/utils/ENSIP19.sol";
-import {NameEncoder} from "../../contracts/utils/NameEncoder.sol";
+import {DNSCoder} from "../../contracts/utils/DNSCoder.sol";
 
 contract TestENSIP19 is Test {
-    function test_isEVMCoinType() external pure {
-        assertTrue(ENSIP19.isEVMCoinType(60), "addr");
-        assertTrue(ENSIP19.isEVMCoinType(0x8000_0000), "default");
-        assertTrue(ENSIP19.isEVMCoinType(0x8000_0000 | 8453), "base");
-        assertFalse(ENSIP19.isEVMCoinType(0), "null");
-        assertFalse(ENSIP19.isEVMCoinType(1), "corn");
+    function test_chainFromCoinType() external pure {
+        assertEq(ENSIP19.chainFromCoinType(60), 1);
+        assertEq(ENSIP19.chainFromCoinType(0x8000_0000), 0);
+        assertEq(ENSIP19.chainFromCoinType(0x8000_0000 | 8453), 8453);
+        assertEq(ENSIP19.chainFromCoinType(0), 0);
+        assertEq(ENSIP19.chainFromCoinType(1), 0);
     }
 
     function test_dnsReverseName_fromChain() external pure {
         address a = 0x51050ec063d393217B436747617aD1C2285Aeeee;
         assertEq(
             ENSIP19.dnsReverseName(a, 1),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.addr.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.addr.reverse"
+            )
         );
         assertEq(
             ENSIP19.dnsReverseName(a, 0),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.default.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.default.reverse"
+            )
         );
         assertEq(
             ENSIP19.dnsReverseName(a, 8453),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.80002105.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.80002105.reverse"
+            )
         );
     }
 
@@ -35,23 +41,27 @@ contract TestENSIP19 is Test {
         bytes memory a = hex"51050ec063d393217B436747617aD1C2285Aeeee";
         assertEq(
             ENSIP19.dnsReverseName(a, 60),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.addr.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.addr.reverse"
+            )
         );
         assertEq(
             ENSIP19.dnsReverseName(a, 0x8000_0000),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.default.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.default.reverse"
+            )
         );
         assertEq(
             ENSIP19.dnsReverseName(a, 0),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.0.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.0.reverse"
+            )
         );
         assertEq(
             ENSIP19.dnsReverseName(a, 1),
-            _dns("51050ec063d393217b436747617ad1c2285aeeee.1.reverse")
+            DNSCoder.encode(
+                "51050ec063d393217b436747617ad1c2285aeeee.1.reverse"
+            )
         );
-    }
-
-    function _dns(string memory ens) internal pure returns (bytes memory dns) {
-        (dns, ) = NameEncoder.dnsEncodeName(ens);
     }
 }

@@ -165,9 +165,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         assembly {
             for {
                 let i := 40
-            } gt(i, 0) {
-
-            } {
+            } gt(i, 0) {} {
                 i := sub(i, 1)
                 mstore8(i, byte(and(addr, 0xf), lookup))
                 addr := div(addr, 0x10)

@@ -10,7 +10,8 @@ import dotenv from 'dotenv'
 import 'hardhat-abi-exporter'
 import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
-import { HardhatUserConfig } from 'hardhat/config'
+import { HardhatUserConfig, subtask } from 'hardhat/config'
+import { TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS } from 'hardhat/builtin-tasks/task-names'
 
 import('@ensdomains/hardhat-chai-matchers-viem')
 
@@ -33,6 +34,14 @@ if (process.env.DEPLOYER_KEY) {
 
 // circular dependency shared with actions
 export const archivedDeploymentPath = './deployments/archive'
+
+// skip foundry tests
+subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
+  async (_, __, runSuper) => {
+    const paths = await runSuper()
+    return paths.filter((p) => !p.endsWith('.t.sol'))
+  },
+)
 
 const config = {
   networks: {

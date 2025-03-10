@@ -1,7 +1,6 @@
 import hre from 'hardhat'
 
 const contracts = [
-  'contracts/test/TestBytesUtils.sol:TestBytesUtils',
   'contracts/test/TestRRUtils.sol:TestRRUtils',
 ] as const
 

@@ -6,6 +6,7 @@ import {Test} from "forge-std/Test.sol";
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {HexUtils} from "../../contracts/utils/HexUtils.sol";
 
+/// forge-config: default.allow_internal_expect_revert = true
 contract TestHexUtils is Test {
     function test_hexStringToBytes32() external pure {
         (bytes32 x, ) = HexUtils.hexStringToBytes32(
@@ -33,19 +34,16 @@ contract TestHexUtils is Test {
         assertFalse(ok);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_hexToBytesRagged() external {
         vm.expectRevert(); //abi.encodeWithSignature("Error(string)", "Invalid string length"));
         HexUtils.hexToBytes("f", 0, 1);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_hexToBytesBeyondStart() external {
         vm.expectRevert(new bytes(0));
         HexUtils.hexToBytes("", 10, 12);
     }
 
-    /// forge-config: default.allow_internal_expect_revert = true
     function test_hexToBytesBeyondEnd() external {
         vm.expectRevert(new bytes(0));
         HexUtils.hexToBytes("", 0, 10);

@@ -9,16 +9,23 @@ uint256 constant COIN_TYPE_ETH = 60;
 uint256 constant EVM_BIT = 1 << 31;
 
 library ENSIP19 {
-    /*
-     * @dev Determine if coinType should fallback to default.reverse
+    /**
+     * @dev Extract Chain ID from `coinType`
+     * @return chain EVM_BIT and non-EVM Chains = 0
      */
-    function isEVMCoinType(uint256 coinType) internal pure returns (bool) {
+    function chainFromCoinType(
+        uint256 coinType
+    ) internal pure returns (uint32 chain) {
+        if (coinType == COIN_TYPE_ETH) return 1;
         return
-            coinType == COIN_TYPE_ETH ||
-            (uint32(coinType) == coinType && (coinType & EVM_BIT) != 0);
+            uint32(
+                uint32(coinType) == coinType && (coinType & EVM_BIT) != 0
+                    ? coinType & ~EVM_BIT
+                    : 0
+            );
     }
 
-    /*
+    /**
      * @dev Generate DNS-encoded Reverse Name from EVM Address + Chain ID
      */
     function dnsReverseName(
@@ -32,7 +39,7 @@ library ENSIP19 {
             );
     }
 
-    /*
+    /**
      * @dev Generate DNS-encoded Reverse Name from Encoded Address + Coin Type
      */
     function dnsReverseName(

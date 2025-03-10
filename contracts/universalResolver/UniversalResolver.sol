@@ -12,14 +12,13 @@ import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IResolveMulticall} from "../utils/IResolveMulticall.sol";
 import {IUniversalResolver} from "./IUniversalResolver.sol";
-import {NameEncoder} from "../utils/NameEncoder.sol";
-import {NameDecoder} from "../utils/NameDecoder.sol";
+import {DNSCoder} from "../utils/DNSCoder.sol";
 import {ENSIP19, EVM_BIT, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
 import {BytesUtilsEncrypted} from "../utils/BytesUtilsEncrypted.sol";
 import {HexUtils} from "../utils/HexUtils.sol";
 
 contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
-    IForwardResolution forwardResolution;
+    IForwardResolution public forwardResolution;
 
     event ForwardResolutionChanged();
 
@@ -213,31 +212,32 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         ) {
             primary = abi.decode(res[0].data, (bytes));
         }
-        bool evm = ENSIP19.isEVMCoinType(state.coinType);
+        bool useFallback = ENSIP19.chainFromCoinType(state.inputCoinType) != 0;
         bytes memory v;
         if (primary.length == 0) {
-            if (evm && state.coinType != EVM_BIT) {
+            if (useFallback) {
                 v = _reverseWithFallback(
                     state.encodedAddress,
                     EVM_BIT,
-                    state.inputCoinType,
+                    state.inputCoinType, // remember the original coinType
                     state.gateways
                 );
             } else {
-                return ("", _extractResolver(lookup), address(0));
+                // NOTE: we could throw ResolverError()
+                // there might be 2 errors (for both attempts)
+                return ("", address(0), _extractResolver(lookup));
             }
         } else {
-            (bytes memory name, bytes32 node) = NameEncoder.dnsEncodeName(
-                string(primary)
-            );
-            bytes[] memory calls = new bytes[](evm ? 2 : 1);
+            bytes memory name = DNSCoder.encode(string(primary));
+			bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
+            bytes[] memory calls = new bytes[](useFallback ? 2 : 1);
             calls[0] = state.inputCoinType == COIN_TYPE_ETH
                 ? abi.encodeCall(IAddrResolver.addr, (node))
                 : abi.encodeCall(
                     IAddressResolver.addr,
                     (node, state.inputCoinType)
                 );
-            if (evm) {
+            if (useFallback) {
                 calls[1] = abi.encodeCall(
                     IAddressResolver.addr,
                     (node, EVM_BIT)

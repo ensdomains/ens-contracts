@@ -4,16 +4,18 @@
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
-    "compile": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat compile",
-    "test": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat test",
-    "test:parallel": "NODE_OPTIONS=\"--experimental-loader ts-node/esm/transpile-only\" hardhat test ./test/**/Test*.ts --parallel",
-    "test:local": "hardhat --network localhost test",
+    "hh": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' hardhat",
+    "compile": "bun hh compile",
+    "test": "bun hh test",
+    "test:parallel": "bun hh test ./test/**/Test*.ts --parallel",
+    "test:local": "bun hh --network localhost test",
     "test:deploy": "bun ./scripts/deploy-test.ts",
-    "lint": "hardhat check",
-    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "lint": "bun hh check",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && bun hh compile && tsc",
     "format": "prettier --write .",
     "prepublishOnly": "bun run build",
     "pub": "npm publish --access public",
+    "prepare": "husky install",
     "wikiCheck": "bun ./scripts/wikiCheck.ts"
   },
   "files": [
@@ -24,6 +26,7 @@
   ],
   "main": "index.js",
   "devDependencies": {
+    "@adraffy/blocksmith": "^0.1.52",
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
@@ -49,7 +52,6 @@
     "viem": "2.12.0"
   },
   "dependencies": {
-    "@adraffy/blocksmith": "^0.1.52",
     "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
     "@openzeppelin/contracts": "^4.1.0",

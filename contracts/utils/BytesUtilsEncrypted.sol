@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 
 import {HexUtils} from "../utils/HexUtils.sol";
 
-/*
+/**
  * @notice An encrypted label matches /^\[[0-9a-f]{64}\]$/i
  *         eg. [af2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc] = "vitalik"
  */
 
 library BytesUtilsEncrypted {
-    /*
+    /**
      * @dev Same as BytesUtils.readLabel() but supports encrypted labels
      */
     function readLabel(
@@ -35,7 +35,7 @@ library BytesUtilsEncrypted {
         }
     }
 
-    /*
+    /**
      * @dev Same as BytesUtils.namehash() but supports encrypted labels
      */
     function namehash(

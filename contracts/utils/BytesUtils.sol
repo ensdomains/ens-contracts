@@ -4,12 +4,12 @@ pragma solidity ^0.8.4;
 library BytesUtils {
     error OffsetOutOfBoundsError(uint256 offset, uint256 length);
 
-    /*
+    /**
      * @dev Returns the keccak-256 hash of a byte range.
      * @param self The byte string to hash.
      * @param offset The position to start hashing at.
      * @param len The number of bytes to hash.
-     * @return The hash of the byte range.
+     * @return ret The hash of the byte range.
      */
     function keccak(
         bytes memory self,
@@ -62,7 +62,7 @@ library BytesUtils {
         newIdx = idx + len + 1;
     }
 
-    /*
+    /**
      * @dev Returns a positive number if `other` comes lexicographically after
      *      `self`, a negative number if it comes before, or zero if the
      *      contents of the two bytes are equal.
@@ -77,7 +77,7 @@ library BytesUtils {
         return compare(self, 0, self.length, other, 0, other.length);
     }
 
-    /*
+    /**
      * @dev +1 if `other` comes lexicographically after `self`,
      *      -1 if `other` comes before,
      *      or 0 if the contents of the two bytes are equal.
@@ -143,7 +143,7 @@ library BytesUtils {
                     : int256(1);
     }
 
-    /*
+    /**
      * @dev Returns true if the two byte ranges are equal.
      * @param self The first byte range to compare.
      * @param offset The offset into the first byte range.
@@ -162,7 +162,7 @@ library BytesUtils {
         return keccak(self, offset, len) == keccak(other, otherOffset, len);
     }
 
-    /*
+    /**
      * @dev Returns true if the two byte ranges are equal with offsets.
      * @param self The first byte range to compare.
      * @param offset The offset into the first byte range.
@@ -181,7 +181,7 @@ library BytesUtils {
             keccak(other, otherOffset, other.length - otherOffset);
     }
 
-    /*
+    /**
      * @dev Compares a range of 'self' to all of 'other' and returns True iff
      *      they are equal.
      * @param self The first byte range to compare.
@@ -199,7 +199,7 @@ library BytesUtils {
             equals(self, offset, other, 0, other.length);
     }
 
-    /*
+    /**
      * @dev Returns true if the two byte ranges are equal.
      * @param self The first byte range to compare.
      * @param other The second byte range to compare.
@@ -214,11 +214,11 @@ library BytesUtils {
             equals(self, 0, other, 0, self.length);
     }
 
-    /*
+    /**
      * @dev Returns the 8-bit number at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes
-     * @return The specified 8 bits of the string, interpreted as an integer.
+     * @return ret The specified 8 bits of the string, interpreted as an integer.
      */
     function readUint8(
         bytes memory self,
@@ -227,11 +227,11 @@ library BytesUtils {
         return uint8(self[idx]);
     }
 
-    /*
+    /**
      * @dev Returns the 16-bit number at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes
-     * @return The specified 16 bits of the string, interpreted as an integer.
+     * @return ret The specified 16 bits of the string, interpreted as an integer.
      */
     function readUint16(
         bytes memory self,
@@ -243,11 +243,11 @@ library BytesUtils {
         }
     }
 
-    /*
+    /**
      * @dev Returns the 32-bit number at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes
-     * @return The specified 32 bits of the string, interpreted as an integer.
+     * @return ret The specified 32 bits of the string, interpreted as an integer.
      */
     function readUint32(
         bytes memory self,
@@ -259,11 +259,11 @@ library BytesUtils {
         }
     }
 
-    /*
+    /**
      * @dev Returns the 32 byte value at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes
-     * @return The specified 32 bytes of the string.
+     * @return ret The specified 32 bytes of the string.
      */
     function readBytes32(
         bytes memory self,
@@ -275,11 +275,11 @@ library BytesUtils {
         }
     }
 
-    /*
+    /**
      * @dev Returns the 32 byte value at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes
-     * @return The specified 32 bytes of the string.
+     * @return ret The specified 32 bytes of the string.
      */
     function readBytes20(
         bytes memory self,
@@ -294,12 +294,12 @@ library BytesUtils {
         }
     }
 
-    /*
+    /**
      * @dev Returns the n byte value at the specified index of self.
      * @param self The byte string.
      * @param idx The index into the bytes.
      * @param len The number of bytes.
-     * @return The specified 32 bytes of the string.
+     * @return ret The specified 32 bytes of the string.
      */
     function readBytesN(
         bytes memory self,
@@ -335,7 +335,7 @@ library BytesUtils {
         }
     }
 
-    /*
+    /**
      * @dev Copies a substring into a new byte string.
      * @param self The byte string to copy from.
      * @param offset The offset to start copying at.

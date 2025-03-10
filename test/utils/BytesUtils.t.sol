@@ -9,6 +9,7 @@ import {HexUtils} from "../../contracts/utils/HexUtils.sol";
 // https://adraffy.github.io/keccak.js/test/demo.html#algo=namehash&s=eth&escape=1&encoding=utf8
 bytes32 constant ETH_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
+/// forge-config: default.allow_internal_expect_revert = true
 contract TestBytesUtils is Test {
     function test_keccak_empty() external pure {
         assertEq(BytesUtils.keccak("", 0, 0), keccak256(""));
@@ -166,12 +167,32 @@ contract TestBytesUtils is Test {
         );
     }
 
+    function test_readLabel_vitalik_eth() external {
+        // https://adraffy.github.io/keccak.js/test/demo.html#algo=dns-encoded&s=vitalik.eth&escape=1&encoding=utf8
+        bytes memory dns = hex"07766974616c696b0365746800";
+        uint256 pos;
+        bytes32 labelHash;
+        (labelHash, pos) = BytesUtils.readLabel(dns, pos);
+        assertEq(labelHash, keccak256("vitalik"));
+        (labelHash, pos) = BytesUtils.readLabel(dns, pos);
+        assertEq(labelHash, keccak256("eth"));
+        (labelHash, pos) = BytesUtils.readLabel(dns, pos);
+        assertEq(labelHash, bytes32(0));
+        assertEq(pos, dns.length);
+        vm.expectRevert(); // "readLabel: Index out of bounds"
+        (labelHash, pos) = BytesUtils.readLabel(dns, pos);
+    }
+
     function testFuzz_readLabel(string memory label) external pure {
         vm.assume(bytes(label).length > 0 && bytes(label).length < 256);
         bytes memory name = _nameDotEth(label);
         (bytes32 labelHash, uint256 offset) = BytesUtils.readLabel(name, 0);
         assertEq(labelHash, keccak256(bytes(label)));
-        assertEq(offset, name.length - 5);
+        assertEq(offset, name.length - 5); // "3eth0"
+    }
+
+    function test_namehash_empty() external pure {
+        assertEq(BytesUtils.namehash(hex"00", 0), bytes32(0));
     }
 
     function testFuzz_namehash(string memory label) external pure {

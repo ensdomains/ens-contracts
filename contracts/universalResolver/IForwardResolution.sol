@@ -7,6 +7,7 @@ struct Lookup {
     bytes32 node; // namehash(dns)
     bytes32 basenode; // namehash(dns.slice(offset))
     address resolver; // resolver(basenode), null if invalid
+    address subregistry; // v2 support?
     bool extended; // IExtendedResolver
 }
 
