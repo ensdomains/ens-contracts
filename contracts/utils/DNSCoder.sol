@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-// inspired from: https://github.com/unruggable-labs/unruggable-resolve/blob/main/contracts/DNSCoder.sol
+// source: https://github.com/unruggable-labs/unruggable-resolve/blob/main/contracts/DNSCoder.sol
 
 /*
 MIT License
@@ -26,6 +26,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
+import {HexUtils} from "../utils/HexUtils.sol";
 
 // observations:
 // - ens.length = dns.length - 2
@@ -71,51 +73,78 @@ library DNSCoder {
         }
     }
 
-    /**
-     * @param ens ENS name, eg. "aaa.bb.c"
-     * @return dns DNS-encoded name, eg. "3aaa2bb1c0"
-     * @notice reverts DNSEncodingFailed()
-     * @notice  NameEncoder.dnsEncodeName()
-     */
     function encode(
         string memory ens
+    ) internal pure returns (bytes memory dns) {
+        return encode(ens, false);
+    }
+
+    /**
+     * @param ens ENS name, eg. "aaa.bb.c"
+     * @param useEncryption Encrypt long labels
+     * @return dns DNS-encoded name, eg. "3aaa2bb1c0"
+     * @notice reverts DNSEncodingFailed()
+     */
+    function encode(
+        string memory ens,
+        bool useEncryption
     ) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
             if (n == 0) return hex"00"; // root
             dns = new bytes(n + 2); // always 2-longer
-            uint256 w;
-            uint256 e;
-            uint256 r;
+            uint256 start;
             assembly {
-                e := add(dns, 32)
-                r := e // remember start
-                for {
-                    let a := add(ens, 32) // start of name
-                    let b := add(a, n) // end of name
-                } lt(a, b) {
-                    a := add(a, 1)
-                } {
-                    let x := shr(248, mload(a)) // read byte
-                    if eq(x, 46) {
-                        w := sub(e, r) // length of label
-                        if or(iszero(w), gt(w, 255)) {
-                            break
-                        } // something wrong
-                        mstore8(r, w) // store length at start
-                        r := add(e, 1) // update start
-                    }
-                    {
-                        e := add(e, 1)
-                        mstore8(e, x)
+                start := add(dns, 32)
+            }
+            uint256 end = start;
+            for (uint256 i; i < n; i++) {
+                bytes1 x = bytes(ens)[i];
+                if (x == ".") {
+                    start = _encodeLabel(start, end, useEncryption);
+                    if (start == 0) revert DNSEncodingFailed(ens);
+                    end = start;
+                } else {
+                    assembly {
+                        end := add(end, 1)
+                        mstore(end, x)
                     }
                 }
             }
-            w = e - r; // length of last label
-            if (w == 0 || w > 255) revert DNSEncodingFailed(ens);
+            start = _encodeLabel(start, end, useEncryption);
+            if (start == 0) revert DNSEncodingFailed(ens);
             assembly {
-                mstore8(r, w) // store length
+                mstore8(start, 0) // terminal byte
+                mstore(dns, sub(start, add(dns, 31))) // truncate length
             }
         }
     }
+
+    function _encodeLabel(
+        uint256 start,
+        uint256 end,
+        bool useEncryption
+    ) internal pure returns (uint256 next) {
+        uint256 size = end - start;
+        if (size > 255) {
+            if (useEncryption) {
+                assembly {
+                    mstore(0, keccak256(add(start, 1), size))
+                }
+                HexUtils.unsafeHex(0, start + 2, 64);
+                assembly {
+                    mstore8(start, 66)
+                    mstore8(add(start, 1), 0x5B) // [
+                    mstore8(add(start, 66), 0x5D) // ]
+                }
+                next = start + 67;
+            }
+        } else if (size > 0) {
+            assembly {
+                mstore8(start, size)
+            }
+            next = end + 1;
+        }
+    }
+
 }

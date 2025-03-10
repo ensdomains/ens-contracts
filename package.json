@@ -15,7 +15,6 @@
     "format": "prettier --write .",
     "prepublishOnly": "bun run build",
     "pub": "npm publish --access public",
-    "prepare": "husky install",
     "wikiCheck": "bun ./scripts/wikiCheck.ts"
   },
   "files": [

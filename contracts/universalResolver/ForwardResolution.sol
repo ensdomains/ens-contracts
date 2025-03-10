@@ -76,7 +76,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         uint256 offchain; // count how many offchain
         for (uint256 i; i < res.length; i++) {
             bytes memory call = calls[i];
-            (bool ok, bytes memory v) = _callResolver(lookup, call);
+            (, bool ok, bytes memory v) = _callResolver(lookup, call);
             Response memory r = res[i];
             r.call = call; // remember calldata (post-inject, pre-resolve)
             r.data = v;
@@ -92,7 +92,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
             assembly {
                 mstore(offchainCalls, offchain)
             }
-            (bool ok, bytes memory v) = _callResolver(
+            (bytes memory call, bool ok, bytes memory v) = _callResolver(
                 lookup,
                 abi.encodeCall(IResolveMulticall.multicall, (offchainCalls))
             );
@@ -100,7 +100,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
                 // assumes resolvers that revert for resolve(multicall) support wrapping
                 ccipRead(
                     lookup.resolver,
-                    v,
+                    call,
                     this.resolveMulticallCallback.selector,
                     abi.encode(lookup, res)
                 );
@@ -111,8 +111,9 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
 
     function _callResolver(
         Lookup memory lookup,
-        bytes memory call
-    ) internal view returns (bool ok, bytes memory v) {
+        bytes memory call0
+    ) internal view returns (bytes memory call, bool ok, bytes memory v) {
+        call = call0;
         if (lookup.extended)
             call = abi.encodeCall(
                 IExtendedResolver.resolve,
@@ -208,6 +209,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         bytes memory carry
     ) external pure returns (Lookup memory lookup, Response[] memory res) {
         (lookup, res) = abi.decode(carry, (Lookup, Response[]));
+        if (lookup.extended) ccip = abi.decode(ccip, (bytes)); // unwrap
         bytes[] memory m = abi.decode(ccip, (bytes[]));
         uint256 expected;
         for (uint256 i; i < res.length; i++) {

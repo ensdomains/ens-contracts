@@ -38,7 +38,7 @@ export const archivedDeploymentPath = './deployments/archive'
 // skip foundry tests
 subtask(TASK_COMPILE_SOLIDITY_GET_SOURCE_PATHS).setAction(
   async (_, __, runSuper) => {
-    const paths = await runSuper()
+    const paths = await runSuper() as string[];
     return paths.filter((p) => !p.endsWith('.t.sol'))
   },
 )

@@ -47,7 +47,7 @@ library ENSIP19 {
         uint256 coinType
     ) internal pure returns (bytes memory) {
         require(
-            encodedAddress.length < 128,
+            encodedAddress.length <= 128,
             "dnsReverseName: address too long"
         );
         string memory hexAddr = HexUtils.bytesToHex(encodedAddress);

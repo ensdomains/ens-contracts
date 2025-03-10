@@ -17,7 +17,12 @@ import {ENSIP19, EVM_BIT, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
 import {BytesUtilsEncrypted} from "../utils/BytesUtilsEncrypted.sol";
 import {HexUtils} from "../utils/HexUtils.sol";
 
-contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
+contract UniversalResolver2 is
+    IUniversalResolver,
+    IERC165,
+    CCIPReader,
+    Ownable
+{
     IForwardResolution public forwardResolution;
 
     event ForwardResolutionChanged();
@@ -113,8 +118,28 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         }
     }
 
+    // function reverse(
+    //     address addr,
+    //     uint32 chain
+    // )
+    //     external
+    //     view
+    //     returns (
+    //         string memory /*primary*/,
+    //         address /*resolver*/,
+    //         address /*reverseResolver*/
+    //     )
+    // {
+    //     return
+    //         reverseWithGateways(
+    //             abi.encodePacked(addr),
+    //             chain | EVM_BIT,
+    //             new string[](0)
+    //         );
+    // }
+
     function reverse(
-        bytes calldata encodedAddress,
+        bytes memory encodedAddress,
         uint256 coinType
     )
         external
@@ -129,7 +154,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
     }
 
     function reverseWithGateways(
-        bytes calldata encodedAddress,
+        bytes memory encodedAddress,
         uint256 coinType,
         string[] memory gateways
     )
@@ -228,7 +253,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
                 return ("", address(0), _extractResolver(lookup));
             }
         } else {
-            bytes memory name = DNSCoder.encode(string(primary));
+            bytes memory name = DNSCoder.encode(string(primary), true);
             bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
             bytes[] memory calls = new bytes[](useFallback ? 2 : 1);
             calls[0] = state.inputCoinType == COIN_TYPE_ETH

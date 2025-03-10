@@ -35,9 +35,13 @@ contract TestDNSCoder is Test {
     }
 
     function test_labelTooLong() external {
-        bytes memory a = bytes("a");
-        while (a.length < 256) a = bytes.concat(a, a);
-        _testInvalidENS(string(a));
+        string memory a = "a";
+        while (bytes(a).length < 256) a = string.concat(a, a);
+        assertEq(
+            DNSCoder.encode(a, true),
+            "\x42[1daa7034adab66d9ec9e03e2c89201b83a7497e85dc5b971aa9dae2ccbb7a208]\x00"
+        );
+        _testInvalidENS(a);
     }
 
     function test_wrongLength() external {

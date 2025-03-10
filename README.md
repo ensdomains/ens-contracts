@@ -153,12 +153,14 @@ This repo runs a husky precommit to prettify all contract files to keep them con
 git clone https://github.com/ensdomains/ens-contracts
 cd ens-contracts
 bun i
+forge i
 ```
 
 ### How to run tests
 
 ```
 bun run test
+forge test
 ```
 
 ### How to publish

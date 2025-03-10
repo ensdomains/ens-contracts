@@ -100,81 +100,90 @@ library HexUtils {
     /**
      * @dev Converts an address to a hex string
      */
-    function addressToHex(address addr) internal pure returns (string memory) {
+    function addressToHex(
+        address addr
+    ) internal pure returns (string memory hexString) {
         // return bytesToHex(abi.encodePacked(addr));
+        hexString = new string(40);
+        uint256 dst;
         assembly {
             mstore(0, addr)
+            dst := add(hexString, 32)
         }
-        return unsafeMemoryToHex(12, 20);
+        unsafeHex(12, dst, 40);
     }
 
     /**
      * @dev Converts an uint256 to a hex string without zero padding
-     * @notice Special case: unpaddedUintToHex(0, true) = "0"
+     * @notice unpaddedUintToHex(0, true) = "0"
+     * @notice unpaddedUintToHex(0, false) = "00"
      */
     function unpaddedUintToHex(
         uint256 value,
-        bool dropLeadingZeroNibble
+        bool dropZeroNibble
     ) internal pure returns (string memory hexString) {
-        assembly {
-            mstore(0, value)
-        }
-        uint256 skip = 0;
+        uint256 temp = value;
+        uint256 shift;
         for (uint256 b = 128; b >= 8; b >>= 1) {
-            if (value < (1 << b)) {
-                skip += b >> 3;
+            if (temp < (1 << b)) {
+                shift += b; // number of zero upper bits
             } else {
-                value >>= b;
+                temp >>= b; // shift away lower half
             }
         }
-        hexString = unsafeMemoryToHex(skip, 32 - skip);
-        if (dropLeadingZeroNibble && bytes(hexString)[0] == "0") {
-            assembly {
-                mstore(add(hexString, 1), sub(mload(hexString), 1)) // drop leading
-                hexString := add(hexString, 1)
-            }
+        if (dropZeroNibble && temp < 16) shift += 4;
+        uint256 nibbles = 64 - (shift >> 2);
+        hexString = new string(nibbles);
+        uint256 dst;
+        assembly {
+            mstore(0, shl(shift, value)) // left-align
+            dst := add(hexString, 32)
         }
+        unsafeHex(0, dst, nibbles);
     }
 
     /**
-     * @dev Converts a bytes to a hex string
+     * @dev Converts bytes to a hex string
      */
-    function bytesToHex(bytes memory v) internal pure returns (string memory) {
-        uint256 ptr;
+    function bytesToHex(
+        bytes memory v
+    ) internal pure returns (string memory hexString) {
+        uint256 nibbles = v.length << 1;
+        hexString = new string(nibbles);
+        uint256 src;
+        uint256 dst;
         assembly {
-            ptr := add(v, 32)
+            src := add(v, 32)
+            dst := add(hexString, 32)
         }
-        return unsafeMemoryToHex(ptr, v.length);
+        unsafeHex(src, dst, nibbles);
     }
 
     /**
      * @dev Converts arbitrary memory to a hex string
-     * @param ptr Memory offset of first byte
-     * @param size Number of bytes
+     * @param src Memory offset of first nibble of input
+     * @param dst Memory offset of first hex-char of output
+     * @param nibbles Number of nibbles to convert
      */
-    function unsafeMemoryToHex(
-        uint256 ptr,
-        uint256 size
-    ) internal pure returns (string memory) {
-        size <<= 1; // convert to nibbles
-        bytes memory v = new bytes(size);
-        for (uint256 i; i < size; ptr += 32) {
-            uint256 word;
-            assembly {
-                word := mload(ptr)
-            }
-            uint256 shift = 256;
-            while (i < size && shift > 0) {
-                v[i++] = _nibbleToHexChar(uint8((word >> (shift -= 4)) & 15));
+    function unsafeHex(
+        uint256 src,
+        uint256 dst,
+        uint256 nibbles
+    ) internal pure {
+        unchecked {
+            for (uint256 end = dst + nibbles; dst < end; src += 32) {
+                uint256 word;
+                assembly {
+                    word := mload(src)
+                }
+                for (uint256 shift = 256; dst < end && shift > 0; dst++) {
+                    uint256 b = (word >> (shift -= 4)) & 15; // each nibble
+                    b = b < 10 ? b + 0x30 : b + 0x57; // ("a" - 10) => 0x57
+                    assembly {
+                        mstore8(dst, b)
+                    }
+                }
             }
         }
-        return string(v);
-    }
-
-    function _nibbleToHexChar(
-        uint8 nibble
-    ) internal pure returns (bytes1 hexChar) {
-        // "0" => 0x30, ("a" - 10) => 0x57
-        return bytes1(nibble < 10 ? nibble + 0x30 : nibble + 0x57);
     }
 }
