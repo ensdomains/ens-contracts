@@ -229,7 +229,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             }
         } else {
             bytes memory name = DNSCoder.encode(string(primary));
-			bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
+            bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
             bytes[] memory calls = new bytes[](useFallback ? 2 : 1);
             calls[0] = state.inputCoinType == COIN_TYPE_ETH
                 ? abi.encodeCall(IAddrResolver.addr, (node))

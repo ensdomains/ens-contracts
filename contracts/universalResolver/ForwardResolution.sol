@@ -48,7 +48,12 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
             offset = 1 + size;
             node = BytesUtilsEncrypted.namehash(dns, offset);
         }
-        if (ERC165.supportsInterface(resolver, type(IExtendedResolver).interfaceId)) {
+        if (
+            ERC165.supportsInterface(
+                resolver,
+                type(IExtendedResolver).interfaceId
+            )
+        ) {
             lookup.extended = true;
         } else if (offset != 0) {
             return lookup; // non-extended resolver requires exact match
@@ -174,9 +179,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
                 if (failures[expected++]) {
                     r.bits |= ResponseBits.RESOLVED | ResponseBits.ERROR; // ccip-read failed
                 } else {
-                    OffchainLookupTuple memory x = EIP3668.decode(
-                        r.data
-                    );
+                    OffchainLookupTuple memory x = EIP3668.decode(r.data);
                     bool ok;
                     (ok, v) = x.sender.staticcall(
                         abi.encodeWithSelector(x.selector, v, x.carry)

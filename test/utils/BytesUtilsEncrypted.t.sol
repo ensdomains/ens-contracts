@@ -12,10 +12,10 @@ bytes32 constant ETH_NODE = 0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a
 contract TestBytesUtilsEncrypted is Test {
     function testFuzz_readLabel(string memory label) external pure {
         bytes32 h0 = keccak256(bytes(label));
-		bytes memory name = _encryptedNameDotEth(h0);
+        bytes memory name = _encryptedNameDotEth(h0);
         (bytes32 h1, uint256 offset) = BytesUtilsEncrypted.readLabel(name, 0);
         assertEq(h0, h1);
-		assertEq(offset, name.length - 5);
+        assertEq(offset, name.length - 5);
     }
 
     function testFuzz_namehash(string memory label) external pure {

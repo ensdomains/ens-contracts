@@ -1,8 +1,6 @@
 import hre from 'hardhat'
 
-const contracts = [
-  'contracts/test/TestRRUtils.sol:TestRRUtils',
-] as const
+const contracts = ['contracts/test/TestRRUtils.sol:TestRRUtils'] as const
 
 contracts.forEach((contract) => {
   async function fixture() {
