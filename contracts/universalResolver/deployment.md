@@ -54,7 +54,7 @@ graph LR;
 	]
 	reverse_linea-- resolver -->resolver_linea[
 		<a href="https://github.com/ensdomains/ens-evmgateway/blob/master/crosschain-reverse-resolver/contracts/L1ReverseResolver.sol">L1ReverseResolver</a>
-		Linea				
+		Linea
 	]
 	reverse_3c-- resolver -->resolver_addr[NYI];
 	reverse_80000000-- resolver -->resolver_default;
@@ -67,7 +67,7 @@ graph LR;
 		*Record*
 		name&lpar;**5105.addr.reverse**&rpar; &rarr; raffy.eth
 	]
-    reverse_addr_5105-- resolver -->resolver_pr[PublicResolver]	
+    reverse_addr_5105-- resolver -->resolver_pr[PublicResolver]
     reverse_addr-.->reverse_addr_1234[**1234.addr.reverse**];
 	resolver_pr o--o resolver_pr_1234[
 		*Record*
@@ -75,16 +75,16 @@ graph LR;
 	]
 	resolver_pr o--o resolver_pr_ghost[
 		*Record*
-		addr&lpar;ghost.eth, 0x80000000&rpar; &rarr; 0x0001 
+		addr&lpar;ghost.eth, 0x80000000&rpar; &rarr; 0x0001
 	]
-	reverse_addr_1234-- resolver -->resolver_pr[PublicResolver]	
+	reverse_addr_1234-- resolver -->resolver_pr[PublicResolver]
 	resolver_base-. verifier .->verifier_base[
 		<a href="https://github.com/unruggable-labs/unruggable-gateways/blob/main/contracts/op/OPFaultVerifier.sol">OPFaultVerifier</a>
 		Base
 	]
 	verifier_base-. rollup .->rollup_base[
 		<a href="https://etherscan.io/address/0xbEb5Fc579115071764c7423A4f12eDde41f106Ed">OptimismPortal</a>
-		Base		
+		Base
 	]
 	resolver_linea-. verifier .->verifier_linea[
 		<a href="https://github.com/unruggable-labs/unruggable-gateways/blob/main/contracts/linea/LineaVerifier.sol">LineaVerifier</a>
@@ -136,48 +136,48 @@ graph LR;
 ## Resolution Examples
 
 1. `resolve("5105.addr.reverse", name())`
-	* `resolver("5105.addr.reverse") = PublicResolver`
-		* `name() = "raffy.eth"`
-		* `resolve("raffy.eth", multicall(addr(), addr(0x80000000)))`
-			* `resolver("raffy.eth") = TheOffchainResolver`
-				* `resolve() = [0x5105, 0x]`
-				* `checkedAddress = 0x5105`
-	* ✅️ `0x5105 == 0x5105`
+   - `resolver("5105.addr.reverse") = PublicResolver`
+     - `name() = "raffy.eth"`
+     - `resolve("raffy.eth", multicall(addr(), addr(0x80000000)))`
+       - `resolver("raffy.eth") = TheOffchainResolver`
+         - `resolve() = [0x5105, 0x]`
+         - `checkedAddress = 0x5105`
+   - ✅️ `0x5105 == 0x5105`
 1. `resolve("1234.addr.reverse", name())`
-	* `resolver("1234.addr.reverse") = PublicResolver`
-		* `resolve(name()) = ""`
-		* 🛑️
+   - `resolver("1234.addr.reverse") = PublicResolver`
+     - `resolve(name()) = ""`
+     - 🛑️
 1. `resolve("0001.addr.reverse", name()`
-	* `resolver("0001.addr.reverse") = null`
-	* `resolver("addr.reverse") = DefaultReverseResolver`
-		* `resolve(name()) = "ghost.eth"`
-		* `resolve("ghost.eth", multicall(addr(), addr(0x80000000)))`
-			* `resolver("ghost.eth") = PublicResolver`
-				* `resolve() = [0x, 0x0001]`
-				`checkedAddress = 0x0001`
-	* ✅️ `0x0001 == 0x0001`
+   - `resolver("0001.addr.reverse") = null`
+   - `resolver("addr.reverse") = DefaultReverseResolver`
+     - `resolve(name()) = "ghost.eth"`
+     - `resolve("ghost.eth", multicall(addr(), addr(0x80000000)))`
+       - `resolver("ghost.eth") = PublicResolver`
+         - `resolve() = [0x, 0x0001]`
+           `checkedAddress = 0x0001`
+   - ✅️ `0x0001 == 0x0001`
 1. `resolve("5105.default.reverse", name())`
-	* `resolver("5105.default.reverse") = null`
-	* `resolver("default.reverse") = DefaultReverseResolver`
-		* `resolve(name()) = ""`
-		* 🛑️
+   - `resolver("5105.default.reverse") = null`
+   - `resolver("default.reverse") = DefaultReverseResolver`
+     - `resolve(name()) = ""`
+     - 🛑️
 1. `resolve("5105.80000000.reverse", name())`
-	* *same as above*
+   - _same as above_
 1. `resolve("5105.8000e708.reverse", name())`
-	* `resolver("5105.8000e708.reverse) = null`
-	* `resolver("8000e708.reverse") = L1ReverseResolver`
-		* `resolve(name()) = "raffy.eth"` (L1 &rarr; L2)
-		* `resolve("raffy.eth", multicall(addr(0x8000e708), addr(0x80000000)))`
-			* `resolver("raffy.eth") = TheOffchainResolver`
-				* `resolve() = [0x, 0x]`
-				* 🛑️
+   - `resolver("5105.8000e708.reverse) = null`
+   - `resolver("8000e708.reverse") = L1ReverseResolver`
+     - `resolve(name()) = "raffy.eth"` (L1 &rarr; L2)
+     - `resolve("raffy.eth", multicall(addr(0x8000e708), addr(0x80000000)))`
+       - `resolver("raffy.eth") = TheOffchainResolver`
+         - `resolve() = [0x, 0x]`
+         - 🛑️
 1. `resolve("0001.8000e708.reverse", name())`
-	* `resolver("0001.8000e708.reverse) = null`
-	* `resolver("8000e708.reverse") = L1ReverseResolver`
-		* `resolve(name()) = "ghost.linea.eth"` (L1 &rarr; L2)
-		* `resolve("ghost.linea.eth", multicall(addr(0x8000e708), addr(0x80000000)))`
-			* `resolver("ghost.linea.eth") = null`
-			* `resolver("linea.eth") = LineaL1Resolver`
-				* `resolve() = [0x0002, 0x]`
-				* `checkedAddress = 0x0002`
-	* 🛑️ `0x0001 != 0x0002`
+   - `resolver("0001.8000e708.reverse) = null`
+   - `resolver("8000e708.reverse") = L1ReverseResolver`
+     - `resolve(name()) = "ghost.linea.eth"` (L1 &rarr; L2)
+     - `resolve("ghost.linea.eth", multicall(addr(0x8000e708), addr(0x80000000)))`
+       - `resolver("ghost.linea.eth") = null`
+       - `resolver("linea.eth") = LineaL1Resolver`
+         - `resolve() = [0x0002, 0x]`
+         - `checkedAddress = 0x0002`
+   - 🛑️ `0x0001 != 0x0002`
