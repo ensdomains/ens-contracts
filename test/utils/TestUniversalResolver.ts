@@ -26,7 +26,11 @@ import {
   getReverseNode,
   getReverseNodeHash,
 } from '../fixtures/getReverseNode.js'
-import { BATCHED_GATEWAY_LOCAL, BATCHED_GATEWAY_DNE, OFFCHAIN_DNS_GATEWAY, } from '../fixtures/gateways.js';
+import {
+  BATCHED_GATEWAY_LOCAL,
+  BATCHED_GATEWAY_DNE,
+  OFFCHAIN_DNS_GATEWAY,
+} from '../fixtures/gateways.js'
 
 // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
 // This is the extraData value the universal resolver should encode
@@ -483,7 +487,7 @@ describe('UniversalResolver', () => {
         ],
       })
 
-	  getAddress(universalResolver.address)
+      getAddress(universalResolver.address)
 
       await expect(universalResolver)
         .read('resolve', [dnsEncodeName('offchain.test.eth'), callData])

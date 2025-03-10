@@ -32,7 +32,7 @@ import {HexUtils} from "../utils/HexUtils.sol";
 // observations:
 // - ens.length = dns.length - 2
 // - ens is offset 1-byte with lengths replaced with "."
-// - ens <=> dns mapping is injective
+// - ens <=> dns mapping is injective (when there no long names)
 
 /// @dev The DNS-encoded name is incorrectly encoded
 error DNSDecodingFailed(bytes dns);
@@ -54,8 +54,8 @@ library DNSCoder {
             if (n == 1 && dns[0] == 0) return ""; // only valid answer is root
             if (n < 3) revert DNSDecodingFailed(dns);
             bytes memory v = new bytes(n - 2); // always 2-shorter
-            uint256 src = 0;
-            uint256 dst = 0;
+            uint256 src;
+            uint256 dst;
             while (src < n) {
                 uint8 len = uint8(dns[src++]);
                 if (len == 0) break;
@@ -81,13 +81,13 @@ library DNSCoder {
 
     /**
      * @param ens ENS name, eg. "aaa.bb.c"
-     * @param useEncryption Encrypt long labels
+     * @param encryptLongNames Encrypt labels longer than 255
      * @return dns DNS-encoded name, eg. "3aaa2bb1c0"
      * @notice reverts DNSEncodingFailed()
      */
     function encode(
         string memory ens,
-        bool useEncryption
+        bool encryptLongNames
     ) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
@@ -101,7 +101,7 @@ library DNSCoder {
             for (uint256 i; i < n; i++) {
                 bytes1 x = bytes(ens)[i];
                 if (x == ".") {
-                    start = _encodeLabel(start, end, useEncryption);
+                    start = _encodeLabel(start, end, encryptLongNames);
                     if (start == 0) revert DNSEncodingFailed(ens);
                     end = start;
                 } else {
@@ -111,7 +111,7 @@ library DNSCoder {
                     }
                 }
             }
-            start = _encodeLabel(start, end, useEncryption);
+            start = _encodeLabel(start, end, encryptLongNames);
             if (start == 0) revert DNSEncodingFailed(ens);
             assembly {
                 mstore8(start, 0) // terminal byte
@@ -123,11 +123,11 @@ library DNSCoder {
     function _encodeLabel(
         uint256 start,
         uint256 end,
-        bool useEncryption
+        bool encryptLongNames
     ) internal pure returns (uint256 next) {
         uint256 size = end - start;
         if (size > 255) {
-            if (useEncryption) {
+            if (encryptLongNames) {
                 assembly {
                     mstore(0, keccak256(add(start, 1), size))
                 }
@@ -146,5 +146,4 @@ library DNSCoder {
             next = end + 1;
         }
     }
-
 }

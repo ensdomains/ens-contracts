@@ -166,49 +166,23 @@ contract UniversalResolver2 is
             address /*reverseResolver*/
         )
     {
-        bytes memory v = _reverseWithFallback(
-            encodedAddress,
-            coinType,
-            coinType,
-            gateways
+        bytes[] memory calls = new bytes[](1);
+        bytes memory name = ENSIP19.dnsReverseName(encodedAddress, coinType);
+        bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
+        calls[0] = abi.encodeCall(INameResolver.name, (node));
+        bytes memory v = ccipRead(
+            address(forwardResolution),
+            abi.encodeCall(IForwardResolution.resolve, (name, calls, gateways)),
+            this.reverseNameCallback.selector,
+            abi.encode(ReverseCarry(encodedAddress, coinType, gateways))
         );
         assembly {
             return(add(v, 32), mload(v))
         }
     }
 
-    function _reverseWithFallback(
-        bytes memory encodedAddress,
-        uint256 coinType,
-        uint256 inputCoinType,
-        string[] memory gateways
-    ) internal view returns (bytes memory) {
-        bytes[] memory calls = new bytes[](1);
-        bytes memory name = ENSIP19.dnsReverseName(encodedAddress, coinType);
-        bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
-        calls[0] = abi.encodeCall(INameResolver.name, (node));
-        return
-            ccipRead(
-                address(forwardResolution),
-                abi.encodeCall(
-                    IForwardResolution.resolve,
-                    (name, calls, gateways)
-                ),
-                this.reverseNameCallback.selector,
-                abi.encode(
-                    ReverseCarry(
-                        encodedAddress,
-                        inputCoinType,
-                        coinType,
-                        gateways
-                    )
-                )
-            );
-    }
-
     struct ReverseCarry {
         bytes encodedAddress;
-        uint256 inputCoinType;
         uint256 coinType;
         string[] gateways;
     }
@@ -222,62 +196,41 @@ contract UniversalResolver2 is
         returns (
             string memory /*primary*/,
             address /*resolver*/,
-            address /*reverseResolver*/
+            address reverseResolver
         )
     {
         (Lookup memory lookup, Response[] memory res) = abi.decode(
             ccip,
             (Lookup, Response[])
         );
+        reverseResolver = _extractResolver(lookup);
         ReverseCarry memory state = abi.decode(carry, (ReverseCarry));
-        bytes memory primary;
-        if (
-            lookup.resolver != address(0) &&
-            (res[0].bits & ResponseBits.ERROR) == 0
-        ) {
-            primary = abi.decode(res[0].data, (bytes));
+        if (res[0].bits & ResponseBits.ERROR != 0) {
+            revert ResolverError(res[0].data);
         }
-        bool useFallback = ENSIP19.chainFromCoinType(state.inputCoinType) != 0;
-        bytes memory v;
+        bytes memory primary = abi.decode(res[0].data, (bytes));
         if (primary.length == 0) {
-            if (useFallback) {
-                v = _reverseWithFallback(
-                    state.encodedAddress,
-                    EVM_BIT,
-                    state.inputCoinType, // remember the original coinType
-                    state.gateways
-                );
-            } else {
-                // NOTE: we could throw ResolverError()
-                // there might be 2 errors (for both attempts)
-                return ("", address(0), _extractResolver(lookup));
-            }
-        } else {
-            bytes memory name = DNSCoder.encode(string(primary), true);
-            bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
-            bytes[] memory calls = new bytes[](useFallback ? 2 : 1);
-            calls[0] = state.inputCoinType == COIN_TYPE_ETH
-                ? abi.encodeCall(IAddrResolver.addr, (node))
-                : abi.encodeCall(
-                    IAddressResolver.addr,
-                    (node, state.inputCoinType)
-                );
-            if (useFallback) {
-                calls[1] = abi.encodeCall(
-                    IAddressResolver.addr,
-                    (node, EVM_BIT)
-                );
-            }
-            v = ccipRead(
-                address(forwardResolution),
-                abi.encodeCall(
-                    IForwardResolution.resolve,
-                    (name, calls, state.gateways)
-                ),
-                this.reverseAddressCallback.selector,
-                abi.encode(state.encodedAddress, primary, lookup.resolver)
-            );
+            return ("", address(0), reverseResolver);
         }
+        bytes memory name = DNSCoder.encode(string(primary), true);
+        bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
+        bool checkFallback = ENSIP19.chainFromCoinType(state.coinType) != 0;
+        bytes[] memory calls = new bytes[](checkFallback ? 2 : 1);
+        calls[0] = state.coinType == COIN_TYPE_ETH
+            ? abi.encodeCall(IAddrResolver.addr, (node))
+            : abi.encodeCall(IAddressResolver.addr, (node, state.coinType));
+        if (checkFallback) {
+            calls[1] = abi.encodeCall(IAddressResolver.addr, (node, EVM_BIT));
+        }
+        bytes memory v = ccipRead(
+            address(forwardResolution),
+            abi.encodeCall(
+                IForwardResolution.resolve,
+                (name, calls, state.gateways)
+            ),
+            this.reverseAddressCallback.selector,
+            abi.encode(state.encodedAddress, primary, reverseResolver)
+        );
         assembly {
             return(add(v, 32), mload(v))
         }

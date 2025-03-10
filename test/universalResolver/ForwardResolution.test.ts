@@ -3,14 +3,11 @@ import { Foundry } from '@adraffy/blocksmith'
 import { ethers } from 'ethers'
 
 const tests = [
-	{
-		name: 'raffy.eth',
-		records: [
-			[60n, '0x51050ec063d393217B436747617aD1C2285Aeeee']
-		]
-	}
-];
-
+  {
+    name: 'raffy.eth',
+    records: [[60n, '0x51050ec063d393217B436747617aD1C2285Aeeee']],
+  },
+]
 
 describe('ForwardResolution', async () => {
   const foundry = await Foundry.launch({
@@ -18,11 +15,18 @@ describe('ForwardResolution', async () => {
   })
   afterAll(foundry.shutdown)
 
-  
-  const { abi: IAddrResolver } = await foundry.resolveArtifact({ file: 'IAddrResolver' })
-  const { abi: IAddressResolver } = await foundry.resolveArtifact({ file: 'IAddressResolver' })
-  const { abi: ITextResolver } = await foundry.resolveArtifact({ file: 'ITextResolver' })
-  const { abi: IContenthashResolver } = await foundry.resolveArtifact({ file: 'IContenthashResolver' })
+  const { abi: IAddrResolver } = await foundry.resolveArtifact({
+    file: 'IAddrResolver',
+  })
+  const { abi: IAddressResolver } = await foundry.resolveArtifact({
+    file: 'IAddressResolver',
+  })
+  const { abi: ITextResolver } = await foundry.resolveArtifact({
+    file: 'ITextResolver',
+  })
+  const { abi: IContenthashResolver } = await foundry.resolveArtifact({
+    file: 'IContenthashResolver',
+  })
 
   describe('deploy', async function () {
     const ForwardResolution = await foundry.deploy({
@@ -35,18 +39,17 @@ describe('ForwardResolution', async () => {
 
     const answer = await ForwardResolution.resolve(
       ethers.dnsEncode('raffy.eth'),
-      [IAddrResolver.encodeFunctionData('addr', [ethers.namehash('raffy.eth')])],
+      [
+        IAddrResolver.encodeFunctionData('addr', [
+          ethers.namehash('raffy.eth'),
+        ]),
+      ],
       [],
       { enableCcipRead: true },
     )
     console.log(answer)
-
-
-
+  })
 })
-})
-
-
 
 // import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 // import { expect } from 'chai'

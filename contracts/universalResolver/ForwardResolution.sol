@@ -114,11 +114,12 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         bytes memory call0
     ) internal view returns (bytes memory call, bool ok, bytes memory v) {
         call = call0;
-        if (lookup.extended)
+        if (lookup.extended) {
             call = abi.encodeCall(
                 IExtendedResolver.resolve,
                 (lookup.dns, call)
             ); // wrap
+        }
         (ok, v) = lookup.resolver.staticcall(call); // call it
         if (ok && lookup.extended) v = abi.decode(v, (bytes)); // unwrap
     }
