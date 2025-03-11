@@ -20,7 +20,7 @@ library ENSIP19 {
         return
             uint32(
                 uint32(coinType) == coinType && (coinType & EVM_BIT) != 0
-                    ? coinType & ~EVM_BIT
+                    ? coinType ^ EVM_BIT
                     : 0
             );
     }

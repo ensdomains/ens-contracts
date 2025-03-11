@@ -12,7 +12,7 @@ interface IUniversalResolver {
     error ReverseAddressMismatch(bytes inputAddress, bytes checkedAddress);
 
     /// @notice The resolver is not a contract.
-    error ResolverNotContract(bytes name);
+    error ResolverNotContract(bytes name, address resolver);
 
     /// @notice The resolver returned an error.
     error ResolverError(bytes returnData);

@@ -282,10 +282,10 @@ contract UniversalResolver2 is
     ) internal view returns (address resolver) {
         resolver = lookup.resolver;
         if (resolver == address(0)) {
-            revert ResolverNotFound(lookup.dns);
+            revert ResolverNotFound(lookup.name);
         }
         if (resolver.code.length == 0) {
-            revert ResolverNotContract(lookup.dns);
+            revert ResolverNotContract(lookup.name, resolver);
         }
     }
 }

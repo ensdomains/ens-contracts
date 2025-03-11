@@ -2,7 +2,7 @@
 pragma solidity ^0.8.17;
 
 struct Lookup {
-    bytes dns; // dns-encoded name (safe to decode)
+    bytes name; // dns-encoded name (safe to decode)
     uint256 offset; // byte offset into dns for basename
     bytes32 node; // namehash(dns)
     bytes32 basenode; // namehash(dns.slice(offset))
@@ -29,10 +29,10 @@ error LengthMismatch();
 interface IForwardResolution {
     function registry() external view returns (address);
     function lookupName(
-        bytes memory dns
+        bytes memory name
     ) external view returns (Lookup memory lookup);
     function resolve(
-        bytes memory dns,
+        bytes memory name,
         bytes[] memory calls,
         string[] memory batchedGateways
     ) external view returns (Lookup memory lookup, Response[] memory res);

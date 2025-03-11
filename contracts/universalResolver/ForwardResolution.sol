@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
@@ -32,21 +31,21 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
     }
 
     function lookupName(
-        bytes memory dns
+        bytes memory name
     ) public view returns (Lookup memory lookup) {
         // https://docs.ens.domains/ensip/10
         uint256 offset;
         address resolver;
-        bytes32 node = BytesUtilsEncrypted.namehash(dns, 0);
-        lookup.dns = dns;
+        bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
+        lookup.name = name;
         lookup.node = node;
         while (true) {
             resolver = ENS(registry).resolver(node);
-            if (resolver != address(0)) break;
-            uint256 size = uint8(dns[offset]);
+            if (resolver != address(0)) break; // found a resolver
+            uint256 size = uint8(name[offset]);
             if (size == 0) return lookup; // no match
             offset = 1 + size;
-            node = BytesUtilsEncrypted.namehash(dns, offset);
+            node = BytesUtilsEncrypted.namehash(name, offset);
         }
         if (
             ERC165.supportsInterface(
@@ -60,15 +59,15 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         }
         lookup.resolver = resolver;
         lookup.basenode = node; // node of resolver
-        lookup.offset = offset;
+        lookup.offset = offset; // offset into name
     }
 
     function resolve(
-        bytes memory dns,
+        bytes memory name,
         bytes[] memory calls,
         string[] memory gateways
     ) external view returns (Lookup memory lookup, Response[] memory res) {
-        lookup = lookupName(dns);
+        lookup = lookupName(name);
         if (lookup.resolver == address(0)) return (lookup, res);
         res = new Response[](calls.length); // create result storage
         if (gateways.length == 0) gateways = batchedGateways; // use default
@@ -98,12 +97,19 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
             );
             if (!ok && bytes4(v) == OffchainLookup.selector) {
                 // assumes resolvers that revert for resolve(multicall) support wrapping
-                ccipRead(
-                    lookup.resolver,
-                    call,
-                    this.resolveMulticallCallback.selector,
-                    abi.encode(lookup, res)
-                );
+                // ********************************************************************************
+                // NOTE: this is a temporary detection technique for resolvers that always revert
+                (, ok, v) = _callResolver(lookup, hex"00000000");
+                if (ok || bytes4(v) != OffchainLookup.selector) {
+                    // must succeed OR not revert OffchainLookup()
+                    // ********************************************************************************
+                    ccipRead(
+                        lookup.resolver,
+                        call,
+                        this.resolveMulticallCallback.selector,
+                        abi.encode(lookup, res)
+                    );
+                }
             }
         }
         _revertBatchedGateway(lookup, res, gateways);
@@ -117,7 +123,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         if (lookup.extended) {
             call = abi.encodeCall(
                 IExtendedResolver.resolve,
-                (lookup.dns, call)
+                (lookup.name, call)
             ); // wrap
         }
         (ok, v) = lookup.resolver.staticcall(call); // call it
@@ -187,12 +193,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
                         abi.encodeWithSelector(x.selector, v, x.carry)
                     );
                     if (ok) {
-                        if (
-                            bytes4(x.request) ==
-                            IExtendedResolver.resolve.selector
-                        ) {
-                            v = abi.decode(v, (bytes)); // unwrap
-                        }
+                        if (lookup.extended) v = abi.decode(v, (bytes)); // unwrap
                         r.bits |= ResponseBits.RESOLVED;
                     } else if (bytes4(v) != OffchainLookup.selector) {
                         r.bits |= ResponseBits.RESOLVED | ResponseBits.ERROR; // callback failed
