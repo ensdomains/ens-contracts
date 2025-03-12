@@ -11,7 +11,7 @@ import {
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { expect } from 'chai'
 
-describe('serveBatchedGateway', () => {
+describe('TestLocalBatchedGateway', () => {
   it('OffchainDNSOracle', async () => {
     const { shutdown, batchedGatewayURL } = await serveBatchedGateway()
     after(shutdown)

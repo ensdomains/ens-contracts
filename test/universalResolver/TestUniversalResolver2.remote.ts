@@ -27,7 +27,7 @@ async function fixture() {
 }
 
 ;(isForkedMainnet() ? describe : describe.skip)(
-  'UniversalResolver2 @ mainnet',
+  'TestUniversalResolver2 @ mainnet',
   () => {
     for (const x of KNOWN_RESOLUTIONS) {
       it(`resolve: ${x.style}: ${x.name}`, async () => {

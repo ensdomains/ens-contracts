@@ -39,7 +39,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
         lookup.name = name;
         lookup.node = node;
-        lookup.registry = registry;
+        lookup.registry = registry; // always the same
         while (true) {
             resolver = ENS(registry).resolver(node);
             if (resolver != address(0)) break; // found a resolver

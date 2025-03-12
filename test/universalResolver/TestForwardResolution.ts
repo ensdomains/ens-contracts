@@ -12,7 +12,12 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchedGateway } from '../fixtures/batchedGateway.js'
-import { ADDR_ABI, parentOf, RESOLVE_MULTICALL, RESPONSE_BITS } from './testUtils.js'
+import {
+  ADDR_ABI,
+  parentOf,
+  RESOLVE_MULTICALL,
+  RESPONSE_BITS,
+} from './testUtils.js'
 
 async function fixture() {
   const wallets = await hre.viem.getWalletClients()
@@ -70,7 +75,7 @@ async function fixture() {
 
 const testName = 'nick.eth'
 
-describe.only('ForwardResolution', () => {
+describe('TestForwardResolution', () => {
   it('invalid dns encoding', async () => {
     const F = await loadFixture(fixture)
     await expect(
