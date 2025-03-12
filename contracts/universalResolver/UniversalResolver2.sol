@@ -42,10 +42,6 @@ contract UniversalResolver2 is
         emit ForwardResolutionChanged();
     }
 
-    function registry() external view returns (address) {
-        return forwardResolution.registry();
-    }
-
     function findResolver(
         bytes calldata name
     )
@@ -53,7 +49,11 @@ contract UniversalResolver2 is
         view
         returns (address resolver, bytes32 namehash, uint256 finalOffset)
     {
-        Lookup memory lookup = forwardResolution.lookupName(name);
+        (Lookup memory lookup, ) = forwardResolution.resolve(
+            name,
+            new bytes[](0),
+            new string[](0)
+        );
         resolver = lookup.resolver;
         namehash = lookup.node;
         finalOffset = lookup.offset;

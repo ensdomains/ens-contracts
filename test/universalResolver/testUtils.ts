@@ -27,6 +27,11 @@ export const PROFILE_ABI = parseAbi([
   'function contenthash(bytes32) external view returns (bytes)',
 ])
 
+export function parentOf(name: string) {
+  const i = name.indexOf('.')
+  return i == -1 ? '' : name.slice(i + 1)
+}
+
 // see: contracts/universalResolver/
 export const RESPONSE_BITS = {
   ERROR: 1n << 0n,

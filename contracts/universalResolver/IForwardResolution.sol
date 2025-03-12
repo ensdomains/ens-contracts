@@ -3,18 +3,18 @@ pragma solidity ^0.8.17;
 
 struct Lookup {
     bytes name; // dns-encoded name (safe to decode)
-    uint256 offset; // byte offset into dns for basename
-    bytes32 node; // namehash(dns)
-    bytes32 basenode; // namehash(dns.slice(offset))
+    uint256 offset; // byte offset into name for basename
+    bytes32 node; // namehash(name)
+    bytes32 basenode; // namehash(name.slice(offset))
     address resolver; // resolver(basenode), null if invalid
-    bool extended; // IExtendedResolver
-    //address subregistry; // v2 support?
+    address registry; // v1 => registry, v2 => subregistry
+    bool extended; // is IExtendedResolver
 }
 
 struct Response {
     uint256 bits; // ResponseBits
-    bytes call; // record calldata
-    bytes data; // answer (or error)
+    bytes call; // original calldata
+    bytes data; // response (or error, if ERROR bit set)
 }
 
 library ResponseBits {
@@ -27,10 +27,6 @@ library ResponseBits {
 error LengthMismatch();
 
 interface IForwardResolution {
-    function registry() external view returns (address);
-    function lookupName(
-        bytes memory name
-    ) external view returns (Lookup memory lookup);
     function resolve(
         bytes memory name,
         bytes[] memory calls,

@@ -39,6 +39,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
         lookup.name = name;
         lookup.node = node;
+        lookup.registry = registry;
         while (true) {
             resolver = ENS(registry).resolver(node);
             if (resolver != address(0)) break; // found a resolver
@@ -139,22 +140,22 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
         BatchedGatewayQuery[] memory queries = new BatchedGatewayQuery[](
             res.length
         );
-        uint256 missing;
+        uint256 unresolved;
         for (uint256 i; i < res.length; i++) {
             Response memory r = res[i];
             if ((r.bits & ResponseBits.RESOLVED) == 0) {
                 r.bits |= ResponseBits.BATCHED;
                 OffchainLookupTuple memory x = EIP3668.decode(r.data);
-                queries[missing++] = BatchedGatewayQuery(
+                queries[unresolved++] = BatchedGatewayQuery(
                     x.sender,
                     x.gateways,
                     x.request
                 );
             }
         }
-        if (missing > 0) {
+        if (unresolved > 0) {
             assembly {
-                mstore(queries, missing)
+                mstore(queries, unresolved)
             }
             revert OffchainLookup(
                 address(this),

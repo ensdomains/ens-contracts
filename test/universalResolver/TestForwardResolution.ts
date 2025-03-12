@@ -12,7 +12,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchedGateway } from '../fixtures/batchedGateway.js'
-import { ADDR_ABI, RESOLVE_MULTICALL, RESPONSE_BITS } from './testUtils.js'
+import { ADDR_ABI, parentOf, RESOLVE_MULTICALL, RESPONSE_BITS } from './testUtils.js'
 
 async function fixture() {
   const wallets = await hre.viem.getWalletClients()
@@ -70,12 +70,7 @@ async function fixture() {
 
 const testName = 'nick.eth'
 
-function parentOf(name: string) {
-  const i = name.indexOf('.')
-  return i == -1 ? '' : name.slice(i + 1)
-}
-
-describe('ForwardResolution', () => {
+describe.only('ForwardResolution', () => {
   it('invalid dns encoding', async () => {
     const F = await loadFixture(fixture)
     await expect(
@@ -178,8 +173,8 @@ describe('ForwardResolution', () => {
     ])
     const call = '0x12345678'
     const answer = encodeAbiParameters([{ type: 'bytes' }], ['0xbeef'])
-    await resolver.write.setOffchainResponse([call, answer])
-    await resolver.write.setOffchainResponse([
+    await resolver.write.setResponse([call, answer])
+    await resolver.write.setResponse([
       encodeFunctionData({ abi: RESOLVE_MULTICALL, args: [[call]] }),
       encodeFunctionResult({ abi: RESOLVE_MULTICALL, result: [[answer]] }),
     ])
@@ -206,7 +201,7 @@ describe('ForwardResolution', () => {
     ])
     const call = '0x12345678'
     const answer = '0xbeef'
-    await resolver.write.setOffchainResponse([call, answer])
+    await resolver.write.setResponse([call, answer])
     const [lookup, [response]] = await F.ForwardResolution.read.resolve([
       dnsEncodeName(testName),
       [call],
