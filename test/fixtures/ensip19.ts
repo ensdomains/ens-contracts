@@ -6,7 +6,7 @@ export const COIN_TYPE_ETH = 60n
 export const EVM_BIT = 1n << 31n
 
 export function chainFromCoinType(coinType: bigint): number {
-  if (coinType == 60n) return 1
+  if (coinType == COIN_TYPE_ETH) return 1
   return coinType == BigInt.asUintN(32, coinType) && coinType & EVM_BIT
     ? Number(coinType ^ EVM_BIT)
     : 0
@@ -14,7 +14,7 @@ export function chainFromCoinType(coinType: bigint): number {
 
 export function shortCoin(coinType: bigint) {
   const chain = chainFromCoinType(coinType)
-  return chain ? `chain:${chain}` : `coin:${coinType.toString(16)}`
+  return chain ? `chain:${chain}` : coinType.toString()
 }
 
 export function reverseName(address: Hex, coinType = COIN_TYPE_ETH) {

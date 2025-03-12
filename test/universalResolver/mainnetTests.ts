@@ -117,6 +117,50 @@ export const KNOWN_RESOLUTIONS: KnownResolution[] = [
       },
     ],
   },
+  {
+    style: 'NFTResolver',
+    name: 'moo331.nft-owner.eth',
+    wildcard: true,
+    addresses: [
+      {
+        coinType: 60n,
+        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        origin: 'on',
+      },
+    ],
+    texts: [{ key: 'description', value: 'Good Morning Cafe', origin: 'on' }],
+  },
+  {
+    style: 'OffchainDNS',
+    name: 'brantly.rocks',
+    wildcard: true,
+    addresses: [
+      {
+        coinType: 60n,
+        encodedAddress: '0x983110309620d911731ac0932219af06091b6744',
+        origin: 'batched',
+      },
+    ],
+  },
+  {
+    style: 'OffchainDNS',
+    name: 'ezccip.raffy.xyz',
+    wildcard: true,
+    addresses: [
+      {
+        coinType: 60n,
+        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        origin: 'batched',
+      },
+    ],
+    texts: [
+      {
+        key: 'avatar',
+        value: 'https://raffy.antistupid.com/ens.jpg',
+        origin: 'batched',
+      },
+    ],
+  },
 ]
 
 export const KNOWN_PRIMARIES: KnownReverse[] = [

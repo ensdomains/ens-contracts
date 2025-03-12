@@ -18,7 +18,7 @@ async function fixture() {
   return { ForwardResolution }
 }
 
-;(isForkedMainnet() ? describe : describe.skip)(
+;(isForkedMainnet() ? describe.only : describe.skip)(
   'ForwardResolution @ mainnet',
   () => {
     for (const x of KNOWN_RESOLUTIONS) {

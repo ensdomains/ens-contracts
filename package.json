@@ -29,7 +29,6 @@
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
-    "@types/bun": "^1.2.4",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
