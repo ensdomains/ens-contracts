@@ -3,10 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-library ERC165 {
-    /**
-     * @dev Determine if `target` supports `selector` w/o gas concerns
-     */
+library ERC165Utils {
+    /// @dev Determine if `target` supports `selector` w/o gas concerns
     function supportsInterface(
         address target,
         bytes4 selector

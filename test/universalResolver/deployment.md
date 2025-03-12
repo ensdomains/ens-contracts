@@ -1,5 +1,7 @@
 # L2 Primary Name Deployment
 
+<!-- https://mermaid.js.org/syntax/flowchart.html -->
+
 ```mermaid
 graph LR
 	root{{root}} -.-> reverse{{reverse}}
@@ -48,7 +50,9 @@ graph LR
 	}}
     reverse_addr -.-> reverse_addr_5105{{5105.addr.reverse}}
 	resolver_pr3 o--o resolver_pr3_5105(name&lpar;**5105.addr.reverse**&rpar; &rarr; raffy.eth)
-    reverse_addr_5105 & reverse_addr_1234 -- resolver --> resolver_pr3[PublicResolverV3]
+    reverse_addr_5105 & reverse_addr_1234 -- resolver --> resolver_pr3[
+		<a href="https://etherscan.io/address/0x231b0Ee14048e9dCcD1d247744d114a4EB5E8E63#readContract">PublicResolverV3</a>
+	]
     reverse_addr -.-> reverse_addr_1234{{1234.addr.reverse}};
 	resolver_pr3 o--o resolver_pr3_ghost(addr&lpar;ghost.eth, 0x80000000&rpar; &rarr; 0x0001)
 	resolver_reverse_base -. verifier .-> verifier_base[
@@ -112,19 +116,21 @@ graph LR
 	base_pr o--o base_eth_raffy(addr&lpar;raffy.base.eth&rpar; &rarr; 0x5105)
 
 	class root node
-	classDef node fill:#000
+	classDef node stroke:#000,stroke-width:3px;
 	class reverse_80000000,reverse_3c,resolver_3c question
-	classDef question fill:#333
+	classDef question stroke:#333
 	class resolver_pr2,resolver_pr3,resolver_eth_base,resolver_eth_linea,resolver_tor r
-	classDef r fill:#04a
+	classDef r stroke:#58f
+	class registrar_base,registrar_linea,rollup_linea,rollup_base c
+	classDef c stroke:#666,stroke-dasharray:4
 	class resolver_reverse_linea,resolver_reverse_base,resolver_reverse_default rr
-	classDef rr fill:#050
+	classDef rr stroke:#080
 	class default_0001,resolver_pr3_5105,resolver_pr3_ghost,base_5105,base_eth_raffy,linea_pr_0001,linea_0001,linea_5105,resolver_tor_raffy rec
-	classDef rec fill:#630
+	classDef rec stroke:#630
 	class offchain_base,drpc_base,drpc_linea,gateway_linea g
-	classDef g fill:#303
+	classDef g stroke:#888
 	class verifier_linea,verifier_base,verifier_linea_old v
-	classDef v fill:#200
+	classDef v stroke:#808
 
 ```
 
@@ -136,7 +142,7 @@ graph LR
 	contract o--o record(record)
 	contract ==> crosschain
 	class node,contract,crosschain,record key
-	classDef key fill:#333
+	classDef key stroke:#333
 ```
 
 ## Resolution Examples

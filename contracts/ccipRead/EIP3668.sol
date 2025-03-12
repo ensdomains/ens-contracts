@@ -50,14 +50,22 @@ library EIP3668 {
     function decode(
         bytes memory v
     ) internal pure returns (OffchainLookupTuple memory x) {
-        v = abi.encodePacked(v); // make a copy
-        assembly {
-            mstore(add(v, 4), sub(mload(v), 4)) // drop selector
-            v := add(v, 4)
-        }
         (x.sender, x.gateways, x.request, x.selector, x.carry) = abi.decode(
-            v,
+            drop(v, 4),
             (address, string[], bytes, bytes4, bytes)
         );
+    }
+
+    /// @dev Drop leading bytes
+    function drop(
+        bytes memory data,
+        uint256 size
+    ) internal pure returns (bytes memory dropped) {
+        require(data.length >= size);
+        dropped = abi.encodePacked(data); // make a copy
+        assembly {
+            mstore(add(dropped, size), sub(mload(dropped), size)) // subtract length
+            dropped := add(dropped, size) // add offset
+        }
     }
 }

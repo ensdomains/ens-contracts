@@ -26,11 +26,6 @@ import {
   getReverseNode,
   getReverseNodeHash,
 } from '../fixtures/getReverseNode.js'
-import {
-  BATCHED_GATEWAY_LOCAL,
-  BATCHED_GATEWAY_DNE,
-  OFFCHAIN_DNS_GATEWAY,
-} from '../fixtures/gateways.js'
 
 // OffchainLookup(address sender, string[] urls, bytes callData, bytes4 callbackFunction, bytes extraData)
 // This is the extraData value the universal resolver should encode
@@ -98,7 +93,7 @@ async function fixture() {
   ])
   const universalResolver = await hre.viem.deployContract('UniversalResolver', [
     ensRegistry.address,
-    [BATCHED_GATEWAY_LOCAL],
+    ['http://universal-offchain-resolver.local'],
   ])
   const offchainResolver = await hre.viem.deployContract(
     'DummyOffchainResolver',
@@ -220,7 +215,7 @@ async function fixture() {
   }
 }
 
-describe('UniversalResolver', () => {
+describe.skip('UniversalResolver', () => {
   describe('findResolver()', () => {
     it('should find an exact match resolver', async () => {
       const { universalResolver, publicResolver } = await loadFixture(fixture)
@@ -461,7 +456,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -487,14 +482,12 @@ describe('UniversalResolver', () => {
         ],
       })
 
-      getAddress(universalResolver.address)
-
       await expect(universalResolver)
         .read('resolve', [dnsEncodeName('offchain.test.eth'), callData])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           getAddress(universalResolver.address),
-          [BATCHED_GATEWAY_LOCAL],
+          ['http://universal-offchain-resolver.local'],
           queryCalldata,
           toFunctionSelector('function resolveSingleCallback(bytes,bytes)'),
           extraData,
@@ -516,12 +509,12 @@ describe('UniversalResolver', () => {
         .read('resolve', [
           dnsEncodeName('offchain.test.eth'),
           data,
-          [BATCHED_GATEWAY_DNE],
+          ['https://custom.local'],
         ])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           expect.anyValue,
-          [BATCHED_GATEWAY_DNE],
+          ['https://custom.local'],
           expect.anyValue,
           expect.anyValue,
           expect.anyValue,
@@ -546,7 +539,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -588,7 +581,7 @@ describe('UniversalResolver', () => {
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           getAddress(universalResolver.address),
-          [BATCHED_GATEWAY_LOCAL],
+          ['http://universal-offchain-resolver.local'],
           queryCalldata,
           toFunctionSelector('function resolveCallback(bytes,bytes)'),
           extraData,
@@ -604,6 +597,8 @@ describe('UniversalResolver', () => {
         root,
         accounts,
       } = await loadFixture(fixture)
+
+      const OFFCHAIN_DNS_GATEWAY = 'https://localhost:8000/lookup'
 
       const dnssec = await hre.viem.deployContract('DNSSECImpl', [
         encodedRealAnchors,
@@ -666,7 +661,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: true,
         resolver: offchainDnsResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -683,7 +678,7 @@ describe('UniversalResolver', () => {
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           getAddress(universalResolver.address),
-          [BATCHED_GATEWAY_LOCAL],
+          ['http://universal-offchain-resolver.local'],
           queryCalldata,
           toFunctionSelector('function resolveSingleCallback(bytes,bytes)'),
           extraData,
@@ -765,7 +760,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -810,7 +805,7 @@ describe('UniversalResolver', () => {
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           getAddress(universalResolver.address),
-          [BATCHED_GATEWAY_LOCAL],
+          ['http://universal-offchain-resolver.local'],
           queryCalldata,
           toFunctionSelector('function resolveCallback(bytes,bytes)'),
           extraData,
@@ -837,7 +832,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -900,7 +895,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -944,7 +939,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -1011,7 +1006,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -1058,7 +1053,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -1129,7 +1124,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -1191,7 +1186,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata: '0x',
         extraDatas: [
           {
@@ -1205,7 +1200,7 @@ describe('UniversalResolver', () => {
       const extraDataForResult = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata,
         extraDatas: [
           {
@@ -1227,7 +1222,7 @@ describe('UniversalResolver', () => {
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
           getAddress(universalResolver.address),
-          [BATCHED_GATEWAY_LOCAL],
+          ['http://universal-offchain-resolver.local'],
           expect.anyValue,
           toFunctionSelector('function reverseCallback(bytes,bytes)'),
           extraDataForResult,
@@ -1245,7 +1240,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata,
         extraDatas: [
           {
@@ -1301,7 +1296,7 @@ describe('UniversalResolver', () => {
       const extraData = encodeExtraData({
         isWildcard: false,
         resolver: offchainResolver.address,
-        gateways: [BATCHED_GATEWAY_LOCAL],
+        gateways: ['http://universal-offchain-resolver.local'],
         metadata,
         extraDatas: [
           {

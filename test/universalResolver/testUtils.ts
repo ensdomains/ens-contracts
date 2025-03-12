@@ -9,41 +9,64 @@ import {
 import { shortCoin } from '../fixtures/ensip19.js'
 import { expect } from 'chai'
 
-const RESOLVE_MULTICALL = parseAbi([
-  'function multicall(bytes[] calls) external view returns (bytes[] )',
+// export const RESOLVE_ABI = parseAbi([
+//   'function resolve(bytes name, bytes data) external view returns (bytes)',
+// ])
+
+export const RESOLVE_MULTICALL = parseAbi([
+  'function multicall(bytes[] calls) external view returns (bytes[])',
 ])
 
-const ADDR_ABI = parseAbi([
+export const ADDR_ABI = parseAbi([
   'function addr(bytes32) external view returns (address)',
 ])
 
-const PROFILE_ABI = parseAbi([
+export const PROFILE_ABI = parseAbi([
   'function addr(bytes32, uint256 coinType) external view returns (bytes)',
   'function text(bytes32, string key) external view returns (string)',
   'function contenthash(bytes32) external view returns (bytes)',
 ])
 
+// see: contracts/universalResolver/
+export const RESPONSE_BITS = {
+  ERROR: 1n << 0n,
+  OFFCHAIN: 1n << 1n,
+  BATCHED: 1n << 2n,
+  RESOLVED: 1n << 3n,
+} as const
+
+type KnownOrigin = 'on' | 'off' | 'batched'
+
+type KnownAddressRecord = {
+  coinType: bigint
+  encodedAddress: Hex
+  origin: KnownOrigin
+}
+
+type KnownTextRecord = {
+  key: string
+  value: string
+  origin: KnownOrigin
+}
+
 export type KnownResolution = {
   style: string
   name: string
-  expectVirtual?: boolean
-  addresses?: [coinType: bigint, encodedAddress: Hex][]
-  texts?: [key: string, value: string][]
-  contenthash?: Hex
-  expectError?: boolean
-  expectBatched?: boolean
-  expectUnreachable?: boolean
+  wildcard?: boolean
+  addresses?: KnownAddressRecord[]
+  texts?: KnownTextRecord[]
 }
 
 export type KnownReverse = {
   expectError?: boolean
   encodedAddress: Hex
   coinType: bigint
-  primary?: string
+  expectPrimary?: boolean
 }
 
 export type ExpectedCall = {
   desc: string
+  origin: KnownOrigin
   call: Hex
   expect(data: Hex): void
 }
@@ -72,16 +95,17 @@ export function bundleCalls(calls: ExpectedCall[]): BundledCalls {
   }
 }
 
-export function makeResolutionCalls(kr: KnownResolution): ExpectedCall[] {
+export function makeCalls(kr: KnownResolution): ExpectedCall[] {
   const calls: ExpectedCall[] = []
   const node = namehash(kr.name)
   if (kr.addresses) {
     const functionName = 'addr'
-    for (const [coinType, encodedAddress] of kr.addresses) {
+    for (const { coinType, encodedAddress, origin } of kr.addresses) {
       if (coinType === 60n) {
         const abi = ADDR_ABI
         calls.push({
-          desc: `addr()`,
+          desc: `${functionName}()`,
+          origin,
           call: encodeFunctionData({
             abi,
             functionName,
@@ -99,7 +123,8 @@ export function makeResolutionCalls(kr: KnownResolution): ExpectedCall[] {
       } else {
         const abi = PROFILE_ABI
         calls.push({
-          desc: `addr(${shortCoin(coinType)})`,
+          desc: `${functionName}(${shortCoin(coinType)})`,
+          origin,
           call: encodeFunctionData({
             abi,
             functionName,
@@ -120,17 +145,18 @@ export function makeResolutionCalls(kr: KnownResolution): ExpectedCall[] {
   if (kr.texts) {
     const abi = PROFILE_ABI
     const functionName = 'text'
-    for (const [key, value] of kr.texts) {
+    for (const { key, value, origin } of kr.texts) {
       calls.push({
-        desc: `text(${key})`,
+        desc: `${functionName}(${key})`,
+        origin,
         call: encodeFunctionData({
-          abi: PROFILE_ABI,
+          abi,
           functionName,
           args: [node, key],
         }),
         expect(data) {
           const answer = decodeFunctionResult({
-            abi: PROFILE_ABI,
+            abi,
             functionName,
             data,
           })
@@ -138,27 +164,6 @@ export function makeResolutionCalls(kr: KnownResolution): ExpectedCall[] {
         },
       })
     }
-  }
-  const { contenthash } = kr
-  if (contenthash) {
-    const abi = PROFILE_ABI
-    const functionName = 'contenthash'
-    calls.push({
-      desc: `contenthash()`,
-      call: encodeFunctionData({
-        abi,
-        functionName,
-        args: [node],
-      }),
-      expect(data) {
-        const answer = decodeFunctionResult({
-          abi: PROFILE_ABI,
-          functionName,
-          data,
-        })
-        expect(answer, this.desc).toStrictEqual(contenthash)
-      },
-    })
   }
   return calls
 }

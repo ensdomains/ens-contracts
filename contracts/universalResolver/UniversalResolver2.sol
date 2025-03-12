@@ -5,12 +5,12 @@ pragma solidity ^0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {CCIPReader} from "../ccipRead/CCIPReader.sol";
+import {CCIPReader, EIP3668} from "../ccipRead/CCIPReader.sol";
 import {IForwardResolution, Lookup, Response, ResponseBits} from "./IForwardResolution.sol";
 import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
-import {IResolveMulticall} from "../utils/IResolveMulticall.sol";
+import {IResolveMulticall} from "../resolvers/IResolveMulticall.sol";
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 import {DNSCoder} from "../utils/DNSCoder.sol";
 import {ENSIP19, EVM_BIT, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
@@ -74,11 +74,7 @@ contract UniversalResolver2 is
         bytes[] memory calls;
         bool multi = bytes4(data) == IResolveMulticall.multicall.selector;
         if (multi) {
-            assembly {
-                mstore(add(data, 4), sub(mload(data), 4)) // drop selector
-                data := add(data, 4)
-            }
-            calls = abi.decode(data, (bytes[]));
+            calls = abi.decode(EIP3668.drop(data, 4), (bytes[]));
         } else {
             calls = new bytes[](1);
             calls[0] = data;
@@ -118,26 +114,6 @@ contract UniversalResolver2 is
         }
     }
 
-    // function reverse(
-    //     address addr,
-    //     uint32 chain
-    // )
-    //     external
-    //     view
-    //     returns (
-    //         string memory /*primary*/,
-    //         address /*resolver*/,
-    //         address /*reverseResolver*/
-    //     )
-    // {
-    //     return
-    //         reverseWithGateways(
-    //             abi.encodePacked(addr),
-    //             chain | EVM_BIT,
-    //             new string[](0)
-    //         );
-    // }
-
     function reverse(
         bytes memory encodedAddress,
         uint256 coinType
@@ -166,6 +142,7 @@ contract UniversalResolver2 is
             address /*reverseResolver*/
         )
     {
+        // https://docs.ens.domains/ensip/19
         bytes[] memory calls = new bytes[](1);
         bytes memory name = ENSIP19.dnsReverseName(encodedAddress, coinType);
         bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
@@ -203,25 +180,21 @@ contract UniversalResolver2 is
             ccip,
             (Lookup, Response[])
         );
-        reverseResolver = _extractResolver(lookup);
+        reverseResolver = _extractResolver(lookup); // reverts if the resolver isn't usable
         ReverseCarry memory state = abi.decode(carry, (ReverseCarry));
-        if (res[0].bits & ResponseBits.ERROR != 0) {
-            revert ResolverError(res[0].data);
+        if ((res[0].bits & ResponseBits.ERROR) != 0) {
+            revert ResolverError(res[0].data); // name() failed
         }
         bytes memory primary = abi.decode(res[0].data, (bytes));
         if (primary.length == 0) {
-            return ("", address(0), reverseResolver);
+            return ("", address(0), reverseResolver); // name() was empty
         }
         bytes memory name = DNSCoder.encode(string(primary), true);
         bytes32 node = BytesUtilsEncrypted.namehash(name, 0);
-        bool checkFallback = ENSIP19.chainFromCoinType(state.coinType) != 0;
-        bytes[] memory calls = new bytes[](checkFallback ? 2 : 1);
+        bytes[] memory calls = new bytes[](1);
         calls[0] = state.coinType == COIN_TYPE_ETH
             ? abi.encodeCall(IAddrResolver.addr, (node))
             : abi.encodeCall(IAddressResolver.addr, (node, state.coinType));
-        if (checkFallback) {
-            calls[1] = abi.encodeCall(IAddressResolver.addr, (node, EVM_BIT));
-        }
         bytes memory v = ccipRead(
             address(forwardResolution),
             abi.encodeCall(
@@ -259,17 +232,15 @@ contract UniversalResolver2 is
         );
         resolver = _extractResolver(lookup);
         bytes memory checkedAddress;
-        for (uint256 i; i < res.length && checkedAddress.length == 0; i++) {
-            Response memory r = res[i];
-            if ((r.bits & ResponseBits.ERROR) == 0) {
-                if (bytes4(r.call) == IAddrResolver.addr.selector) {
-                    uint160 a = uint160(uint256(bytes32(r.data)));
-                    if (a > 0) {
-                        checkedAddress = abi.encodePacked(a);
-                    }
-                } else if (r.data.length > 0) {
-                    checkedAddress = abi.decode(r.data, (bytes));
+        Response memory r = res[0];
+        if ((r.bits & ResponseBits.ERROR) == 0) {
+            if (bytes4(r.call) == IAddrResolver.addr.selector) {
+                uint160 a = uint160(uint256(bytes32(r.data)));
+                if (a > 0) {
+                    checkedAddress = abi.encodePacked(a);
                 }
+            } else if (r.data.length > 0) {
+                checkedAddress = abi.decode(r.data, (bytes));
             }
         }
         if (keccak256(encodedAddress) != keccak256(checkedAddress)) {

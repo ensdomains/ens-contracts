@@ -4,8 +4,8 @@ pragma solidity ^0.8.17;
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
-import {ERC165, IERC165} from "../utils/ERC165.sol";
-import {IResolveMulticall} from "../utils/IResolveMulticall.sol";
+import {ERC165Utils, IERC165} from "../utils/ERC165Utils.sol";
+import {IResolveMulticall} from "../resolvers/IResolveMulticall.sol";
 import {BytesUtilsEncrypted} from "../utils/BytesUtilsEncrypted.sol";
 import {IBatchedGateway, BatchedGatewayQuery} from "../utils/IBatchedGateway.sol";
 import {IForwardResolution, Lookup, Response, ResponseBits, LengthMismatch} from "./IForwardResolution.sol";
@@ -48,7 +48,7 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
             node = BytesUtilsEncrypted.namehash(name, offset);
         }
         if (
-            ERC165.supportsInterface(
+            ERC165Utils.supportsInterface(
                 resolver,
                 type(IExtendedResolver).interfaceId
             )
@@ -99,7 +99,8 @@ contract ForwardResolution is IForwardResolution, IERC165, CCIPReader, Ownable {
                 // assumes resolvers that revert for resolve(multicall) support wrapping
                 // ********************************************************************************
                 // NOTE: this is a temporary detection technique for resolvers that always revert
-                (, ok, v) = _callResolver(lookup, hex"00000000");
+                // https://github.com/namestonehq/TheOffchainResolver.sol/blob/main/src/TOR.sol#L55
+                (, ok, v) = _callResolver(lookup, hex"FFFFFF00");
                 if (ok || bytes4(v) != OffchainLookup.selector) {
                     // must succeed OR not revert OffchainLookup()
                     // ********************************************************************************

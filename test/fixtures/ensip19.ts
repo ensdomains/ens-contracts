@@ -2,6 +2,7 @@ import type { Hex } from 'viem'
 
 // https://github.com/ensdomains/ens-contracts/blob/feature/bet-193-develop-a-standardized-universalresolver-compatible-with-v1/contracts/utils/ENSIP19.sol
 
+export const COIN_TYPE_ETH = 60n
 export const EVM_BIT = 1n << 31n
 
 export function chainFromCoinType(coinType: bigint): number {
@@ -16,9 +17,9 @@ export function shortCoin(coinType: bigint) {
   return chain ? `chain:${chain}` : `coin:${coinType.toString(16)}`
 }
 
-export function reverseName(address: Hex, coinType: bigint) {
+export function reverseName(address: Hex, coinType = COIN_TYPE_ETH) {
   let slug
-  if (coinType == 60n) {
+  if (coinType == COIN_TYPE_ETH) {
     slug = 'addr'
   } else if (coinType == EVM_BIT) {
     slug = 'default'

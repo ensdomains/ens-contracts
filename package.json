@@ -26,7 +26,6 @@
   ],
   "main": "index.js",
   "devDependencies": {
-    "@adraffy/blocksmith": "^0.1.52",
     "@ensdomains/dnsprovejs": "^0.5.1",
     "@ensdomains/hardhat-chai-matchers-viem": "^0.0.8",
     "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
@@ -38,7 +37,6 @@
     "abitype": "^1.0.2",
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
-    "ethers": "^6.13.5",
     "hardhat": "^2.22.2",
     "hardhat-abi-exporter": "^2.9.0",
     "hardhat-contract-sizer": "^2.6.1",
