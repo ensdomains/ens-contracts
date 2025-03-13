@@ -109,7 +109,7 @@ contract UniversalResolver2 is
         } else {
             answer = res[0].data;
             if ((res[0].bits & ResponseBits.ERROR) != 0) {
-                revert ResolverError(answer);
+                _revertError(answer);
             }
         }
     }
@@ -183,7 +183,7 @@ contract UniversalResolver2 is
         reverseResolver = _extractResolver(lookup); // reverts if the resolver isn't usable
         ReverseCarry memory state = abi.decode(carry, (ReverseCarry));
         if ((res[0].bits & ResponseBits.ERROR) != 0) {
-            revert ResolverError(res[0].data); // name() failed
+            _revertError(res[0].data); // name() failed
         }
         bytes memory primary = abi.decode(res[0].data, (bytes));
         if (primary.length == 0) {
@@ -221,8 +221,8 @@ contract UniversalResolver2 is
             address reverseResolver
         )
     {
-        bytes memory encodedAddress;
-        (encodedAddress, primary, reverseResolver) = abi.decode(
+        bytes memory reverseAddress;
+        (reverseAddress, primary, reverseResolver) = abi.decode(
             carry,
             (bytes, string, address)
         );
@@ -231,20 +231,20 @@ contract UniversalResolver2 is
             (Lookup, Response[])
         );
         resolver = _extractResolver(lookup);
-        bytes memory checkedAddress;
+        bytes memory forwardAddress;
         Response memory r = res[0];
         if ((r.bits & ResponseBits.ERROR) == 0) {
             if (bytes4(r.call) == IAddrResolver.addr.selector) {
                 uint160 a = uint160(uint256(bytes32(r.data)));
                 if (a > 0) {
-                    checkedAddress = abi.encodePacked(a);
+                    forwardAddress = abi.encodePacked(a);
                 }
             } else if (r.data.length > 0) {
-                checkedAddress = abi.decode(r.data, (bytes));
+                forwardAddress = abi.decode(r.data, (bytes));
             }
         }
-        if (keccak256(encodedAddress) != keccak256(checkedAddress)) {
-            revert ReverseAddressMismatch(encodedAddress, checkedAddress);
+        if (keccak256(reverseAddress) != keccak256(forwardAddress)) {
+            revert ReverseAddressMismatch(primary, forwardAddress);
         }
     }
 
@@ -257,6 +257,16 @@ contract UniversalResolver2 is
         }
         if (resolver.code.length == 0) {
             revert ResolverNotContract(lookup.name, resolver);
+        }
+    }
+
+    function _revertError(bytes memory v) internal pure {
+        if (bytes4(v) == HttpError.selector) {
+            assembly {
+                revert(add(v, 32), mload(v))
+            }
+        } else {
+            revert ResolverError(v);
         }
     }
 }

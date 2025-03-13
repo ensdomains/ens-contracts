@@ -9,13 +9,16 @@ interface IUniversalResolver {
     error ResolverNotFound(bytes name);
 
     /// @notice The resolved address from reverse resolution does not match the supplied address.
-    error ReverseAddressMismatch(bytes inputAddress, bytes checkedAddress);
+    error ReverseAddressMismatch(string forwardName, bytes forwardAddress);
 
     /// @notice The resolver is not a contract.
     error ResolverNotContract(bytes name, address resolver);
 
     /// @notice The resolver returned an error.
     error ResolverError(bytes returnData);
+
+    /// @notice A HTTP error occurred on the batch gateway.
+    error HttpError(uint16 status, string message);
 
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
     /// @param name The name to resolve, in normalised and DNS-encoded form.
