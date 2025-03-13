@@ -6,14 +6,14 @@ interface IUniversalResolver {
     /// @notice A resolver could not be found for the supplied name.
     error ResolverNotFound(bytes name);
 
-    /// @notice The resolved address from reverse resolution does not match the supplied address.
-    error ReverseAddressMismatch(bytes inputAddress, bytes checkedAddress);
-
     /// @notice The resolver is not a contract.
     error ResolverNotContract(bytes name, address resolver);
 
     /// @notice The resolver returned an error.
     error ResolverError(bytes returnData);
+
+    /// @notice The resolved address from reverse resolution does not match the supplied address.
+    error ReverseAddressMismatch(string forwardName, bytes forwardAddress);
 
     /// @notice A HTTP error occurred on the batch gateway.
     error HttpError(uint16 status, string message);
