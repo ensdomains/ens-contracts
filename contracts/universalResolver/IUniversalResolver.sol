@@ -15,6 +15,9 @@ interface IUniversalResolver {
     /// @notice The resolver returned an error.
     error ResolverError(bytes returnData);
 
+    /// @notice A HTTP error occurred on the batch gateway.
+    error HttpError(uint16 status, string message);
+
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
     /// @param name The name to resolve, in normalised and DNS-encoded form.
     /// @param data The resolution data, as specified in ENSIP-10.
