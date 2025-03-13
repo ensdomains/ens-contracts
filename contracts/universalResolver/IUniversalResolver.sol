@@ -13,7 +13,7 @@ interface IUniversalResolver {
     error ResolverError(bytes returnData);
 
     /// @notice The resolved address from reverse resolution does not match the supplied address.
-    error ReverseAddressMismatch(string forwardName, bytes forwardAddress);
+    error ReverseAddressMismatch(string primary, bytes primaryAddress);
 
     /// @notice A HTTP error occurred on the batch gateway.
     error HttpError(uint16 status, string message);
