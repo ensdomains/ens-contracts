@@ -231,20 +231,20 @@ contract UniversalResolver2 is
             (Lookup, Response[])
         );
         resolver = _extractResolver(lookup); // reverts if the resolver isn't usable
-        bytes memory forwardAddress;
+        bytes memory primaryAddress;
         Response memory r = res[0];
         if ((r.bits & ResponseBits.ERROR) == 0) {
             if (bytes4(r.call) == IAddrResolver.addr.selector) {
                 address addr = abi.decode(r.data, (address));
                 if (addr != address(0)) {
-                    forwardAddress = abi.encodePacked(addr);
+                    primaryAddress = abi.encodePacked(addr);
                 }
             } else if (r.data.length > 0) {
-                forwardAddress = abi.decode(r.data, (bytes));
+                primaryAddress = abi.decode(r.data, (bytes));
             }
         }
-        if (keccak256(reverseAddress) != keccak256(forwardAddress)) {
-            revert ReverseAddressMismatch(primary, forwardAddress);
+        if (keccak256(reverseAddress) != keccak256(primaryAddress)) {
+            revert ReverseAddressMismatch(primary, primaryAddress);
         }
     }
 
