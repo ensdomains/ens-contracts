@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-// https://github.com/ensdomains/ens-contracts/blob/feat/universalresolver-3/contracts/universalResolver/IUniversalResolver.sol
-
 /// @notice Interface for the UniversalResolver.
 interface IUniversalResolver {
     /// @notice A resolver could not be found for the supplied name.

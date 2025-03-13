@@ -4,87 +4,32 @@ import {
   encodeAbiParameters,
   encodeFunctionData,
   encodeFunctionResult,
-  labelhash,
   namehash,
   zeroAddress,
 } from 'viem'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
-import { serveBatchedGateway } from '../fixtures/batchedGateway.js'
 import {
   ADDR_ABI,
   parentOf,
   RESOLVE_MULTICALL,
   RESPONSE_BITS,
 } from './testUtils.js'
+import { ownedEnsFixture } from './ownedEnsFixture.js'
 
-async function fixture() {
-  const wallets = await hre.viem.getWalletClients()
-  const owner = wallets[0].account.address
-
-  const ENSRegistry = await hre.viem.deployContract('ENSRegistry')
-
-  async function takeControl(name: string) {
-    if (name) {
-      const labels = name.split('.')
-      for (let i = labels.length; i > 0; i--) {
-        await ENSRegistry.write.setSubnodeOwner([
-          namehash(labels.slice(i).join('.')),
-          labelhash(labels[i - 1]),
-          owner,
-        ])
-      }
-    }
-  }
-
-  const bg = await serveBatchedGateway()
-  after(bg.shutdown)
-
-  const ForwardResolution = await hre.viem.deployContract('ForwardResolution', [
-    ENSRegistry.address,
-    [bg.batchedGatewayURL],
-  ])
-
-  const ReverseRegistrar = await hre.viem.deployContract('ReverseRegistrar', [
-    ENSRegistry.address,
-  ])
-  await takeControl('addr.reverse')
-  await ENSRegistry.write.setOwner([
-    namehash('addr.reverse'),
-    ReverseRegistrar.address,
-  ])
-
-  const PublicResolver = await hre.viem.deployContract('PublicResolver', [
-    ENSRegistry.address,
-    zeroAddress, // nameWrapper
-    zeroAddress, // ethController
-    ReverseRegistrar.address,
-  ])
-  await ReverseRegistrar.write.setDefaultResolver([PublicResolver.address])
-
-  return {
-    owner,
-    ForwardResolution,
-    ENSRegistry,
-    PublicResolver,
-    ReverseRegistrar,
-    takeControl,
-  }
-}
-
-const testName = 'nick.eth'
+const testName = 'a.bb.ccc.nick.eth'
 
 describe('TestForwardResolution', () => {
   it('invalid dns encoding', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     await expect(
       F.ForwardResolution.read.resolve(['0x01', [], []]),
     ).rejects.toThrow()
   })
 
   it('resolver does not exist', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     const [lookup] = await F.ForwardResolution.read.resolve([
       dnsEncodeName('_eth'),
       [],
@@ -94,7 +39,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('resolver is not extended', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     await F.takeControl(testName)
     await F.ENSRegistry.write.setResolver([
       namehash(parentOf(testName)),
@@ -109,7 +54,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('zero calls', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     const [, results] = await F.ForwardResolution.read.resolve([
       dnsEncodeName('eth'),
       [],
@@ -119,7 +64,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('onchain normal', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     await F.takeControl(testName)
     await F.ENSRegistry.write.setResolver([
       namehash(testName),
@@ -151,7 +96,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('onchain extended', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     const resolver = await hre.viem.deployContract('DummyOffchainResolver')
     await F.takeControl(parentOf(testName))
     await F.ENSRegistry.write.setResolver([
@@ -169,7 +114,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('offchain extended', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     const resolver = await hre.viem.deployContract('DummyGatewaylessResolver')
     await F.takeControl(parentOf(testName))
     await F.ENSRegistry.write.setResolver([
@@ -197,7 +142,7 @@ describe('TestForwardResolution', () => {
   })
 
   it('offchain extended batched', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture(ownedEnsFixture)
     const resolver = await hre.viem.deployContract('DummyGatewaylessResolver')
     await F.takeControl(parentOf(testName))
     await F.ENSRegistry.write.setResolver([

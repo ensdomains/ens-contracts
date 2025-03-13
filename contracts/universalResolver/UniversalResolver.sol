@@ -4,13 +4,13 @@ pragma solidity >=0.8.17 <0.9.0;
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {LowLevelCallUtils} from "./LowLevelCallUtils.sol";
+import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {Resolver, INameResolver, IAddrResolver} from "../resolvers/Resolver.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
-import {NameEncoder} from "./NameEncoder.sol";
-import {HexUtils} from "./HexUtils.sol";
+import {NameEncoder} from "../utils/NameEncoder.sol";
+import {HexUtils} from "../utils/HexUtils.sol";
 
 error OffchainLookup(
     address sender,

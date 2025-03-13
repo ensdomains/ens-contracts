@@ -1,14 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
+/// @dev Resolver Lookup Structure
+/// @notice node of resolver = namehash(name.slice(offset))
+/// @notice
 struct Lookup {
     bytes name; // dns-encoded name (safe to decode)
     uint256 offset; // byte offset into name for basename
     bytes32 node; // namehash(name)
-    bytes32 basenode; // namehash(name.slice(offset))
     address resolver; // resolver(basenode), null if invalid
     address registry; // v1 => registry, v2 => subregistry
-    bool extended; // is IExtendedResolver
+    uint256 bits; // LookupBits
+}
+
+library LookupBits {
+    uint256 constant OK = 1 << 0; // usable
+    uint256 constant EXTENDED = 1 << 1; // IExtendedResolver
 }
 
 struct Response {

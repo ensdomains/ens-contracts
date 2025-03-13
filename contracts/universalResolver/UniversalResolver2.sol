@@ -230,14 +230,14 @@ contract UniversalResolver2 is
             ccip,
             (Lookup, Response[])
         );
-        resolver = _extractResolver(lookup);
+        resolver = _extractResolver(lookup); // reverts if the resolver isn't usable
         bytes memory forwardAddress;
         Response memory r = res[0];
         if ((r.bits & ResponseBits.ERROR) == 0) {
             if (bytes4(r.call) == IAddrResolver.addr.selector) {
-                uint160 a = uint160(uint256(bytes32(r.data)));
-                if (a > 0) {
-                    forwardAddress = abi.encodePacked(a);
+                address addr = abi.decode(r.data, (address));
+                if (addr != address(0)) {
+                    forwardAddress = abi.encodePacked(addr);
                 }
             } else if (r.data.length > 0) {
                 forwardAddress = abi.decode(r.data, (bytes));
@@ -252,11 +252,12 @@ contract UniversalResolver2 is
         Lookup memory lookup
     ) internal view returns (address resolver) {
         resolver = lookup.resolver;
-        if (resolver == address(0)) {
-            revert ResolverNotFound(lookup.name);
-        }
-        if (resolver.code.length == 0) {
-            revert ResolverNotContract(lookup.name, resolver);
+        if (lookup.bits == 0) {
+            if (resolver == address(0)) {
+                revert ResolverNotFound(lookup.name);
+            } else {
+                revert ResolverNotContract(lookup.name, resolver);
+            }
         }
     }
 
