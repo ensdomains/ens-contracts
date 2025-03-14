@@ -4,6 +4,7 @@ pragma solidity >=0.8.17 <0.9.0;
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IUniversalResolver} from "./IUniversalResolver.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
@@ -20,15 +21,7 @@ error OffchainLookup(
     bytes extraData
 );
 
-error ResolverNotFound();
-
-error ResolverWildcardNotSupported();
-
-error ResolverNotContract();
-
-error ResolverError(bytes returnData);
-
-error HttpError(HttpErrorItem[] errors);
+error HttpError(HttpErrorItem[] errors); // 0xca7a4e75
 
 struct HttpErrorItem {
     uint16 status;
@@ -67,17 +60,25 @@ struct Result {
     bytes returnData;
 }
 
+struct ReverseMetadata {
+    address lookupAddr;
+    string resolvedName;
+    address reverseResolverAddress;
+}
+
 interface BatchGateway {
     function query(
         OffchainLookupCallData[] memory data
     ) external returns (bool[] memory failures, bytes[] memory responses);
 }
 
+bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
+
 /**
  * The Universal Resolver is a contract that handles the work of resolving a name entirely onchain,
  * making it possible to make a single smart contract call to resolve an ENS name.
  */
-contract UniversalResolver is ERC165, Ownable {
+contract UniversalResolver is IUniversalResolver, ERC165, Ownable {
     using Address for address;
     using NameEncoder for string;
     using BytesUtils for bytes;
@@ -147,7 +148,7 @@ contract UniversalResolver is ERC165, Ownable {
     }
 
     function _resolveSingle(
-        bytes calldata name,
+        bytes memory name,
         bytes memory data,
         string[] memory gateways,
         bytes4 callbackFunction,
@@ -171,7 +172,7 @@ contract UniversalResolver is ERC165, Ownable {
     }
 
     function _resolve(
-        bytes calldata name,
+        bytes memory name,
         bytes[] memory data,
         string[] memory gateways,
         bytes4 callbackFunction,
@@ -180,11 +181,11 @@ contract UniversalResolver is ERC165, Ownable {
         (Resolver resolver, , uint256 finalOffset) = findResolver(name);
         resolverAddress = address(resolver);
         if (resolverAddress == address(0)) {
-            revert ResolverNotFound();
+            revert ResolverNotFound(name);
         }
 
         if (!resolverAddress.isContract()) {
-            revert ResolverNotContract();
+            revert ResolverNotContract(name, resolverAddress);
         }
 
         bool isWildcard = finalOffset != 0;
@@ -204,74 +205,79 @@ contract UniversalResolver is ERC165, Ownable {
     }
 
     function reverse(
-        bytes calldata reverseName
-    ) external view returns (string memory, address, address, address) {
-        return reverse(reverseName, batchGatewayURLs);
+        bytes calldata lookupAddress,
+        uint256 coinType
+    ) external view returns (string memory, address, address) {
+        return reverse(lookupAddress, coinType, batchGatewayURLs);
     }
 
     /**
      * @dev Performs ENS name reverse resolution for the supplied reverse name.
-     * @param reverseName The reverse name to resolve, in normalised and DNS-encoded form. e.g. b6E040C9ECAaE172a89bD561c5F73e1C48d28cd9.addr.reverse
-     * @return The resolved name, the resolved address, the reverse resolver address, and the resolver address.
+     * @param lookupAddress The reverse address to resolve, eg. 0xb6E040C9ECAaE172a89bD561c5F73e1C48d28cd9
+     * @return The resolved name, the resolver address, and the reverse resolver address.
      */
     function reverse(
-        bytes calldata reverseName,
+        bytes memory lookupAddress,
+        uint256 coinType,
         string[] memory gateways
-    ) public view returns (string memory, address, address, address) {
-        bytes memory encodedCall = abi.encodeCall(
-            INameResolver.name,
-            reverseName.namehash(0)
+    ) public view returns (string memory, address, address) {
+        require(coinType == 60, "reverse: expected coinType 60");
+        require(lookupAddress.length == 20, "reverse: expected EVM address");
+        address lookupAddr = address(bytes20(lookupAddress));
+        bytes memory reverseName = abi.encodePacked(
+            uint8(40),
+            HexUtils.addressToHex(lookupAddr),
+            "\x04addr\x07reverse\x00"
         );
         (
             bytes memory reverseResolvedData,
             address reverseResolverAddress
         ) = _resolveSingle(
                 reverseName,
-                encodedCall,
+                abi.encodeCall(INameResolver.name, reverseName.namehash(0)),
                 gateways,
                 this.reverseCallback.selector,
-                ""
+                abi.encode(ReverseMetadata(lookupAddr, "", address(0)))
             );
-
         return
             getForwardDataFromReverse(
-                reverseResolvedData,
-                reverseResolverAddress,
+                ReverseMetadata(
+                    lookupAddr,
+                    abi.decode(reverseResolvedData, (string)),
+                    reverseResolverAddress
+                ),
                 gateways
             );
     }
 
     function getForwardDataFromReverse(
-        bytes memory resolvedReverseData,
-        address reverseResolverAddress,
+        ReverseMetadata memory metaData,
         string[] memory gateways
-    ) internal view returns (string memory, address, address, address) {
-        string memory resolvedName = abi.decode(resolvedReverseData, (string));
-
-        (bytes memory encodedName, bytes32 namehash) = resolvedName
+    ) internal view returns (string memory, address, address) {
+        if (bytes(metaData.resolvedName).length == 0) {
+            return ("", address(0), metaData.reverseResolverAddress);
+        }
+        (bytes memory encodedName, bytes32 namehash) = metaData
+            .resolvedName
             .dnsEncodeName();
-
-        bytes memory encodedCall = abi.encodeCall(IAddrResolver.addr, namehash);
-        bytes memory metaData = abi.encode(
-            resolvedName,
-            reverseResolverAddress
+        (bytes memory resolvedData, address resolverAddress) = _resolveSingle(
+            encodedName,
+            abi.encodeCall(IAddrResolver.addr, namehash),
+            gateways,
+            this.reverseCallback.selector,
+            abi.encode(metaData)
         );
-        (bytes memory resolvedData, address resolverAddress) = this
-            ._resolveSingle(
-                encodedName,
-                encodedCall,
-                gateways,
-                this.reverseCallback.selector,
-                metaData
+        address addr = abi.decode(resolvedData, (address));
+        if (metaData.lookupAddr != addr) {
+            revert ReverseAddressMismatch(
+                metaData.resolvedName,
+                abi.encodePacked(addr)
             );
-
-        address resolvedAddress = abi.decode(resolvedData, (address));
-
+        }
         return (
-            resolvedName,
-            resolvedAddress,
-            reverseResolverAddress,
-            resolverAddress
+            metaData.resolvedName,
+            resolverAddress,
+            metaData.reverseResolverAddress
         );
     }
 
@@ -306,12 +312,12 @@ contract UniversalResolver is ERC165, Ownable {
     function reverseCallback(
         bytes calldata response,
         bytes calldata extraData
-    ) external view returns (string memory, address, address, address) {
+    ) external view returns (string memory, address, address) {
         (
             Result[] memory results,
             address resolverAddress,
             string[] memory gateways,
-            bytes memory metaData
+            bytes memory encodedMetaData
         ) = _resolveCallback(
                 response,
                 extraData,
@@ -322,24 +328,27 @@ contract UniversalResolver is ERC165, Ownable {
 
         _checkResolveSingle(result);
 
-        if (metaData.length > 0) {
-            (string memory resolvedName, address reverseResolverAddress) = abi
-                .decode(metaData, (string, address));
-            address resolvedAddress = abi.decode(result.returnData, (address));
-            return (
-                resolvedName,
-                resolvedAddress,
-                reverseResolverAddress,
-                resolverAddress
+        ReverseMetadata memory metaData = abi.decode(
+            encodedMetaData,
+            (ReverseMetadata)
+        );
+        if (bytes(metaData.resolvedName).length == 0) {
+            metaData.resolvedName = abi.decode(result.returnData, (string));
+            metaData.reverseResolverAddress = resolverAddress;
+            return getForwardDataFromReverse(metaData, gateways);
+        }
+        address addr = abi.decode(result.returnData, (address));
+        if (metaData.lookupAddr != addr) {
+            revert ReverseAddressMismatch(
+                metaData.resolvedName,
+                abi.encodePacked(addr)
             );
         }
-
-        return
-            getForwardDataFromReverse(
-                result.returnData,
-                resolverAddress,
-                gateways
-            );
+        return (
+            metaData.resolvedName,
+            resolverAddress,
+            metaData.reverseResolverAddress
+        );
     }
 
     function supportsInterface(
@@ -496,7 +505,7 @@ contract UniversalResolver is ERC165, Ownable {
      * @return finalOffset The offset of the first label with a resolver.
      */
     function findResolver(
-        bytes calldata name
+        bytes memory name
     ) public view returns (Resolver, bytes32, uint256) {
         (
             address resolver,
@@ -507,7 +516,7 @@ contract UniversalResolver is ERC165, Ownable {
     }
 
     function findResolver(
-        bytes calldata name,
+        bytes memory name,
         uint256 offset
     ) internal view returns (address, bytes32, uint256) {
         uint256 labelLength = uint256(uint8(name[offset]));
@@ -524,10 +533,9 @@ contract UniversalResolver is ERC165, Ownable {
             name[nextLabel - 1] == 0x5d
         ) {
             // Encrypted label
-            (labelHash, ) = bytes(name[offset + 2:nextLabel - 1])
-                .hexStringToBytes32(0, 64);
+            (labelHash, ) = name.hexStringToBytes32(offset + 2, offset + 66);
         } else {
-            labelHash = keccak256(name[offset + 1:nextLabel]);
+            labelHash = name.keccak(offset + 1, labelLength);
         }
         (
             address parentresolver,
@@ -583,7 +591,7 @@ contract UniversalResolver is ERC165, Ownable {
         );
 
         if (multicallData.isWildcard && !hasExtendedResolver) {
-            revert ResolverWildcardNotSupported();
+            revert ResolverNotFound(multicallData.name);
         }
 
         return MulticallChecks(isCallback, hasExtendedResolver);
@@ -591,13 +599,20 @@ contract UniversalResolver is ERC165, Ownable {
 
     function _checkResolveSingle(Result memory result) internal pure {
         if (!result.success) {
-            if (bytes4(result.returnData) == HttpError.selector) {
-                bytes memory returnData = result.returnData;
-                assembly {
-                    revert(add(returnData, 32), mload(returnData))
+            bytes memory v = result.returnData;
+            if (bytes4(v) == 0xca7a4e75) {
+                HttpErrorItem[] memory items = abi.decode(
+                    v.substring(4, v.length - 4),
+                    (HttpErrorItem[])
+                );
+                if (items.length == 1) {
+                    revert IUniversalResolver.HttpError(
+                        items[0].status,
+                        items[0].message
+                    );
                 }
             }
-            revert ResolverError(result.returnData);
+            revert ResolverError(v);
         }
     }
 

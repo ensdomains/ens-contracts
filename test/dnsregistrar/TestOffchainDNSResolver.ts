@@ -6,6 +6,7 @@ import {
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
+  getContract,
   labelhash,
   namehash,
   parseAbiParameters,
@@ -47,6 +48,13 @@ async function fixture() {
     'OffchainDNSResolver',
     [ensRegistry.address, dnssec.address, OFFCHAIN_GATEWAY],
   )
+  const offchainDnsResolverNoCcip = getContract({
+    address: offchainDnsResolver.address,
+    abi: offchainDnsResolver.abi,
+    client: {
+      public: await hre.viem.getPublicClient({ ccipRead: false }),
+    },
+  })
   const ownedResolver = await hre.viem.deployContract('OwnedResolver', [])
   const dummyResolver = await hre.viem.deployContract(
     'DummyNonCCIPAwareResolver',
@@ -74,10 +82,12 @@ async function fixture() {
     name,
     texts,
     calldata,
+    noCcip,
   }: {
     name: string
     texts: string[]
     calldata: Hex
+    noCcip?: boolean
   }) => {
     const proof = [
       hexEncodeSignedSet(rootKeys({ expiration, inception })),
@@ -101,7 +111,9 @@ async function fixture() {
       [dnsName, calldata, '0x00000000'],
     )
 
-    return offchainDnsResolver.read.resolveCallback([response, extraData])
+    return (
+      noCcip ? offchainDnsResolverNoCcip : offchainDnsResolver
+    ).read.resolveCallback([response, extraData])
   }
 
   const doResolveCallback = async ({
@@ -127,6 +139,7 @@ async function fixture() {
     suffixes,
     offchainResolver,
     offchainDnsResolver,
+    offchainDnsResolverNoCcip,
     ownedResolver,
     dummyResolver,
     dnsRegistrar,
@@ -140,7 +153,7 @@ async function fixture() {
 
 describe('OffchainDNSResolver', () => {
   it('should respond to resolution requests with a CCIP read request to the DNS gateway', async () => {
-    const { publicResolverAbi, dnsGatewayAbi, offchainDnsResolver } =
+    const { publicResolverAbi, dnsGatewayAbi, offchainDnsResolverNoCcip } =
       await loadFixture(fixture)
 
     const name = 'test.test'
@@ -161,11 +174,11 @@ describe('OffchainDNSResolver', () => {
       args: [dnsName, 16],
     })
 
-    await expect(offchainDnsResolver)
+    await expect(offchainDnsResolverNoCcip)
       .read('resolve', [dnsName, callData])
       .toBeRevertedWithCustomError('OffchainLookup')
       .withArgs(
-        getAddress(offchainDnsResolver.address),
+        getAddress(offchainDnsResolverNoCcip.address),
         [OFFCHAIN_GATEWAY],
         gatewayCall,
         toFunctionSelector('function resolveCallback(bytes,bytes)'),
@@ -515,7 +528,7 @@ describe('OffchainDNSResolver', () => {
       doDnsResolveCallback,
       doResolveCallback,
       offchainResolver,
-      offchainDnsResolver,
+      offchainDnsResolverNoCcip,
       publicResolverAbi,
     } = await loadFixture(fixture)
 
@@ -536,17 +549,18 @@ describe('OffchainDNSResolver', () => {
       ],
     )
 
-    await expect(offchainDnsResolver)
+    await expect(offchainDnsResolverNoCcip)
       .transaction(
         doDnsResolveCallback({
           name,
           texts: [`ENS1 ${offchainResolver.address} foobie bletch`],
           calldata,
+          noCcip: true,
         }),
       )
       .toBeRevertedWithCustomError('OffchainLookup')
       .withArgs(
-        getAddress(offchainDnsResolver.address),
+        getAddress(offchainDnsResolverNoCcip.address),
         ['https://example.com/'],
         calldata,
         toFunctionSelector('function resolveCallback(bytes,bytes)'),
