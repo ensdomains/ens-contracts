@@ -19,6 +19,7 @@ interface IUniversalResolver {
     error HttpError(uint16 status, string message);
 
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
+    /// @notice Callers should enable EIP-3668.
     /// @param name The name to resolve, in normalised and DNS-encoded form.
     /// @param data The resolution data, as specified in ENSIP-10.
     ///             For a multicall, the data should be encoded as `(bytes[])`.
@@ -31,6 +32,7 @@ interface IUniversalResolver {
     ) external view returns (bytes memory result, address resolver);
 
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
+    /// @notice Callers should enable EIP-3668.
     /// @param lookupAddress The address to reverse resolve, in encoded form.
     /// @param coinType The coin type to use for the reverse resolution.
     ///                 For ETH, this is 60.
