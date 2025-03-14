@@ -604,7 +604,7 @@ contract UniversalResolver is IUniversalResolver, ERC165, Ownable {
                     (HttpErrorItem[])
                 );
                 if (items.length == 1) {
-                    revert IUniversalResolver.HttpError(
+                    revert HttpError(
                         items[0].status,
                         items[0].message
                     );

@@ -1,0 +1,15 @@
+diff --git a/dist/src/DeploymentsManager.js b/dist/src/DeploymentsManager.js
+index 9ff5b84084cc6a6ce05e6d41efd2e95e868a0082..e9548f6711f4b516213230ffb33add491140cdf5 100644
+--- a/dist/src/DeploymentsManager.js
++++ b/dist/src/DeploymentsManager.js
+@@ -733,8 +733,8 @@ class DeploymentsManager {
+             // console.log("fetching " + scriptFilePath);
+             try {
+                 delete require.cache[scriptFilePath]; // ensure we reload it every time, so changes are taken in consideration
+-                deployFunc = require(scriptFilePath);
+-                if (deployFunc.default) {
++                deployFunc = await import(scriptFilePath);
++                while (deployFunc.default) {
+                     deployFunc = deployFunc.default;
+                 }
+                 funcByFilePath[scriptFilePath] = deployFunc;

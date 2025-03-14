@@ -24,10 +24,6 @@ import {
 } from 'viem'
 import { encodedRealAnchors } from '../fixtures/anchors.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
-import {
-  getReverseNode,
-  getReverseNodeHash,
-} from '../fixtures/getReverseNode.js'
 
 const gateways = ['http://universal-offchain-resolver.local']
 const metaDataAbi = parseAbi([
@@ -109,13 +105,6 @@ async function fixture() {
     ensRegistry.address,
     gateways,
   ])
-  const universalResolverNoCcip = getContract({
-    address: universalResolver.address,
-    abi: universalResolver.abi,
-    client: {
-      public: await hre.viem.getPublicClient({ ccipRead: false }),
-    },
-  })
   const offchainResolver = await hre.viem.deployContract(
     'DummyOffchainResolver',
     [],
@@ -222,7 +211,6 @@ async function fixture() {
     reverseRegistrar,
     publicResolver,
     universalResolver,
-    universalResolverNoCcip,
     offchainResolver,
     oldResolver,
     revertResolver,
@@ -459,7 +447,7 @@ describe('UniversalResolver', () => {
 
     it('should return a wrapped revert if the resolver reverts with OffchainLookup', async () => {
       const {
-        universalResolverNoCcip,
+        universalResolver,
         publicResolver,
         offchainResolver,
         batchGatewayAbi,
@@ -500,11 +488,11 @@ describe('UniversalResolver', () => {
         ],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolve', [dnsEncodeName('offchain.test.eth'), callData])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
-          getAddress(universalResolverNoCcip.address),
+          getAddress(universalResolver.address),
           gateways,
           queryCalldata,
           toFunctionSelector('function resolveSingleCallback(bytes,bytes)'),
@@ -513,15 +501,13 @@ describe('UniversalResolver', () => {
     })
 
     it('should use custom gateways when specified', async () => {
-      const { universalResolverNoCcip, publicResolver } = await loadFixture(
-        fixture,
-      )
+      const { universalResolver, publicResolver } = await loadFixture(fixture)
       const data = encodeFunctionData({
         abi: publicResolver.abi,
         functionName: 'addr',
         args: [namehash('offchain.test.eth'), 60n],
       })
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolve', [
           dnsEncodeName('offchain.test.eth'),
           data,
@@ -539,7 +525,7 @@ describe('UniversalResolver', () => {
 
     it('should return a wrapped revert with resolve() wrapped calls in extraData when combining onchain and offchain', async () => {
       const {
-        universalResolverNoCcip,
+        universalResolver,
         publicResolver,
         offchainResolver,
         batchGatewayAbi,
@@ -567,7 +553,7 @@ describe('UniversalResolver', () => {
           {
             callbackFunction: '0x00000000',
             data: encodeFunctionData({
-              abi: universalResolverNoCcip.abi,
+              abi: universalResolver.abi,
               functionName: 'resolve',
               args: [dnsEncodeName('offchain.test.eth'), onchainDataCall],
             }),
@@ -589,14 +575,14 @@ describe('UniversalResolver', () => {
         ],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolve', [
           dnsEncodeName('offchain.test.eth'),
           [addrCall, onchainDataCall],
         ])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
-          getAddress(universalResolverNoCcip.address),
+          getAddress(universalResolver.address),
           gateways,
           queryCalldata,
           toFunctionSelector('function resolveCallback(bytes,bytes)'),
@@ -606,7 +592,7 @@ describe('UniversalResolver', () => {
 
     it('should revert OffchainLookup via UniversalResolver + OffchainDNSResolver', async () => {
       const {
-        universalResolverNoCcip,
+        universalResolver,
         batchGatewayAbi,
         publicResolver,
         ensRegistry,
@@ -689,11 +675,11 @@ describe('UniversalResolver', () => {
         ],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolve', [dnsEncodeName(name), addrCall])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
-          getAddress(universalResolverNoCcip.address),
+          getAddress(universalResolver.address),
           gateways,
           queryCalldata,
           toFunctionSelector('function resolveSingleCallback(bytes,bytes)'),
@@ -755,7 +741,7 @@ describe('UniversalResolver', () => {
 
     it('should resolve multiple records offchain', async () => {
       const {
-        universalResolverNoCcip,
+        universalResolver,
         publicResolver,
         offchainResolver,
         batchGatewayAbi,
@@ -813,14 +799,14 @@ describe('UniversalResolver', () => {
         ],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolve', [
           dnsEncodeName('offchain.test.eth'),
           [textData, addrData],
         ])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
-          getAddress(universalResolverNoCcip.address),
+          getAddress(universalResolver.address),
           gateways,
           queryCalldata,
           toFunctionSelector('function resolveCallback(bytes,bytes)'),
@@ -888,7 +874,7 @@ describe('UniversalResolver', () => {
     })
 
     it('should propagate HttpError', async () => {
-      const { universalResolverNoCcip, offchainResolver, batchGatewayAbi } =
+      const { universalResolver, offchainResolver, batchGatewayAbi } =
         await loadFixture(fixture)
       const errorData = encodeErrorResult({
         abi: multiHttpError,
@@ -914,7 +900,7 @@ describe('UniversalResolver', () => {
         functionName: 'query',
         result: [[true], [errorData]],
       })
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('resolveSingleCallback', [response, extraData])
         .toBeRevertedWithCustomError('HttpError')
         .withArgs(404, 'Not Found')
@@ -1172,7 +1158,7 @@ describe('UniversalResolver', () => {
   describe('reverseCallback', () => {
     it('should revert with metadata for initial forward resolution if required', async () => {
       const {
-        universalResolverNoCcip,
+        universalResolver,
         offchainResolver,
         batchGatewayAbi,
         accounts: [account],
@@ -1224,11 +1210,11 @@ describe('UniversalResolver', () => {
         result: [[false], ['0x691f3431']],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('reverseCallback', [response, extraData])
         .toBeRevertedWithCustomError('OffchainLookup')
         .withArgs(
-          getAddress(universalResolverNoCcip.address),
+          getAddress(universalResolver.address),
           gateways,
           expect.anyValue,
           toFunctionSelector('function reverseCallback(bytes,bytes)'),
@@ -1237,7 +1223,7 @@ describe('UniversalResolver', () => {
     })
 
     it('should resolve address record via a callback from offchain lookup', async () => {
-      const { universalResolverNoCcip, offchainResolver, batchGatewayAbi } =
+      const { universalResolver, offchainResolver, batchGatewayAbi } =
         await loadFixture(fixture)
       const offchainResolverCallData = '0x'
       const extraData = encodeExtraData({
@@ -1273,10 +1259,7 @@ describe('UniversalResolver', () => {
         ],
       })
       const [name, resolverAddress, reverseResolverAddress] =
-        await universalResolverNoCcip.read.reverseCallback([
-          response,
-          extraData,
-        ])
+        await universalResolver.read.reverseCallback([response, extraData])
 
       expect(name).toEqual('offchain.test.eth')
       expect(resolverAddress).toEqualAddress(offchainResolver.address)
@@ -1284,7 +1267,7 @@ describe('UniversalResolver', () => {
     })
 
     it('should propagate HttpError', async () => {
-      const { universalResolverNoCcip, offchainResolver, batchGatewayAbi } =
+      const { universalResolver, offchainResolver, batchGatewayAbi } =
         await loadFixture(fixture)
 
       const errorData = encodeErrorResult({
@@ -1321,7 +1304,7 @@ describe('UniversalResolver', () => {
         result: [[true], [errorData]],
       })
 
-      await expect(universalResolverNoCcip)
+      await expect(universalResolver)
         .read('reverseCallback', [response, extraData])
         .toBeRevertedWithCustomError('HttpError')
         .withArgs(404, 'Not Found')

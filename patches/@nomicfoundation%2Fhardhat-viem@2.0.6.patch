@@ -1,0 +1,13 @@
+diff --git a/internal/clients.js b/internal/clients.js
+index 3f7782b745139ed99f95cc9c7974f4b686689383..13ecfbfe8a1cf44203cb25b8e3a873c01f2a2a67 100644
+--- a/internal/clients.js
++++ b/internal/clients.js
+@@ -27,7 +27,7 @@ exports.innerGetTestClient = exports.getTestClient = exports.getWalletClient = e
+ async function getParameters(chain, config) {
+     const { isDevelopmentNetwork } = await Promise.resolve().then(() => __importStar(require("./chains")));
+     const defaultParameters = isDevelopmentNetwork(chain.id)
+-        ? { pollingInterval: 50, cacheTime: 0 }
++        ? { pollingInterval: 50, cacheTime: 0, ccipRead: false }
+         : {};
+     const transportParameters = isDevelopmentNetwork(chain.id)
+         ? { retryCount: 0 }
