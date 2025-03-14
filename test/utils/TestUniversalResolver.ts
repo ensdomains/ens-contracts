@@ -1335,5 +1335,19 @@ describe('UniversalResolver', () => {
         .read('reverse', [accounts[10].address, 60n, []])
         .toBeRevertedWithCustomError('ReverseAddressMismatch')
     })
+
+    it('should revert if not coinType 60', async () => {
+      const { universalResolver } = await loadFixture(fixture)
+      await expect(universalResolver)
+        .read('reverse', ['0x', 0n, []])
+        .toBeRevertedWithString(/expected coinType 60/)
+    })
+
+    it('should revert if not EVM address', async () => {
+      const { universalResolver } = await loadFixture(fixture)
+      await expect(universalResolver)
+        .read('reverse', ['0x', 60n, []])
+        .toBeRevertedWithString(/expected EVM address/)
+    })
   })
 })
