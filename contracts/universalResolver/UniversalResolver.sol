@@ -72,8 +72,6 @@ interface BatchGateway {
     ) external returns (bool[] memory failures, bytes[] memory responses);
 }
 
-bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
-
 /**
  * The Universal Resolver is a contract that handles the work of resolving a name entirely onchain,
  * making it possible to make a single smart contract call to resolve an ENS name.
