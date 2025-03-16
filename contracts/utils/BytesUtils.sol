@@ -77,11 +77,11 @@ library BytesUtils {
         return compare(self, 0, self.length, other, 0, other.length);
     }
 
-    /*
-     * @dev Returns a positive number if `other` comes lexicographically after
-     *      `self`, a negative number if it comes before, or zero if the
-     *      contents of the two bytes are equal. Comparison is done per-rune,
-     *      on unicode codepoints.
+    /**
+     * @dev +1 if `other` comes lexicographically after `self`,
+     *      -1 if `other` comes before,
+     *      or 0 if the contents of the two bytes are equal.
+     *      Comparison is done bytewise.
      * @param self The first bytes to compare.
      * @param offset The offset of self.
      * @param len    The length of self.
@@ -123,21 +123,25 @@ library BytesUtils {
                 b := mload(otherptr)
             }
             if (a != b) {
-                // Mask out irrelevant bytes and check again
-                uint256 mask;
-                if (shortest - idx >= 32) {
-                    mask = type(uint256).max;
-                } else {
-                    mask = ~(2 ** (8 * (idx + 32 - shortest)) - 1);
+                uint256 rest = shortest - idx;
+                if (rest < 32) {
+                    rest = (32 - rest) << 3; // bits to drop
+                    a >>= rest; // drop them
+                    b >>= rest;
                 }
-                int256 diff = int256(a & mask) - int256(b & mask);
-                if (diff != 0) return diff;
+                if (a < b) return -1;
+                if (a > b) return 1;
             }
             selfptr += 32;
             otherptr += 32;
         }
 
-        return int256(len) - int256(otherlen);
+        return
+            len == otherlen
+                ? int256(0)
+                : len < otherlen
+                    ? int256(-1)
+                    : int256(1);
     }
 
     /*
