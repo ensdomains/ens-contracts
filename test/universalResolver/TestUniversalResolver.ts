@@ -1,13 +1,13 @@
 import hre from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
-import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { keccak256, namehash, toBytes, zeroAddress } from 'viem'
-import { ownedEnsFixture } from './ownedEnsFixture.js'
-import { makeResolutions, bundleCalls, getParentName } from './utils.js'
-import { expectVar } from '../fixtures/expectVar.js'
+import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { COIN_TYPE_ETH, getReverseName } from '../fixtures/ensip19.js'
+import { ownedEnsFixture } from './ownedEnsFixture.js'
+import { expectVar } from '../fixtures/expectVar.js'
+import { makeResolutions, bundleCalls, getParentName } from './utils.js'
 
 async function fixture() {
   const ens = await ownedEnsFixture()

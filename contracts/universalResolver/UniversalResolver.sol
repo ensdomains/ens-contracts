@@ -86,7 +86,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             ccip,
             (Lookup, Response[])
         );
-        resolver = _extractResolver(lookup);
+        resolver = _requireResolver(lookup);
         bool multi = abi.decode(extraData, (bool));
         if (multi) {
             bytes[] memory m = new bytes[](res.length);
@@ -170,7 +170,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             ccip,
             (Lookup, Response[])
         );
-        reverseResolver = _extractResolver(lookup); // reverts if the resolver isn't usable
+        reverseResolver = _requireResolver(lookup); // reverts if the resolver isn't usable
         Input memory input = abi.decode(extraData, (Input));
         if ((res[0].bits & ResponseBits.ERROR) != 0) {
             _revertError(res[0].data); // name() failed
@@ -220,7 +220,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             ccip,
             (Lookup, Response[])
         );
-        resolver = _extractResolver(lookup); // reverts if the resolver isn't usable
+        resolver = _requireResolver(lookup); // reverts if the resolver isn't usable
         bytes memory primaryAddress;
         Response memory r = res[0];
         if (r.data.length >= 32 && (r.bits & ResponseBits.ERROR) == 0) {
@@ -238,7 +238,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         }
     }
 
-    function _extractResolver(
+    function _requireResolver(
         Lookup memory lookup
     ) internal pure returns (address resolver) {
         resolver = lookup.resolver;

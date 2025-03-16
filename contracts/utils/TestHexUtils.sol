@@ -29,4 +29,23 @@ contract TestHexUtils {
     ) public pure returns (address, bool) {
         return input.hexToAddress(idx, lastInx);
     }
+
+    function addressToHex(
+        address addr
+    ) external pure returns (string memory hexString) {
+        return HexUtils.addressToHex(addr);
+    }
+
+    function unpaddedUintToHex(
+        uint256 value,
+        bool dropZeroNibble
+    ) external pure returns (string memory hexString) {
+        return HexUtils.unpaddedUintToHex(value, dropZeroNibble);
+    }
+
+    function bytesToHex(
+        bytes memory v
+    ) external pure returns (string memory hexString) {
+        return HexUtils.bytesToHex(v);
+    }
 }

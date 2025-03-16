@@ -1,9 +1,9 @@
 import {
+  type Hex,
   decodeFunctionResult,
   encodeFunctionData,
   encodeFunctionResult,
   getAddress,
-  Hex,
   namehash,
   parseAbi,
 } from 'viem'

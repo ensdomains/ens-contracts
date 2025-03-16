@@ -1,7 +1,7 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { stringToHex, zeroAddress, zeroHash } from 'viem'
+import { stringToHex, toHex, zeroAddress, zeroHash } from 'viem'
 
 async function fixture() {
   const hexUtils = await hre.viem.deployContract('TestHexUtils', [])
@@ -197,5 +197,49 @@ describe('HexUtils', () => {
         ])
         .toBeRevertedWithoutReason()
     })
+  })
+
+  describe('addressToHex()', async () => {
+    for (const addr of [
+      zeroAddress,
+      '0x5ceE339e13375638553bdF5a6e36BA80fB9f6a4F',
+      '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    ] as const) {
+      it(addr, async () => {
+        const { hexUtils } = await loadFixture(fixture)
+        await expect(hexUtils.read.addressToHex([addr])).resolves.toStrictEqual(
+          addr.slice(2).toLowerCase(),
+        )
+      })
+    }
+  })
+
+  describe('bytesToHex()', async () => {
+    for (let n = 0; n <= 33; n++) {
+      const data = toHex(Uint8Array.from({ length: n }, (_, i) => n + i))
+      it(data, async () => {
+        const { hexUtils } = await loadFixture(fixture)
+        await expect(hexUtils.read.bytesToHex([data])).resolves.toStrictEqual(
+          data.slice(2),
+        )
+      })
+    }
+  })
+
+  describe('unpaddedUintToHex()', async () => {
+    for (const i of [0n, 1n, (1n << 256n) - 1n]) {
+      const hex = i.toString(16)
+      it(`0x${hex.padStart(64, '0')}`, async () => {
+        const { hexUtils } = await loadFixture(fixture)
+        await expect(
+          hexUtils.read.unpaddedUintToHex([i, true]),
+          'true',
+        ).resolves.toStrictEqual(hex)
+        await expect(
+          hexUtils.read.unpaddedUintToHex([i, false]),
+          'false',
+        ).resolves.toStrictEqual(`${hex.length & 1 ? '0' : ''}${hex}`)
+      })
+    }
   })
 })
