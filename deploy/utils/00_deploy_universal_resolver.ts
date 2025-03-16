@@ -1,27 +1,35 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
 
 const func: DeployFunction = async function (hre) {
-  const { deployments, viem } = hre
-  const { deploy } = deployments
+  const { deployer, owner } = await hre.viem.getNamedClients()
 
-  const { deployer, owner } = await viem.getNamedClients()
-
-  const registry = await viem.getContract('ENSRegistry')
+  const registry = await hre.viem.getContract('ENSRegistry')
   const batchGatewayURLs = JSON.parse(process.env.BATCH_GATEWAY_URLS || '[]')
 
   if (batchGatewayURLs.length === 0) {
     throw new Error('UniversalResolver: No batch gateway URLs provided')
   }
 
-  await viem.deploy('UniversalResolver', [registry.address, batchGatewayURLs])
+  const ForwardResolution = await hre.viem.deploy('ForwardResolutionV1', [
+    registry.address,
+    batchGatewayURLs,
+  ])
+
+  const UniversalResolver = await hre.viem.deploy('UniversalResolver', [
+    ForwardResolution.address,
+  ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
-    const universalResolver = await viem.getContract('UniversalResolver')
-    const hash = await universalResolver.write.transferOwnership([
-      owner.address,
-    ])
-    console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
-    await viem.waitForTransactionSuccess(hash)
+    for (const [name, c] of Object.entries({
+      ForwardResolution,
+      UniversalResolver,
+    })) {
+      const hash = await c.write.transferOwnership([owner.address])
+      console.log(
+        `Transfer ownership of ${name} to ${owner.address} (tx: ${hash}, )...`,
+      )
+      await hre.viem.waitForTransactionSuccess(hash)
+    }
   }
 }
 
