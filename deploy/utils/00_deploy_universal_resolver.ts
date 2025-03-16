@@ -20,13 +20,14 @@ const func: DeployFunction = async function (hre) {
   ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
-    for (const [name, c] of Object.entries({
+    for (const [name, { address }] of Object.entries({
       ForwardResolution,
       UniversalResolver,
     })) {
-      const hash = await c.write.transferOwnership([owner.address])
+      const contract = await hre.viem.getContract(name)
+      const hash = await contract.write.transferOwnership([owner.address])
       console.log(
-        `Transfer ownership of ${name} to ${owner.address} (tx: ${hash}, )...`,
+        `Transfer ownership of ${name}<${address}> to ${owner.address} (tx: ${hash}, )...`,
       )
       await hre.viem.waitForTransactionSuccess(hash)
     }
