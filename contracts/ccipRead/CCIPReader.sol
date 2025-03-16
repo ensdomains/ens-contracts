@@ -46,14 +46,14 @@ contract CCIPReader {
     /// @dev A function that wraps, handles, and consistently returns responses from calls to a function within a target contract that can return directly OR return in response to offchain data resolution (subject to the ERC-3668 specification).
     /// @param target contract address
     /// @param call calldata to `staticcall()` on `target`
-    /// @param mySelector function selector of continuation
-    /// @param myCarry user-supplied payload passed to `mySelector` along with response bytes
+    /// @param myCallbackFunction function selector of callback
+    /// @param myExtraData extra data passed to `mySelector` along with response bytes
     /// @return v abi-encoded response from calling `mySelector` or revert
     function ccipRead(
         address target,
         bytes memory call,
-        bytes4 mySelector,
-        bytes memory myCarry
+        bytes4 myCallbackFunction,
+        bytes memory myExtraData
     ) internal view returns (bytes memory v) {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
@@ -63,16 +63,22 @@ contract CCIPReader {
         if (!ok && bytes4(v) == OffchainLookup.selector) {
             // We decode the response error into a tuple
             // tuples allow flexibility noting stack too deep constraints
-            EIP3668.Params memory x = EIP3668.decodeWithSelector(v);
-            if (x.sender == target) {
+            EIP3668.Params memory p = EIP3668.decodeWithSelector(v);
+            if (p.sender == target) {
                 // We then wrap the error data in an `OffchainLookup` sent/'owned' by this contract
                 revert OffchainLookup(
                     address(this),
-                    x.urls,
-                    x.request,
+                    p.urls,
+                    p.callData,
                     this.ccipReadCallback.selector,
                     abi.encode(
-                        Carry(target, x.selector, x.carry, mySelector, myCarry)
+                        Context(
+                            target,
+                            p.callbackFunction,
+                            p.extraData,
+                            myCallbackFunction,
+                            myExtraData
+                        )
                     )
                 );
             }
@@ -82,7 +88,7 @@ contract CCIPReader {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
-                abi.encodeWithSelector(mySelector, v, myCarry)
+                abi.encodeWithSelector(myCallbackFunction, v, myExtraData)
             );
         }
         // OR the call to the 'real' target reverts with a different error selector
@@ -96,16 +102,20 @@ contract CCIPReader {
 
     function ccipReadCallback(
         bytes memory ccip,
-        bytes memory carry
+        bytes memory extraData
     ) external view {
-        Carry memory state = abi.decode(carry, (Carry));
+        Context memory state = abi.decode(extraData, (Context));
         // Since the callback can revert too (but has the same return structure)
         // We can reuse the calling infrastructure to call the callback
         bytes memory v = ccipRead(
             state.target,
-            abi.encodeWithSelector(state.callback, ccip, state.carry),
-            state.myCallback,
-            state.myCarry
+            abi.encodeWithSelector(
+                state.callbackFunction,
+                ccip,
+                state.extraData
+            ),
+            state.myCallbackFunction,
+            state.myExtraData
         );
         assembly {
             return(add(v, 32), mload(v))
@@ -114,10 +124,10 @@ contract CCIPReader {
 }
 
 // for internal use
-struct Carry {
+struct Context {
     address target;
-    bytes4 callback;
-    bytes carry;
-    bytes4 myCallback;
-    bytes myCarry;
+    bytes4 callbackFunction;
+    bytes extraData;
+    bytes4 myCallbackFunction;
+    bytes myExtraData;
 }

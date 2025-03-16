@@ -10,7 +10,7 @@ error OffchainLookup(
     bytes carry
 );
 
-/// @dev Simple library for decoding OffchainLookup() calldata
+/// @dev Simple library for decoding OffchainLookup() data
 
 /// Example usage:
 /// ```solidity
@@ -24,17 +24,15 @@ library EIP3668 {
     struct Params {
         address sender;
         string[] urls;
-        bytes request;
-        bytes4 selector;
-        bytes carry;
+        bytes callData;
+        bytes4 callbackFunction;
+        bytes extraData;
     }
 
     /// @dev Decode an `OffchainLookup` error into a struct
-    function decode(bytes memory v) internal pure returns (Params memory x) {
-        (x.sender, x.urls, x.request, x.selector, x.carry) = abi.decode(
-            v,
-            (address, string[], bytes, bytes4, bytes)
-        );
+    function decode(bytes memory v) internal pure returns (Params memory p) {
+        (p.sender, p.urls, p.callData, p.callbackFunction, p.extraData) = abi
+            .decode(v, (address, string[], bytes, bytes4, bytes));
     }
 
     /// @dev Same as `decode()` but ignores the selector (first 4 bytes)

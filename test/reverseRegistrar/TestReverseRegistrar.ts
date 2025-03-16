@@ -1,8 +1,12 @@
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import hre from 'hardhat'
-import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
-import { getReverseNodeHash } from '../fixtures/getReverseNode.js'
+import { type Address, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+import { getReverseName } from '../fixtures/ensip19.js'
+
+function getReverseNodeHash(addr: Address) {
+  return namehash(getReverseName(addr))
+}
 
 async function fixture() {
   const accounts = await hre.viem

@@ -39,19 +39,19 @@ export const RESPONSE_BITS = {
 
 type KnownOrigin = 'on' | 'off' | 'batched'
 
-type KnownAddressRecord = {
+type AddressRecord = {
   coinType: bigint
   encodedAddress: Hex
   origin?: KnownOrigin
 }
 
-type KnownTextRecord = {
+type TextRecord = {
   key: string
   value: string
   origin?: KnownOrigin
 }
 
-type KnownPrimaryRecord = {
+type PrimaryRecord = {
   name: string
   origin?: KnownOrigin
 }
@@ -60,9 +60,9 @@ export type KnownProfile = {
   title?: string
   name: string
   extended?: boolean
-  addresses?: KnownAddressRecord[]
-  texts?: KnownTextRecord[]
-  primary?: KnownPrimaryRecord
+  addresses?: AddressRecord[]
+  texts?: TextRecord[]
+  primary?: PrimaryRecord
 }
 
 export type KnownReverse = {
@@ -72,22 +72,22 @@ export type KnownReverse = {
   expectPrimary?: boolean
 }
 
-export type KnownResolution = {
+type Expected = {
+  call: Hex
+  answer: Hex
+  expect(data: Hex): void
+}
+
+export type KnownResolution = Expected & {
   desc: string
   origin?: KnownOrigin
-  call: Hex
-  answer: Hex
-  expect(data: Hex): void
 }
 
-export type ResolutionBundle = {
-  call: Hex
-  answer: Hex
+export type KnownBundle = Expected & {
   unbundle: (data: Hex) => readonly Hex[]
-  expect(data: Hex): void
 }
 
-export function bundleCalls(calls: KnownResolution[]): ResolutionBundle {
+export function bundleCalls(calls: KnownResolution[]): KnownBundle {
   if (calls.length == 1) {
     return {
       call: calls[0].call,

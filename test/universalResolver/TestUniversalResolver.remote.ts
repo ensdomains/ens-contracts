@@ -28,36 +28,38 @@ async function fixture() {
 }
 
 ;(isHardhatFork() ? describe : describe.skip)(
-  'TestUniversalResolver @ mainnet',
+  'UniversalResolver @ mainnet',
   () => {
-    for (const x of KNOWN_RESOLUTIONS) {
-      it(`resolve(): ${x.title}: ${x.name}`, async () => {
-        const calls = makeResolutions(x)
-        const bundle = bundleCalls(calls)
-        const { UniversalResolver } = await loadFixture(fixture)
-        const [answer] = await UniversalResolver.read.resolve([
-          dnsEncodeName(x.name),
-          bundle.call,
-        ])
-        bundle.expect(answer)
-      })
-    }
-    for (const x of KNOWN_PRIMARIES) {
-      it(`reverse(): ${shortCoin(x.coinType)} ${
-        x.encodedAddress
-      }`, async () => {
-        const { UniversalResolver } = await loadFixture(fixture)
-        const promise = UniversalResolver.read.reverse([
-          x.encodedAddress,
-          x.coinType,
-        ])
-        if (x.expectError) {
-          await expect(promise).rejects.toThrow()
-        } else {
-          const [name] = await promise
-          if (x.expectPrimary) expect(name).not.toHaveLength(0)
-        }
-      })
-    }
+    describe('resolve()', () => {
+      for (const x of KNOWN_RESOLUTIONS) {
+        it(`${x.title}: ${x.name}`, async () => {
+          const calls = makeResolutions(x)
+          const bundle = bundleCalls(calls)
+          const { UniversalResolver } = await loadFixture(fixture)
+          const [answer] = await UniversalResolver.read.resolve([
+            dnsEncodeName(x.name),
+            bundle.call,
+          ])
+          bundle.expect(answer)
+        })
+      }
+    })
+    describe('reverse()', () => {
+      for (const x of KNOWN_PRIMARIES) {
+        it(`${shortCoin(x.coinType)} ${x.encodedAddress}`, async () => {
+          const { UniversalResolver } = await loadFixture(fixture)
+          const promise = UniversalResolver.read.reverse([
+            x.encodedAddress,
+            x.coinType,
+          ])
+          if (x.expectError) {
+            await expect(promise).rejects.toThrow()
+          } else {
+            const [name] = await promise
+            if (x.expectPrimary) expect(name).not.toHaveLength(0)
+          }
+        })
+      }
+    })
   },
 )

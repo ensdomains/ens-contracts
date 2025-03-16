@@ -11,7 +11,7 @@ import {
   zeroHash,
 } from 'viem'
 import { DAY, FUSES } from '../fixtures/constants.js'
-import { getReverseNode } from '../fixtures/getReverseNode.js'
+import { getReverseName } from '../fixtures/ensip19.js'
 import {
   commitName,
   getDefaultRegistrationOptions,
@@ -736,7 +736,7 @@ describe('ETHRegistrarController', () => {
 
     await expect(
       publicResolver.read.name([
-        namehash(getReverseNode(ownerAccount.address)),
+        namehash(getReverseName(ownerAccount.address)),
       ]),
     ).resolves.toEqual('reverse.eth')
   })
@@ -758,7 +758,7 @@ describe('ETHRegistrarController', () => {
 
     await expect(
       publicResolver.read.name([
-        namehash(getReverseNode(registrantAccount.address)),
+        namehash(getReverseName(registrantAccount.address)),
       ]),
     ).resolves.toEqual('')
   })

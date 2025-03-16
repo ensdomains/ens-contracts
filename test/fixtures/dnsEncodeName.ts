@@ -1,9 +1,9 @@
 import {
-  Hex,
+  type Hex,
+  type ByteArray,
   bytesToHex,
   labelhash as labelhashBytes32,
   stringToBytes,
-  type ByteArray,
 } from 'viem'
 
 export function packetToBytes(packet: string): ByteArray {
@@ -24,9 +24,7 @@ export function packetToBytes(packet: string): ByteArray {
     offset += encoded.length + 1
   }
 
-  if (bytes.byteLength !== offset + 1) return bytes.slice(0, offset + 1)
-
-  return bytes
+  return bytes.subarray(0, offset + 1)
 }
 
 export const dnsEncodeName = (name: string): Hex =>

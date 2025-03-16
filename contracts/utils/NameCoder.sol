@@ -19,21 +19,20 @@ import {HexUtils} from "../utils/HexUtils.sol";
 /// * always 66 bytes
 /// * matches: /^\[[0-9a-f]{64}\]$/
 
-/// w/o hashed labels: dns.length == 2 + ens.length
-/// mapping is injective
-
-/// w/ hashed labels: dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)
 /// dns.length is *always* shorter than ens.length
+/// w/o hashed labels: dns.length == 2 + ens.length and mapping is injective
+///  w/ hashed labels: dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)
 
 library NameCoder {
-    /// @dev The DNS-encoded name is incorrectly encoded
+    /// @dev The DNS-encoded name is malformed
     error DNSDecodingFailed(bytes dns);
 
-    /// @dev The ENS name lacks a faithful
+    /// @dev Some label of the ENS name has an invalid size
     error DNSEncodingFailed(string ens);
 
     /// @dev Same as BytesUtils.readLabel() but supports hashed labels w/custom error
     ///      The last labelHash = 0
+    ///      reverts DNSDecodingFailed()
     /// @param name The DNS-encoded name
     /// @param idx The byte-index start of the DNS-encoded label to read
     /// @return labelHash labelHash of the read label
@@ -64,25 +63,25 @@ library NameCoder {
     /// @dev Same as BytesUtils.namehash() but supports hashed labels w/custom error
     function namehash(
         bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 labelHash) {
-        (labelHash, offset) = readLabel(name, offset);
-        if (labelHash == bytes32(0)) {
-            if (offset != name.length) revert DNSDecodingFailed(name); // "namehash: Junk at end of name"
+        uint256 idx
+    ) internal pure returns (bytes32 hash) {
+        (hash, idx) = readLabel(name, idx);
+        if (hash == bytes32(0)) {
+            if (idx != name.length) revert DNSDecodingFailed(name); // "namehash: Junk at end of name"
         } else {
-            bytes32 parentNode = namehash(name, offset);
+            bytes32 parent = namehash(name, idx);
             assembly {
-                mstore(0, parentNode)
-                mstore(32, labelHash)
-                labelHash := keccak256(0, 64)
+                mstore(0, parent)
+                mstore(32, hash)
+                hash := keccak256(0, 64)
             }
         }
     }
 
     /// @dev Convert DNS-encoded name to ENS name
+    ///      reverts DNSDecodingFailed()
     /// @param dns DNS-encoded name
     /// @return ens ENS name, eg. "aaa.bb.c"
-    /// @dev reverts DNSDecodingFailed()
     function decode(
         bytes memory dns
     ) internal pure returns (string memory ens) {
@@ -111,13 +110,12 @@ library NameCoder {
     }
 
     /// @dev Convert ENS name to DNS-encoded name
+    ///      Hashes labels longer than 255 bytes
+    ///      reverts DNSEncodingFailed()
     /// @param ens ENS name, eg. "aaa.bb.c"
-    /// @param max The longest unhashed label (0 = never, 1 = always, 255 = only long)
     /// @return dns DNS-encoded name
-    /// @dev reverts DNSEncodingFailed()
     function encode(
-        string memory ens,
-        uint8 max
+        string memory ens
     ) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
@@ -131,7 +129,7 @@ library NameCoder {
             for (uint256 i; i < n; i++) {
                 bytes1 x = bytes(ens)[i]; // read byte
                 if (x == ".") {
-                    start = _encodeLabel(start, end, max);
+                    start = _encodeLabel(start, end);
                     if (start == 0) revert DNSEncodingFailed(ens);
                     end = start; // jump to next position
                 } else {
@@ -141,7 +139,7 @@ library NameCoder {
                     }
                 }
             }
-            start = _encodeLabel(start, end, max);
+            start = _encodeLabel(start, end);
             if (start == 0) revert DNSEncodingFailed(ens);
             assembly {
                 mstore8(start, 0) // terminal byte
@@ -153,11 +151,10 @@ library NameCoder {
     /// @dev returns 0 if error (handled by caller)
     function _encodeLabel(
         uint256 start,
-        uint256 end,
-        uint8 max
+        uint256 end
     ) internal pure returns (uint256 next) {
         uint256 size = end - start; // length of label
-        if (max > 0 && size > max) {
+        if (size > 255) {
             assembly {
                 mstore(0, keccak256(add(start, 1), size)) // compute hash of label
             }
@@ -168,11 +165,11 @@ library NameCoder {
             }
             size = 66;
         }
-        if (size > 0 && size <= 255) {
+        if (size > 0) {
             assembly {
                 mstore8(start, size) // update length
             }
-            next = end + 1; // advance
+            next = start + 1 + size; // advance
         }
     }
 }

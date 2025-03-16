@@ -23,43 +23,35 @@ library ENSIP19 {
             );
     }
 
-    /// @dev Generate DNS-encoded Reverse Name from EVM Address + Chain ID
-    function dnsReverseName(
+    /// @dev Generate Reverse Name from EVM Address + Chain ID
+    function reverseName(
         address addr,
         uint64 chain
-    ) internal pure returns (bytes memory) {
+    ) internal pure returns (string memory) {
         return
-            dnsReverseName(
+            reverseName(
                 abi.encodePacked(addr),
                 chain == 1 ? COIN_TYPE_ETH : chain | EVM_BIT
             );
     }
 
-    /// @dev Generate DNS-encoded Reverse Name from Encoded Address + Coin Type
-    function dnsReverseName(
+    /// @dev Generate Reverse Name from Encoded Address + Coin Type
+    function reverseName(
         bytes memory encodedAddress,
         uint256 coinType
-    ) internal pure returns (bytes memory) {
-        require(
-            encodedAddress.length <= 128,
-            "dnsReverseName: address too long"
-        );
-        string memory hexAddr = HexUtils.bytesToHex(encodedAddress);
-        string memory hexCoin;
-        if (coinType == COIN_TYPE_ETH) {
-            hexCoin = "addr";
-        } else if (coinType == EVM_BIT) {
-            hexCoin = "default";
-        } else {
-            hexCoin = HexUtils.unpaddedUintToHex(coinType, true);
-        }
+    ) internal pure returns (string memory) {
         return
-            abi.encodePacked(
-                uint8(bytes(hexAddr).length),
-                hexAddr,
-                uint8(bytes(hexCoin).length),
-                hexCoin,
-                "\x07reverse\x00"
+            string(
+                abi.encodePacked(
+                    HexUtils.bytesToHex(encodedAddress),
+                    ".",
+                    coinType == COIN_TYPE_ETH
+                        ? "addr"
+                        : coinType == EVM_BIT
+                            ? "default"
+                            : HexUtils.unpaddedUintToHex(coinType, true),
+                    ".reverse"
+                )
             );
     }
 }

@@ -80,14 +80,14 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
 
     function resolveWithGatewaysCallback(
         bytes calldata ccip,
-        bytes calldata carry
+        bytes calldata extraData
     ) external pure returns (bytes memory answer, address resolver) {
         (Lookup memory lookup, Response[] memory res) = abi.decode(
             ccip,
             (Lookup, Response[])
         );
         resolver = _extractResolver(lookup);
-        bool multi = abi.decode(carry, (bool));
+        bool multi = abi.decode(extraData, (bool));
         if (multi) {
             bytes[] memory m = new bytes[](res.length);
             for (uint256 i; i < res.length; i++) {
@@ -132,21 +132,23 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
     {
         // https://docs.ens.domains/ensip/19
         bytes[] memory calls = new bytes[](1);
-        bytes memory name = ENSIP19.dnsReverseName(encodedAddress, coinType);
+        bytes memory name = NameCoder.encode(
+            ENSIP19.reverseName(encodedAddress, coinType)
+        );
         bytes32 node = NameCoder.namehash(name, 0); // reverts if encodedAddress is empty
         calls[0] = abi.encodeCall(INameResolver.name, (node));
         bytes memory v = ccipRead(
             address(forwardResolution),
             abi.encodeCall(IForwardResolution.resolve, (name, calls, gateways)),
             this.reverseNameCallback.selector,
-            abi.encode(ReverseCarry(encodedAddress, coinType, gateways))
+            abi.encode(Input(encodedAddress, coinType, gateways))
         );
         assembly {
             return(add(v, 32), mload(v))
         }
     }
 
-    struct ReverseCarry {
+    struct Input {
         bytes encodedAddress;
         uint256 coinType;
         string[] gateways;
@@ -154,7 +156,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
 
     function reverseNameCallback(
         bytes calldata ccip,
-        bytes calldata carry
+        bytes calldata extraData
     )
         external
         view
@@ -169,7 +171,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             (Lookup, Response[])
         );
         reverseResolver = _extractResolver(lookup); // reverts if the resolver isn't usable
-        ReverseCarry memory state = abi.decode(carry, (ReverseCarry));
+        Input memory input = abi.decode(extraData, (Input));
         if ((res[0].bits & ResponseBits.ERROR) != 0) {
             _revertError(res[0].data); // name() failed
         }
@@ -177,20 +179,20 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         if (primary.length == 0) {
             return ("", address(0), reverseResolver); // name() was empty
         }
-        bytes memory name = NameCoder.encode(string(primary), 255); // support long labels
+        bytes memory name = NameCoder.encode(string(primary));
         bytes32 node = NameCoder.namehash(name, 0);
         bytes[] memory calls = new bytes[](1);
-        calls[0] = state.coinType == COIN_TYPE_ETH
+        calls[0] = input.coinType == COIN_TYPE_ETH
             ? abi.encodeCall(IAddrResolver.addr, (node))
-            : abi.encodeCall(IAddressResolver.addr, (node, state.coinType));
+            : abi.encodeCall(IAddressResolver.addr, (node, input.coinType));
         bytes memory v = ccipRead(
             address(forwardResolution),
             abi.encodeCall(
                 IForwardResolution.resolve,
-                (name, calls, state.gateways)
+                (name, calls, input.gateways)
             ),
             this.reverseAddressCallback.selector,
-            abi.encode(state.encodedAddress, primary, reverseResolver)
+            abi.encode(input.encodedAddress, primary, reverseResolver)
         );
         assembly {
             return(add(v, 32), mload(v))
@@ -199,7 +201,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
 
     function reverseAddressCallback(
         bytes calldata ccip,
-        bytes calldata carry
+        bytes calldata extraData
     )
         external
         pure
@@ -211,7 +213,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
     {
         bytes memory reverseAddress;
         (reverseAddress, primary, reverseResolver) = abi.decode(
-            carry,
+            extraData,
             (bytes, string, address)
         );
         (Lookup memory lookup, Response[] memory res) = abi.decode(
@@ -221,13 +223,13 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         resolver = _extractResolver(lookup); // reverts if the resolver isn't usable
         bytes memory primaryAddress;
         Response memory r = res[0];
-        if (r.data.length > 0 && (r.bits & ResponseBits.ERROR) == 0) {
+        if (r.data.length >= 32 && (r.bits & ResponseBits.ERROR) == 0) {
             if (bytes4(r.call) == IAddrResolver.addr.selector) {
                 address addr = abi.decode(r.data, (address));
                 if (addr != address(0)) {
                     primaryAddress = abi.encodePacked(addr);
                 }
-            } else if (r.data.length > 0) {
+            } else {
                 primaryAddress = abi.decode(r.data, (bytes));
             }
         }

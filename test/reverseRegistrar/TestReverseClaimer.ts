@@ -2,7 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { labelhash, namehash, zeroHash } from 'viem'
-import { getReverseNode } from '../fixtures/getReverseNode.js'
+import { getReverseName } from '../fixtures/ensip19.js'
 
 async function fixture() {
   const accounts = await hre.viem
@@ -59,7 +59,7 @@ describe('ReverseClaimer', () => {
     const { ensRegistry, nameWrapper, accounts } = await loadFixture(fixture)
 
     await expect(
-      ensRegistry.read.owner([namehash(getReverseNode(nameWrapper.address))]),
+      ensRegistry.read.owner([namehash(getReverseName(nameWrapper.address))]),
     ).resolves.toEqualAddress(accounts[0].address)
   })
 
@@ -73,7 +73,7 @@ describe('ReverseClaimer', () => {
 
     await expect(
       ensRegistry.read.owner([
-        namehash(getReverseNode(mockReverseClaimerImplementer.address)),
+        namehash(getReverseName(mockReverseClaimerImplementer.address)),
       ]),
     ).resolves.toEqualAddress(accounts[1].address)
   })

@@ -16,13 +16,13 @@ import {
 } from 'viem'
 
 const abi = parseAbi([
-  'function query(Query[] queries) external view returns (bool[] memory failures, bytes[] memory responses)',
-  'struct Query { address sender; string[] urls; bytes data; }',
+  'function query(Request[]) external view returns (bool[] memory failures, bytes[] memory responses)',
+  'struct Request { address sender; string[] urls; bytes data; }',
   'error HttpError(uint16 status, string message)',
   'error Error(string message)',
 ])
 
-type Query = {
+type Request = {
   sender: Address
   urls: string[]
   data: Hex
@@ -30,8 +30,8 @@ type Query = {
 
 export async function fetchBatchGateway(
   batchedGatewayURL: string,
-  queries: Query[],
-  sender = zeroAddress,
+  requests: Request[],
+  sender: Address = zeroAddress,
 ) {
   const res = await fetch(batchedGatewayURL, {
     method: 'POST',
@@ -41,7 +41,7 @@ export async function fetchBatchGateway(
       data: encodeFunctionData({
         abi,
         functionName: 'query',
-        args: [queries],
+        args: [requests],
       }),
     }),
   })
@@ -83,17 +83,17 @@ export async function serveBatchGateway() {
       }
       if (!isHex(data)) return res.writeHead(400).end('expect Hex')
       const {
-        args: [queries],
+        args: [requests],
       } = decodeFunctionData({ abi, data })
       const failures: boolean[] = []
       const responses: Hex[] = []
       await Promise.all(
-        queries.map(async (x, i) => {
+        requests.map(async (r, i) => {
           try {
             responses[i] = await ccipRequest({
-              ...x,
+              ...r,
               // workaround for https://github.com/wevm/viem/pull/3449
-              sender: x.sender.toLowerCase() as Address,
+              sender: r.sender.toLowerCase() as Address,
             })
             failures[i] = false
           } catch (err) {
@@ -156,52 +156,3 @@ function encodeError(err: unknown): Hex {
     ],
   })
 }
-
-// import { serve } from 'bun'
-// export async function serveBatchedGateway2(): Promise<{
-//   shutdown: () => Promise<void>
-//   batchedGatewayURL: string
-// }> {
-//   const server = serve({
-//     routes: {
-//       '/': {
-//         POST: async (req) => {
-//           const { data } = (await req.json()) as { data: Hex }
-//           const {
-//             args: [queries],
-//           } = decodeFunctionData({ abi, data })
-//           const failures: boolean[] = []
-//           const responses: Hex[] = []
-//           await Promise.all(
-//             queries.map(async (x, i) => {
-//               try {
-//                 responses[i] = await ccipRequest(x)
-//               } catch (err) {
-//                 failures[i] = true
-//                 responses[i] = encodeErrorResult({
-//                   abi,
-//                   errorName: 'HttpError',
-//                   args: [
-//                     (err instanceof HttpRequestError && err.status) || 500,
-//                     String(err),
-//                   ],
-//                 })
-//               }
-//             }),
-//           )
-//           return Response.json({
-//             data: encodeFunctionResult({
-//               abi,
-//               functionName: 'query',
-//               result: [failures, responses],
-//             }),
-//           })
-//         },
-//       },
-//     },
-//   })
-//   return {
-//     shutdown: server.stop.bind(true),
-//     batchedGatewayURL: `http://localhost:${server.port}/`,
-//   }
-// }
