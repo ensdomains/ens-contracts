@@ -40,6 +40,10 @@ const config = {
       saveDeployments: false,
       tags: ['test', 'legacy', 'use_root'],
       allowUnlimitedContractSize: false,
+      forking: {
+        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        enabled: !!process.env.FORKING_ENABLED,
+      },
     },
     localhost: {
       url: 'http://127.0.0.1:8545/',

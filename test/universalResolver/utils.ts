@@ -1,0 +1,233 @@
+import {
+  decodeFunctionResult,
+  encodeFunctionData,
+  encodeFunctionResult,
+  getAddress,
+  Hex,
+  namehash,
+  parseAbi,
+} from 'viem'
+import { COIN_TYPE_ETH, shortCoin } from '../fixtures/ensip19.js'
+import { expect } from 'chai'
+
+export const RESOLVE_MULTICALL = parseAbi([
+  'function multicall(bytes[] calls) external view returns (bytes[])',
+])
+
+export const ADDR_ABI = parseAbi([
+  'function addr(bytes32) external view returns (address)',
+])
+
+export const PROFILE_ABI = parseAbi([
+  'function addr(bytes32, uint256 coinType) external view returns (bytes)',
+  'function text(bytes32, string key) external view returns (string)',
+  'function name(bytes32) external view returns (string)',
+])
+
+export function getParentName(name: string) {
+  const i = name.indexOf('.')
+  return i == -1 ? '' : name.slice(i + 1)
+}
+
+// see: contracts/universalResolver/IForwardResolution.sol
+export const RESPONSE_BITS = {
+  ERROR: 1n << 0n,
+  OFFCHAIN: 1n << 1n,
+  BATCHED: 1n << 2n,
+  RESOLVED: 1n << 3n,
+} as const
+
+type KnownOrigin = 'on' | 'off' | 'batched'
+
+type KnownAddressRecord = {
+  coinType: bigint
+  encodedAddress: Hex
+  origin?: KnownOrigin
+}
+
+type KnownTextRecord = {
+  key: string
+  value: string
+  origin?: KnownOrigin
+}
+
+type KnownPrimaryRecord = {
+  name: string
+  origin?: KnownOrigin
+}
+
+export type KnownProfile = {
+  title?: string
+  name: string
+  extended?: boolean
+  addresses?: KnownAddressRecord[]
+  texts?: KnownTextRecord[]
+  primary?: KnownPrimaryRecord
+}
+
+export type KnownReverse = {
+  expectError?: boolean
+  encodedAddress: Hex
+  coinType: bigint
+  expectPrimary?: boolean
+}
+
+export type KnownResolution = {
+  desc: string
+  origin?: KnownOrigin
+  call: Hex
+  answer: Hex
+  expect(data: Hex): void
+}
+
+export type ResolutionBundle = {
+  call: Hex
+  answer: Hex
+  unbundle: (data: Hex) => readonly Hex[]
+  expect(data: Hex): void
+}
+
+export function bundleCalls(calls: KnownResolution[]): ResolutionBundle {
+  if (calls.length == 1) {
+    return {
+      call: calls[0].call,
+      answer: calls[0].answer,
+      unbundle: (x) => [x],
+      expect(answer) {
+        calls[0].expect(answer)
+      },
+    }
+  }
+  return {
+    call: encodeFunctionData({
+      abi: RESOLVE_MULTICALL,
+      args: [calls.map((x) => x.call)],
+    }),
+    answer: encodeFunctionResult({
+      abi: RESOLVE_MULTICALL,
+      result: [calls.map((x) => x.answer)],
+    }),
+    unbundle: (data) =>
+      decodeFunctionResult({
+        abi: RESOLVE_MULTICALL,
+        data,
+      }),
+    expect(answer) {
+      const answers = this.unbundle(answer)
+      expect(answers).toHaveLength(calls.length)
+      calls.forEach((x, i) => x.expect(answers[i]))
+    },
+  }
+}
+
+export function makeResolutions(p: KnownProfile): KnownResolution[] {
+  const v: KnownResolution[] = []
+  const node = namehash(p.name)
+  if (p.addresses) {
+    const functionName = 'addr'
+    for (const { coinType, encodedAddress, origin } of p.addresses) {
+      if (coinType === COIN_TYPE_ETH) {
+        const abi = ADDR_ABI
+        v.push({
+          desc: `${functionName}()`,
+          origin,
+          call: encodeFunctionData({
+            abi,
+            args: [node],
+          }),
+          answer: encodeFunctionResult({
+            abi,
+            result: [encodedAddress],
+          }),
+          expect(data) {
+            const actual = decodeFunctionResult({
+              abi,
+              data,
+            })
+            expect(actual, this.desc).toStrictEqual(getAddress(encodedAddress))
+          },
+        })
+      } else {
+        const abi = PROFILE_ABI
+        v.push({
+          desc: `${functionName}(${shortCoin(coinType)})`,
+          origin,
+          call: encodeFunctionData({
+            abi,
+            functionName,
+            args: [node, coinType],
+          }),
+          answer: encodeFunctionResult({
+            abi,
+            functionName,
+            result: [encodedAddress],
+          }),
+          expect(data) {
+            const actual = decodeFunctionResult({
+              abi,
+              functionName,
+              data,
+            })
+            expect(actual, this.desc).toStrictEqual(encodedAddress)
+          },
+        })
+      }
+    }
+  }
+  if (p.texts) {
+    const abi = PROFILE_ABI
+    const functionName = 'text'
+    for (const { key, value, origin } of p.texts) {
+      v.push({
+        desc: `${functionName}(${key})`,
+        origin,
+        call: encodeFunctionData({
+          abi,
+          functionName,
+          args: [node, key],
+        }),
+        answer: encodeFunctionResult({
+          abi,
+          functionName,
+          result: [value],
+        }),
+        expect(data) {
+          const actual = decodeFunctionResult({
+            abi,
+            functionName,
+            data,
+          })
+          expect(actual, this.desc).toStrictEqual(value)
+        },
+      })
+    }
+  }
+  if (p.primary) {
+    const abi = PROFILE_ABI
+    const functionName = 'name'
+    const { name, origin } = p.primary
+    v.push({
+      desc: `${functionName}()`,
+      origin,
+      call: encodeFunctionData({
+        abi,
+        functionName,
+        args: [node],
+      }),
+      answer: encodeFunctionResult({
+        abi,
+        functionName,
+        result: [name],
+      }),
+      expect(data) {
+        const actual = decodeFunctionResult({
+          abi,
+          functionName,
+          data,
+        })
+        expect(actual, this.desc).toStrictEqual(name)
+      },
+    })
+  }
+  return v
+}

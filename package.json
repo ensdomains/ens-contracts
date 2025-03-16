@@ -7,6 +7,7 @@
     "hh": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' hardhat",
     "compile": "bun run hh compile",
     "test": "bun run hh test",
+    "test:remote": "FORKING_ENABLED=1 bun hh test ./test/**/Test*.remote.ts",
     "test:parallel": "bun run hh test ./test/**/Test*.ts --parallel",
     "test:local": "bun run hh --network localhost test",
     "test:deploy": "bun ./scripts/deploy-test.ts",
