@@ -10,18 +10,18 @@ const func: DeployFunction = async function (hre) {
     throw new Error('UniversalResolver: No batch gateway URLs provided')
   }
 
-  const ForwardResolution = await hre.viem.deploy('ForwardResolutionV1', [
+  const ForwardResolutionV1 = await hre.viem.deploy('ForwardResolutionV1', [
     registry.address,
     batchGatewayURLs,
   ])
 
   const UniversalResolver = await hre.viem.deploy('UniversalResolver', [
-    ForwardResolution.address,
+    ForwardResolutionV1.address,
   ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
     for (const [name, { address }] of Object.entries({
-      ForwardResolution,
+      ForwardResolutionV1,
       UniversalResolver,
     })) {
       const contract = await hre.viem.getContract(name)
