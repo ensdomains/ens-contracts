@@ -7,18 +7,6 @@ export const ENS_REGISTRY: Address =
 
 export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
-    title: 'Clave',
-    name: 'getclave.clv.eth',
-    extended: true,
-    addresses: [
-      {
-        coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x6cEDe3712346471a57DBB07A610714a109Db2550',
-        origin: 'off',
-      },
-    ],
-  },
-  {
     title: 'PublicResolverV2',
     name: 'nick.eth',
     addresses: [
