@@ -110,13 +110,6 @@ library NameCoder {
         }
     }
 
-    /// @dev Same as BytesUtils.namehash() w/custom error
-    function encode(
-        string memory ens
-    ) internal pure returns (bytes memory dns) {
-        return encode(ens, 0);
-    }
-
     /// @dev Convert ENS name to DNS-encoded name
     /// @param ens ENS name, eg. "aaa.bb.c"
     /// @param max The longest unhashed label (0 = never, 1 = always, 255 = only long)

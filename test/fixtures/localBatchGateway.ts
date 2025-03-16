@@ -1,15 +1,15 @@
-import { createServer, IncomingMessage } from 'node:http'
+import { createServer } from 'node:http'
 import {
   type Address,
   type Hex,
   BaseError,
+  HttpRequestError,
   ccipRequest,
   decodeFunctionData,
   decodeFunctionResult,
   encodeErrorResult,
   encodeFunctionData,
   encodeFunctionResult,
-  HttpRequestError,
   isHex,
   parseAbi,
   zeroAddress,
@@ -60,11 +60,11 @@ export async function fetchBatchGateway(
   return [failures, responses] as const
 }
 
-export async function serveBatchGateway(): Promise<{
-  shutdown: () => Promise<void>
-  localBatchGatewayUrl: string
-}> {
-  return new Promise((ful) => {
+export async function serveBatchGateway() {
+  return new Promise<{
+    shutdown: () => Promise<void>
+    localBatchGatewayUrl: string
+  }>((ful) => {
     const http = createServer(async (req, res) => {
       let data: any
       switch (req.method) {

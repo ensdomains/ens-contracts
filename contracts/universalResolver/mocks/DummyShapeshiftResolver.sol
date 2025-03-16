@@ -6,13 +6,11 @@ import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol"
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 //import {IResolveMulticall} from "../../resolvers/IResolveMulticall.sol";
 
-// this resolver can perform all permutations
-
-// when this contract triggers OffchainLookup(), so no server is required
+// this resolver can perform all resolver permutations
+// when this contract triggers OffchainLookup(), it uses a data-url, so no server is required
 // the actual response is set using `setResponse()`
 
-import "hardhat/console.sol";
-
+// https://github.com/ensdomains/ensips/pull/18
 error UnsupportedResolverProfile(bytes4 call);
 
 contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
