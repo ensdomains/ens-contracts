@@ -33,7 +33,6 @@ library ResponseBits {
 
 interface IForwardResolution {
     error LengthMismatch();
-    error UnsupportedResolverProfile(bytes4 selector);
 
     function lookupName(
         bytes memory name

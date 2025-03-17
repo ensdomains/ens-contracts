@@ -249,10 +249,9 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
     ) internal pure returns (bytes memory v) {
         v = res.data;
         if ((res.bits & ResponseBits.ERROR) != 0) {
-            if (
-                bytes4(v) == HttpError.selector ||
-                bytes4(v) == UnsupportedResolverProfile.selector
-            ) {
+            if (v.length == 0) {
+                revert UnsupportedResolverProfile(bytes4(res.call));
+            } else if (bytes4(v) == HttpError.selector) {
                 assembly {
                     revert(add(v, 32), mload(v))
                 }

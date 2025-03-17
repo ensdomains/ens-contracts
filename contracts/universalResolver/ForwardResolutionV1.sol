@@ -83,10 +83,7 @@ contract ForwardResolutionV1 is
         for (uint256 i; i < res.length; i++) {
             bytes memory call = calls[i];
             (, bool ok, bytes memory v) = _callResolver(lookup, call);
-            if (v.length == 0) {
-                ok = false;
-                v = _emptyError(bytes4(call));
-            }
+            if (v.length == 0) ok = false;
             Response memory r = res[i];
             r.call = call; // remember calldata (unwrapped)
             r.data = v;
@@ -180,10 +177,7 @@ contract ForwardResolutionV1 is
                             p.extraData
                         )
                     );
-                    if (v.length == 0) {
-                        ok = false;
-                        v = _emptyError(p.callbackFunction);
-                    }
+                    if (v.length == 0) ok = false;
                     if (ok) {
                         if (_isExtended(lookup)) v = abi.decode(v, (bytes)); // unwrap
                         r.bits |= ResponseBits.RESOLVED;
@@ -200,13 +194,5 @@ contract ForwardResolutionV1 is
 
     function _isExtended(Lookup memory lookup) internal pure returns (bool) {
         return (lookup.bits & LookupBits.EXTENDED) != 0;
-    }
-
-    function _emptyError(bytes4 selector) internal pure returns (bytes memory) {
-        return
-            abi.encodePacked(
-                UnsupportedResolverProfile.selector,
-                bytes32(selector)
-            );
     }
 }
