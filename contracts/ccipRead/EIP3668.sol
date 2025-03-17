@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 error OffchainLookup(
     address sender,
     string[] urls,
-    bytes request,
-    bytes4 callback,
-    bytes carry
+    bytes callData,
+    bytes4 callbackFunction,
+    bytes extraData
 );
 
 /// @dev Simple library for decoding OffchainLookup() data
