@@ -527,7 +527,7 @@ describe('UniversalResolver', () => {
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
     })
-	
+
     it('offchain extended name() + offchain extended addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)

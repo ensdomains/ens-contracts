@@ -15,14 +15,13 @@ import {IMulticallable} from "../resolvers/IMulticallable.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {ENSIP19, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
 
-/// @notice Universal Resolver compatible with ENS V1 and V2
 contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
     ENS public immutable registry;
+    IBatchcall public immutable batchcall;
     string[] public batchGateways;
-    IBatchcall immutable _batchcall;
 
-    constructor(ENS ens, IBatchcall batchcall, string[] memory gateways) {
-        _batchcall = batchcall;
+    constructor(ENS ens, IBatchcall _batchcall, string[] memory gateways) {
+        batchcall = _batchcall;
         registry = ens;
         batchGateways = gateways;
     }
@@ -49,14 +48,14 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         namehash = lookup.node;
         finalOffset = lookup.offset;
     }
-		
-	struct Lookup {
-		bytes name; // dns-encoded name (safe to decode)
-		uint256 offset; // byte offset into name for basename
-		bytes32 node; // namehash(name)
-		address resolver; // resolver(basenode), null if invalid
-		bool extended; // IExtendedResolver
-	}
+
+    struct Lookup {
+        bytes name; // dns-encoded name (safe to decode)
+        uint256 offset; // byte offset into name for basename
+        bytes32 node; // namehash(name)
+        address resolver; // resolver(basenode), null if invalid
+        bool extended; // IExtendedResolver
+    }
 
     function lookupResolver(
         bytes memory name
@@ -168,12 +167,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         );
         bytes memory v = _resolveBatch(
             lookup,
-            _oneCall(
-                abi.encodeCall(
-                    INameResolver.name,
-                    (NameCoder.namehash(lookup.name, 0))
-                )
-            ),
+            _oneCall(abi.encodeCall(INameResolver.name, (lookup.node))),
             gateways,
             this.reverseNameCallback.selector,
             abi.encode(ReverseArgs(encodedAddress, coinType, gateways))
@@ -282,7 +276,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         }
         return
             ccipRead(
-                address(_batchcall),
+                address(batchcall),
                 abi.encodeCall(IBatchcall.batch, (threads, gateways)),
                 this.resolveBatchCallback.selector,
                 abi.encode(lookup, callback, extraData)
