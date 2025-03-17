@@ -55,6 +55,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         bytes memory name,
         uint256 offset
     ) internal view returns (address resolver, bytes32 node, uint256 offset_) {
+        // https://docs.ens.domains/ensip/10
         bytes32 labelHash;
         (labelHash, offset_) = NameCoder.readLabel(name, offset);
         if (labelHash == bytes32(0)) {
@@ -75,16 +76,15 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
 
     struct ResolverInfo {
         bytes name; // dns-encoded name (safe to decode)
-        uint256 offset; // byte offset into name for name used for resolver
+        uint256 offset; // byte offset into name used for resolver
         bytes32 node; // namehash(name)
-        address resolver; // resolver(basenode), null if invalid
+        address resolver;
         bool extended; // IExtendedResolver
     }
 
     function requireResolver(
         bytes memory name
     ) public view returns (ResolverInfo memory info) {
-        // https://docs.ens.domains/ensip/10
         info.name = name;
         (info.resolver, info.node, info.offset) = _findResolver(name, 0);
         if (info.resolver == address(0)) {
@@ -161,6 +161,12 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         return reverseWithGateways(encodedAddress, coinType, batchGateways);
     }
 
+    struct ReverseArgs {
+        bytes encodedAddress;
+        uint256 coinType;
+        string[] gateways;
+    }
+
     function reverseWithGateways(
         bytes memory encodedAddress,
         uint256 coinType,
@@ -190,12 +196,6 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         }
     }
 
-    struct ReverseArgs {
-        bytes encodedAddress;
-        uint256 coinType;
-        string[] gateways;
-    }
-
     function reverseNameCallback(
         ResolverInfo calldata infoRev,
         Lookup[] calldata lookups,
@@ -213,7 +213,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         v = _requireResponse(lookups[0]);
         primary = abi.decode(v, (string));
         if (bytes(primary).length == 0) {
-            return ("", address(0), infoRev.resolver); // name() was empty
+            return ("", address(0), infoRev.resolver);
         }
         ResolverInfo memory info = requireResolver(NameCoder.encode(primary));
         v = _resolveBatch(
@@ -355,7 +355,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         } else if ((lu.flags & FLAG_CALL_ERROR) != 0) {
             revert ResolverError(v); // any error from Resolver
         } else if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
-            revert UnsupportedResolverProfile(bytes4(v));
+            revert UnsupportedResolverProfile(bytes4(v)); // initial call or callback was unimplemented
         }
     }
 

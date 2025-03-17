@@ -23,6 +23,7 @@ pragma solidity ^0.8.0;
 import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 
 contract CCIPReader {
+    /// @dev Recursive CCIP-Read data structure (private)
     struct Context {
         address target;
         bytes4 callbackFunction;
@@ -31,11 +32,14 @@ contract CCIPReader {
         bytes myExtraData;
     }
 
+    bytes4 constant IDENTITY_SELECTOR = bytes4(0);
+
+    /// @dev Same as ccipRead() but the callback function is the identity
     function ccipRead(
         address target,
         bytes memory call
-    ) internal view returns (bytes memory v) {
-        return ccipRead(target, call, bytes4(0), "");
+    ) internal view returns (bytes memory) {
+        return ccipRead(target, call, IDENTITY_SELECTOR, "");
     }
 
     /// @dev A function that wraps, handles, and consistently returns responses from calls to a function within a target contract that can return directly OR return in response to offchain data resolution (subject to the ERC-3668 specification).
@@ -79,7 +83,7 @@ contract CCIPReader {
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok && myCallbackFunction != bytes4(0)) {
+        if (ok && myCallbackFunction != IDENTITY_SELECTOR) {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
@@ -99,18 +103,14 @@ contract CCIPReader {
         bytes memory ccip,
         bytes memory extraData
     ) external view {
-        Context memory state = abi.decode(extraData, (Context));
+        Context memory ctx = abi.decode(extraData, (Context));
         // Since the callback can revert too (but has the same return structure)
         // We can reuse the calling infrastructure to call the callback
         bytes memory v = ccipRead(
-            state.target,
-            abi.encodeWithSelector(
-                state.callbackFunction,
-                ccip,
-                state.extraData
-            ),
-            state.myCallbackFunction,
-            state.myExtraData
+            ctx.target,
+            abi.encodeWithSelector(ctx.callbackFunction, ccip, ctx.extraData),
+            ctx.myCallbackFunction,
+            ctx.myExtraData
         );
         assembly {
             return(add(v, 32), mload(v))
