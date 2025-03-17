@@ -20,13 +20,10 @@ async function fixture() {
   const ens = await ownedEnsFixture()
   const bg = await serveBatchGateway()
   after(bg.shutdown)
-  const ForwardResolution = await hre.viem.deployContract(
-    'ForwardResolutionV1',
-    [ens.ENSRegistry.address, [bg.localBatchGatewayUrl]],
-  )
+  const Batchcall = await hre.viem.deployContract('Batchcall')
   const UniversalResolver = await hre.viem.deployContract(
     'UniversalResolver',
-    [ForwardResolution.address],
+    [ens.ENSRegistry.address, Batchcall.address, [bg.localBatchGatewayUrl]],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
@@ -51,37 +48,24 @@ const resolutions = makeResolutions({
 })
 
 describe('UniversalResolver', () => {
-  it('setForwardResolution()', async () => {
-    const F = await loadFixture(fixture)
-    await F.UniversalResolver.write.setForwardResolution([zeroAddress])
-    await expect(F.UniversalResolver)
-      .read('findResolver', [namehash(testName)])
-      .toBeReverted()
-    await expect(F.UniversalResolver)
-      .read('resolve', [namehash(testName), '0x'])
-      .toBeReverted()
-  })
-
   describe('findResolver()', () => {
     it('unset', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
-      const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
-      expectVar({ resolver }).toEqualAddress(zeroAddress)
-      expectVar({ node }).toStrictEqual(namehash(testName))
-      expectVar({ offset }).toStrictEqual(0n)
+      await expect(F.UniversalResolver)
+        .read('findResolver', [dnsEncodeName(testName)])
+        .toBeRevertedWithCustomError('ResolverNotFound')
+        .withArgs(dnsEncodeName(testName))
     })
 
     it('eoa', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([namehash(testName), F.owner])
-      const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
-      expectVar({ resolver }).toEqualAddress(F.owner)
-      expectVar({ node }).toStrictEqual(namehash(testName))
-      expectVar({ offset }).toStrictEqual(0n)
+      await expect(F.UniversalResolver)
+        .read('findResolver', [dnsEncodeName(testName)])
+        .toBeRevertedWithCustomError('ResolverNotContract')
+        .withArgs(dnsEncodeName(testName), F.owner)
     })
 
     it('old', async () => {
@@ -543,7 +527,7 @@ describe('UniversalResolver', () => {
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
     })
-
+	
     it('offchain extended name() + offchain extended addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)

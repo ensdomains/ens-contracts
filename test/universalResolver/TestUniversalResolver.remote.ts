@@ -11,13 +11,10 @@ import { bundleCalls, makeResolutions } from './utils.js'
 async function fixture() {
   const bg = await serveBatchGateway()
   after(bg.shutdown)
-  const ForwardResolution = await hre.viem.deployContract(
-    'ForwardResolutionV1',
-    [ENS_REGISTRY, [bg.localBatchGatewayUrl]],
-  )
+  const Batchcall = await hre.viem.deployContract('Batchcall')
   return hre.viem.deployContract(
     'UniversalResolver',
-    [ForwardResolution.address],
+    [ENS_REGISTRY, Batchcall.target, [bg.localBatchGatewayUrl]],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
