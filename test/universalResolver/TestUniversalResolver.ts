@@ -1,7 +1,14 @@
 import hre from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
-import { keccak256, namehash, toBytes, zeroAddress } from 'viem'
+import {
+  keccak256,
+  namehash,
+  toBytes,
+  toFunctionSelector,
+  toHex,
+  zeroAddress,
+} from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { COIN_TYPE_ETH, getReverseName } from '../fixtures/ensip19.js'
@@ -29,6 +36,7 @@ async function fixture() {
   return { UniversalResolver, ...ens }
 }
 
+const dummyCalldata = '0x12345678'
 const testName = 'test.eth' // DummyResolver name
 const anotherAddress = '0x8000000000000000000000000000000000000001'
 const resolutions = makeResolutions({
@@ -41,8 +49,6 @@ const resolutions = makeResolutions({
   ],
   texts: [{ key: 'description', value: 'Test' }],
 })
-
-const dummyCalldata = '0x12345678'
 
 describe('UniversalResolver', () => {
   it('setForwardResolution()', async () => {
@@ -64,6 +70,7 @@ describe('UniversalResolver', () => {
         await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
       expectVar({ resolver }).toEqualAddress(zeroAddress)
       expectVar({ node }).toStrictEqual(namehash(testName))
+      expectVar({ offset }).toStrictEqual(0n)
     })
 
     it('eoa', async () => {
@@ -74,6 +81,7 @@ describe('UniversalResolver', () => {
         await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
       expectVar({ resolver }).toEqualAddress(F.owner)
       expectVar({ node }).toStrictEqual(namehash(testName))
+      expectVar({ offset }).toStrictEqual(0n)
     })
 
     it('old', async () => {
@@ -123,7 +131,7 @@ describe('UniversalResolver', () => {
 
     it('auto-encrypted', async () => {
       const F = await loadFixture(fixture)
-      const name = `${'z'.repeat(256)}.${testName}`
+      const name = `${'1'.repeat(300)}.${testName}`
       await F.takeControl(name)
       await F.ENSRegistry.write.setResolver([
         namehash(name),
@@ -136,11 +144,11 @@ describe('UniversalResolver', () => {
       expectVar({ offset }).toStrictEqual(0n)
     })
 
-    it('force-encrypted', async () => {
+    it('self-encrypted', async () => {
       const F = await loadFixture(fixture)
       const name = testName
         .split('.')
-        .map((x) => `[${keccak256(x).slice(2)}]`)
+        .map((x) => `[${keccak256(toHex(x)).slice(2)}]`)
         .join('.')
       await F.takeControl(name)
       await F.ENSRegistry.write.setResolver([
@@ -196,7 +204,7 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
-    it('onchain + immediate', async () => {
+    it('onchain immediate', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -214,7 +222,7 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
-    it('onchain + immediate + multicall', async () => {
+    it('onchain immediate w/multicall', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -234,7 +242,7 @@ describe('UniversalResolver', () => {
       bundle.expect(answer)
     })
 
-    it('onchain + extended', async () => {
+    it('onchain extended', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -253,7 +261,7 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
-    it('onchain + extended + multicall', async () => {
+    it('onchain extended w/multicall', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -274,7 +282,7 @@ describe('UniversalResolver', () => {
       bundle.expect(answer)
     })
 
-    it('offchain + immediate', async () => {
+    it('offchain immediate', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -293,7 +301,7 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
-    it('offchain + immediate + multicall', async () => {
+    it('offchain immediate w/multicall', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -314,7 +322,7 @@ describe('UniversalResolver', () => {
       bundle.expect(answer)
     })
 
-    it('offchain + extended', async () => {
+    it('offchain extended', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -334,7 +342,7 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
-    it('offchain + extended + multicall', async () => {
+    it('offchain extended w/multicall', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([
@@ -365,15 +373,15 @@ describe('UniversalResolver', () => {
         .toBeRevertedWithCustomError('EmptyAddress')
     })
 
-    it('unset name', async () => {
+    it('unset reverse resolver', async () => {
       const F = await loadFixture(fixture)
       await expect(F.UniversalResolver)
-        .read('reverse', [zeroAddress, COIN_TYPE_ETH])
+        .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ResolverNotFound')
-        .withArgs(dnsEncodeName(getReverseName(zeroAddress, COIN_TYPE_ETH)))
+        .withArgs(dnsEncodeName(getReverseName(F.owner, COIN_TYPE_ETH)))
     })
 
-    it('unset primary address + old', async () => {
+    it('unset primary resolver', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)
       await F.takeControl(reverseName)
@@ -385,6 +393,40 @@ describe('UniversalResolver', () => {
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ResolverNotFound')
         .withArgs(dnsEncodeName(testName))
+    })
+
+    it('unset name()', async () => {
+      const F = await loadFixture(fixture)
+      const reverseName = getReverseName(F.owner)
+      await F.takeControl(reverseName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(reverseName),
+        F.Shapeshift1.address,
+      ])
+      const [res] = makeResolutions({
+        name: reverseName,
+        primary: { name: '' },
+      })
+      await F.Shapeshift1.write.setResponse([res.call, res.answer])
+      const [name, resolver, reverseResolver] =
+        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+      expectVar({ name }).toStrictEqual('')
+      expectVar({ resolver }).toEqualAddress(zeroAddress)
+      expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
+    })
+
+    it('unimplemented name()', async () => {
+      const F = await loadFixture(fixture)
+      const reverseName = getReverseName(F.owner)
+      await F.takeControl(reverseName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(reverseName),
+        F.Shapeshift1.address,
+      ])
+      await expect(F.UniversalResolver)
+        .read('reverse', [F.owner, COIN_TYPE_ETH])
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('name(bytes32)'))
     })
 
     it('onchain immediate name() + onchain immediate addr()', async () => {
@@ -461,8 +503,8 @@ describe('UniversalResolver', () => {
       ])
       await expect(F.UniversalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
-        .toBeRevertedWithCustomError('ReverseAddressMismatch')
-        .withArgs(testName, '0x')
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('addr(bytes32)'))
     })
 
     it('offchain extended name() + onchain immediate addr()', async () => {

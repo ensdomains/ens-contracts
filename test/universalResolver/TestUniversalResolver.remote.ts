@@ -15,7 +15,7 @@ async function fixture() {
     'ForwardResolutionV1',
     [ENS_REGISTRY, [bg.localBatchGatewayUrl]],
   )
-  const UniversalResolver = await hre.viem.deployContract(
+  return hre.viem.deployContract(
     'UniversalResolver',
     [ForwardResolution.address],
     {
@@ -24,7 +24,6 @@ async function fixture() {
       },
     },
   )
-  return { UniversalResolver }
 }
 
 ;(isHardhatFork() ? describe : describe.skip)(
@@ -33,10 +32,9 @@ async function fixture() {
     describe('resolve()', () => {
       for (const x of KNOWN_RESOLUTIONS) {
         it(`${x.title}: ${x.name}`, async () => {
-          const calls = makeResolutions(x)
-          const bundle = bundleCalls(calls)
-          const { UniversalResolver } = await loadFixture(fixture)
-          const [answer] = await UniversalResolver.read.resolve([
+          const bundle = bundleCalls(makeResolutions(x))
+          const F = await loadFixture(fixture)
+          const [answer] = await F.read.resolve([
             dnsEncodeName(x.name),
             bundle.call,
           ])
@@ -47,11 +45,8 @@ async function fixture() {
     describe('reverse()', () => {
       for (const x of KNOWN_PRIMARIES) {
         it(`${shortCoin(x.coinType)} ${x.encodedAddress}`, async () => {
-          const { UniversalResolver } = await loadFixture(fixture)
-          const promise = UniversalResolver.read.reverse([
-            x.encodedAddress,
-            x.coinType,
-          ])
+          const F = await loadFixture(fixture)
+          const promise = F.read.reverse([x.encodedAddress, x.coinType])
           if (x.expectError) {
             await expect(promise).rejects.toThrow()
           } else {

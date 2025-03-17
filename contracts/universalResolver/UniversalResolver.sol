@@ -95,10 +95,7 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             }
             answer = abi.encode(m);
         } else {
-            answer = res[0].data;
-            if ((res[0].bits & ResponseBits.ERROR) != 0) {
-                _revertError(answer);
-            }
+            answer = _requireResponse(res[0]);
         }
     }
 
@@ -171,21 +168,19 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             (Lookup, Response[])
         );
         reverseResolver = _requireResolver(lookup);
-        ReverseArgs memory args = abi.decode(extraData, (ReverseArgs));
-        if ((res[0].bits & ResponseBits.ERROR) != 0) {
-            _revertError(res[0].data); // name() failed
-        }
-        bytes memory primary = abi.decode(res[0].data, (bytes));
+        bytes memory v = _requireResponse(res[0]);
+        bytes memory primary = abi.decode(v, (bytes));
         if (primary.length == 0) {
             return ("", address(0), reverseResolver); // name() was empty
         }
+        ReverseArgs memory args = abi.decode(extraData, (ReverseArgs));
         bytes memory name = NameCoder.encode(string(primary));
         bytes32 node = NameCoder.namehash(name, 0);
         bytes[] memory calls = new bytes[](1);
         calls[0] = args.coinType == COIN_TYPE_ETH
             ? abi.encodeCall(IAddrResolver.addr, (node))
             : abi.encodeCall(IAddressResolver.addr, (node, args.coinType));
-        bytes memory v = ccipRead(
+        v = ccipRead(
             address(forwardResolution),
             abi.encodeCall(
                 IForwardResolution.resolve,
@@ -221,17 +216,15 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
             (bytes, string, address)
         );
         resolver = _requireResolver(lookup);
+        bytes memory v = _requireResponse(res[0]);
         bytes memory primaryAddress;
-        Response memory r = res[0];
-        if (r.data.length >= 32 && (r.bits & ResponseBits.ERROR) == 0) {
-            if (bytes4(r.call) == IAddrResolver.addr.selector) {
-                address addr = abi.decode(r.data, (address));
-                if (addr != address(0)) {
-                    primaryAddress = abi.encodePacked(addr);
-                }
-            } else {
-                primaryAddress = abi.decode(r.data, (bytes));
+        if (bytes4(res[0].call) == IAddrResolver.addr.selector) {
+            address addr = abi.decode(v, (address));
+            if (addr != address(0)) {
+                primaryAddress = abi.encodePacked(addr);
             }
+        } else {
+            primaryAddress = abi.decode(v, (bytes));
         }
         if (keccak256(reverseAddress) != keccak256(primaryAddress)) {
             revert ReverseAddressMismatch(primary, primaryAddress);
@@ -251,13 +244,21 @@ contract UniversalResolver is IUniversalResolver, IERC165, CCIPReader, Ownable {
         }
     }
 
-    function _revertError(bytes memory v) internal pure {
-        if (bytes4(v) == HttpError.selector) {
-            assembly {
-                revert(add(v, 32), mload(v))
+    function _requireResponse(
+        Response memory res
+    ) internal pure returns (bytes memory v) {
+        v = res.data;
+        if ((res.bits & ResponseBits.ERROR) != 0) {
+            if (
+                bytes4(v) == HttpError.selector ||
+                bytes4(v) == UnsupportedResolverProfile.selector
+            ) {
+                assembly {
+                    revert(add(v, 32), mload(v))
+                }
+            } else {
+                revert ResolverError(v);
             }
-        } else {
-            revert ResolverError(v);
         }
     }
 }

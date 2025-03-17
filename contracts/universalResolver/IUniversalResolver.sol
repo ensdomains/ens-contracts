@@ -9,8 +9,11 @@ interface IUniversalResolver {
     /// @notice The resolver is not a contract.
     error ResolverNotContract(bytes name, address resolver);
 
+    /// @notice The resolver did not respond.
+    error UnsupportedResolverProfile(bytes4 selector);
+
     /// @notice The resolver returned an error.
-    error ResolverError(bytes returnData);
+    error ResolverError(bytes errorData);
 
     /// @notice The resolved address from reverse resolution does not match the supplied address.
     error ReverseAddressMismatch(string primary, bytes primaryAddress);

@@ -31,9 +31,10 @@ library ResponseBits {
     uint256 constant RESOLVED = 1 << 3; // resolution finished (internal flag)
 }
 
-error LengthMismatch();
-
 interface IForwardResolution {
+    error LengthMismatch();
+    error UnsupportedResolverProfile(bytes4 selector);
+
     function lookupName(
         bytes memory name
     ) external view returns (Lookup memory lookup);

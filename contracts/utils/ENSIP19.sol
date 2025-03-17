@@ -9,7 +9,7 @@ uint256 constant EVM_BIT = 1 << 31;
 /// @dev Library for generating reverse names according to ENSIP-19
 /// https://docs.ens.domains/ensip/19
 library ENSIP19 {
-	error EmptyAddress();
+    error EmptyAddress();
 
     /// @dev Extract Chain ID from `coinType`
     ///      returns 0 for EVM_BIT and non-EVM Chain
@@ -42,7 +42,7 @@ library ENSIP19 {
         bytes memory encodedAddress,
         uint256 coinType
     ) internal pure returns (string memory) {
-		if (encodedAddress.length == 0) revert EmptyAddress();
+        if (encodedAddress.length == 0) revert EmptyAddress();
         return
             string(
                 abi.encodePacked(
