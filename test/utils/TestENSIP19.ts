@@ -14,11 +14,17 @@ async function fixture() {
 
 describe('ENSIP19', () => {
   describe('reverseName()', () => {
+    it('empty', async () => {
+      const F = await loadFixture(fixture)
+      await expect(F)
+        .read('reverseName', ['0x', COIN_TYPE_ETH])
+        .toBeRevertedWithCustomError('EmptyAddress')
+    })
+
     for (const addr of [
-      '0x',
-      '0x12',
+      '0x81',
       '0x8000000000000000000000000000000000000001',
-      '0x0000000000000000000000000000000000000000000000000000000000000000',
+      '0x8000000000000000000000000000000000000000000000000000000000000001',
     ] as const) {
       it(addr, async () => {
         const F = await loadFixture(fixture)

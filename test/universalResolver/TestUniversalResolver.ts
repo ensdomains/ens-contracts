@@ -358,11 +358,11 @@ describe('UniversalResolver', () => {
   })
 
   describe('reverse()', () => {
-    it('empty input address', async () => {
+    it('empty address', async () => {
       const F = await loadFixture(fixture)
       await expect(F.UniversalResolver)
         .read('reverse', ['0x', COIN_TYPE_ETH])
-        .toBeRevertedWithCustomError('DNSEncodingFailed')
+        .toBeRevertedWithCustomError('EmptyAddress')
     })
 
     it('unset name', async () => {

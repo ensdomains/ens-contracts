@@ -16,7 +16,9 @@ export function shortCoin(coinType: bigint) {
 }
 
 export function getReverseName(encodedAddress: Hex, coinType = COIN_TYPE_ETH) {
-  return `${encodedAddress.slice(2).toLowerCase()}.${
+  const hex = encodedAddress.slice(2)
+  if (!hex) throw new Error('empty address')
+  return `${hex.toLowerCase()}.${
     coinType == COIN_TYPE_ETH
       ? 'addr'
       : coinType == EVM_BIT

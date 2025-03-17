@@ -113,7 +113,7 @@ contract ForwardResolutionV1 is
         Response[] memory res,
         string[] memory gateways
     ) internal view {
-        IBatchGateway.Request[] memory reqs = new IBatchGateway.Request[](
+        IBatchGateway.Request[] memory requests = new IBatchGateway.Request[](
             res.length
         );
         uint256 unresolved;
@@ -122,7 +122,7 @@ contract ForwardResolutionV1 is
             if ((r.bits & ResponseBits.RESOLVED) == 0) {
                 r.bits |= ResponseBits.BATCHED;
                 EIP3668.Params memory p = EIP3668.decodeWithSelector(r.data);
-                reqs[unresolved++] = IBatchGateway.Request(
+                requests[unresolved++] = IBatchGateway.Request(
                     p.sender,
                     p.urls,
                     p.callData
@@ -131,12 +131,12 @@ contract ForwardResolutionV1 is
         }
         if (unresolved > 0) {
             assembly {
-                mstore(reqs, unresolved)
+                mstore(requests, unresolved)
             }
             revert OffchainLookup(
                 address(this),
                 gateways,
-                abi.encodeCall(IBatchGateway.query, (reqs)),
+                abi.encodeCall(IBatchGateway.query, (requests)),
                 this.batchGatewayCallback.selector,
                 abi.encode(lookup, res, gateways)
             );
@@ -147,14 +147,14 @@ contract ForwardResolutionV1 is
         bytes calldata ccip,
         bytes calldata extraData
     ) external view returns (Lookup memory lookup, Response[] memory res) {
+        (bool[] memory failures, bytes[] memory responses) = abi.decode(
+            ccip,
+            (bool[], bytes[])
+        );
         string[] memory gateways;
         (lookup, res, gateways) = abi.decode(
             extraData,
             (Lookup, Response[], string[])
-        );
-        (bool[] memory failures, bytes[] memory responses) = abi.decode(
-            ccip,
-            (bool[], bytes[])
         );
         if (failures.length != responses.length) revert LengthMismatch();
         uint256 expected;
