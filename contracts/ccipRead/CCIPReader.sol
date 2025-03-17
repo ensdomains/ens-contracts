@@ -1,31 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-/// @author Modified from Unruggable https://github.com/unruggable-labs/CCIPReader.sol/
+/// @author Modified from https://github.com/unruggable-labs/CCIPReader.sol/blob/341576fe7ff2b6e0c93fc08f37740cf6439f5873/contracts/CCIPReader.sol
 
-/*
-MIT License
-
-Copyright (c) 2025 Unruggable
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
-*/
+/// MIT License
+/// Portions Copyright (c) 2025 Unruggable
+/// Portions Copyright (c) 2025 ENS Labs Ltd
 
 /// @dev Instructions:
 /// 1. inherit this contract
@@ -43,6 +23,21 @@ SOFTWARE.
 import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 
 contract CCIPReader {
+    struct Context {
+        address target;
+        bytes4 callbackFunction;
+        bytes extraData;
+        bytes4 myCallbackFunction;
+        bytes myExtraData;
+    }
+
+    function ccipRead(
+        address target,
+        bytes memory call
+    ) internal view returns (bytes memory v) {
+        return ccipRead(target, call, bytes4(0), "");
+    }
+
     /// @dev A function that wraps, handles, and consistently returns responses from calls to a function within a target contract that can return directly OR return in response to offchain data resolution (subject to the ERC-3668 specification).
     /// @param target contract address
     /// @param call calldata to `staticcall()` on `target`
@@ -84,7 +79,7 @@ contract CCIPReader {
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok) {
+        if (ok && myCallbackFunction != bytes4(0)) {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
@@ -121,13 +116,4 @@ contract CCIPReader {
             return(add(v, 32), mload(v))
         }
     }
-}
-
-// for internal use
-struct Context {
-    address target;
-    bytes4 callbackFunction;
-    bytes extraData;
-    bytes4 myCallbackFunction;
-    bytes myExtraData;
 }

@@ -13,6 +13,7 @@ import {HexUtils} from "../utils/HexUtils.sol";
 /// * length = 0 is reserved for the terminator (root)
 
 /// To encode a label larger than 255 bytes, use a hashed label
+/// A label of any length can be converted to a hashed label
 
 /// A hashed label is encoded as "[" + toHex(keccak256(label)) + "]"
 /// eg. [af2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc] = "vitalik"
@@ -129,7 +130,7 @@ library NameCoder {
             for (uint256 i; i < n; i++) {
                 bytes1 x = bytes(ens)[i]; // read byte
                 if (x == ".") {
-                    start = _encodeLabel(start, end);
+                    start = _createHashedLabel(start, end);
                     if (start == 0) revert DNSEncodingFailed(ens);
                     end = start; // jump to next position
                 } else {
@@ -139,7 +140,7 @@ library NameCoder {
                     }
                 }
             }
-            start = _encodeLabel(start, end);
+            start = _createHashedLabel(start, end);
             if (start == 0) revert DNSEncodingFailed(ens);
             assembly {
                 mstore8(start, 0) // terminal byte
@@ -149,7 +150,7 @@ library NameCoder {
     }
 
     /// @dev returns 0 if error (handled by caller)
-    function _encodeLabel(
+    function _createHashedLabel(
         uint256 start,
         uint256 end
     ) internal pure returns (uint256 next) {

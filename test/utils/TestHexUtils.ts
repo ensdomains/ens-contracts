@@ -227,16 +227,17 @@ describe('HexUtils', () => {
   })
 
   describe('unpaddedUintToHex()', async () => {
-    for (const i of [0n, 1n, (1n << 256n) - 1n]) {
-      const hex = i.toString(16)
-      it(`0x${hex.padStart(64, '0')}`, async () => {
+    for (let n = 0; n <= 32; n++) {
+      const uint = (1n << BigInt(n << 3)) - 1n
+      const hex = uint.toString(16)
+      it(`0x${hex}`, async () => {
         const { hexUtils } = await loadFixture(fixture)
         await expect(
-          hexUtils.read.unpaddedUintToHex([i, true]),
+          hexUtils.read.unpaddedUintToHex([uint, true]),
           'true',
         ).resolves.toStrictEqual(hex)
         await expect(
-          hexUtils.read.unpaddedUintToHex([i, false]),
+          hexUtils.read.unpaddedUintToHex([uint, false]),
           'false',
         ).resolves.toStrictEqual(`${hex.length & 1 ? '0' : ''}${hex}`)
       })

@@ -12,10 +12,8 @@ const func: DeployFunction = async function (hre) {
     throw new Error('UniversalResolver: No batch gateway URLs provided')
   }
 
-  const Batchcall = await hre.viem.deploy('Batchcall', [])
   await hre.viem.deploy('UniversalResolver', [
     registry.address,
-    Batchcall.address,
     batchGatewayURLs,
   ])
 

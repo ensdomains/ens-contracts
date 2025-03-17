@@ -8,6 +8,7 @@ import {
   toFunctionSelector,
   toHex,
   zeroAddress,
+  zeroHash,
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
@@ -20,10 +21,9 @@ async function fixture() {
   const ens = await ownedEnsFixture()
   const bg = await serveBatchGateway()
   after(bg.shutdown)
-  const Batchcall = await hre.viem.deployContract('Batchcall')
   const UniversalResolver = await hre.viem.deployContract(
     'UniversalResolver',
-    [ens.ENSRegistry.address, Batchcall.address, [bg.localBatchGatewayUrl]],
+    [ens.ENSRegistry.address, [bg.localBatchGatewayUrl]],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
@@ -52,32 +52,9 @@ describe('UniversalResolver', () => {
     it('unset', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
-      await expect(F.UniversalResolver)
-        .read('findResolver', [dnsEncodeName(testName)])
-        .toBeRevertedWithCustomError('ResolverNotFound')
-        .withArgs(dnsEncodeName(testName))
-    })
-
-    it('eoa', async () => {
-      const F = await loadFixture(fixture)
-      await F.takeControl(testName)
-      await F.ENSRegistry.write.setResolver([namehash(testName), F.owner])
-      await expect(F.UniversalResolver)
-        .read('findResolver', [dnsEncodeName(testName)])
-        .toBeRevertedWithCustomError('ResolverNotContract')
-        .withArgs(dnsEncodeName(testName), F.owner)
-    })
-
-    it('old', async () => {
-      const F = await loadFixture(fixture)
-      await F.takeControl(testName)
-      await F.ENSRegistry.write.setResolver([
-        namehash(testName),
-        F.OldResolver.address,
-      ])
       const [resolver, node, offset] =
         await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
-      expectVar({ resolver }).toEqualAddress(F.OldResolver.address)
+      expectVar({ resolver }).toEqualAddress(zeroAddress)
       expectVar({ node }).toStrictEqual(namehash(testName))
       expectVar({ offset }).toStrictEqual(0n)
     })
