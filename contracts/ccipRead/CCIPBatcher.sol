@@ -3,32 +3,36 @@ pragma solidity ^0.8.17;
 
 import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
-import "hardhat/console.sol";
 
 contract CCIPBatcher is CCIPReader {
-    error LengthMismatch();
+    /// @dev The batch gateway supplied an incorrect number of responses
+    error InvalidBatchGatewayResponse();
 
-    uint256 constant FLAG_OFFCHAIN = 1 << 0;
-    uint256 constant FLAG_CALL_ERROR = 1 << 1;
-    uint256 constant FLAG_OFFCHAIN_ERROR = 1 << 2;
-    uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3;
-    uint256 constant FLAG_DONE = 1 << 4;
+    uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
+    uint256 constant FLAG_CALL_ERROR = 1 << 1; // the initial call or callback reverted
+    uint256 constant FLAG_OFFCHAIN_ERROR = 1 << 2; // `OffchainLookup` failed on the gateway
+    uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3; // the initial call or callback returned `0x`
+    uint256 constant FLAG_DONE = 1 << 4; // the lookup has finished processing (private)
 
     uint256 constant FLAGS_ANY_ERROR =
         FLAG_CALL_ERROR | FLAG_OFFCHAIN_ERROR | FLAG_EMPTY_RESPONSE;
 
+    /// @dev An independent OffchainLookup session
     struct Lookup {
-        address target;
-        bytes call;
-        bytes data;
-        uint256 flags;
+        address target; // contract to call
+        bytes call; // initial calldata
+        bytes data; // response or error
+        uint256 flags; // see: FLAG_*
     }
 
+    /// @dev A batch gateway session
     struct Batch {
         Lookup[] lookups;
         string[] gateways;
     }
 
+    /// @dev Use CCIPReader.ccipRead() to call this function with a `batch`
+    //       The callback `response` will be `abi.encode(batch)`
     function ccipBatch(
         Batch memory batch
     ) external view returns (Batch memory) {
@@ -51,6 +55,7 @@ contract CCIPBatcher is CCIPReader {
         return batch;
     }
 
+    /// @dev Check if the batch is "done", if not revert `OffchainLookup` for a batch gateway
     function _revertBatchGateway(Batch memory batch) internal view {
         IBatchGateway.Request[] memory requests = new IBatchGateway.Request[](
             batch.lookups.length
@@ -81,6 +86,7 @@ contract CCIPBatcher is CCIPReader {
         }
     }
 
+    /// @dev Updates the batch using the batch gateway response. Reverts again if not "done".
     function ccipBatchCallback(
         bytes calldata response,
         bytes calldata extraData
@@ -89,42 +95,49 @@ contract CCIPBatcher is CCIPReader {
             response,
             (bool[], bytes[])
         );
-        if (failures.length != responses.length) revert LengthMismatch();
+        if (failures.length != responses.length) {
+            revert InvalidBatchGatewayResponse();
+        }
         batch = abi.decode(extraData, (Batch));
         uint256 expected;
         for (uint256 i; i < batch.lookups.length; i++) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
-                bytes memory v = responses[expected];
-                if (failures[expected++]) {
-                    lu.flags |= FLAG_DONE | FLAG_OFFCHAIN_ERROR;
-                } else {
-                    EIP3668.Params memory p = EIP3668.decodeWithSelector(
-                        lu.data
-                    );
-                    bool ok;
-                    (ok, v) = p.sender.staticcall(
-                        abi.encodeWithSelector(
-                            p.callbackFunction,
-                            v,
-                            p.extraData
-                        )
-                    );
-                    if (v.length == 0) {
-                        v = abi.encodePacked(p.callbackFunction);
-                        lu.flags |= FLAG_DONE | FLAG_EMPTY_RESPONSE;
-                    } else if (ok) {
-                        lu.flags |= FLAG_DONE;
-                    } else if (bytes4(v) != OffchainLookup.selector) {
-                        lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                if (expected < responses.length) {
+                    bytes memory v = responses[expected];
+                    if (failures[expected]) {
+                        lu.flags |= FLAG_DONE | FLAG_OFFCHAIN_ERROR;
                     } else {
-                        // another offchain request
+                        EIP3668.Params memory p = EIP3668.decodeWithSelector(
+                            lu.data
+                        );
+                        bool ok;
+                        (ok, v) = p.sender.staticcall(
+                            abi.encodeWithSelector(
+                                p.callbackFunction,
+                                v,
+                                p.extraData
+                            )
+                        );
+                        if (v.length == 0) {
+                            v = abi.encodePacked(p.callbackFunction);
+                            lu.flags |= FLAG_DONE | FLAG_EMPTY_RESPONSE;
+                        } else if (ok) {
+                            lu.flags |= FLAG_DONE;
+                        } else if (bytes4(v) != OffchainLookup.selector) {
+                            lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                        } else {
+                            // another offchain request
+                        }
                     }
+                    lu.data = v;
                 }
-                lu.data = v;
+                ++expected;
             }
         }
-        if (expected != responses.length) revert LengthMismatch();
+        if (expected != responses.length) {
+            revert InvalidBatchGatewayResponse();
+        }
         _revertBatchGateway(batch);
     }
 }
