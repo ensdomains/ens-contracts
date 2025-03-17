@@ -34,7 +34,7 @@ contract CCIPReader {
 
     bytes4 constant IDENTITY_SELECTOR = bytes4(0);
 
-    /// @dev Same as ccipRead() but the callback function is the identity
+    /// @dev Same as `ccipRead()` but the callback function is the identity
     function ccipRead(
         address target,
         bytes memory call

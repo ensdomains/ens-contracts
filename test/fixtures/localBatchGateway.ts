@@ -60,7 +60,9 @@ export async function fetchBatchGateway(
   return [failures, responses] as const
 }
 
-export async function serveBatchGateway() {
+export async function serveBatchGateway(
+  ccipRequest_: typeof ccipRequest = ccipRequest,
+) {
   return new Promise<{
     shutdown: () => Promise<void>
     localBatchGatewayUrl: string
@@ -90,7 +92,7 @@ export async function serveBatchGateway() {
       await Promise.all(
         requests.map(async (r, i) => {
           try {
-            responses[i] = await ccipRequest({
+            responses[i] = await ccipRequest_({
               ...r,
               // workaround for https://github.com/wevm/viem/pull/3449
               sender: r.sender.toLowerCase() as Address,

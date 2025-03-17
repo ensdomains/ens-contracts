@@ -18,7 +18,8 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
     bool public isERC165 = true; // default
     bool public isExtended;
     bool public isOffchain;
-    bool public rejectsUnsupported;
+    bool public revertUnsupported;
+    bool public revertEmpty;
     //bool public isWrapperSafe;
     //bool public isResolveMulticallable;
 
@@ -41,15 +42,26 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
     }
 
     function setRevertUnsupportedResolverProfile(bool x) external {
-        rejectsUnsupported = x;
+        revertUnsupported = x;
+    }
+
+    function setRevertEmpty(bool x) external {
+        revertEmpty = x;
     }
 
     fallback() external {
         if (isExtended) return;
         bytes memory v = responses[msg.data];
-        if (v.length == 0) return;
+        if (v.length == 0) {
+            if (revertEmpty) {
+                assembly {
+                    revert(0, 0)
+                }
+            }
+            return;
+        }
         if (isOffchain) _revertOffchain(v);
-        _rejectIfError(v);
+        _revertfError(v);
         assembly {
             return(add(v, 32), mload(v))
         }
@@ -71,10 +83,11 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
         bytes memory call
     ) external view returns (bytes memory) {
         bytes memory v = responses[call];
-        if (v.length == 0 && rejectsUnsupported)
+        if (v.length == 0 && revertUnsupported) {
             revert UnsupportedResolverProfile(bytes4(call));
+        }
         if (isOffchain) _revertOffchain(v);
-        _rejectIfError(v);
+        _revertfError(v);
         return v;
     }
 
@@ -94,14 +107,14 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
         bytes memory,
         bytes memory v
     ) external view returns (bytes memory) {
-        _rejectIfError(v);
+        _revertfError(v);
         if (isExtended) return v;
         assembly {
             return(add(v, 32), mload(v))
         }
     }
 
-    function _rejectIfError(bytes memory v) internal pure {
+    function _revertfError(bytes memory v) internal pure {
         if ((v.length & 31) != 0) {
             assembly {
                 revert(add(v, 32), mload(v))

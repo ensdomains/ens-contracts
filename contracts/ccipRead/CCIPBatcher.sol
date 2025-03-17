@@ -17,7 +17,7 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAGS_ANY_ERROR =
         FLAG_CALL_ERROR | FLAG_OFFCHAIN_ERROR | FLAG_EMPTY_RESPONSE;
 
-    /// @dev An independent OffchainLookup session
+    /// @dev An independent `OffchainLookup` session
     struct Lookup {
         address target; // contract to call
         bytes call; // initial calldata
@@ -39,11 +39,12 @@ contract CCIPBatcher is CCIPReader {
         for (uint256 i; i < batch.lookups.length; i++) {
             Lookup memory lu = batch.lookups[i];
             (bool ok, bytes memory v) = lu.target.staticcall(lu.call);
-            if (v.length == 0) {
-                v = abi.encodePacked(bytes4(lu.call));
-                lu.flags |= FLAG_DONE | FLAG_EMPTY_RESPONSE;
-            } else if (ok) {
+            if (ok) {
                 lu.flags |= FLAG_DONE;
+                if (v.length == 0) {
+                    v = abi.encodePacked(bytes4(lu.call));
+                    lu.flags |= FLAG_EMPTY_RESPONSE;
+                }
             } else if (bytes4(v) != OffchainLookup.selector) {
                 lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
             } else {
@@ -119,11 +120,12 @@ contract CCIPBatcher is CCIPReader {
                                 p.extraData
                             )
                         );
-                        if (v.length == 0) {
-                            v = abi.encodePacked(p.callbackFunction);
-                            lu.flags |= FLAG_DONE | FLAG_EMPTY_RESPONSE;
-                        } else if (ok) {
+                        if (ok) {
                             lu.flags |= FLAG_DONE;
+                            if (v.length == 0) {
+                                v = abi.encodePacked(p.callbackFunction);
+                                lu.flags |= FLAG_EMPTY_RESPONSE;
+                            }
                         } else if (bytes4(v) != OffchainLookup.selector) {
                             lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
                         } else {

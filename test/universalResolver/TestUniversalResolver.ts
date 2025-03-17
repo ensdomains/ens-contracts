@@ -2,8 +2,11 @@ import hre from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
 import {
+  encodeErrorResult,
+  HttpRequestError,
   keccak256,
   namehash,
+  parseAbi,
   toBytes,
   toFunctionSelector,
   toHex,
@@ -133,7 +136,20 @@ describe('UniversalResolver', () => {
         .withArgs(dnsEncodeName(testName))
     })
 
-    it('eoa', async () => {
+    it('not extended', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(getParentName(testName)),
+        F.owner,
+      ])
+      await expect(F.UniversalResolver)
+        .read('resolve', [dnsEncodeName(testName), dummyCalldata])
+        .toBeRevertedWithCustomError('ResolverNotFound')
+        .withArgs(dnsEncodeName(testName))
+    })
+
+    it('not a contract', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([namehash(testName), F.owner])
@@ -141,6 +157,70 @@ describe('UniversalResolver', () => {
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverNotContract')
         .withArgs(dnsEncodeName(testName), F.owner)
+    })
+
+    it('empty response', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      await expect(F.UniversalResolver)
+        .read('resolve', [dnsEncodeName(testName), dummyCalldata])
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(dummyCalldata)
+    })
+
+    it('empty revert', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      await F.Shapeshift1.write.setRevertEmpty([true])
+      await expect(F.UniversalResolver)
+        .read('resolve', [dnsEncodeName(testName), dummyCalldata])
+        .toBeRevertedWithCustomError('ResolverError')
+        .withArgs('0x')
+    })
+
+    it('resolver revert', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
+      await expect(F.UniversalResolver)
+        .read('resolve', [dnsEncodeName(testName), dummyCalldata])
+        .toBeRevertedWithCustomError('ResolverError')
+        .withArgs(dummyCalldata)
+    })
+
+    it('batch gateway revert', async () => {
+      const F = await loadFixture(fixture)
+      const bg = await serveBatchGateway(() => {
+        throw new HttpRequestError({ status: 400, url: '' })
+      })
+      after(bg.shutdown)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
+      await F.Shapeshift1.write.setOffchain([true])
+      await expect(F.UniversalResolver)
+        .read('resolveWithGateways', [
+          dnsEncodeName(testName),
+          dummyCalldata,
+          [bg.localBatchGatewayUrl],
+        ])
+        .toBeRevertedWithCustomError('HttpError')
+        .withArgs(400, 'HTTP request failed.')
     })
 
     it('old', async () => {
