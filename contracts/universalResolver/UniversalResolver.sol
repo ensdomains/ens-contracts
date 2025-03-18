@@ -41,15 +41,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
     /// @dev Find the resolver address for `name`
     function findResolver(
         bytes memory name
-    )
-        external
-        view
-        returns (
-            address /*resolver*/,
-            bytes32 /*namehash*/,
-            uint256 /*finalOffset*/
-        )
-    {
+    ) external view returns (address, bytes32, uint256) {
         return _findResolver(name, 0);
     }
 
@@ -160,15 +152,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
     function reverse(
         bytes memory encodedAddress,
         uint256 coinType
-    )
-        external
-        view
-        returns (
-            string memory /*primary*/,
-            address /*resolver*/,
-            address /*reverseResolver*/
-        )
-    {
+    ) external view returns (string memory, address /* resolver */, address) {
         return reverseWithGateways(encodedAddress, coinType, batchGateways);
     }
 
@@ -185,15 +169,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         bytes memory encodedAddress,
         uint256 coinType,
         string[] memory gateways
-    )
-        public
-        view
-        returns (
-            string memory /*primary*/,
-            address /*resolver*/,
-            address /*reverseResolver*/
-        )
-    {
+    ) public view returns (string memory, address /* resolver */, address) {
         // https://docs.ens.domains/ensip/19
         ResolverInfo memory info = requireResolver(
             NameCoder.encode(ENSIP19.reverseName(encodedAddress, coinType))
@@ -215,15 +191,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         ResolverInfo calldata infoRev,
         Lookup[] calldata lookups,
         bytes memory v // variable is reused
-    )
-        external
-        view
-        returns (
-            string memory primary,
-            address /*resolver*/,
-            address /*reverseResolver*/
-        )
-    {
+    ) external view returns (string memory primary, address, address) {
         // this function is on the verge of "stack too deep"
         ReverseArgs memory args = abi.decode(v, (ReverseArgs));
         primary = abi.decode(_requireResponse(lookups[0]), (string));
