@@ -31,9 +31,9 @@ library NameCoder {
     /// @dev Some label of the ENS name has an invalid size
     error DNSEncodingFailed(string ens);
 
-    /// @dev Same as BytesUtils.readLabel() but supports hashed labels w/custom error
+    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels
     ///      The last labelHash = 0
-    ///      reverts DNSDecodingFailed()
+    ///      Reverts `DNSDecodingFailed`
     /// @param name The DNS-encoded name
     /// @param idx The byte-index start of the DNS-encoded label to read
     /// @return labelHash labelHash of the read label
@@ -61,7 +61,7 @@ library NameCoder {
         }
     }
 
-    /// @dev Same as BytesUtils.namehash() but supports hashed labels w/custom error
+    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels
     function namehash(
         bytes memory name,
         uint256 idx
@@ -80,7 +80,7 @@ library NameCoder {
     }
 
     /// @dev Convert DNS-encoded name to ENS name
-    ///      reverts DNSDecodingFailed()
+    ///      Reverts `DNSDecodingFailed`
     /// @param dns DNS-encoded name
     /// @return ens ENS name, eg. "aaa.bb.c"
     function decode(
@@ -112,7 +112,7 @@ library NameCoder {
 
     /// @dev Convert ENS name to DNS-encoded name
     ///      Hashes labels longer than 255 bytes
-    ///      reverts DNSEncodingFailed()
+    ///      Reverts `DNSEncodingFailed`
     /// @param ens ENS name, eg. "aaa.bb.c"
     /// @return dns DNS-encoded name
     function encode(

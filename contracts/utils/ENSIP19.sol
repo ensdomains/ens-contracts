@@ -9,6 +9,7 @@ uint256 constant EVM_BIT = 1 << 31;
 /// @dev Library for generating reverse names according to ENSIP-19
 /// https://docs.ens.domains/ensip/19
 library ENSIP19 {
+    /// @dev The supplied address was `0x`
     error EmptyAddress();
 
     /// @dev Extract Chain ID from `coinType`
@@ -25,7 +26,7 @@ library ENSIP19 {
             );
     }
 
-    /// @dev Generate Reverse Name from EVM Address + Chain ID
+    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID
     function reverseName(
         address addr,
         uint64 chain
@@ -38,6 +39,7 @@ library ENSIP19 {
     }
 
     /// @dev Generate Reverse Name from Encoded Address + Coin Type
+    ///      reverts `EmptyAddress`
     function reverseName(
         bytes memory encodedAddress,
         uint256 coinType
