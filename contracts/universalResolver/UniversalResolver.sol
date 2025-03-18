@@ -118,7 +118,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
 
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
     /// @notice Callers should enable EIP-3668.
-    /// @dev (step 1 of 3)
+    /// @dev (step 1 of 2)
     function resolveWithGateways(
         bytes calldata name,
         bytes calldata data,
@@ -137,6 +137,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         }
     }
 
+    /// @dev CCIP-Read callback for `resolveWithGateways()` (step 1 of 2)
     function resolveCallback(
         ResolverInfo calldata info,
         Lookup[] calldata lookups,

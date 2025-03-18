@@ -62,6 +62,7 @@ library NameCoder {
     }
 
     /// @dev Same as `BytesUtils.namehash()` but supports hashed labels
+    ///      Reverts `DNSDecodingFailed`
     function namehash(
         bytes memory name,
         uint256 idx

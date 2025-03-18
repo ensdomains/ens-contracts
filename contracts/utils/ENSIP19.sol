@@ -39,7 +39,7 @@ library ENSIP19 {
     }
 
     /// @dev Generate Reverse Name from Encoded Address + Coin Type
-    ///      reverts `EmptyAddress`
+    ///      Reverts `EmptyAddress`
     function reverseName(
         bytes memory encodedAddress,
         uint256 coinType
