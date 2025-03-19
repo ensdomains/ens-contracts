@@ -10,15 +10,9 @@ pragma solidity ^0.8.0;
 /// @dev Instructions:
 /// 1. inherit this contract
 /// 2. call `ccipRead()` similar to `staticcall()`
-/// 3. implement all response logic in callback
-/// 4. ensure that return type of calling function == callback function
-/// 5. any return value of `ccipRead()` is abi-encoded
-
-/// Use the following code to return it directly:
-/// ```solidity
-/// bytes memory v = ccipRead(...);
-/// assembly { return(add(v, 32), mload(v)) }
-/// ```
+/// 3. do not put logic after this invocation
+/// 4. implement all response logic in callback
+/// 5. ensure that return type of calling function == callback function
 
 import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
@@ -36,11 +30,8 @@ contract CCIPReader {
     bytes4 constant IDENTITY_SELECTOR = bytes4(0);
 
     /// @dev Same as `ccipRead()` but the callback function is the identity.
-    function ccipRead(
-        address target,
-        bytes memory call
-    ) internal view returns (bytes memory) {
-        return ccipRead(target, call, IDENTITY_SELECTOR, "");
+    function ccipRead(address target, bytes memory call) internal view {
+        ccipRead(target, call, IDENTITY_SELECTOR, "");
     }
 
     /// @dev Performs a CCIP-Read and handles internal recursion.
@@ -49,17 +40,15 @@ contract CCIPReader {
     /// @param call The calldata to `staticcall()` on `target`.
     /// @param callbackFunction The function selector of callback.
     /// @param extraData The contextual data relayed to `callbackFunction`.
-    /// @return v The ABI-encoded response if no `OffchainLookup` was required.
     function ccipRead(
         address target,
         bytes memory call,
         bytes4 callbackFunction,
         bytes memory extraData
-    ) internal view returns (bytes memory v) {
+    ) internal view {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
-        bool ok;
-        (ok, v) = target.staticcall(call);
+        (bool ok, bytes memory v) = target.staticcall(call);
         // IF the function reverted with an `OffchainLookup`
         if (!ok && bytes4(v) == OffchainLookup.selector) {
             // We decode the response error into a tuple
@@ -94,7 +83,11 @@ contract CCIPReader {
         }
         // OR the call to the 'real' target reverts with a different error selector
         // OR the call to OUR callback reverts with ANY error selector
-        if (!ok) {
+        if (ok) {
+            assembly {
+                return(add(v, 32), mload(v))
+            }
+        } else {
             assembly {
                 revert(add(v, 32), mload(v))
             }
@@ -112,15 +105,12 @@ contract CCIPReader {
         Context memory ctx = abi.decode(extraData, (Context));
         // Since the callback can revert too (but has the same return structure)
         // We can reuse the calling infrastructure to call the callback
-        bytes memory v = ccipRead(
+        ccipRead(
             ctx.target,
             abi.encodeWithSelector(ctx.callbackFunction, ccip, ctx.extraData),
             ctx.myCallbackFunction,
             ctx.myExtraData
         );
-        assembly {
-            return(add(v, 32), mload(v))
-        }
     }
 
     /// @dev Decode `OffchainLookup` error data into a struct.

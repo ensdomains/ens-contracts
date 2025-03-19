@@ -129,16 +129,13 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         string[] memory gateways
     ) public view returns (bytes memory /*result*/, address /*resolver*/) {
         bool multi = bytes4(data) == IMulticallable.multicall.selector;
-        bytes memory v = _resolveBatch(
+        _resolveBatch(
             requireResolver(name),
             multi ? abi.decode(data[4:], (bytes[])) : _oneCall(data),
             gateways,
             this.resolveCallback.selector,
             abi.encode(multi)
         );
-        assembly {
-            return(add(v, 32), mload(v))
-        }
     }
 
     /// @dev CCIP-Read callback for `resolveWithGateways()` (step 1 of 2).
@@ -197,35 +194,31 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         ResolverInfo memory info = requireResolver(
             NameCoder.encode(ENSIP19.reverseName(encodedAddress, coinType)) // reverts EmptyAddress
         );
-        bytes memory v = _resolveBatch(
+        _resolveBatch(
             info,
             _oneCall(abi.encodeCall(INameResolver.name, (info.node))),
             gateways,
             this.reverseNameCallback.selector,
             abi.encode(ReverseArgs(encodedAddress, coinType, gateways))
         );
-        assembly {
-            return(add(v, 32), mload(v))
-        }
     }
 
     /// @dev CCIP-Read callback for `reverseWithGateways()` (step 2 of 3).
     /// @param infoRev The resolver for the reverse name that was called.
     /// @param lookups The lookups corresponding to the calls: `[name()]`.
-    /// @param v The contextual data passed from `reverseWithGateways()`.
-    ///          This variable is reused for "stack too deep" issues.
+    /// @param extraData The contextual data passed from `reverseWithGateways()`.
     function reverseNameCallback(
         ResolverInfo calldata infoRev,
         Lookup[] calldata lookups,
-        bytes memory v // variable is reused
+        bytes memory extraData // this cannot be calldata due to "stack too deep"
     ) external view returns (string memory primary, address, address) {
-        ReverseArgs memory args = abi.decode(v, (ReverseArgs));
+        ReverseArgs memory args = abi.decode(extraData, (ReverseArgs));
         primary = abi.decode(_requireResponse(lookups[0]), (string));
         if (bytes(primary).length == 0) {
             return ("", address(0), infoRev.resolver);
         }
         ResolverInfo memory info = requireResolver(NameCoder.encode(primary));
-        v = _resolveBatch(
+        _resolveBatch(
             info,
             _oneCall(
                 args.coinType == COIN_TYPE_ETH
@@ -239,9 +232,6 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
             this.reverseAddressCallback.selector,
             abi.encode(args.encodedAddress, primary, infoRev.resolver)
         );
-        assembly {
-            return(add(v, 32), mload(v))
-        }
     }
 
     /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3)
@@ -298,7 +288,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         string[] memory gateways,
         bytes4 callbackFunction,
         bytes memory extraData
-    ) internal view returns (bytes memory) {
+    ) internal view {
         Batch memory batch = Batch(new Lookup[](calls.length), gateways);
         for (uint256 i; i < calls.length; i++) {
             Lookup memory lu = batch.lookups[i];
@@ -310,13 +300,12 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
                 )
                 : calls[i];
         }
-        return
-            ccipRead(
-                address(this),
-                abi.encodeCall(this.ccipBatch, (batch)),
-                this.resolveBatchCallback.selector,
-                abi.encode(info, callbackFunction, extraData)
-            );
+        ccipRead(
+            address(this),
+            abi.encodeCall(this.ccipBatch, (batch)),
+            this.resolveBatchCallback.selector,
+            abi.encode(info, callbackFunction, extraData)
+        );
     }
 
     /// @dev CCIP-Read callback for `_resolveBatch()`.
@@ -341,7 +330,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
                 }
             }
         }
-        bytes memory v = ccipRead(
+        ccipRead(
             address(this),
             abi.encodeWithSelector(
                 callbackFunction_,
@@ -350,9 +339,6 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
                 extraData_
             )
         );
-        assembly {
-            return(add(v, 32), mload(v))
-        }
     }
 
     /// @dev Extract `data` from `resolve(bytes, bytes data)` calldata.
@@ -371,8 +357,8 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
     }
 
     /// @dev Extract `data` from a lookup or revert an appropriate error.
-    // /     Reverts if the `data` is not a successful response.
-    /// @param lu The lookup struct to extract from.
+    ///      Reverts if the `data` is not a successful response.
+    /// @param lu The lookup to extract from.
     /// @return v The successful response (always 32+ bytes).
     function _requireResponse(
         Lookup memory lu
