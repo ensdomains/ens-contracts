@@ -21,7 +21,6 @@ import {HexUtils} from "../utils/HexUtils.sol";
  * - always 66 bytes.
  * - matches: `/^\[[0-9a-f]{64}\]$/`.
  *
- * `dns.length` is *always* shorter than `ens.length`.
  * w/o hashed labels: `dns.length == 2 + ens.length` and the mapping is injective.
  *  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
  */
@@ -167,8 +166,12 @@ library NameCoder {
     }
 
     /**
-     * @dev returns 0 if error (handled by caller).
+     * @dev Write the label length.
+     *      If longer than 255, writes a hashed label instead.
      * @param start The memory offset of length-prefixed label.
+     * @param end The memory offset at the end of the label.
+     * @return next The memory offset for the next label.
+     *              Returns 0 if label is empty (handled by caller).
      */
     function _createHashedLabel(
         uint256 start,
