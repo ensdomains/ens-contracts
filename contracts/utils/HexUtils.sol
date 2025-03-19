@@ -97,9 +97,11 @@ library HexUtils {
         return (address(uint160(uint256(r))), valid);
     }
 
-    /// @dev Format an address as a hex string.
-    /// @param addr The address to format.
-    /// @return hexString The corresponding hex string w/o a 0x-prefix.
+    /**
+     * @dev Format an address as a hex string.
+     * @param addr The address to format.
+     * @return hexString The corresponding hex string w/o a 0x-prefix.
+     */
     function addressToHex(
         address addr
     ) internal pure returns (string memory hexString) {
@@ -113,14 +115,16 @@ library HexUtils {
         unsafeHex(12, dst, 40);
     }
 
-    /// @dev Format an integer as a variable-length hex string without zero padding.
-    /// * unpaddedUintToHex(0, true)  = "0"
-    /// * unpaddedUintToHex(1, true)  = "1"
-    /// * unpaddedUintToHex(0, false) = "00"
-    /// * unpaddedUintToHex(1, false) = "01"
-    /// @param value The number to format.
-    /// @param dropZeroNibble If true, the leading byte will use one nibble if less than 16.
-    /// @return hexString The corresponding hex string w/o a 0x-prefix.
+    /**
+     * @dev Format an integer as a variable-length hex string without zero padding.
+     * * unpaddedUintToHex(0, true)  = "0"
+     * * unpaddedUintToHex(1, true)  = "1"
+     * * unpaddedUintToHex(0, false) = "00"
+     * * unpaddedUintToHex(1, false) = "01"
+     * @param value The number to format.
+     * @param dropZeroNibble If true, the leading byte will use one nibble if less than 16.
+     * @return hexString The corresponding hex string w/o a 0x-prefix.
+     */
     function unpaddedUintToHex(
         uint256 value,
         bool dropZeroNibble
@@ -145,9 +149,11 @@ library HexUtils {
         unsafeHex(0, dst, nibbles);
     }
 
-    /// @dev Format bytes as a hex string.
-    /// @param v The bytes to format.
-    /// @return hexString The corresponding hex string w/o a 0x-prefix.
+    /**
+     * @dev Format bytes as a hex string.
+     * @param v The bytes to format.
+     * @return hexString The corresponding hex string w/o a 0x-prefix.
+     */
     function bytesToHex(
         bytes memory v
     ) internal pure returns (string memory hexString) {
@@ -162,10 +168,12 @@ library HexUtils {
         unsafeHex(src, dst, nibbles);
     }
 
-    /// @dev Converts arbitrary memory to a hex string.
-    /// @param src The memory offset of first nibble of input.
-    /// @param dst The memory offset of first hex-char of output.
-    /// @param nibbles The number of nibbles to convert and the byte-length of the output.
+    /**
+     * @dev Converts arbitrary memory to a hex string.
+     * @param src The memory offset of first nibble of input.
+     * @param dst The memory offset of first hex-char of output.
+     * @param nibbles The number of nibbles to convert and the byte-length of the output.
+     */
     function unsafeHex(
         uint256 src,
         uint256 dst,

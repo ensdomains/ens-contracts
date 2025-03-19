@@ -33,27 +33,33 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
             type(IUniversalResolver).interfaceId == interfaceID;
     }
 
-    /// @dev Set the default batch gateways, see: `resolve()` and `reverse()`.
-    /// @param gateways The list of batch gateway URLs to use as default.
+    /**
+     * @dev Set the default batch gateways, see: `resolve()` and `reverse()`.
+     * @param gateways The list of batch gateway URLs to use as default.
+     */
     function setBatchGateways(string[] memory gateways) external onlyOwner {
         batchGateways = gateways;
     }
 
-    /// @dev Find the resolver address for `name`.
-    ///      Does not perform any validity checks.
-    /// @param name The name to search.
+    /**
+     * @dev Find the resolver address for `name`.
+     *      Does not perform any validity checks.
+     * @param name The name to search.
+     */
     function findResolver(
         bytes memory name
     ) external view returns (address, bytes32, uint256) {
         return _findResolver(name, 0);
     }
 
-    /// @dev Efficiently find the resolver address for `name[offset:]`.
-    /// @param name The name to search.
-    /// @param offset The byte-offset into `name` to begin the search.
-    /// @return resolver The address of the resolver.
-    /// @return node The namehash of name corresponding to the resolver.
-    /// @return offset_ The byte-offset into `name` of the name corresponding to the resolver.
+    /**
+     * @dev Efficiently find the resolver address for `name[offset:]`.
+     * @param name The name to search.
+     * @param offset The byte-offset into `name` to begin the search.
+     * @return resolver The address of the resolver.
+     * @return node The namehash of name corresponding to the resolver.
+     * @return offset_ The byte-offset into `name` of the name corresponding to the resolver.
+     */
     function _findResolver(
         bytes memory name,
         uint256 offset
@@ -76,7 +82,9 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
                 : (parentResolver, node, parentOffset);
     }
 
-    /// @dev A valid resolver and its relevant properties.
+    /**
+     * @dev A valid resolver and its relevant properties.
+     */
     struct ResolverInfo {
         bytes name; // dns-encoded name (safe to decode)
         uint256 offset; // byte offset into name used for resolver
@@ -85,9 +93,11 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         bool extended; // IExtendedResolver
     }
 
-    /// @dev Returns a valid resolver for `name` or reverts.
-    /// @param name The name to search.
-    /// @return info The resolver information.
+    /**
+     * @dev Returns a valid resolver for `name` or reverts.
+     * @param name The name to search.
+     * @return info The resolver information.
+     */
     function requireResolver(
         bytes memory name
     ) public view returns (ResolverInfo memory info) {
@@ -110,7 +120,9 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         }
     }
 
-    /// @notice Same as `resolveWithGateways()` but uses default batch gateways.
+    /**
+     * @notice Same as `resolveWithGateways()` but uses default batch gateways.
+     */
     function resolve(
         bytes calldata name,
         bytes calldata data
@@ -118,11 +130,13 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         return resolveWithGateways(name, data, batchGateways);
     }
 
-    /// @notice Performs ENS name resolution for the supplied name and resolution data.
-    /// @notice Callers should enable EIP-3668.
-    /// @dev This function executes over multiple steps (step 1 of 2).
-    /// @return result The encoded response for the requested call.
-    /// @return resolver The address of the resolver that supplied `result`.
+    /**
+     * @notice Performs ENS name resolution for the supplied name and resolution data.
+     * @notice Callers should enable EIP-3668.
+     * @dev This function executes over multiple steps (step 1 of 2).
+     * @return result The encoded response for the requested call.
+     * @return resolver The address of the resolver that supplied `result`.
+     */
     function resolveWithGateways(
         bytes calldata name,
         bytes calldata data,
@@ -138,12 +152,14 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev CCIP-Read callback for `resolveWithGateways()` (step 1 of 2).
-    /// @param info The resolver that was called.
-    /// @param lookups The lookups corresponding to the requested call.
-    /// @param extraData The contextual data passed from `resolveWithGateways()`.
-    /// @return result The encoded response for the requested call.
-    /// @return resolver The address of the resolver that supplied `result`.
+    /**
+     * @dev CCIP-Read callback for `resolveWithGateways()` (step 1 of 2).
+     * @param info The resolver that was called.
+     * @param lookups The lookups corresponding to the requested call.
+     * @param extraData The contextual data passed from `resolveWithGateways()`.
+     * @return result The encoded response for the requested call.
+     * @return resolver The address of the resolver that supplied `result`.
+     */
     function resolveCallback(
         ResolverInfo calldata info,
         Lookup[] calldata lookups,
@@ -165,7 +181,9 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         resolver = info.resolver;
     }
 
-    /// @notice Same as `reverseWithGateways()` but uses default batch gateways.
+    /**
+     * @notice Same as `reverseWithGateways()` but uses default batch gateways.
+     */
     function reverse(
         bytes memory encodedAddress,
         uint256 coinType
@@ -179,12 +197,14 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         string[] gateways;
     }
 
-    /// @notice Performs ENS reverse resolution for the supplied address and coin type.
-    /// @notice Callers should enable EIP-3668.
-    /// @dev This function executes over multiple steps (step 1 of 3).
-    /// @param encodedAddress The input address.
-    /// @param coinType The coin type.
-    /// @param gateways The list of batch gateway URLs to use.
+    /**
+     * @notice Performs ENS reverse resolution for the supplied address and coin type.
+     * @notice Callers should enable EIP-3668.
+     * @dev This function executes over multiple steps (step 1 of 3).
+     * @param encodedAddress The input address.
+     * @param coinType The coin type.
+     * @param gateways The list of batch gateway URLs to use.
+     */
     function reverseWithGateways(
         bytes memory encodedAddress,
         uint256 coinType,
@@ -203,10 +223,12 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev CCIP-Read callback for `reverseWithGateways()` (step 2 of 3).
-    /// @param infoRev The resolver for the reverse name that was called.
-    /// @param lookups The lookups corresponding to the calls: `[name()]`.
-    /// @param extraData The contextual data passed from `reverseWithGateways()`.
+    /**
+     * @dev CCIP-Read callback for `reverseWithGateways()` (step 2 of 3).
+     * @param infoRev The resolver for the reverse name that was called.
+     * @param lookups The lookups corresponding to the calls: `[name()]`.
+     * @param extraData The contextual data passed from `reverseWithGateways()`.
+     */
     function reverseNameCallback(
         ResolverInfo calldata infoRev,
         Lookup[] calldata lookups,
@@ -234,14 +256,16 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
-    ///      Reverts `ReverseAddressMismatch`.
-    /// @param info The resolver for the primary name that was called.
-    /// @param lookups The lookups corresponding to the calls: `[addr()]`.
-    /// @param extraData The contextual data passed from `reverseNameCallback()`.
-    /// @return primary The resolved primary name.
-    /// @return resolver The resolver address for primary name.
-    /// @return reverseResolver The resolver address for the reverse name.
+    /**
+     * @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
+     *      Reverts `ReverseAddressMismatch`.
+     * @param info The resolver for the primary name that was called.
+     * @param lookups The lookups corresponding to the calls: `[addr()]`.
+     * @param extraData The contextual data passed from `reverseNameCallback()`.
+     * @return primary The resolved primary name.
+     * @return resolver The resolver address for primary name.
+     * @return reverseResolver The resolver address for the reverse name.
+     */
     function reverseAddressCallback(
         ResolverInfo calldata info,
         Lookup[] calldata lookups,
@@ -275,13 +299,15 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         resolver = info.resolver;
     }
 
-    /// @dev Perform multiple resolver calls in parallel using batch gateway.
-    /// @param info The resolver to call.
-    /// @param calls The list of resolver calldata, eg. `[addr(), text()]`.
-    /// @param gateways The list of batch gateway URLs to use.
-    /// @param callbackFunction The function selector to call after resolution.
-    /// @param extraData The contextual data passed to `callbackFunction`.
-    /// @dev The return type of this function is polymorphic depending on the caller.
+    /**
+     * @dev Perform multiple resolver calls in parallel using batch gateway.
+     * @param info The resolver to call.
+     * @param calls The list of resolver calldata, eg. `[addr(), text()]`.
+     * @param gateways The list of batch gateway URLs to use.
+     * @param callbackFunction The function selector to call after resolution.
+     * @param extraData The contextual data passed to `callbackFunction`.
+     * @dev The return type of this function is polymorphic depending on the caller.
+     */
     function _resolveBatch(
         ResolverInfo memory info,
         bytes[] memory calls,
@@ -308,9 +334,11 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev CCIP-Read callback for `_resolveBatch()`.
-    /// @param response The response data from CCIPBatcher.
-    /// @param extraData The contextual data from `_resolveBatch()`.
+    /**
+     * @dev CCIP-Read callback for `_resolveBatch()`.
+     * @param response The response data from CCIPBatcher.
+     * @param extraData The contextual data from `_resolveBatch()`.
+     */
     function resolveBatchCallback(
         bytes calldata response,
         bytes calldata extraData
@@ -341,9 +369,11 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev Extract `data` from `resolve(bytes, bytes data)` calldata.
-    /// @param v The `resolve(bytes, bytes data)` calldata.
-    /// @return data The inner `bytes data` argument.
+    /**
+     * @dev Extract `data` from `resolve(bytes, bytes data)` calldata.
+     * @param v The `resolve(bytes, bytes data)` calldata.
+     * @return data The inner `bytes data` argument.
+     */
     function _unwrapResolve(
         bytes memory v
     ) internal pure returns (bytes memory data) {
@@ -356,10 +386,12 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         }
     }
 
-    /// @dev Extract `data` from a lookup or revert an appropriate error.
-    ///      Reverts if the `data` is not a successful response.
-    /// @param lu The lookup to extract from.
-    /// @return v The successful response (always 32+ bytes).
+    /**
+     * @dev Extract `data` from a lookup or revert an appropriate error.
+     *      Reverts if the `data` is not a successful response.
+     * @param lu The lookup to extract from.
+     * @return v The successful response (always 32+ bytes).
+     */
     function _requireResponse(
         Lookup memory lu
     ) internal pure returns (bytes memory v) {
@@ -375,9 +407,11 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         }
     }
 
-    /// @dev Create an array with one `call`.
-    /// @param call The single calldata.
-    /// @return calls The one-element calldata array, eg. `[call]`.
+    /**
+     * @dev Create an array with one `call`.
+     * @param call The single calldata.
+     * @return calls The one-element calldata array, eg. `[call]`.
+     */
     function _oneCall(
         bytes memory call
     ) internal pure returns (bytes[] memory calls) {
