@@ -3,41 +3,41 @@ pragma solidity ^0.8.0;
 
 import {HexUtils} from "../utils/HexUtils.sol";
 
-/// @dev Library for encoding/decoding names
+/// @dev Library for encoding/decoding names.
 
-/// An ENS name is stop-separated labels: eg. "aaa.bb.c"
+/// An ENS name is stop-separated labels, eg. "aaa.bb.c".
 
-/// A DNS-encoded name is byte-length prefixed labels with a terminator byte
-/// eg. "\x03aaa\x02bb\x01c\x00"
-/// * maximum label length is 255 bytes
-/// * length = 0 is reserved for the terminator (root)
+/// A DNS-encoded name is composed of byte length-prefixed labels with a terminator byte.
+/// eg. "\x03aaa\x02bb\x01c\x00".
+/// * maximum label length is 255 bytes.
+/// * length = 0 is reserved for the terminator (root).
 
-/// To encode a label larger than 255 bytes, use a hashed label
-/// A label of any length can be converted to a hashed label
+/// To encode a label larger than 255 bytes, use a hashed label.
+/// A label of any length can be converted to a hashed label.
 
-/// A hashed label is encoded as "[" + toHex(keccak256(label)) + "]"
-/// eg. [af2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc] = "vitalik"
-/// * always 66 bytes
-/// * matches: /^\[[0-9a-f]{64}\]$/
+/// A hashed label is encoded as "[" + toHex(keccak256(label)) + "]".
+/// eg. [af2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc] = "vitalik".
+/// * always 66 bytes.
+/// * matches: `/^\[[0-9a-f]{64}\]$/`.
 
-/// dns.length is *always* shorter than ens.length
-/// w/o hashed labels: dns.length == 2 + ens.length and mapping is injective
-///  w/ hashed labels: dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)
+/// `dns.length` is *always* shorter than `ens.length`.
+/// w/o hashed labels: `dns.length == 2 + ens.length` and the mapping is injective.
+///  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
 
 library NameCoder {
-    /// @dev The DNS-encoded name is malformed
+    /// @dev The DNS-encoded name is malformed.
     error DNSDecodingFailed(bytes dns);
 
-    /// @dev Some label of the ENS name has an invalid size
+    /// @dev A label of the ENS name has an invalid size.
     error DNSEncodingFailed(string ens);
 
-    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels
-    ///      The last labelHash = 0
-    ///      Reverts `DNSDecodingFailed`
-    /// @param name The DNS-encoded name
-    /// @param idx The byte-index start of the DNS-encoded label to read
-    /// @return labelHash labelHash of the read label
-    /// @return newIdx byte-index into name of the next DNS-encoded label
+    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
+    ///      The last labelHash is zero.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param name The DNS-encoded name.
+    /// @param idx The offset into `name` to start reading.
+    /// @return labelHash The resulting labelhash.
+    /// @return newIdx The offset into `name` of the next label.
     function readLabel(
         bytes memory name,
         uint256 idx
@@ -61,8 +61,11 @@ library NameCoder {
         }
     }
 
-    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels
-    ///      Reverts `DNSDecodingFailed`
+    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param name The DNS-encoded name.
+    /// @param idx The offset into name start hashing.
+    /// @return hash The resulting namehash.
     function namehash(
         bytes memory name,
         uint256 idx
@@ -80,10 +83,10 @@ library NameCoder {
         }
     }
 
-    /// @dev Convert DNS-encoded name to ENS name
-    ///      Reverts `DNSDecodingFailed`
-    /// @param dns DNS-encoded name
-    /// @return ens ENS name, eg. "aaa.bb.c"
+    /// @dev Convert DNS-encoded name to ENS name.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param dns The DNS-encoded name to convert, eg. `\x03abc\x02bb\x01c\x00`.
+    /// @return ens The equivalent ENS name, eg. "aaa.bb.c".
     function decode(
         bytes memory dns
     ) internal pure returns (string memory ens) {
@@ -111,11 +114,11 @@ library NameCoder {
         }
     }
 
-    /// @dev Convert ENS name to DNS-encoded name
-    ///      Hashes labels longer than 255 bytes
-    ///      Reverts `DNSEncodingFailed`
-    /// @param ens ENS name, eg. "aaa.bb.c"
-    /// @return dns DNS-encoded name
+    /// @dev Convert ENS name to DNS-encoded name.
+    ///      Hashes labels longer than 255 bytes.
+    ///      Reverts `DNSEncodingFailed`.
+    /// @param ens The ENS name to convert, eg. `aaa.bb.c`.
+    /// @return dns The corresponding DNS-encoded name, eg. `\x03abc\x02bb\x01c\x00`
     function encode(
         string memory ens
     ) internal pure returns (bytes memory dns) {
@@ -150,7 +153,8 @@ library NameCoder {
         }
     }
 
-    /// @dev returns 0 if error (handled by caller)
+    /// @dev returns 0 if error (handled by caller).
+    /// @param start The memory offset of length-prefixed label.
     function _createHashedLabel(
         uint256 start,
         uint256 end

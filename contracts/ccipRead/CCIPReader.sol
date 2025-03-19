@@ -12,7 +12,7 @@ pragma solidity ^0.8.0;
 /// 2. call `ccipRead()` similar to `staticcall()`
 /// 3. implement all response logic in callback
 /// 4. ensure that return type of calling function == callback function
-/// 5. any return value of `ccipRead()` is already abi-encoded
+/// 5. any return value of `ccipRead()` is abi-encoded
 
 /// Use the following code to return it directly:
 /// ```solidity
@@ -21,6 +21,7 @@ pragma solidity ^0.8.0;
 /// ```
 
 import {EIP3668, OffchainLookup} from "./EIP3668.sol";
+import {BytesUtils} from "../utils/BytesUtils.sol";
 
 contract CCIPReader {
     /// @dev Recursive CCIP-Read data structure (private)
@@ -34,7 +35,7 @@ contract CCIPReader {
 
     bytes4 constant IDENTITY_SELECTOR = bytes4(0);
 
-    /// @dev Same as `ccipRead()` but the callback function is the identity
+    /// @dev Same as `ccipRead()` but the callback function is the identity.
     function ccipRead(
         address target,
         bytes memory call
@@ -42,17 +43,18 @@ contract CCIPReader {
         return ccipRead(target, call, IDENTITY_SELECTOR, "");
     }
 
-    /// @dev A function that wraps, handles, and consistently returns responses from calls to a function within a target contract that can return directly OR return in response to offchain data resolution (subject to the ERC-3668 specification).
-    /// @param target contract address
-    /// @param call calldata to `staticcall()` on `target`
-    /// @param myCallbackFunction function selector of callback
-    /// @param myExtraData extra data passed to `mySelector` along with response bytes
-    /// @return v abi-encoded response from calling `mySelector` or revert
+    /// @dev Performs a CCIP-Read and handles internal recursion.
+    ///      Reverts `OffchainLookup` if necessary.
+    /// @param target The contract address.
+    /// @param call The calldata to `staticcall()` on `target`.
+    /// @param callbackFunction The function selector of callback.
+    /// @param extraData The contextual data relayed to `callbackFunction`.
+    /// @return v The ABI-encoded response if no `OffchainLookup` was required.
     function ccipRead(
         address target,
         bytes memory call,
-        bytes4 myCallbackFunction,
-        bytes memory myExtraData
+        bytes4 callbackFunction,
+        bytes memory extraData
     ) internal view returns (bytes memory v) {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
@@ -62,7 +64,7 @@ contract CCIPReader {
         if (!ok && bytes4(v) == OffchainLookup.selector) {
             // We decode the response error into a tuple
             // tuples allow flexibility noting stack too deep constraints
-            EIP3668.Params memory p = EIP3668.decodeWithSelector(v);
+            EIP3668.Params memory p = decodeOffchainLookup(v);
             if (p.sender == target) {
                 // We then wrap the error data in an `OffchainLookup` sent/'owned' by this contract
                 revert OffchainLookup(
@@ -75,19 +77,19 @@ contract CCIPReader {
                             target,
                             p.callbackFunction,
                             p.extraData,
-                            myCallbackFunction,
-                            myExtraData
+                            callbackFunction,
+                            extraData
                         )
                     )
                 );
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok && myCallbackFunction != IDENTITY_SELECTOR) {
+        if (ok && callbackFunction != IDENTITY_SELECTOR) {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
-                abi.encodeWithSelector(myCallbackFunction, v, myExtraData)
+                abi.encodeWithSelector(callbackFunction, v, extraData)
             );
         }
         // OR the call to the 'real' target reverts with a different error selector
@@ -99,6 +101,10 @@ contract CCIPReader {
         }
     }
 
+    /// @dev CCIP-Read callback for `ccipRead()`.
+    /// @param ccip The response from offchain.
+    /// @param extraData The contextual data passed from `ccipRead()`.
+    /// @dev The return type of this function is polymorphic depending on the caller.
     function ccipReadCallback(
         bytes memory ccip,
         bytes memory extraData
@@ -115,5 +121,14 @@ contract CCIPReader {
         assembly {
             return(add(v, 32), mload(v))
         }
+    }
+
+    /// @dev Decode `OffchainLookup` error data into a struct.
+    /// @param v The error data of the revert.
+    /// @return p The decoded `OffchainLookup` params.
+    function decodeOffchainLookup(
+        bytes memory v
+    ) internal pure returns (EIP3668.Params memory p) {
+        p = EIP3668.decode(BytesUtils.substring(v, 4, v.length - 4));
     }
 }

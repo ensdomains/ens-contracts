@@ -5,7 +5,7 @@ import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
 contract CCIPBatcher is CCIPReader {
-    /// @dev The batch gateway supplied an incorrect number of responses
+    /// @dev The batch gateway supplied an incorrect number of responses.
     error InvalidBatchGatewayResponse();
 
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
@@ -17,7 +17,7 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAGS_ANY_ERROR =
         FLAG_CALL_ERROR | FLAG_OFFCHAIN_ERROR | FLAG_EMPTY_RESPONSE;
 
-    /// @dev An independent `OffchainLookup` session
+    /// @dev An independent `OffchainLookup` session.
     struct Lookup {
         address target; // contract to call
         bytes call; // initial calldata
@@ -25,14 +25,14 @@ contract CCIPBatcher is CCIPReader {
         uint256 flags; // see: FLAG_*
     }
 
-    /// @dev A batch gateway session
+    /// @dev A batch gateway session.
     struct Batch {
         Lookup[] lookups;
         string[] gateways;
     }
 
-    /// @dev Use CCIPReader.ccipRead() to call this function with a `batch`
-    //       The callback `response` will be `abi.encode(batch)`
+    /// @dev Use CCIPReader.ccipRead() to call this function with a `batch`.
+    ///      The callback `response` will be `abi.encode(batch)`
     function ccipBatch(
         Batch memory batch
     ) external view returns (Batch memory) {
@@ -45,10 +45,10 @@ contract CCIPBatcher is CCIPReader {
                     v = abi.encodePacked(bytes4(lu.call));
                     lu.flags |= FLAG_EMPTY_RESPONSE;
                 }
-            } else if (bytes4(v) != OffchainLookup.selector) {
-                lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
-            } else {
+            } else if (bytes4(v) == OffchainLookup.selector) {
                 lu.flags |= FLAG_OFFCHAIN;
+            } else {
+                lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
             }
             lu.data = v;
         }
@@ -65,7 +65,7 @@ contract CCIPBatcher is CCIPReader {
         for (uint256 i; i < batch.lookups.length; i++) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
-                EIP3668.Params memory p = EIP3668.decodeWithSelector(lu.data);
+                EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                 requests[count++] = IBatchGateway.Request(
                     p.sender,
                     p.urls,
@@ -87,7 +87,7 @@ contract CCIPBatcher is CCIPReader {
         }
     }
 
-    /// @dev Updates the batch using the batch gateway response. Reverts again if not "done".
+    /// @dev Updates `batch` using the batch gateway response. Reverts again if not "done".
     function ccipBatchCallback(
         bytes calldata response,
         bytes calldata extraData
@@ -109,9 +109,7 @@ contract CCIPBatcher is CCIPReader {
                     if (failures[expected]) {
                         lu.flags |= FLAG_DONE | FLAG_OFFCHAIN_ERROR;
                     } else {
-                        EIP3668.Params memory p = EIP3668.decodeWithSelector(
-                            lu.data
-                        );
+                        EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                         bool ok;
                         (ok, v) = p.sender.staticcall(
                             abi.encodeWithSelector(
@@ -126,10 +124,10 @@ contract CCIPBatcher is CCIPReader {
                                 v = abi.encodePacked(p.callbackFunction);
                                 lu.flags |= FLAG_EMPTY_RESPONSE;
                             }
-                        } else if (bytes4(v) != OffchainLookup.selector) {
-                            lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
-                        } else {
+                        } else if (bytes4(v) == OffchainLookup.selector) {
                             // another offchain request
+                        } else {
+                            lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
                         }
                     }
                     lu.data = v;

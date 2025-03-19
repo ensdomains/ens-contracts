@@ -6,14 +6,14 @@ import {HexUtils} from "../utils/HexUtils.sol";
 uint256 constant COIN_TYPE_ETH = 60;
 uint256 constant EVM_BIT = 1 << 31;
 
-/// @dev Library for generating reverse names according to ENSIP-19
+/// @dev Library for generating reverse names according to ENSIP-19.
 /// https://docs.ens.domains/ensip/19
 library ENSIP19 {
-    /// @dev The supplied address was `0x`
+    /// @dev The supplied address was `0x`.
     error EmptyAddress();
 
-    /// @dev Extract Chain ID from `coinType`
-    ///      returns 0 for EVM_BIT and non-EVM Chain
+    /// @dev Extract Chain ID from `coinType`.
+    ///      Returns 0 for EVM_BIT and non-EVM Chain.
     function chainFromCoinType(
         uint256 coinType
     ) internal pure returns (uint32 chain) {
@@ -26,7 +26,7 @@ library ENSIP19 {
             );
     }
 
-    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID
+    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID.
     function reverseName(
         address addr,
         uint64 chain
@@ -38,25 +38,27 @@ library ENSIP19 {
             );
     }
 
-    /// @dev Generate Reverse Name from Encoded Address + Coin Type
-    ///      Reverts `EmptyAddress`
+    /// @dev Generate Reverse Name from Encoded Address + Coin Type.
+    ///      Reverts `EmptyAddress` if `encodedAddress` is `0x`.
+    /// @param encodedAddress The input address.
+    /// @param coinType The coin type.
+    /// @return name The ENS reverse name, eg. `1234abcd.addr.reverse`.
     function reverseName(
         bytes memory encodedAddress,
         uint256 coinType
-    ) internal pure returns (string memory) {
+    ) internal pure returns (string memory name) {
         if (encodedAddress.length == 0) revert EmptyAddress();
-        return
-            string(
-                abi.encodePacked(
-                    HexUtils.bytesToHex(encodedAddress),
-                    ".",
-                    coinType == COIN_TYPE_ETH
-                        ? "addr"
-                        : coinType == EVM_BIT
-                            ? "default"
-                            : HexUtils.unpaddedUintToHex(coinType, true),
-                    ".reverse"
-                )
-            );
+        name = string(
+            abi.encodePacked(
+                HexUtils.bytesToHex(encodedAddress),
+                ".",
+                coinType == COIN_TYPE_ETH
+                    ? "addr"
+                    : coinType == EVM_BIT
+                        ? "default"
+                        : HexUtils.unpaddedUintToHex(coinType, true),
+                ".reverse"
+            )
+        );
     }
 }
