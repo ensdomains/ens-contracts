@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.17;
 
 /// @author Modified from https://github.com/unruggable-labs/CCIPReader.sol/blob/341576fe7ff2b6e0c93fc08f37740cf6439f5873/contracts/CCIPReader.sol
 
@@ -18,7 +18,7 @@ import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 
 contract CCIPReader {
-    /// @dev Recursive CCIP-Read data structure (private)
+    /// @dev A recursive CCIP-Read session.
     struct Context {
         address target;
         bytes4 callbackFunction;
@@ -27,11 +27,12 @@ contract CCIPReader {
         bytes myExtraData;
     }
 
-    bytes4 constant IDENTITY_SELECTOR = bytes4(0);
+    /// @dev Special-purpose value for identity callback: `f(x) = x`.
+    bytes4 constant IDENTITY_FUNCTION = bytes4(0);
 
     /// @dev Same as `ccipRead()` but the callback function is the identity.
     function ccipRead(address target, bytes memory call) internal view {
-        ccipRead(target, call, IDENTITY_SELECTOR, "");
+        ccipRead(target, call, IDENTITY_FUNCTION, "");
     }
 
     /// @dev Performs a CCIP-Read and handles internal recursion.
@@ -74,7 +75,7 @@ contract CCIPReader {
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok && callbackFunction != IDENTITY_SELECTOR) {
+        if (ok && callbackFunction != IDENTITY_FUNCTION) {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
@@ -95,11 +96,11 @@ contract CCIPReader {
     }
 
     /// @dev CCIP-Read callback for `ccipRead()`.
-    /// @param ccip The response from offchain.
+    /// @param response The response from offchain.
     /// @param extraData The contextual data passed from `ccipRead()`.
     /// @dev The return type of this function is polymorphic depending on the caller.
     function ccipReadCallback(
-        bytes memory ccip,
+        bytes memory response,
         bytes memory extraData
     ) external view {
         Context memory ctx = abi.decode(extraData, (Context));
@@ -107,7 +108,11 @@ contract CCIPReader {
         // We can reuse the calling infrastructure to call the callback
         ccipRead(
             ctx.target,
-            abi.encodeWithSelector(ctx.callbackFunction, ccip, ctx.extraData),
+            abi.encodeWithSelector(
+                ctx.callbackFunction,
+                response,
+                ctx.extraData
+            ),
             ctx.myCallbackFunction,
             ctx.myExtraData
         );

@@ -31,8 +31,8 @@ contract CCIPBatcher is CCIPReader {
         string[] gateways;
     }
 
-    /// @dev Use CCIPReader.ccipRead() to call this function with a `batch`.
-    ///      The callback `response` will be `abi.encode(batch)`
+    /// @dev Use CCIPReader.ccipRead() to call this function with a batch.
+    ///      The callback `response` will be `abi.encode(batch)`.
     function ccipBatch(
         Batch memory batch
     ) external view returns (Batch memory) {
@@ -52,11 +52,11 @@ contract CCIPBatcher is CCIPReader {
             }
             lu.data = v;
         }
-        _revertBatchGateway(batch);
+        _revertBatchGateway(batch); // reverts if any offchain
         return batch;
     }
 
-    /// @dev Check if the batch is "done", if not revert `OffchainLookup` for a batch gateway
+    /// @dev Check if the batch is "done", if not revert `OffchainLookup` for a batch gateway.
     function _revertBatchGateway(Batch memory batch) internal view {
         IBatchGateway.Request[] memory requests = new IBatchGateway.Request[](
             batch.lookups.length
@@ -87,7 +87,11 @@ contract CCIPBatcher is CCIPReader {
         }
     }
 
-    /// @dev Updates `batch` using the batch gateway response. Reverts again if not "done".
+    /// @dev CCIP-Read callback for `ccipBatch()`.
+    ///      Updates `batch` using the batch gateway response. Reverts again if not "done".
+    /// @param response The response from offchain.
+    /// @param extraData The contextual data passed from `ccipBatch()`.
+    /// @return batch The batch where every lookup is "done".
     function ccipBatchCallback(
         bytes calldata response,
         bytes calldata extraData

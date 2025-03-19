@@ -241,7 +241,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
     /// @param extraData The contextual data passed from `reverseNameCallback()`.
     /// @return primary The resolved primary name.
     /// @return resolver The resolver address for primary name.
-    /// @return reverseResolver The resolver address for the reverse name with primary set.
+    /// @return reverseResolver The resolver address for the reverse name.
     function reverseAddressCallback(
         ResolverInfo calldata info,
         Lookup[] calldata lookups,

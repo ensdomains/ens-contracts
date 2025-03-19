@@ -239,7 +239,7 @@ describe('HexUtils', () => {
         await expect(
           hexUtils.read.unpaddedUintToHex([uint, false]),
           'false',
-        ).resolves.toStrictEqual(`${hex.length & 1 ? '0' : ''}${hex}`)
+        ).resolves.toStrictEqual(hex.length & 1 ? `0${hex}` : hex)
       })
     }
   })

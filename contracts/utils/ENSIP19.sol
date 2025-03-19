@@ -13,7 +13,8 @@ library ENSIP19 {
     error EmptyAddress();
 
     /// @dev Extract Chain ID from `coinType`.
-    ///      Returns 0 for EVM_BIT and non-EVM Chain.
+    /// @param coinType The coin type.
+    /// @return chain The Chain ID or 0 if non-EVM Chain.
     function chainFromCoinType(
         uint256 coinType
     ) internal pure returns (uint32 chain) {

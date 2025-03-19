@@ -13,8 +13,7 @@ import { expect } from 'chai'
 
 describe('TestLocalBatchGateway', () => {
   it('OffchainDNSOracle', async () => {
-    const { shutdown, localBatchGatewayUrl: batchedGatewayURL } =
-      await serveBatchGateway()
+    const { shutdown, localBatchGatewayUrl } = await serveBatchGateway()
     after(shutdown)
     const abi = parseAbi([
       'function resolve(bytes memory name, uint16 qtype) view returns (RRSetWithSignature[] memory rrs)',
@@ -22,7 +21,7 @@ describe('TestLocalBatchGateway', () => {
     ])
     const domains = ['brantly.rocks', 'raffy.xyz']
     const [failures, responses] = await fetchBatchGateway(
-      batchedGatewayURL,
+      localBatchGatewayUrl,
       domains.map((x) => ({
         sender: zeroAddress,
         urls: ['https://dnssec-oracle.ens.domains/'],
@@ -32,9 +31,7 @@ describe('TestLocalBatchGateway', () => {
         }),
       })),
     )
-    // none should fail
-    expect(failures.some((x) => x)).toStrictEqual(false)
-    // they all should decode
-    responses.forEach((data) => decodeFunctionResult({ abi, data }))
+    expect(failures.some((x) => x)).toStrictEqual(false) // none should fail
+    responses.forEach((data) => decodeFunctionResult({ abi, data })) // all should decode
   })
 })
