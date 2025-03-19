@@ -12,7 +12,7 @@ export function chainFromCoinType(coinType: bigint): number {
 
 export function shortCoin(coinType: bigint) {
   const chain = chainFromCoinType(coinType)
-  return chain ? `chain:${chain}` : `coin:${coinType}`
+  return chain || coinType == EVM_BIT ? `chain:${chain}` : `coin:${coinType}`
 }
 
 export function getReverseName(encodedAddress: Hex, coinType = COIN_TYPE_ETH) {

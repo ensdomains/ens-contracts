@@ -10,4 +10,10 @@ contract TestENSIP19 {
     ) external pure returns (string memory) {
         return ENSIP19.reverseName(encodedAddress, coinType);
     }
+
+    function chainFromCoinType(
+        uint256 coinType
+    ) external pure returns (uint32 chain) {
+        return ENSIP19.chainFromCoinType(coinType);
+    }
 }

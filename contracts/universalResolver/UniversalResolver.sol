@@ -234,8 +234,8 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         );
     }
 
-    /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3)
-    ///      Reverts `ReverseAddressMismatch`
+    /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
+    ///      Reverts `ReverseAddressMismatch`.
     /// @param info The resolver for the primary name that was called.
     /// @param lookups The lookups corresponding to the calls: `[addr()]`.
     /// @param extraData The contextual data passed from `reverseNameCallback()`.

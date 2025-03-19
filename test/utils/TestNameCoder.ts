@@ -15,6 +15,7 @@ describe('NameEncoder', () => {
     for (let [title, ens] of [
       ['empty', ''],
       ['a.bb.ccc.dddd.eeeee'],
+      ['1x255', '1'.repeat(255)],
       ['1x300', '1'.repeat(300)],
       [`[${'1'.repeat(64)}]`],
       ['mixed', `${'1'.repeat(300)}.[${'1'.repeat(64)}].eth`],
@@ -30,7 +31,7 @@ describe('NameEncoder', () => {
         let pos = 0
         while (true) {
           await expect(
-            F.read.namehash([dns, pos]),
+            F.read.namehash([dns, BigInt(pos)]),
             `namehash: ${ens}`,
           ).resolves.toStrictEqual(namehash(ens))
           if (!ens) break
@@ -56,10 +57,10 @@ describe('NameEncoder', () => {
     for (const dns of ['0x', '0x02', '0x0000', '0x1000'] as const) {
       it(dns, async () => {
         const F = await loadFixture(fixture)
-        await expect(F, 'decode')
+        await expect(F)
           .read('decode', [dns])
           .toBeRevertedWithCustomError('DNSDecodingFailed')
-        await expect(F, 'namehash')
+        await expect(F)
           .read('namehash', [dns, 0])
           .toBeRevertedWithCustomError('DNSDecodingFailed')
       })
