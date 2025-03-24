@@ -61,7 +61,7 @@ describe('NameEncoder', () => {
           .read('decode', [dns])
           .toBeRevertedWithCustomError('DNSDecodingFailed')
         await expect(F)
-          .read('namehash', [dns, 0])
+          .read('namehash', [dns, 0n])
           .toBeRevertedWithCustomError('DNSDecodingFailed')
       })
     }

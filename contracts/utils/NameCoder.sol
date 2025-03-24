@@ -94,8 +94,8 @@ library NameCoder {
     /**
      * @dev Convert DNS-encoded name to ENS name.
      *      Reverts `DNSDecodingFailed`.
-     * @param dns The DNS-encoded name to convert, eg. `\x03abc\x02bb\x01c\x00`.
-     * @return ens The equivalent ENS name, eg. "aaa.bb.c".
+     * @param dns The DNS-encoded name to convert, eg. `\x03aaa\x02bb\x01c\x00`.
+     * @return ens The equivalent ENS name, eg. `aaa.bb.c`.
      */
     function decode(
         bytes memory dns
@@ -129,7 +129,7 @@ library NameCoder {
      *      Hashes labels longer than 255 bytes.
      *      Reverts `DNSEncodingFailed`.
      * @param ens The ENS name to convert, eg. `aaa.bb.c`.
-     * @return dns The corresponding DNS-encoded name, eg. `\x03abc\x02bb\x01c\x00`.
+     * @return dns The corresponding DNS-encoded name, eg. `\x03aaa\x02bb\x01c\x00`.
      */
     function encode(
         string memory ens
@@ -168,7 +168,7 @@ library NameCoder {
     /**
      * @dev Write the label length.
      *      If longer than 255, writes a hashed label instead.
-     * @param start The memory offset of length-prefixed label.
+     * @param start The memory offset of the length-prefixed label.
      * @param end The memory offset at the end of the label.
      * @return next The memory offset for the next label.
      *              Returns 0 if label is empty (handled by caller).

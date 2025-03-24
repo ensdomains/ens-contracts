@@ -14,7 +14,7 @@ error OffchainLookup(
 );
 
 /**
- * @dev Simple library for decoding OffchainLookup() data.
+ * @dev Simple library for decoding `OffchainLookup` error data.
  * Avoids "stack too deep" issues as the natural decoding consumes 5 variables.
  */
 library EIP3668 {

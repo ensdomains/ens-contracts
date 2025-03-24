@@ -153,7 +153,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
     }
 
     /**
-     * @dev CCIP-Read callback for `resolveWithGateways()` (step 1 of 2).
+     * @dev CCIP-Read callback for `resolveWithGateways()` (step 2 of 2).
      * @param info The resolver that was called.
      * @param lookups The lookups corresponding to the requested call.
      * @param extraData The contextual data passed from `resolveWithGateways()`.
@@ -336,7 +336,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
 
     /**
      * @dev CCIP-Read callback for `_resolveBatch()`.
-     * @param response The response data from CCIPBatcher.
+     * @param response The response data from `CCIPBatcher`.
      * @param extraData The contextual data from `_resolveBatch()`.
      */
     function resolveBatchCallback(
