@@ -34,19 +34,6 @@ contract CCIPBatcher is CCIPReader {
         string[] gateways;
     }
 
-    /// @dev Determine if `target` uses `revert()` instead of `invalid()`.
-    /// @param target The contract to test.
-    /// @return safe True if safe to call.
-    function _detectEIP140(address target) internal view returns (bool safe) {
-        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
-        assembly {
-            let G := 5000
-            let g := gas()
-            pop(staticcall(G, target, 0, 0, 0, 0))
-            safe := lt(sub(g, gas()), G)
-        }
-    }
-
     /// @dev Use `CCIPReader.ccipRead()` to call this function with a batch.
     ///      The callback `response` will be `abi.encode(batch)`.
     function ccipBatch(
@@ -65,9 +52,7 @@ contract CCIPBatcher is CCIPReader {
                 }
             }
             bool old = (lu.flags & FLAG_EIP140_AFTER) == 0;
-            (bool ok, bytes memory v) = lu.target.staticcall{
-                gas: old ? 50000 : gasleft()
-            }(lu.call);
+            (bool ok, bytes memory v) = _safeCall(!old, lu.target, lu.call);
             if (ok || (old && v.length == 0)) {
                 lu.flags |= FLAG_DONE;
                 if (v.length == 0) {
@@ -144,7 +129,6 @@ contract CCIPBatcher is CCIPReader {
                     } else {
                         EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                         bool ok;
-                        // assumption: only EIP140_AFTER contracts revert OffchainLookup
                         (ok, v) = p.sender.staticcall(
                             abi.encodeWithSelector(
                                 p.callbackFunction,

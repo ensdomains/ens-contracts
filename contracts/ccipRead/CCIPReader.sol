@@ -49,7 +49,11 @@ contract CCIPReader {
     ) internal view {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
-        (bool ok, bytes memory v) = target.staticcall(call);
+        (bool ok, bytes memory v) = _safeCall(
+            _detectEIP140(target),
+            target,
+            call
+        );
         // IF the function reverted with an `OffchainLookup`
         if (!ok && bytes4(v) == OffchainLookup.selector) {
             // We decode the response error into a tuple
@@ -125,5 +129,29 @@ contract CCIPReader {
         bytes memory v
     ) internal pure returns (EIP3668.Params memory p) {
         p = EIP3668.decode(BytesUtils.substring(v, 4, v.length - 4));
+    }
+
+    /// @dev Determine if `target` uses `revert()` instead of `invalid()`.
+    //       Assumption: only newer contracts revert `OffchainLookup`.
+    /// @param target The contract to test.
+    /// @return safe True if safe to call.
+    function _detectEIP140(address target) internal view returns (bool safe) {
+        if (target == address(this)) return true;
+        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
+        assembly {
+            let G := 5000
+            let g := gas()
+            pop(staticcall(G, target, 0, 0, 0, 0))
+            safe := lt(sub(g, gas()), G)
+        }
+    }
+
+    /// @dev Same as `staticcall()` but prevents OOG when not `safe`.
+    function _safeCall(
+        bool safe,
+        address target,
+        bytes memory call
+    ) internal view returns (bool ok, bytes memory v) {
+        (ok, v) = target.staticcall{gas: safe ? gasleft() : 50000}(call);
     }
 }
