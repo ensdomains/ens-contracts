@@ -58,22 +58,20 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         bytes memory name,
         uint256 offset
     ) internal view returns (address resolver, bytes32 node, uint256 offset_) {
-        bytes32 labelHash;
-        (labelHash, offset_) = NameCoder.readLabel(name, offset);
-        if (labelHash == bytes32(0)) {
-            return (address(0), bytes32(0), 0);
+        (bytes32 labelHash, uint256 next) = NameCoder.readLabel(name, offset);
+        if (labelHash != bytes32(0)) {
+            (
+                address parentResolver,
+                bytes32 parentNode,
+                uint256 parentOffset
+            ) = _findResolver(name, next);
+            node = keccak256(abi.encodePacked(parentNode, labelHash));
+            resolver = registry.resolver(node);
+            return
+                resolver != address(0)
+                    ? (resolver, node, offset)
+                    : (parentResolver, node, parentOffset);
         }
-        (
-            address parentResolver,
-            bytes32 parentNode,
-            uint256 parentOffset
-        ) = _findResolver(name, offset_);
-        node = keccak256(abi.encodePacked(parentNode, labelHash));
-        resolver = registry.resolver(node);
-        return
-            resolver != address(0)
-                ? (resolver, node, offset)
-                : (parentResolver, node, parentOffset);
     }
 
     /// @dev A valid resolver and its relevant properties.
@@ -369,6 +367,11 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
                 revert(add(v, 32), mload(v)) // HttpError or Error
             }
         } else if ((lu.flags & FLAG_CALL_ERROR) != 0) {
+            if (bytes4(v) == UnsupportedResolverProfile.selector) {
+                assembly {
+                    revert(add(v, 32), mload(v))
+                }
+            }
             revert ResolverError(v); // any error from Resolver
         } else if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
             revert UnsupportedResolverProfile(bytes4(v)); // initial call or callback was unimplemented

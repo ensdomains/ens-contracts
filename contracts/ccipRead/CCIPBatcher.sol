@@ -14,7 +14,7 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3; // the initial call or callback returned `0x`
     uint256 constant FLAG_EIP140_BEFORE = 1 << 4; // does not have revert op code
     uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
-    uint256 constant FLAG_DONE = 1 << 7; // the lookup has finished processing (private)
+    uint256 constant FLAG_DONE = 1 << 6; // the lookup has finished processing (private)
 
     uint256 constant FLAGS_ANY_ERROR =
         FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
@@ -36,14 +36,14 @@ contract CCIPBatcher is CCIPReader {
 
     /// @dev Determine if `target` uses `revert()` instead of `invalid()`.
     /// @param target The contract to test.
-    /// @return has True if `revert()` is used.
-    function _detectEIP140(address target) internal view returns (bool has) {
+    /// @return safe True if safe to call.
+    function _detectEIP140(address target) internal view returns (bool safe) {
         // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
         assembly {
             let G := 5000
             let g := gas()
             pop(staticcall(G, target, 0, 0, 0, 0))
-            has := lt(sub(g, gas()), G)
+            safe := lt(sub(g, gas()), G)
         }
     }
 

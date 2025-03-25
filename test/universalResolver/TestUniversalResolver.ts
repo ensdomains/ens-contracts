@@ -222,6 +222,20 @@ describe('UniversalResolver', () => {
         .withArgs(400, 'HTTP request failed.')
     })
 
+    it('unsupported revert', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      await F.Shapeshift1.write.setRevertUnsupportedResolverProfile([true])
+      await expect(F.UniversalResolver)
+        .read('resolve', [dnsEncodeName(testName), dummyCalldata])
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(dummyCalldata)
+    })
+
     it('old', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
