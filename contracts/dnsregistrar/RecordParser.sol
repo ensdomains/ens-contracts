@@ -6,11 +6,9 @@ import "../utils/BytesUtils.sol";
 library RecordParser {
     using BytesUtils for bytes;
 
-    /**
-     * @dev Parses a key-value record into a key and value.
-     * @param input The input string
-     * @param offset The offset to start reading at
-     */
+    /// @dev Parses a key-value record into a key and value.
+    /// @param input The input string
+    /// @param offset The offset to start reading at
     function readKeyValue(
         bytes memory input,
         uint256 offset,

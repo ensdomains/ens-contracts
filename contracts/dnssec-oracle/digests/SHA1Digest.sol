@@ -4,9 +4,7 @@ import "./Digest.sol";
 import "../../utils/BytesUtils.sol";
 import "@ensdomains/solsha1/contracts/SHA1.sol";
 
-/**
- * @dev Implements the DNSSEC SHA1 digest.
- */
+/// @dev Implements the DNSSEC SHA1 digest.
 contract SHA1Digest is Digest {
     using BytesUtils for *;
 

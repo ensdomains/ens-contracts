@@ -1,21 +1,14 @@
 pragma solidity ^0.8.4;
 
-/**
- * @title   EllipticCurve
- *
- * @author  Tilman Drerup;
- *
- * @notice  Implements elliptic curve math; Parametrized for SECP256R1.
- *
- *          Includes components of code by Andreas Olofsson, Alexander Vlasov
- *          (https://github.com/BANKEX/CurveArithmetics), and Avi Asayag
- *          (https://github.com/orbs-network/elliptic-curve-solidity)
- *
- *          Source: https://github.com/tdrerup/elliptic-curve-solidity
- *
- * @dev     NOTE: To disambiguate public keys when verifying signatures, activate
- *          condition 'rs[1] > lowSmax' in validateSignature().
- */
+/// @title   EllipticCurve
+/// @author  Tilman Drerup;
+/// @notice  Implements elliptic curve math; Parametrized for SECP256R1.
+///          Includes components of code by Andreas Olofsson, Alexander Vlasov
+///          (https://github.com/BANKEX/CurveArithmetics), and Avi Asayag
+///          (https://github.com/orbs-network/elliptic-curve-solidity)
+///          Source: https://github.com/tdrerup/elliptic-curve-solidity
+/// @dev     NOTE: To disambiguate public keys when verifying signatures, activate
+///          condition 'rs[1] > lowSmax' in validateSignature().
 contract EllipticCurve {
     // Set parameters for curve.
     uint256 constant a =
@@ -34,9 +27,7 @@ contract EllipticCurve {
     uint256 constant lowSmax =
         0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0;
 
-    /**
-     * @dev Inverse of u in the field of modulo m.
-     */
+    /// @dev Inverse of u in the field of modulo m.
     function inverseMod(uint256 u, uint256 m) internal pure returns (uint256) {
         unchecked {
             if (u == 0 || u == m || m == 0) return 0;
@@ -59,9 +50,7 @@ contract EllipticCurve {
         }
     }
 
-    /**
-     * @dev Transform affine coordinates into projective coordinates.
-     */
+    /// @dev Transform affine coordinates into projective coordinates.
     function toProjectivePoint(
         uint256 x0,
         uint256 y0
@@ -71,9 +60,7 @@ contract EllipticCurve {
         P[1] = mulmod(y0, P[2], p);
     }
 
-    /**
-     * @dev Add two points in affine coordinates and return projective point.
-     */
+    /// @dev Add two points in affine coordinates and return projective point.
     function addAndReturnProjectivePoint(
         uint256 x1,
         uint256 y1,
@@ -86,9 +73,7 @@ contract EllipticCurve {
         P = toProjectivePoint(x, y);
     }
 
-    /**
-     * @dev Transform from projective to affine coordinates.
-     */
+    /// @dev Transform from projective to affine coordinates.
     function toAffinePoint(
         uint256 x0,
         uint256 y0,
@@ -100,9 +85,7 @@ contract EllipticCurve {
         y1 = mulmod(y0, z0Inv, p);
     }
 
-    /**
-     * @dev Return the zero curve in projective coordinates.
-     */
+    /// @dev Return the zero curve in projective coordinates.
     function zeroProj()
         internal
         pure
@@ -111,16 +94,12 @@ contract EllipticCurve {
         return (0, 1, 0);
     }
 
-    /**
-     * @dev Return the zero curve in affine coordinates.
-     */
+    /// @dev Return the zero curve in affine coordinates.
     function zeroAffine() internal pure returns (uint256 x, uint256 y) {
         return (0, 0);
     }
 
-    /**
-     * @dev Check if the curve is the zero curve.
-     */
+    /// @dev Check if the curve is the zero curve.
     function isZeroCurve(
         uint256 x0,
         uint256 y0
@@ -131,9 +110,7 @@ contract EllipticCurve {
         return false;
     }
 
-    /**
-     * @dev Check if a point in affine coordinates is on the curve.
-     */
+    /// @dev Check if a point in affine coordinates is on the curve.
     function isOnCurve(uint256 x, uint256 y) internal pure returns (bool) {
         if (0 == x || x == p || 0 == y || y == p) {
             return false;
@@ -152,10 +129,8 @@ contract EllipticCurve {
         return LHS == RHS;
     }
 
-    /**
-     * @dev Double an elliptic curve point in projective coordinates. See
-     * https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
-     */
+    /// @dev Double an elliptic curve point in projective coordinates. See
+    /// https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
     function twiceProj(
         uint256 x0,
         uint256 y0,
@@ -201,10 +176,8 @@ contract EllipticCurve {
         z1 = mulmod(z1, u, p);
     }
 
-    /**
-     * @dev Add two elliptic curve points in projective coordinates. See
-     * https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
-     */
+    /// @dev Add two elliptic curve points in projective coordinates. See
+    /// https://www.nayuki.io/page/elliptic-curve-point-addition-in-projective-coordinates
     function addProj(
         uint256 x0,
         uint256 y0,
@@ -241,9 +214,7 @@ contract EllipticCurve {
         (x2, y2, z2) = addProj2(mulmod(z0, z1, p), u0, u1, t1, t0);
     }
 
-    /**
-     * @dev Helper function that splits addProj to avoid too many local variables.
-     */
+    /// @dev Helper function that splits addProj to avoid too many local variables.
     function addProj2(
         uint256 v,
         uint256 u0,
@@ -280,9 +251,7 @@ contract EllipticCurve {
         z2 = mulmod(u3, v, p);
     }
 
-    /**
-     * @dev Add two elliptic curve points in affine coordinates.
-     */
+    /// @dev Add two elliptic curve points in affine coordinates.
     function add(
         uint256 x0,
         uint256 y0,
@@ -296,9 +265,7 @@ contract EllipticCurve {
         return toAffinePoint(x0, y0, z0);
     }
 
-    /**
-     * @dev Double an elliptic curve point in affine coordinates.
-     */
+    /// @dev Double an elliptic curve point in affine coordinates.
     function twice(
         uint256 x0,
         uint256 y0
@@ -310,9 +277,7 @@ contract EllipticCurve {
         return toAffinePoint(x0, y0, z0);
     }
 
-    /**
-     * @dev Multiply an elliptic curve point by a 2 power base (i.e., (2^exp)*P)).
-     */
+    /// @dev Multiply an elliptic curve point by a 2 power base (i.e., (2^exp)*P)).
     function multiplyPowerBase2(
         uint256 x0,
         uint256 y0,
@@ -329,9 +294,7 @@ contract EllipticCurve {
         return toAffinePoint(base2X, base2Y, base2Z);
     }
 
-    /**
-     * @dev Multiply an elliptic curve point by a scalar.
-     */
+    /// @dev Multiply an elliptic curve point by a scalar.
     function multiplyScalar(
         uint256 x0,
         uint256 y0,
@@ -371,18 +334,14 @@ contract EllipticCurve {
         return toAffinePoint(x1, y1, z1);
     }
 
-    /**
-     * @dev Multiply the curve's generator point by a scalar.
-     */
+    /// @dev Multiply the curve's generator point by a scalar.
     function multipleGeneratorByScalar(
         uint256 scalar
     ) internal pure returns (uint256, uint256) {
         return multiplyScalar(gx, gy, scalar);
     }
 
-    /**
-     * @dev Validate combination of message, signature, and public key.
-     */
+    /// @dev Validate combination of message, signature, and public key.
     function validateSignature(
         bytes32 message,
         uint256[2] memory rs,

@@ -26,9 +26,7 @@ error Unauthorised(bytes32 node);
 error MaxCommitmentAgeTooLow();
 error MaxCommitmentAgeTooHigh();
 
-/**
- * @dev A registrar controller for registering and renewing names at fixed cost.
- */
+/// @dev A registrar controller for registering and renewing names at fixed cost.
 contract ETHRegistrarController is
     Ownable,
     IETHRegistrarController,

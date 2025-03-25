@@ -7,13 +7,11 @@ import "../../utils/BytesUtils.sol";
 contract P256SHA256Algorithm is Algorithm, EllipticCurve {
     using BytesUtils for *;
 
-    /**
-     * @dev Verifies a signature.
-     * @param key The public key to verify with.
-     * @param data The signed data to verify.
-     * @param signature The signature to verify.
-     * @return True iff the signature is valid.
-     */
+    /// @dev Verifies a signature.
+    /// @param key The public key to verify with.
+    /// @param data The signed data to verify.
+    /// @param signature The signature to verify.
+    /// @return True iff the signature is valid.
     function verify(
         bytes calldata key,
         bytes calldata data,

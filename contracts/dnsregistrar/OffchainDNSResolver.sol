@@ -234,12 +234,10 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         return IAddrResolver(resolver).addr(node);
     }
 
-    /**
-     * @dev Namehash function that operates on dot-separated names (not dns-encoded names)
-     * @param name Name to hash
-     * @param idx Index to start at
-     * @param lastIdx Index to end at
-     */
+    /// @dev Namehash function that operates on dot-separated names (not dns-encoded names)
+    /// @param name Name to hash
+    /// @param idx Index to start at
+    /// @param lastIdx Index to end at
     function textNamehash(
         bytes memory name,
         uint256 idx,

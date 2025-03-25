@@ -3,24 +3,18 @@ pragma solidity >=0.8.4;
 import "./ENS.sol";
 import "./ENSRegistry.sol";
 
-/**
- * The ENS registry contract.
- */
+/// The ENS registry contract.
 contract ENSRegistryWithFallback is ENSRegistry {
     ENS public old;
 
-    /**
-     * @dev Constructs a new ENS registrar.
-     */
+    /// @dev Constructs a new ENS registrar.
     constructor(ENS _old) public ENSRegistry() {
         old = _old;
     }
 
-    /**
-     * @dev Returns the address of the resolver for the specified node.
-     * @param node The specified node.
-     * @return address of the resolver.
-     */
+    /// @dev Returns the address of the resolver for the specified node.
+    /// @param node The specified node.
+    /// @return address of the resolver.
     function resolver(bytes32 node) public view override returns (address) {
         if (!recordExists(node)) {
             return old.resolver(node);
@@ -29,11 +23,9 @@ contract ENSRegistryWithFallback is ENSRegistry {
         return super.resolver(node);
     }
 
-    /**
-     * @dev Returns the address that owns the specified node.
-     * @param node The specified node.
-     * @return address of the owner.
-     */
+    /// @dev Returns the address that owns the specified node.
+    /// @param node The specified node.
+    /// @return address of the owner.
     function owner(bytes32 node) public view override returns (address) {
         if (!recordExists(node)) {
             return old.owner(node);
@@ -42,11 +34,9 @@ contract ENSRegistryWithFallback is ENSRegistry {
         return super.owner(node);
     }
 
-    /**
-     * @dev Returns the TTL of a node, and any records associated with it.
-     * @param node The specified node.
-     * @return ttl of the node.
-     */
+    /// @dev Returns the TTL of a node, and any records associated with it.
+    /// @param node The specified node.
+    /// @return ttl of the node.
     function ttl(bytes32 node) public view override returns (uint64) {
         if (!recordExists(node)) {
             return old.ttl(node);

@@ -1,12 +1,9 @@
 pragma solidity >=0.8.4;
 
 library StringUtils {
-    /**
-     * @dev Returns the length of a given string
-     *
-     * @param s The string to measure the length of
-     * @return The length of the input string
-     */
+    /// @dev Returns the length of a given string
+    /// @param s The string to measure the length of
+    /// @return The length of the input string
     function strlen(string memory s) internal pure returns (uint256) {
         uint256 len;
         uint256 i = 0;
@@ -30,12 +27,9 @@ library StringUtils {
         return len;
     }
 
-    /**
-     * @dev Escapes special characters in a given string
-     *
-     * @param str The string to escape
-     * @return The escaped string
-     */
+    /// @dev Escapes special characters in a given string
+    /// @param str The string to escape
+    /// @return The escaped string
     function escape(string memory str) internal pure returns (string memory) {
         bytes memory strBytes = bytes(str);
         uint extraChars = 0;

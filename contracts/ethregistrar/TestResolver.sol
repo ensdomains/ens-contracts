@@ -1,8 +1,6 @@
 pragma solidity >=0.8.4;
 
-/**
- * @dev A test resolver implementation
- */
+/// @dev A test resolver implementation
 contract TestResolver {
     mapping(bytes32 => address) addresses;
 

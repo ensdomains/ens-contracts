@@ -34,6 +34,10 @@
       },
     },
   },
+  "patchedDependencies": {
+    "hardhat-deploy@0.12.4": "patches/hardhat-deploy@0.12.4.patch",
+    "@nomicfoundation/hardhat-viem@2.0.6": "patches/@nomicfoundation%2Fhardhat-viem@2.0.6.patch",
+  },
   "packages": {
     "@adraffy/ens-normalize": ["@adraffy/ens-normalize@1.10.0", "", {}, "sha512-nA9XHtlAkYfJxY7bce8DcN7eKxWWCWkU+1GR9d+U6MbNpfwQp8TI7vqOsBsMcHoT4mBu2kypKoSKnghEzOOq5Q=="],
 

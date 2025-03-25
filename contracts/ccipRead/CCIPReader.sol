@@ -1,28 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-/**
- * @author Modified from https://github.com/unruggable-labs/CCIPReader.sol/blob/341576fe7ff2b6e0c93fc08f37740cf6439f5873/contracts/CCIPReader.sol
- *
- * MIT License
- * Portions Copyright (c) 2025 Unruggable
- * Portions Copyright (c) 2025 ENS Labs Ltd
- *
- * @dev Instructions:
- * 1. inherit this contract
- * 2. call `ccipRead()` similar to `staticcall()`
- * 3. do not put logic after this invocation
- * 4. implement all response logic in callback
- * 5. ensure that return type of calling function == callback function
- */
+/// @author Modified from https://github.com/unruggable-labs/CCIPReader.sol/blob/341576fe7ff2b6e0c93fc08f37740cf6439f5873/contracts/CCIPReader.sol
+
+/// MIT License
+/// Portions Copyright (c) 2025 Unruggable
+/// Portions Copyright (c) 2025 ENS Labs Ltd
+
+/// @dev Instructions:
+/// 1. inherit this contract
+/// 2. call `ccipRead()` similar to `staticcall()`
+/// 3. do not put logic after this invocation
+/// 4. implement all response logic in callback
+/// 5. ensure that return type of calling function == callback function
 
 import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 
 contract CCIPReader {
-    /**
-     * @dev A recursive CCIP-Read session.
-     */
+    /// @dev A recursive CCIP-Read session.
     struct Context {
         address target;
         bytes4 callbackFunction;
@@ -31,26 +27,20 @@ contract CCIPReader {
         bytes myExtraData;
     }
 
-    /**
-     * @dev Special-purpose value for identity callback: `f(x) = x`.
-     */
+    /// @dev Special-purpose value for identity callback: `f(x) = x`.
     bytes4 constant IDENTITY_FUNCTION = bytes4(0);
 
-    /**
-     * @dev Same as `ccipRead()` but the callback function is the identity.
-     */
+    /// @dev Same as `ccipRead()` but the callback function is the identity.
     function ccipRead(address target, bytes memory call) internal view {
         ccipRead(target, call, IDENTITY_FUNCTION, "");
     }
 
-    /**
-     * @dev Performs a CCIP-Read and handles internal recursion.
-     *      Reverts `OffchainLookup` if necessary.
-     * @param target The contract address.
-     * @param call The calldata to `staticcall()` on `target`.
-     * @param callbackFunction The function selector of callback.
-     * @param extraData The contextual data relayed to `callbackFunction`.
-     */
+    /// @dev Performs a CCIP-Read and handles internal recursion.
+    ///      Reverts `OffchainLookup` if necessary.
+    /// @param target The contract address.
+    /// @param call The calldata to `staticcall()` on `target`.
+    /// @param callbackFunction The function selector of callback.
+    /// @param extraData The contextual data relayed to `callbackFunction`.
     function ccipRead(
         address target,
         bytes memory call,
@@ -105,12 +95,10 @@ contract CCIPReader {
         }
     }
 
-    /**
-     * @dev CCIP-Read callback for `ccipRead()`.
-     * @param response The response from offchain.
-     * @param extraData The contextual data passed from `ccipRead()`.
-     * @dev The return type of this function is polymorphic depending on the caller.
-     */
+    /// @dev CCIP-Read callback for `ccipRead()`.
+    /// @param response The response from offchain.
+    /// @param extraData The contextual data passed from `ccipRead()`.
+    /// @dev The return type of this function is polymorphic depending on the caller.
     function ccipReadCallback(
         bytes memory response,
         bytes memory extraData
@@ -130,11 +118,9 @@ contract CCIPReader {
         );
     }
 
-    /**
-     * @dev Decode `OffchainLookup` error data into a struct.
-     * @param v The error data of the revert.
-     * @return p The decoded `OffchainLookup` params.
-     */
+    /// @dev Decode `OffchainLookup` error data into a struct.
+    /// @param v The error data of the revert.
+    /// @return p The decoded `OffchainLookup` params.
     function decodeOffchainLookup(
         bytes memory v
     ) internal pure returns (EIP3668.Params memory p) {

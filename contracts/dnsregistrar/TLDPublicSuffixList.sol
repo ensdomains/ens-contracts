@@ -3,9 +3,7 @@ pragma solidity ^0.8.4;
 import "../utils/BytesUtils.sol";
 import "./PublicSuffixList.sol";
 
-/**
- * @dev A public suffix list that treats all TLDs as public suffixes.
- */
+/// @dev A public suffix list that treats all TLDs as public suffixes.
 contract TLDPublicSuffixList is PublicSuffixList {
     using BytesUtils for bytes;
 

@@ -11,9 +11,7 @@ import "@openzeppelin/contracts/utils/Address.sol";
 
 abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
     using Address for address;
-    /**
-     * @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
-     */
+    /// @dev Emitted when `owner` enables `approved` to manage the `tokenId` token.
     event Approval(
         address indexed owner,
         address indexed approved,
@@ -35,9 +33,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         return owner;
     }
 
-    /**
-     * @dev See {IERC721-approve}.
-     */
+    /// @dev See {IERC721-approve}.
     function approve(address to, uint256 tokenId) public virtual {
         address owner = ownerOf(tokenId);
         require(to != owner, "ERC721: approval to current owner");
@@ -50,18 +46,14 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         _approve(to, tokenId);
     }
 
-    /**
-     * @dev See {IERC721-getApproved}.
-     */
+    /// @dev See {IERC721-getApproved}.
     function getApproved(
         uint256 tokenId
     ) public view virtual returns (address) {
         return _tokenApprovals[tokenId];
     }
 
-    /**
-     * @dev See {IERC165-supportsInterface}.
-     */
+    /// @dev See {IERC165-supportsInterface}.
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override(ERC165, IERC165) returns (bool) {
@@ -71,13 +63,9 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
             super.supportsInterface(interfaceId);
     }
 
-    /**
-     * @dev See {IERC1155-balanceOf}.
-     *
-     * Requirements:
-     *
-     * - `account` cannot be the zero address.
-     */
+    /// @dev See {IERC1155-balanceOf}.
+    /// Requirements:
+    /// - `account` cannot be the zero address.
     function balanceOf(
         address account,
         uint256 id
@@ -93,13 +81,9 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         return 0;
     }
 
-    /**
-     * @dev See {IERC1155-balanceOfBatch}.
-     *
-     * Requirements:
-     *
-     * - `accounts` and `ids` must have the same length.
-     */
+    /// @dev See {IERC1155-balanceOfBatch}.
+    /// Requirements:
+    /// - `accounts` and `ids` must have the same length.
     function balanceOfBatch(
         address[] memory accounts,
         uint256[] memory ids
@@ -118,9 +102,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         return batchBalances;
     }
 
-    /**
-     * @dev See {IERC1155-setApprovalForAll}.
-     */
+    /// @dev See {IERC1155-setApprovalForAll}.
     function setApprovalForAll(
         address operator,
         bool approved
@@ -134,9 +116,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         emit ApprovalForAll(msg.sender, operator, approved);
     }
 
-    /**
-     * @dev See {IERC1155-isApprovedForAll}.
-     */
+    /// @dev See {IERC1155-isApprovedForAll}.
     function isApprovedForAll(
         address account,
         address operator
@@ -144,9 +124,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         return _operatorApprovals[account][operator];
     }
 
-    /**
-     * @dev Returns the Name's owner address and fuses
-     */
+    /// @dev Returns the Name's owner address and fuses
     function getData(
         uint256 tokenId
     ) public view virtual returns (address owner, uint32 fuses, uint64 expiry) {
@@ -156,9 +134,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         fuses = uint32(t >> 160);
     }
 
-    /**
-     * @dev See {IERC1155-safeTransferFrom}.
-     */
+    /// @dev See {IERC1155-safeTransferFrom}.
     function safeTransferFrom(
         address from,
         address to,
@@ -175,9 +151,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
         _transfer(from, to, id, amount, data);
     }
 
-    /**
-     * @dev See {IERC1155-safeBatchTransferFrom}.
-     */
+    /// @dev See {IERC1155-safeBatchTransferFrom}.
     function safeBatchTransferFrom(
         address from,
         address to,
@@ -226,9 +200,7 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
      * Internal/private methods
      *************************************************************************/
 
-    /**
-     * @dev Sets the Name's owner address and fuses
-     */
+    /// @dev Sets the Name's owner address and fuses
     function _setData(
         uint256 tokenId,
         address owner,
@@ -398,11 +370,8 @@ abstract contract ERC1155Fuse is ERC165, IERC1155, IERC1155MetadataURI {
 
     /* ERC721 internal functions */
 
-    /**
-     * @dev Approve `to` to operate on `tokenId`
-     *
-     * Emits an {Approval} event.
-     */
+    /// @dev Approve `to` to operate on `tokenId`
+    /// Emits an {Approval} event.
     function _approve(address to, uint256 tokenId) internal virtual {
         _tokenApprovals[tokenId] = to;
         emit Approval(ownerOf(tokenId), to, tokenId);

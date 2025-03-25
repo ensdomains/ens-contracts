@@ -14,12 +14,10 @@ abstract contract AddrResolver is
 
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
 
-    /**
-     * Sets the address associated with an ENS node.
-     * May only be called by the owner of that node in the ENS registry.
-     * @param node The node to update.
-     * @param a The address to set.
-     */
+    /// Sets the address associated with an ENS node.
+    /// May only be called by the owner of that node in the ENS registry.
+    /// @param node The node to update.
+    /// @param a The address to set.
     function setAddr(
         bytes32 node,
         address a
@@ -27,11 +25,9 @@ abstract contract AddrResolver is
         setAddr(node, COIN_TYPE_ETH, addressToBytes(a));
     }
 
-    /**
-     * Returns the address associated with an ENS node.
-     * @param node The ENS node to query.
-     * @return The associated address.
-     */
+    /// Returns the address associated with an ENS node.
+    /// @param node The ENS node to query.
+    /// @return The associated address.
     function addr(
         bytes32 node
     ) public view virtual override returns (address payable) {

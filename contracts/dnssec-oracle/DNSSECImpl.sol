@@ -45,45 +45,37 @@ contract DNSSECImpl is DNSSEC, Owned {
     mapping(uint8 => Algorithm) public algorithms;
     mapping(uint8 => Digest) public digests;
 
-    /**
-     * @dev Constructor.
-     * @param _anchors The binary format RR entries for the root DS records.
-     */
+    /// @dev Constructor.
+    /// @param _anchors The binary format RR entries for the root DS records.
     constructor(bytes memory _anchors) {
         // Insert the 'trust anchors' - the key hashes that start the chain
         // of trust for all other records.
         anchors = _anchors;
     }
 
-    /**
-     * @dev Sets the contract address for a signature verification algorithm.
-     *      Callable only by the owner.
-     * @param id The algorithm ID
-     * @param algo The address of the algorithm contract.
-     */
+    /// @dev Sets the contract address for a signature verification algorithm.
+    ///      Callable only by the owner.
+    /// @param id The algorithm ID
+    /// @param algo The address of the algorithm contract.
     function setAlgorithm(uint8 id, Algorithm algo) public owner_only {
         algorithms[id] = algo;
         emit AlgorithmUpdated(id, address(algo));
     }
 
-    /**
-     * @dev Sets the contract address for a digest verification algorithm.
-     *      Callable only by the owner.
-     * @param id The digest ID
-     * @param digest The address of the digest contract.
-     */
+    /// @dev Sets the contract address for a digest verification algorithm.
+    ///      Callable only by the owner.
+    /// @param id The digest ID
+    /// @param digest The address of the digest contract.
     function setDigest(uint8 id, Digest digest) public owner_only {
         digests[id] = digest;
         emit DigestUpdated(id, address(digest));
     }
 
-    /**
-     * @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
-     *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
-     * @param input A list of signed RRSets.
-     * @return rrs The RRData from the last RRSet in the chain.
-     * @return inception The inception time of the signed record set.
-     */
+    /// @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
+    ///      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
+    /// @param input A list of signed RRSets.
+    /// @return rrs The RRData from the last RRSet in the chain.
+    /// @return inception The inception time of the signed record set.
     function verifyRRSet(
         RRSetWithSignature[] memory input
     )
@@ -96,14 +88,12 @@ contract DNSSECImpl is DNSSEC, Owned {
         return verifyRRSet(input, block.timestamp);
     }
 
-    /**
-     * @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
-     *      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
-     * @param input A list of signed RRSets.
-     * @param now The Unix timestamp to validate the records at.
-     * @return rrs The RRData from the last RRSet in the chain.
-     * @return inception The inception time of the signed record set.
-     */
+    /// @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
+    ///      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
+    /// @param input A list of signed RRSets.
+    /// @param now The Unix timestamp to validate the records at.
+    /// @return rrs The RRData from the last RRSet in the chain.
+    /// @return inception The inception time of the signed record set.
     function verifyRRSet(
         RRSetWithSignature[] memory input,
         uint256 now
@@ -127,16 +117,14 @@ contract DNSSECImpl is DNSSEC, Owned {
         return (proof, inception);
     }
 
-    /**
-     * @dev Validates an RRSet against the already trusted RR provided in `proof`.
-     *
-     * @param input The signed RR set. This is in the format described in section
-     *        5.3.2 of RFC4035: The RRDATA section from the RRSIG without the signature
-     *        data, followed by a series of canonicalised RR records that the signature
-     *        applies to.
-     * @param proof The DNSKEY or DS to validate the signature against.
-     * @param now The current timestamp.
-     */
+    /// @dev Validates an RRSet against the already trusted RR provided in `proof`.
+    ///
+    /// @param input The signed RR set. This is in the format described in section
+    ///        5.3.2 of RFC4035: The RRDATA section from the RRSIG without the signature
+    ///        data, followed by a series of canonicalised RR records that the signature
+    ///        applies to.
+    /// @param proof The DNSKEY or DS to validate the signature against.
+    /// @param now The current timestamp.
     function validateSignedSet(
         RRSetWithSignature memory input,
         bytes memory proof,
@@ -173,11 +161,9 @@ contract DNSSECImpl is DNSSEC, Owned {
         return rrset;
     }
 
-    /**
-     * @dev Validates a set of RRs.
-     * @param rrset The RR set.
-     * @param typecovered The type covered by the RRSIG record.
-     */
+    /// @dev Validates a set of RRs.
+    /// @param rrset The RR set.
+    /// @param typecovered The type covered by the RRSIG record.
     function validateRRs(
         RRUtils.SignedSet memory rrset,
         uint16 typecovered
@@ -213,15 +199,13 @@ contract DNSSECImpl is DNSSEC, Owned {
         }
     }
 
-    /**
-     * @dev Performs signature verification.
-     *
-     * Throws or reverts if unable to verify the record.
-     *
-     * @param name The name of the RRSIG record, in DNS label-sequence format.
-     * @param data The original data to verify.
-     * @param proof A DS or DNSKEY record that's already verified by the oracle.
-     */
+    /// @dev Performs signature verification.
+    ///
+    /// Throws or reverts if unable to verify the record.
+    ///
+    /// @param name The name of the RRSIG record, in DNS label-sequence format.
+    /// @param data The original data to verify.
+    /// @param proof A DS or DNSKEY record that's already verified by the oracle.
     function verifySignature(
         bytes memory name,
         RRUtils.SignedSet memory rrset,
@@ -245,12 +229,10 @@ contract DNSSECImpl is DNSSEC, Owned {
         }
     }
 
-    /**
-     * @dev Attempts to verify a signed RRSET against an already known public key.
-     * @param rrset The signed set to verify.
-     * @param data The original data the signed set was read from.
-     * @param proof The serialized DS or DNSKEY record to use as proof.
-     */
+    /// @dev Attempts to verify a signed RRSET against an already known public key.
+    /// @param rrset The signed set to verify.
+    /// @param data The original data the signed set was read from.
+    /// @param proof The serialized DS or DNSKEY record to use as proof.
     function verifyWithKnownKey(
         RRUtils.SignedSet memory rrset,
         RRSetWithSignature memory data,
@@ -275,13 +257,11 @@ contract DNSSECImpl is DNSSEC, Owned {
         revert NoMatchingProof(rrset.signerName);
     }
 
-    /**
-     * @dev Attempts to verify some data using a provided key and a signature.
-     * @param dnskey The dns key record to verify the signature with.
-     * @param rrset The signed RRSET being verified.
-     * @param data The original data `rrset` was decoded from.
-     * @return True iff the key verifies the signature.
-     */
+    /// @dev Attempts to verify some data using a provided key and a signature.
+    /// @param dnskey The dns key record to verify the signature with.
+    /// @param rrset The signed RRSET being verified.
+    /// @param data The original data `rrset` was decoded from.
+    /// @return True iff the key verifies the signature.
     function verifySignatureWithKey(
         RRUtils.DNSKEY memory dnskey,
         bytes memory keyrdata,
@@ -320,13 +300,11 @@ contract DNSSECImpl is DNSSEC, Owned {
         return algorithm.verify(keyrdata, data.rrset, data.sig);
     }
 
-    /**
-     * @dev Attempts to verify a signed RRSET against an already known hash. This function assumes
-     *      that the record
-     * @param rrset The signed set to verify.
-     * @param data The original data the signed set was read from.
-     * @param proof The serialized DS or DNSKEY record to use as proof.
-     */
+    /// @dev Attempts to verify a signed RRSET against an already known hash. This function assumes
+    ///      that the record
+    /// @param rrset The signed set to verify.
+    /// @param data The original data the signed set was read from.
+    /// @param proof The serialized DS or DNSKEY record to use as proof.
     function verifyWithDS(
         RRUtils.SignedSet memory rrset,
         RRSetWithSignature memory data,
@@ -362,14 +340,12 @@ contract DNSSECImpl is DNSSEC, Owned {
         revert NoMatchingProof(rrset.signerName);
     }
 
-    /**
-     * @dev Attempts to verify a key using DS records.
-     * @param keyname The DNS name of the key, in DNS label-sequence format.
-     * @param dsrrs The DS records to use in verification.
-     * @param dnskey The dnskey to verify.
-     * @param keyrdata The RDATA section of the key.
-     * @return True if a DS record verifies this key.
-     */
+    /// @dev Attempts to verify a key using DS records.
+    /// @param keyname The DNS name of the key, in DNS label-sequence format.
+    /// @param dsrrs The DS records to use in verification.
+    /// @param dnskey The dnskey to verify.
+    /// @param keyrdata The RDATA section of the key.
+    /// @return True if a DS record verifies this key.
     function verifyKeyWithDS(
         bytes memory keyname,
         RRUtils.RRIterator memory dsrrs,
@@ -405,13 +381,11 @@ contract DNSSECImpl is DNSSEC, Owned {
         return false;
     }
 
-    /**
-     * @dev Attempts to verify a DS record's hash value against some data.
-     * @param digesttype The digest ID from the DS record.
-     * @param data The data to digest.
-     * @param digest The digest data to check against.
-     * @return True iff the digest matches.
-     */
+    /// @dev Attempts to verify a DS record's hash value against some data.
+    /// @param digesttype The digest ID from the DS record.
+    /// @param data The data to digest.
+    /// @param digest The digest data to check against.
+    /// @return True if the digest matches.
     function verifyDSHash(
         uint8 digesttype,
         bytes memory data,
