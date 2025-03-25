@@ -7,6 +7,23 @@ export const ENS_REGISTRY: Address =
 
 export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
+    title: 'PublicResolverV0',
+    name: 'jessesum.eth',
+    addresses: [
+      {
+        coinType: COIN_TYPE_ETH,
+        encodedAddress: '0x8c4Eb6988A199DAbcae0Ce31052b3f3aC591787e',
+        origin: 'on',
+      },
+    ],
+    errors: [
+      {
+        call: '0x12345678',
+        answer: '0x',
+      },
+    ],
+  },
+  {
     title: 'PublicResolverV2',
     name: 'nick.eth',
     addresses: [
@@ -249,13 +266,13 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   },
   {
     title: 'OffchainDNS',
-    name: 'brantly.rocks',
+    name: 'taytems.xyz', // 'brantly.rocks'
     extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x983110309620d911731ac0932219af06091b6744',
-        origin: 'batched',
+        encodedAddress: '0x8e8Db5CcEF88cca9d624701Db544989C996E3216',
+        origin: 'batch',
       },
     ],
   },
@@ -267,14 +284,14 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
       {
         coinType: COIN_TYPE_ETH,
         encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
-        origin: 'batched',
+        origin: 'batch',
       },
     ],
     texts: [
       {
         key: 'avatar',
         value: 'https://raffy.antistupid.com/ens.jpg',
-        origin: 'batched',
+        origin: 'batch',
       },
     ],
   },

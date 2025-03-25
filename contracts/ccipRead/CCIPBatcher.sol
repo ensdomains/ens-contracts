@@ -12,12 +12,15 @@ contract CCIPBatcher is CCIPReader {
 
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
     uint256 constant FLAG_CALL_ERROR = 1 << 1; // the initial call or callback reverted
-    uint256 constant FLAG_OFFCHAIN_ERROR = 1 << 2; // `OffchainLookup` failed on the gateway
+    uint256 constant FLAG_BATCH_ERROR = 1 << 2; // `OffchainLookup` failed on the batch gateway
     uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3; // the initial call or callback returned `0x`
-    uint256 constant FLAG_DONE = 1 << 4; // the lookup has finished processing (private)
+    uint256 constant FLAG_EIP140_BEFORE = 1 << 4; // does not have revert op code
+    uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
+    uint256 constant FLAG_DONE = 1 << 7; // the lookup has finished processing (private)
 
     uint256 constant FLAGS_ANY_ERROR =
-        FLAG_CALL_ERROR | FLAG_OFFCHAIN_ERROR | FLAG_EMPTY_RESPONSE;
+        FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
+    uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
 
     /**
      * @dev An independent `OffchainLookup` session.
@@ -38,6 +41,21 @@ contract CCIPBatcher is CCIPReader {
     }
 
     /**
+     * @dev Determine if `target` uses `revert()` instead of `invalid()`.
+     * @param target The contract to test.
+     * @return has True if not all gas is consumed.
+     */
+    function _detectEIP140(address target) internal view returns (bool has) {
+        // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
+        assembly {
+            let G := 5000
+            let g := gas()
+            pop(staticcall(G, target, 0, 0, 0, 0))
+            has := lt(sub(g, gas()), G)
+        }
+    }
+
+    /**
      * @dev Use `CCIPReader.ccipRead()` to call this function with a batch.
      *      The callback `response` will be `abi.encode(batch)`.
      */
@@ -46,8 +64,21 @@ contract CCIPBatcher is CCIPReader {
     ) external view returns (Batch memory) {
         for (uint256 i; i < batch.lookups.length; i++) {
             Lookup memory lu = batch.lookups[i];
-            (bool ok, bytes memory v) = lu.target.staticcall(lu.call);
-            if (ok) {
+            if ((lu.flags & FLAGS_ANY_EIP140) == 0) {
+                uint256 flags = _detectEIP140(lu.target)
+                    ? FLAG_EIP140_AFTER
+                    : FLAG_EIP140_BEFORE;
+                for (uint256 j = i; j < batch.lookups.length; j++) {
+                    if (batch.lookups[j].target == lu.target) {
+                        batch.lookups[j].flags |= flags;
+                    }
+                }
+            }
+            bool old = (lu.flags & FLAG_EIP140_AFTER) == 0;
+            (bool ok, bytes memory v) = lu.target.staticcall{
+                gas: old ? 50000 : gasleft()
+            }(lu.call);
+            if (ok || (old && v.length == 0)) {
                 lu.flags |= FLAG_DONE;
                 if (v.length == 0) {
                     v = abi.encodePacked(bytes4(lu.call));
@@ -123,7 +154,7 @@ contract CCIPBatcher is CCIPReader {
                 if (expected < responses.length) {
                     bytes memory v = responses[expected];
                     if (failures[expected]) {
-                        lu.flags |= FLAG_DONE | FLAG_OFFCHAIN_ERROR;
+                        lu.flags |= FLAG_DONE | FLAG_BATCH_ERROR;
                     } else {
                         EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                         bool ok;
@@ -140,9 +171,7 @@ contract CCIPBatcher is CCIPReader {
                                 v = abi.encodePacked(p.callbackFunction);
                                 lu.flags |= FLAG_EMPTY_RESPONSE;
                             }
-                        } else if (bytes4(v) == OffchainLookup.selector) {
-                            // another offchain request
-                        } else {
+                        } else if (bytes4(v) != OffchainLookup.selector) {
                             lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
                         }
                     }

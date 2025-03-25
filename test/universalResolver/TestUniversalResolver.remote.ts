@@ -27,8 +27,9 @@ async function fixture() {
   () => {
     describe('resolve()', () => {
       for (const x of KNOWN_RESOLUTIONS) {
-        it(`${x.title}: ${x.name}`, async () => {
-          const bundle = bundleCalls(makeResolutions(x))
+        const calls = makeResolutions(x)
+        it(`${x.title}: ${x.name} [${calls.length}]`, async () => {
+          const bundle = bundleCalls(calls)
           const F = await loadFixture(fixture)
           const [answer] = await F.read.resolve([
             dnsEncodeName(x.name),

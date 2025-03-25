@@ -396,7 +396,7 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         Lookup memory lu
     ) internal pure returns (bytes memory v) {
         v = lu.data;
-        if ((lu.flags & FLAG_OFFCHAIN_ERROR) != 0) {
+        if ((lu.flags & FLAG_BATCH_ERROR) != 0) {
             assembly {
                 revert(add(v, 32), mload(v)) // HttpError or Error
             }

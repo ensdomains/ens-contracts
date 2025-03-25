@@ -11,7 +11,6 @@ import {
   toFunctionSelector,
   toHex,
   zeroAddress,
-  zeroHash,
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
@@ -245,6 +244,36 @@ describe('UniversalResolver', () => {
       res.expect(answer)
     })
 
+    it('old w/multicall (1 revert)', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.OldResolver.address,
+      ])
+      const bundle = bundleCalls(
+        makeResolutions({
+          name: testName,
+          primary: {
+            name: testName,
+          },
+          errors: [
+            {
+              call: dummyCalldata,
+              answer: '0x',
+            },
+          ],
+        }),
+      )
+      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+        dnsEncodeName(testName),
+        bundle.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.OldResolver.address)
+      expectVar({ answer }).toStrictEqual(bundle.answer)
+      bundle.expect(answer)
+    })
+
     it('onchain immediate', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
@@ -404,6 +433,43 @@ describe('UniversalResolver', () => {
       expectVar({ answer }).toStrictEqual(bundle.answer)
       bundle.expect(answer)
     })
+
+    it('offchain extended w/multicall (1 revert)', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(getParentName(testName)),
+        F.Shapeshift1.address,
+      ])
+      const calls = makeResolutions({
+        name: testName,
+        primary: {
+          name: testName,
+        },
+        errors: [
+          {
+            call: dummyCalldata,
+            answer: encodeErrorResult({
+              abi: parseAbi(['error UnsupportedResolverProfile(bytes4)']),
+              args: [dummyCalldata],
+            }),
+          },
+        ],
+      })
+      const bundle = bundleCalls(calls)
+      for (const res of calls) {
+        await F.Shapeshift1.write.setResponse([res.call, res.answer])
+      }
+      await F.Shapeshift1.write.setExtended([true])
+      await F.Shapeshift1.write.setOffchain([true])
+      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+        dnsEncodeName(testName),
+        bundle.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
+      expectVar({ answer }).toStrictEqual(bundle.answer)
+      bundle.expect(answer)
+    })
   })
 
   describe('reverse()', () => {
@@ -529,6 +595,25 @@ describe('UniversalResolver', () => {
         .withArgs(testName, anotherAddress)
     })
 
+    it('onchain immediate name() + old unimplemented addr()', async () => {
+      const F = await loadFixture(fixture)
+      const reverseName = getReverseName(F.owner)
+      await F.takeControl(reverseName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(reverseName),
+        F.OldResolver.address,
+      ])
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.OldResolver.address,
+      ])
+      await expect(F.UniversalResolver)
+        .read('reverse', [F.owner, COIN_TYPE_ETH])
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('addr(bytes32)'))
+    })
+
     it('onchain immediate name() + onchain immediate unimplemented addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)
@@ -587,7 +672,8 @@ describe('UniversalResolver', () => {
 
     it('offchain extended name() + offchain extended addr()', async () => {
       const F = await loadFixture(fixture)
-      const reverseName = getReverseName(F.owner)
+      const coinType = 123n // non-evm
+      const reverseName = getReverseName(F.owner, coinType)
       await F.takeControl(reverseName)
       await F.ENSRegistry.write.setResolver([
         namehash(getParentName(reverseName)),
@@ -609,7 +695,7 @@ describe('UniversalResolver', () => {
         name: testName,
         addresses: [
           {
-            coinType: COIN_TYPE_ETH,
+            coinType,
             encodedAddress: F.owner,
           },
         ],
@@ -618,7 +704,7 @@ describe('UniversalResolver', () => {
       await F.Shapeshift2.write.setOffchain([true])
       await F.Shapeshift2.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
-        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+        await F.UniversalResolver.read.reverse([F.owner, coinType])
       expectVar({ name }).toStrictEqual(testName)
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)

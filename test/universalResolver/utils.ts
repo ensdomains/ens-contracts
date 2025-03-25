@@ -29,15 +29,18 @@ export function getParentName(name: string) {
   return i == -1 ? '' : name.slice(i + 1)
 }
 
-// see: contracts/universalResolver/IForwardResolution.sol
-export const RESPONSE_BITS = {
-  ERROR: 1n << 0n,
-  OFFCHAIN: 1n << 1n,
-  BATCHED: 1n << 2n,
-  RESOLVED: 1n << 3n,
+// see: contracts/ccipRead/CCIPBatcher.sol
+export const RESPONSE_FLAGS = {
+  OFFCHAIN: 1n << 0n,
+  CALL_ERROR: 1n << 1n,
+  BATCH_ERROR: 1n << 2n,
+  EMPTY_RESPONSE: 1n << 3n,
+  EIP140_BEFORE: 1n << 4n,
+  EIP140_AFTER: 1n << 5n,
+  DONE: 1n << 6n,
 } as const
 
-type KnownOrigin = 'on' | 'off' | 'batched'
+type KnownOrigin = 'on' | 'off' | 'batch'
 
 type AddressRecord = {
   coinType: bigint
@@ -49,6 +52,11 @@ type TextRecord = {
   key: string
   value: string
   origin?: KnownOrigin
+}
+
+type ErrorRecord = {
+  call: Hex
+  answer: Hex
 }
 
 type PrimaryRecord = {
@@ -63,6 +71,7 @@ export type KnownProfile = {
   addresses?: AddressRecord[]
   texts?: TextRecord[]
   primary?: PrimaryRecord
+  errors?: ErrorRecord[]
 }
 
 export type KnownReverse = {
@@ -228,6 +237,18 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
         expect(actual, this.desc).toStrictEqual(name)
       },
     })
+  }
+  if (p.errors) {
+    for (const { call, answer } of p.errors) {
+      v.push({
+        desc: `error(${call.slice(0, 10)})`,
+        call,
+        answer,
+        expect(data) {
+          expect(data, this.desc).toStrictEqual(this.answer)
+        },
+      })
+    }
   }
   return v
 }
