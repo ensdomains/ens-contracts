@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 /// @dev https://eips.ethereum.org/EIPS/eip-3668
-/// Error selector: 0x556f1830
+/// Error selector: `0x556f1830`
 error OffchainLookup(
     address sender,
     string[] urls,

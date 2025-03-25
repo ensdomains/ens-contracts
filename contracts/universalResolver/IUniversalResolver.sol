@@ -2,30 +2,30 @@
 pragma solidity ^0.8.0;
 
 /// @notice Interface for the UniversalResolver.
-/// @dev Interface selector: 0xcd191b34
+/// @dev Interface selector: `0xcd191b34`
 interface IUniversalResolver {
     /// @notice A resolver could not be found for the supplied name.
-    /// @dev Error selector: 0x77209fe8
+    /// @dev Error selector: `0x77209fe8`
     error ResolverNotFound(bytes name);
 
     /// @notice The resolver is not a contract.
-    /// @dev Error selector: 0x1e9535f2
+    /// @dev Error selector: `0x1e9535f2`
     error ResolverNotContract(bytes name, address resolver);
 
     /// @notice The resolver did not respond.
-    /// @dev Error selector: 0x7b1c461b
+    /// @dev Error selector: `0x7b1c461b`
     error UnsupportedResolverProfile(bytes4 selector);
 
     /// @notice The resolver returned an error.
-    /// @dev Error selector: 0x95c0c752
+    /// @dev Error selector: `0x95c0c752`
     error ResolverError(bytes errorData);
 
     /// @notice The resolved address from reverse resolution does not match the supplied address.
-    /// @dev Error selector: 0xef9c03ce
+    /// @dev Error selector: `0xef9c03ce`
     error ReverseAddressMismatch(string primary, bytes primaryAddress);
 
     /// @notice An HTTP error occurred on a resolving gateway.
-    /// @dev Error selector: 0x01800152
+    /// @dev Error selector: `0x01800152`
     error HttpError(uint16 status, string message);
 
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
