@@ -75,6 +75,7 @@ export type KnownProfile = {
 }
 
 export type KnownReverse = {
+  title: string
   expectError?: boolean
   encodedAddress: Hex
   coinType: bigint

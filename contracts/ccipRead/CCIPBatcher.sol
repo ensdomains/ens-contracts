@@ -43,7 +43,7 @@ contract CCIPBatcher is CCIPReader {
     /**
      * @dev Determine if `target` uses `revert()` instead of `invalid()`.
      * @param target The contract to test.
-     * @return has True if not all gas is consumed.
+     * @return has True if `revert()` is used.
      */
     function _detectEIP140(address target) internal view returns (bool has) {
         // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md

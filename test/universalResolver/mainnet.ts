@@ -299,16 +299,31 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
 
 export const KNOWN_PRIMARIES: KnownReverse[] = [
   {
+    title: 'ReverseV1',
+    encodedAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    coinType: COIN_TYPE_ETH,
+    expectPrimary: true,
+  },
+  {
+    title: 'ReverseV2',
     encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
     coinType: COIN_TYPE_ETH,
     expectPrimary: true,
   },
   {
+    title: 'PublicResolverV3',
+    encodedAddress: '0xacE594e18275c46302a6E76F3518b80D92849000',
+    coinType: COIN_TYPE_ETH,
+    expectPrimary: true,
+  },
+  {
+    title: 'does not exist',
     encodedAddress: '0x0000000000000000000000000000000000000001',
     coinType: COIN_TYPE_ETH,
     expectError: true,
   },
   {
+    title: 'does not exist',
     encodedAddress: '0x0000000000000000000000000000000000000001',
     coinType: 0n,
     expectError: true,

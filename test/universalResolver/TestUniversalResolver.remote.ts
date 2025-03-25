@@ -41,7 +41,9 @@ async function fixture() {
     })
     describe('reverse()', () => {
       for (const x of KNOWN_PRIMARIES) {
-        it(`${shortCoin(x.coinType)} ${x.encodedAddress}`, async () => {
+        it(`${x.title}: ${shortCoin(x.coinType)} ${
+          x.encodedAddress
+        }`, async () => {
           const F = await loadFixture(fixture)
           const promise = F.read.reverse([x.encodedAddress, x.coinType])
           if (x.expectError) {
