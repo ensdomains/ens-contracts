@@ -134,6 +134,10 @@ contract TestBytesUtils {
             longChar.compare(otherLongChar) < 0 == true,
             "Compare long char with difference at start"
         );
+        require(
+            abi.encodePacked(type(int256).min).compare(abi.encodePacked(type(int256).max)) > 0,
+            "Compare maximum difference"
+        );
     }
 
     function testSubstring() public pure {

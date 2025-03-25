@@ -123,15 +123,18 @@ library BytesUtils {
                 b := mload(otherptr)
             }
             if (a != b) {
-                // Mask out irrelevant bytes and check again
-                uint256 mask;
-                if (shortest - idx >= 32) {
-                    mask = type(uint256).max;
-                } else {
-                    mask = ~(2 ** (8 * (idx + 32 - shortest)) - 1);
+                uint256 rest = shortest - idx;
+                if (rest < 32) {
+                    // shift out the irrelevant bits
+                    rest = (32 - rest) << 3; // bits to drop
+                    a >>= rest;
+                    b >>= rest;
                 }
-                int256 diff = int256(a & mask) - int256(b & mask);
-                if (diff != 0) return diff;
+                if (a < b) {
+                    return -1;
+                } else if (a > b) {
+                    return 1;
+                }
             }
             selfptr += 32;
             otherptr += 32;
