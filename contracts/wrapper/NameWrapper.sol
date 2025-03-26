@@ -13,7 +13,7 @@ import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {BytesUtils} from "../utils/BytesUtils.sol";
+import {NameCoder} from "../utils/NameCoder.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 error Unauthorised(bytes32 node, address addr);
@@ -37,8 +37,6 @@ contract NameWrapper is
     ERC20Recoverable,
     ReverseClaimer
 {
-    using BytesUtils for bytes;
-
     ENS public immutable ens;
     IBaseRegistrar public immutable registrar;
     IMetadataService public metadataService;
@@ -349,8 +347,7 @@ contract NameWrapper is
         address wrappedOwner,
         address resolver
     ) public {
-        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
+        (bytes32 labelhash, bytes32 parentNode) = _hashName(name);
         bytes32 node = _makeNode(parentNode, labelhash);
 
         names[node] = name;
@@ -481,7 +478,7 @@ contract NameWrapper is
     /// @param name The name to upgrade, in DNS format
     /// @param extraData Extra data to pass to the upgrade contract
     function upgrade(bytes calldata name, bytes calldata extraData) public {
-        bytes32 node = name.namehash(0);
+        bytes32 node = NameCoder.namehash(name, 0);
 
         if (address(upgradeContract) == address(0)) {
             revert CannotUpgrade();
@@ -569,18 +566,19 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
-        bytes32 labelhash = keccak256(bytes(label));
-        node = _makeNode(parentNode, labelhash);
-        _checkCanCallSetSubnodeOwner(parentNode, node);
-        _checkFusesAreSettable(node, fuses);
-        bytes memory name = _saveLabel(parentNode, node, label);
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
-
-        if (!_isWrapped(node)) {
-            ens.setSubnodeOwner(parentNode, labelhash, address(this));
-            _wrap(node, name, owner, fuses, expiry);
+        bytes32 labelhash;
+        bytes memory name_;
+        (labelhash, node, name_, expiry) = _checkSubnode(
+            label,
+            parentNode,
+            fuses,
+            expiry
+        );
+        if (_isWrapped(node)) {
+            _updateName(node, owner, fuses, expiry);
         } else {
-            _updateName(parentNode, node, label, owner, fuses, expiry);
+            ens.setSubnodeOwner(parentNode, labelhash, address(this));
+            _wrap(node, name_, owner, fuses, expiry);
         }
     }
 
@@ -602,30 +600,25 @@ contract NameWrapper is
         uint32 fuses,
         uint64 expiry
     ) public onlyTokenOwner(parentNode) returns (bytes32 node) {
-        bytes32 labelhash = keccak256(bytes(label));
-        node = _makeNode(parentNode, labelhash);
-        _checkCanCallSetSubnodeOwner(parentNode, node);
-        _checkFusesAreSettable(node, fuses);
-        _saveLabel(parentNode, node, label);
-        expiry = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
-        if (!_isWrapped(node)) {
-            ens.setSubnodeRecord(
-                parentNode,
-                labelhash,
-                address(this),
-                resolver,
-                ttl
-            );
-            _storeNameAndWrap(parentNode, node, label, owner, fuses, expiry);
+        bytes32 labelHash;
+        bytes memory name_;
+        (labelHash, node, name_, expiry) = _checkSubnode(
+            label,
+            parentNode,
+            fuses,
+            expiry
+        );
+        ens.setSubnodeRecord(
+            parentNode,
+            labelHash,
+            address(this),
+            resolver,
+            ttl
+        );
+        if (_isWrapped(node)) {
+            _updateName(node, owner, fuses, expiry);
         } else {
-            ens.setSubnodeRecord(
-                parentNode,
-                labelhash,
-                address(this),
-                resolver,
-                ttl
-            );
-            _updateName(parentNode, node, label, owner, fuses, expiry);
+            _wrap(node, name_, owner, fuses, expiry);
         }
     }
 
@@ -745,13 +738,12 @@ contract NameWrapper is
     /// @notice Checks if a name is wrapped
     /// @param node Namehash of the name
     /// @return Boolean of whether or not the name is wrapped
-    function isWrapped(bytes32 node) public view returns (bool) {
-        bytes memory name = names[node];
-        if (name.length == 0) {
+    function isWrapped(bytes32 node) external view returns (bool) {
+        bytes memory name_ = names[node];
+        if (name_.length == 0) {
             return false;
         }
-        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
+        (bytes32 labelhash, bytes32 parentNode) = _hashName(name_);
         return isWrapped(parentNode, labelhash);
     }
 
@@ -902,32 +894,31 @@ contract NameWrapper is
         emit NameWrapped(node, name, wrappedOwner, fuses, expiry);
     }
 
-    function _storeNameAndWrap(
-        bytes32 parentNode,
-        bytes32 node,
+    function _checkSubnode(
         string memory label,
-        address owner,
+        bytes32 parentNode,
         uint32 fuses,
         uint64 expiry
-    ) internal {
-        bytes memory name = _addLabel(label, names[parentNode]);
-        _wrap(node, name, owner, fuses, expiry);
-    }
-
-    function _saveLabel(
-        bytes32 parentNode,
-        bytes32 node,
-        string memory label
-    ) internal returns (bytes memory) {
-        bytes memory name = _addLabel(label, names[parentNode]);
-        names[node] = name;
-        return name;
+    )
+        internal
+        returns (
+            bytes32 labelhash,
+            bytes32 node,
+            bytes memory name_,
+            uint64 expiry_
+        )
+    {
+        labelhash = keccak256(bytes(label));
+        node = _makeNode(parentNode, labelhash);
+        _checkCanCallSetSubnodeOwner(parentNode, node);
+        _checkFusesAreSettable(node, fuses);
+        name_ = _addLabel(label, names[parentNode]);
+        names[node] = name_;
+        expiry_ = _checkParentFusesAndExpiry(parentNode, node, fuses, expiry);
     }
 
     function _updateName(
-        bytes32 parentNode,
         bytes32 node,
-        string memory label,
         address owner,
         uint32 fuses,
         uint64 expiry
@@ -935,10 +926,6 @@ contract NameWrapper is
         (address oldOwner, uint32 oldFuses, uint64 oldExpiry) = getData(
             uint256(node)
         );
-        bytes memory name = _addLabel(label, names[parentNode]);
-        if (names[node].length == 0) {
-            names[node] = name;
-        }
         _setFuses(node, oldOwner, oldFuses | fuses, oldExpiry, expiry);
         if (owner == address(0)) {
             _unwrap(node, address(0));
@@ -1003,12 +990,12 @@ contract NameWrapper is
         bytes32 labelhash = keccak256(bytes(label));
         bytes32 node = _makeNode(ETH_NODE, labelhash);
         // hardcode dns-encoded eth string for gas savings
-        bytes memory name = _addLabel(label, "\x03eth\x00");
-        names[node] = name;
+        bytes memory name_ = _addLabel(label, "\x03eth\x00");
+        names[node] = name_;
 
         _wrap(
             node,
-            name,
+            name_,
             wrappedOwner,
             fuses | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
             expiry
@@ -1086,5 +1073,13 @@ contract NameWrapper is
         return
             fuses & IS_DOT_ETH == IS_DOT_ETH &&
             expiry - GRACE_PERIOD < block.timestamp;
+    }
+
+    function _hashName(
+        bytes memory _name
+    ) internal pure returns (bytes32 labelhash, bytes32 parentNode) {
+        uint256 offset;
+        (labelhash, offset) = NameCoder.readLabel(_name, 0);
+        parentNode = NameCoder.namehash(_name, offset);
     }
 }

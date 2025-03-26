@@ -294,7 +294,7 @@ export const wrapTests = () =>
           accounts[0].address,
           zeroAddress,
         ])
-        .toBeRevertedWithString('namehash: Junk at end of name')
+        .toBeRevertedWithCustomError('DNSDecodingFailed')
     })
 
     it('Does not allow wrapping a name you do not own', async () => {

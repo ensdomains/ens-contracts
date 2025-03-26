@@ -3,12 +3,10 @@ pragma solidity ~0.8.17;
 
 import {INameWrapper} from "../INameWrapper.sol";
 import {ENS} from "../../registry/ENS.sol";
-import {BytesUtils} from "../../utils/BytesUtils.sol";
+import {NameCoder} from "../../utils/NameCoder.sol";
 import {IERC1155Receiver} from "@openzeppelin/contracts/token/ERC1155/IERC1155Receiver.sol";
 
 contract NameGriefer is IERC1155Receiver {
-    using BytesUtils for *;
-
     ENS public immutable ens;
     INameWrapper public immutable wrapper;
 
@@ -35,8 +33,8 @@ contract NameGriefer is IERC1155Receiver {
 
         // Unwrap the name
         bytes memory name = wrapper.names(bytes32(id));
-        (bytes32 labelhash, uint256 offset) = name.readLabel(0);
-        bytes32 parentNode = name.namehash(offset);
+        (bytes32 labelhash, uint256 offset) = NameCoder.readLabel(name, 0);
+        bytes32 parentNode = NameCoder.namehash(name, offset);
         wrapper.unwrap(parentNode, labelhash, address(this));
 
         // Here we can do something with the name before it's permanently burned, like
