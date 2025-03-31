@@ -25,12 +25,13 @@ contract UniversalResolver is IUniversalResolver, CCIPBatcher, Ownable, ERC165 {
         batchGateways = gateways;
     }
 
+    /// @dev See {IERC165-supportsInterface}.
     function supportsInterface(
         bytes4 interfaceID
     ) public view virtual override(ERC165) returns (bool) {
         return
-            super.supportsInterface(interfaceID) &&
-            type(IUniversalResolver).interfaceId == interfaceID;
+            type(IUniversalResolver).interfaceId == interfaceID ||
+            super.supportsInterface(interfaceID);
     }
 
     /// @dev Set the default batch gateways, see: `resolve()` and `reverse()`.

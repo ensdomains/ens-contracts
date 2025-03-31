@@ -6,7 +6,7 @@ import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { toLabelId, toNameId } from '../fixtures/utils.js'
 import { shouldRespectConstraints } from './Constraints.behaviour.js'
 import { shouldBehaveLikeErc1155 } from './ERC1155.behaviour.js'
-import { shouldSupportInterfaces } from './SupportsInterface.behaviour.js'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import {
   CANNOT_CREATE_SUBDOMAIN,
   CANNOT_TRANSFER,

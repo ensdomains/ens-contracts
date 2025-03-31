@@ -1,6 +1,7 @@
 import hre from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import {
   encodeErrorResult,
   HttpRequestError,
@@ -50,6 +51,11 @@ const resolutions = makeResolutions({
 })
 
 describe('UniversalResolver', () => {
+  shouldSupportInterfaces({
+    contract: () => loadFixture(fixture).then((F) => F.UniversalResolver),
+    interfaces: ['IERC165', 'IUniversalResolver'],
+  })
+
   describe('findResolver()', () => {
     it('unset', async () => {
       const F = await loadFixture(fixture)

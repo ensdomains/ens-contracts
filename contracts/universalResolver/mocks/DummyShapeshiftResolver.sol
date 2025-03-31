@@ -61,7 +61,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
             return;
         }
         if (isOffchain) _revertOffchain(v);
-        _revertfError(v);
+        _revertIfError(v);
         assembly {
             return(add(v, 32), mload(v))
         }
@@ -87,7 +87,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
             revert UnsupportedResolverProfile(bytes4(call));
         }
         if (isOffchain) _revertOffchain(v);
-        _revertfError(v);
+        _revertIfError(v);
         return v;
     }
 
@@ -107,14 +107,14 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
         bytes memory,
         bytes memory v
     ) external view returns (bytes memory) {
-        _revertfError(v);
+        _revertIfError(v);
         if (isExtended) return v;
         assembly {
             return(add(v, 32), mload(v))
         }
     }
 
-    function _revertfError(bytes memory v) internal pure {
+    function _revertIfError(bytes memory v) internal pure {
         if ((v.length & 31) != 0) {
             assembly {
                 revert(add(v, 32), mload(v))

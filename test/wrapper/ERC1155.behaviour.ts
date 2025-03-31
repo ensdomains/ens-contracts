@@ -11,7 +11,7 @@ import {
   type Hash,
   type Hex,
 } from 'viem'
-import { shouldSupportInterfaces } from './SupportsInterface.behaviour.js'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 
 const RECEIVER_SINGLE_MAGIC_VALUE = '0xf23a6e61'
 const RECEIVER_BATCH_MAGIC_VALUE = '0xbc197c81'
