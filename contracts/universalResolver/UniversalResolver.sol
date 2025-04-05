@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AbstractUniversalResolver} from "./AbstractUniversalResolver.sol";
-import {NameCoder} from "../utils/NameCoder.sol";
+import {AbstractUniversalResolver, NameCoder} from "./AbstractUniversalResolver.sol";
 import {ENS} from "../registry/ENS.sol";
 
 contract UniversalResolver is AbstractUniversalResolver {
