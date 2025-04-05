@@ -10,7 +10,7 @@ async function fixture() {
   return hre.viem.deployContract('TestNameCoder', [])
 }
 
-describe('NameEncoder', () => {
+describe('NameCoder', () => {
   describe('valid', () => {
     for (let [title, ens] of [
       ['empty', ''],
@@ -71,6 +71,13 @@ describe('NameEncoder', () => {
     const F = await loadFixture(fixture)
     await expect(F)
       .read('decode', [toHex('\x03a.b\x00')])
+      .toBeRevertedWithCustomError('DNSDecodingFailed')
+  })
+
+  it('null hashed label', async () => {
+    const F = await loadFixture(fixture)
+    await expect(F)
+      .read('namehash', [dnsEncodeName(`[${'0'.repeat(64)}]`), 0n])
       .toBeRevertedWithCustomError('DNSDecodingFailed')
   })
 })

@@ -51,7 +51,9 @@ library NameCoder {
                 idx + 1,
                 newIdx - 1
             ); // will not revert
-            if (!valid) revert DNSDecodingFailed(name); // "readLabel: malformed"
+            if (!valid || labelHash == bytes32(0)) {
+                revert DNSDecodingFailed(name); // "readLabel: malformed" or null literal
+            }
         } else if (len > 0) {
             assembly {
                 labelHash := keccak256(add(add(name, idx), 32), len)
