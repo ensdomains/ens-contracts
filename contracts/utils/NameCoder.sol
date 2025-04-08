@@ -30,7 +30,8 @@ library NameCoder {
     error DNSEncodingFailed(string ens);
 
     /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
-    ///      The last labelHash is zero.
+    ///      Only the last labelHash is zero.
+    ///      Disallows hashed label of zero (eg. `[0..0]`) to prevent confusion with terminator.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param idx The offset into `name` to start reading.
