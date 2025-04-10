@@ -44,7 +44,7 @@ const resolutions = makeResolutions({
   addresses: [
     {
       coinType: COIN_TYPE_ETH,
-      encodedAddress: anotherAddress,
+      value: anotherAddress,
     },
   ],
   texts: [{ key: 'description', value: 'Test' }],
@@ -252,7 +252,7 @@ describe('UniversalResolver', () => {
       const [res] = makeResolutions({
         name: testName,
         primary: {
-          name: testName,
+          value: testName,
         },
       })
       const [answer, resolver] = await F.UniversalResolver.read.resolve([
@@ -275,7 +275,7 @@ describe('UniversalResolver', () => {
         makeResolutions({
           name: testName,
           primary: {
-            name: testName,
+            value: testName,
           },
           errors: [
             {
@@ -464,7 +464,7 @@ describe('UniversalResolver', () => {
       const calls = makeResolutions({
         name: testName,
         primary: {
-          name: testName,
+          value: testName,
         },
         errors: [
           {
@@ -532,7 +532,7 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: reverseName,
-        primary: { name: '' },
+        primary: { value: '' },
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
@@ -574,7 +574,7 @@ describe('UniversalResolver', () => {
         addresses: [
           {
             coinType: COIN_TYPE_ETH,
-            encodedAddress: F.owner,
+            value: F.owner,
           },
         ],
       })
@@ -604,7 +604,7 @@ describe('UniversalResolver', () => {
         addresses: [
           {
             coinType: COIN_TYPE_ETH,
-            encodedAddress: anotherAddress,
+            value: anotherAddress,
           },
         ],
       })
@@ -663,7 +663,7 @@ describe('UniversalResolver', () => {
       ])
       const [rev] = makeResolutions({
         name: reverseName,
-        primary: { name: testName },
+        primary: { value: testName },
       })
       await F.Shapeshift1.write.setExtended([true])
       await F.Shapeshift1.write.setOffchain([true])
@@ -678,7 +678,7 @@ describe('UniversalResolver', () => {
         addresses: [
           {
             coinType: COIN_TYPE_ETH,
-            encodedAddress: F.owner,
+            value: F.owner,
           },
         ],
       })
@@ -701,7 +701,7 @@ describe('UniversalResolver', () => {
       ])
       const [rev] = makeResolutions({
         name: reverseName,
-        primary: { name: testName },
+        primary: { value: testName },
       })
       await F.Shapeshift1.write.setExtended([true])
       await F.Shapeshift1.write.setOffchain([true])
@@ -716,7 +716,7 @@ describe('UniversalResolver', () => {
         addresses: [
           {
             coinType,
-            encodedAddress: F.owner,
+            value: F.owner,
           },
         ],
       })

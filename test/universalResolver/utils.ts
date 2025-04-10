@@ -16,12 +16,19 @@ export const RESOLVE_MULTICALL = parseAbi([
 
 export const ADDR_ABI = parseAbi([
   'function addr(bytes32) external view returns (address)',
+  'function setAddr(bytes32, address) external',
 ])
 
 export const PROFILE_ABI = parseAbi([
   'function addr(bytes32, uint256 coinType) external view returns (bytes)',
   'function text(bytes32, string key) external view returns (string)',
+  'function contenthash(bytes32) external view returns (bytes)',
   'function name(bytes32) external view returns (string)',
+
+  'function setAddr(bytes32, uint256 coinType, bytes value) external',
+  'function setText(bytes32, string key, string value) external',
+  'function setContenthash(bytes32, bytes value) external',
+  'function setName(bytes32, string name) external',
 ])
 
 export function getParentName(name: string) {
@@ -42,26 +49,27 @@ export const RESPONSE_FLAGS = {
 
 type KnownOrigin = 'on' | 'off' | 'batch'
 
-type AddressRecord = {
-  coinType: bigint
-  encodedAddress: Hex
+type StringRecord = {
+  value: string
   origin?: KnownOrigin
 }
 
-type TextRecord = {
-  key: string
-  value: string
+type BytesRecord = {
+  value: Hex
   origin?: KnownOrigin
+}
+
+type AddressRecord = BytesRecord & {
+  coinType: bigint
+}
+
+type TextRecord = StringRecord & {
+  key: string
 }
 
 type ErrorRecord = {
   call: Hex
   answer: Hex
-}
-
-type PrimaryRecord = {
-  name: string
-  origin?: KnownOrigin
 }
 
 export type KnownProfile = {
@@ -70,7 +78,8 @@ export type KnownProfile = {
   extended?: boolean
   addresses?: AddressRecord[]
   texts?: TextRecord[]
-  primary?: PrimaryRecord
+  contenthash?: BytesRecord
+  primary?: StringRecord
   errors?: ErrorRecord[]
 }
 
@@ -84,6 +93,7 @@ export type KnownReverse = {
 
 type Expected = {
   call: Hex
+  write: Hex
   answer: Hex
   expect(data: Hex): void
 }
@@ -102,6 +112,7 @@ export function bundleCalls(calls: KnownResolution[]): KnownBundle {
     return {
       call: calls[0].call,
       answer: calls[0].answer,
+      write: calls[0].write,
       unbundle: (x) => [x],
       expect(answer) {
         calls[0].expect(answer)
@@ -117,6 +128,10 @@ export function bundleCalls(calls: KnownResolution[]): KnownBundle {
       abi: RESOLVE_MULTICALL,
       // TODO: fix when we can use newer viem version
       result: [calls.map((x) => x.answer)] as never,
+    }),
+    write: encodeFunctionData({
+      abi: RESOLVE_MULTICALL,
+      args: [calls.map((x) => x.write)],
     }),
     unbundle: (data) =>
       decodeFunctionResult({
@@ -136,7 +151,7 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
   const node = namehash(p.name)
   if (p.addresses) {
     const functionName = 'addr'
-    for (const { coinType, encodedAddress, origin } of p.addresses) {
+    for (const { coinType, value, origin } of p.addresses) {
       if (coinType === COIN_TYPE_ETH) {
         const abi = ADDR_ABI
         v.push({
@@ -144,19 +159,27 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
           origin,
           call: encodeFunctionData({
             abi,
+            functionName,
             args: [node],
+          }),
+          write: encodeFunctionData({
+            abi,
+            functionName: 'setAddr',
+            args: [node, value],
           }),
           answer: encodeFunctionResult({
             abi,
+            functionName,
             // TODO: fix when we can use newer viem version
-            result: [encodedAddress] as never,
+            result: [value] as never,
           }),
           expect(data) {
             const actual = decodeFunctionResult({
               abi,
+              functionName,
               data,
             })
-            expect(actual, this.desc).toStrictEqual(getAddress(encodedAddress))
+            expect(actual, this.desc).toStrictEqual(getAddress(value))
           },
         })
       } else {
@@ -169,11 +192,16 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
             functionName,
             args: [node, coinType],
           }),
+          write: encodeFunctionData({
+            abi,
+            functionName: 'setAddr',
+            args: [node, coinType, value],
+          }),
           answer: encodeFunctionResult({
             abi,
             functionName,
             // TODO: fix when we can use newer viem version
-            result: [encodedAddress] as never,
+            result: [value] as never,
           }),
           expect(data) {
             const actual = decodeFunctionResult({
@@ -181,7 +209,7 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
               functionName,
               data,
             })
-            expect(actual, this.desc).toStrictEqual(encodedAddress)
+            expect(actual, this.desc).toStrictEqual(value)
           },
         })
       }
@@ -198,6 +226,11 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
           abi,
           functionName,
           args: [node, key],
+        }),
+        write: encodeFunctionData({
+          abi,
+          functionName: 'setText',
+          args: [node, key, value],
         }),
         answer: encodeFunctionResult({
           abi,
@@ -216,10 +249,10 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
       })
     }
   }
-  if (p.primary) {
+  if (p.contenthash) {
     const abi = PROFILE_ABI
-    const functionName = 'name'
-    const { name, origin } = p.primary
+    const functionName = 'contenthash'
+    const { value, origin } = p.contenthash
     v.push({
       desc: `${functionName}()`,
       origin,
@@ -228,11 +261,16 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
         functionName,
         args: [node],
       }),
+      write: encodeFunctionData({
+        abi,
+        functionName: 'setContenthash',
+        args: [node, value],
+      }),
       answer: encodeFunctionResult({
         abi,
         functionName,
         // TODO: fix when we can use newer viem version
-        result: [name] as never,
+        result: [value] as never,
       }),
       expect(data) {
         const actual = decodeFunctionResult({
@@ -240,7 +278,40 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
           functionName,
           data,
         })
-        expect(actual, this.desc).toStrictEqual(name)
+        expect(actual, this.desc).toStrictEqual(value)
+      },
+    })
+  }
+  if (p.primary) {
+    const abi = PROFILE_ABI
+    const functionName = 'name'
+    const { value, origin } = p.primary
+    v.push({
+      desc: `${functionName}()`,
+      origin,
+      call: encodeFunctionData({
+        abi,
+        functionName,
+        args: [node],
+      }),
+      write: encodeFunctionData({
+        abi,
+        functionName: 'setName',
+        args: [node, value],
+      }),
+      answer: encodeFunctionResult({
+        abi,
+        functionName,
+        // TODO: fix when we can use newer viem version
+        result: [value] as never,
+      }),
+      expect(data) {
+        const actual = decodeFunctionResult({
+          abi,
+          functionName,
+          data,
+        })
+        expect(actual, this.desc).toStrictEqual(value)
       },
     })
   }
@@ -249,6 +320,7 @@ export function makeResolutions(p: KnownProfile): KnownResolution[] {
       v.push({
         desc: `error(${call.slice(0, 10)})`,
         call,
+        write: '0x',
         answer,
         expect(data) {
           expect(data, this.desc).toStrictEqual(this.answer)
