@@ -133,14 +133,13 @@ export const setSubnodeOwnerTests = () =>
         )
     })
 
-    it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
+    it('Calling setSubnodeOwner requires NameWrapper approval; ENS registry approval is insufficient.', async () => {
       const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
         setSubnodeOwnerFixture,
       )
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
-      // TODO: this is not testing what the description of the test is
       await ensRegistry.write.setApprovalForAll([accounts[1].address, true])
 
       await expect(nameWrapper)
