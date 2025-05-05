@@ -30,7 +30,8 @@ library NameCoder {
     error DNSEncodingFailed(string ens);
 
     /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
-    ///      The last labelHash is zero.
+    ///      Only the last labelHash is zero.
+    ///      Disallows hashed label of zero (eg. `[0..0]`) to prevent confusion with terminator.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param idx The offset into `name` to start reading.
@@ -51,7 +52,9 @@ library NameCoder {
                 idx + 1,
                 newIdx - 1
             ); // will not revert
-            if (!valid) revert DNSDecodingFailed(name); // "readLabel: malformed"
+            if (!valid || labelHash == bytes32(0)) {
+                revert DNSDecodingFailed(name); // "readLabel: malformed" or null literal
+            }
         } else if (len > 0) {
             assembly {
                 labelHash := keccak256(add(add(name, idx), 32), len)
