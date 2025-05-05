@@ -608,7 +608,6 @@ describe('UniversalResolver', () => {
           },
         ],
       })
-      await F.Shapeshift1.write.setRevertUnsupportedResolverProfile([false])
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
         await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
