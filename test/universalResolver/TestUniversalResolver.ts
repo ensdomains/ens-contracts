@@ -15,7 +15,7 @@ import {
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
-import { COIN_TYPE_ETH, getReverseName } from '../fixtures/ensip19.js'
+import { COIN_TYPE_ETH, EVM_BIT, getReverseName } from '../fixtures/ensip19.js'
 import { ownedEnsFixture } from './ownedEnsFixture.js'
 import { expectVar } from '../fixtures/expectVar.js'
 import { makeResolutions, bundleCalls, getParentName } from './utils.js'
@@ -578,6 +578,37 @@ describe('UniversalResolver', () => {
           },
         ],
       })
+      await F.Shapeshift1.write.setResponse([res.call, res.answer])
+      const [name, resolver, reverseResolver] =
+        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+      expectVar({ name }).toStrictEqual(testName)
+      expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
+      expectVar({ reverseResolver }).toEqualAddress(F.OldResolver.address)
+    })
+
+    it('onchain immediate name() + onchain immediate fallback addr()', async () => {
+      const F = await loadFixture(fixture)
+      const reverseName = getReverseName(F.owner)
+      await F.takeControl(reverseName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(reverseName),
+        F.OldResolver.address,
+      ])
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(testName),
+        F.Shapeshift1.address,
+      ])
+      const [res] = makeResolutions({
+        name: testName,
+        addresses: [
+          {
+            coinType: EVM_BIT,
+            encodedAddress: F.owner,
+          },
+        ],
+      })
+      await F.Shapeshift1.write.setRevertUnsupportedResolverProfile([false])
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
         await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
