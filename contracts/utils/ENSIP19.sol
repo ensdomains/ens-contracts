@@ -42,18 +42,6 @@ library ENSIP19 {
         isEVM = chainFromCoinType(coinType) != 0 || coinType == EVM_BIT;
     }
 
-    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID.
-    function reverseName(
-        address addr,
-        uint64 chain
-    ) internal pure returns (string memory) {
-        return
-            reverseName(
-                abi.encodePacked(addr),
-                chain == CHAIN_ID_ETH ? COIN_TYPE_ETH : chain | EVM_BIT
-            );
-    }
-
     /// @dev Generate Reverse Name from Encoded Address + Coin Type.
     ///      Reverts `EmptyAddress` if `encodedAddress` is `0x`.
     /// @param encodedAddress The input address.
@@ -77,6 +65,18 @@ library ENSIP19 {
                 TLD_REVERSE
             )
         );
+    }
+
+    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID.
+    function reverseName(
+        address addr,
+        uint64 chain
+    ) internal pure returns (string memory) {
+        return
+            reverseName(
+                abi.encodePacked(addr),
+                chain == CHAIN_ID_ETH ? COIN_TYPE_ETH : chain | EVM_BIT
+            );
     }
 
     /// @dev Parse Reverse Name into Encoded Address + Coin Type.

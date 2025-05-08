@@ -59,9 +59,12 @@ describe('ENSIP19', () => {
     }
 
     for (const name of [
-      'zzz.addr.reverse',
-      '.default.reverse',
-      'abc.reverse',
+      'zzz.addr.reverse', // invalid address
+      '.default.reverse', // empty address
+      'abc.reverse', // no address
+      '1234.addr', // no tld
+      '1234.addr.eth', // invalid tld
+      '1234.addr.reverse.eth', // not tld
     ]) {
       it(name, async () => {
         const F = await loadFixture(fixture)
