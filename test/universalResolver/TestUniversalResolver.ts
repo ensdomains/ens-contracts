@@ -11,6 +11,7 @@ import {
   toBytes,
   toFunctionSelector,
   toHex,
+  toHex,
   zeroAddress,
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -362,6 +363,66 @@ describe('UniversalResolver', () => {
       for (const res of resolutions) {
         await F.Shapeshift1.write.setResponse([res.call, res.answer])
       }
+      await F.Shapeshift1.write.setExtended([true])
+      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+        dnsEncodeName(testName),
+        bundle.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
+      expectVar({ answer }).toStrictEqual(bundle.answer)
+      bundle.expect(answer)
+    })
+
+    it('onchain extended w/resolve(multicall)', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ENSRegistry.write.setResolver([
+        namehash(getParentName(testName)),
+        F.Shapeshift1.address,
+      ])
+      {
+        const reverseName = getReverseName(F.Shapeshift1.address)
+        //const resolverName = 'resolver.eth'
+        await F.takeControl(reverseName)
+        await F.ENSRegistry.write.setResolver([
+          namehash(reverseName),
+          F.Shapeshift2.address,
+        ])
+        // for (const res of makeResolutions({
+        //   name: reverseName,
+        //   primary: { name: resolverName },
+        // })) {
+        //   await F.Shapeshift2.write.setResponse([res.call, res.answer])
+        // }
+        // for (const res of makeResolutions({
+        //   name: resolverName,
+        //   addresses: [
+        //     { coinType: COIN_TYPE_ETH, encodedAddress: F.Shapeshift1.address },
+        //     {
+        //       coinType: BigInt.asUintN(
+        //         256,
+        //         BigInt(keccak256(toHex('resolve(multicall'))) << 32n,
+        //       ),
+        //       encodedAddress: '0x01',
+        //     },
+        //   ],
+        // })) {
+        //   await F.Shapeshift2.write.setResponse([res.call, res.answer])
+        // }
+        for (const res of makeResolutions({
+          name: reverseName,
+          addresses: [
+            {
+              coinType: BigInt(keccak256(toHex('resolve(multicall)'))),
+              encodedAddress: '0x01',
+            },
+          ],
+        })) {
+          await F.Shapeshift2.write.setResponse([res.call, res.answer])
+        }
+      }
+      const bundle = bundleCalls(resolutions)
+      await F.Shapeshift1.write.setResponse([bundle.call, bundle.answer])
       await F.Shapeshift1.write.setExtended([true])
       const [answer, resolver] = await F.UniversalResolver.read.resolve([
         dnsEncodeName(testName),

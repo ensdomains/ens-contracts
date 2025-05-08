@@ -269,8 +269,8 @@ abstract contract AbstractUniversalResolver is
         resolver = info.resolver;
     }
 
-	/// @dev Decode address (`addr()` or `addr(coinType)`).
-	///      Ignore `addr() = address(0)`.
+    /// @dev Decode address (`addr()` or `addr(coinType)`).
+    ///      Ignore `addr() = address(0)`.
     function _decodeAddress(
         Lookup memory lu
     ) internal pure returns (bytes memory a) {
@@ -284,6 +284,42 @@ abstract contract AbstractUniversalResolver is
         } else if (selector == IAddressResolver.addr.selector) {
             a = abi.decode(v, (bytes));
         }
+    }
+
+    function _supportsFeature(
+        ResolverInfo memory info,
+        uint256 feature
+    ) internal view returns (bool isSupported) {
+        // try
+        //     this.reverse(abi.encodePacked(info.resolver), COIN_TYPE_ETH)
+        // returns (string memory name, address, address) {
+        //     bytes memory reverseName = NameCoder.encode(name);
+        //     try
+        //         this.resolve(
+        //             reverseName,
+        //             abi.encodeCall(
+        //                 IAddressResolver.addr,
+        //                 (NameCoder.namehash(reverseName, 0), feature)
+        //             )
+        //         )
+        //     returns (bytes memory v, address) {
+        //         isSupported = bytes32(v) != bytes32(0);
+        //     } catch {}
+        // } catch {}
+        bytes memory reverseName = NameCoder.encode(
+            ENSIP19.reverseName(info.resolver, 1)
+        );
+        try
+            this.resolve(
+                reverseName,
+                abi.encodeCall(
+                    IAddressResolver.addr,
+                    (NameCoder.namehash(reverseName, 0), feature)
+                )
+            )
+        returns (bytes memory v, address) {
+            isSupported = bytes32(v) != bytes32(0);
+        } catch {}
     }
 
     /// @dev Perform multiple resolver calls in parallel using batch gateway.
@@ -300,22 +336,84 @@ abstract contract AbstractUniversalResolver is
         bytes4 callbackFunction,
         bytes memory extraData
     ) internal view {
-        Batch memory batch = Batch(new Lookup[](calls.length), gateways);
-        for (uint256 i; i < calls.length; i++) {
-            Lookup memory lu = batch.lookups[i];
-            lu.target = info.resolver;
-            lu.call = info.extended
-                ? abi.encodeCall(
+        if (
+            info.extended &&
+            calls.length > 1 &&
+            _supportsFeature(info, uint256(keccak256("resolve(multicall)")))
+        ) {
+            ccipRead(
+                info.resolver,
+                abi.encodeCall(
                     IExtendedResolver.resolve,
-                    (info.name, calls[i])
-                )
-                : calls[i];
+                    (
+                        info.name,
+                        abi.encodeCall(IMulticallable.multicall, (calls))
+                    )
+                ),
+                this.resolveMulticallCallback.selector,
+                abi.encode(info, callbackFunction, extraData, calls)
+            );
+        } else {
+            Batch memory batch = Batch(new Lookup[](calls.length), gateways);
+            for (uint256 i; i < calls.length; i++) {
+                Lookup memory lu = batch.lookups[i];
+                lu.target = info.resolver;
+                lu.call = info.extended
+                    ? abi.encodeCall(
+                        IExtendedResolver.resolve,
+                        (info.name, calls[i])
+                    )
+                    : calls[i];
+            }
+            ccipRead(
+                address(this),
+                abi.encodeCall(this.ccipBatch, (batch)),
+                this.resolveBatchCallback.selector,
+                abi.encode(info, callbackFunction, extraData)
+            );
+        }
+    }
+
+    function resolveMulticallCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view {
+        (
+            ResolverInfo memory info,
+            bytes4 callbackFunction_,
+            bytes memory extraData_,
+            bytes[] memory calls
+        ) = abi.decode(extraData, (ResolverInfo, bytes4, bytes, bytes[]));
+        bytes memory v = abi.decode(response, (bytes)); // unwrap resolve()
+        if (v.length == 0) {
+            revert UnsupportedResolverProfile(
+                IMulticallable.multicall.selector
+            );
+        }
+        if ((v.length & 31) != 0) revert ResolverError(v);
+        bytes[] memory answers = abi.decode(v, (bytes[]));
+        if (answers.length != calls.length) {
+            revert ResolverError(
+                abi.encodeWithSelector(0x08c379a0, "Length mismatch") // Error(string)
+            );
+        }
+        Lookup[] memory lookups = new Lookup[](calls.length);
+        for (uint256 i; i < calls.length; i++) {
+            Lookup memory lu = lookups[i];
+            v = answers[i];
+            lu.call = calls[i];
+            lu.flags = FLAG_DONE;
+            if (v.length == 0) {
+                lu.flags |= FLAG_EMPTY_RESPONSE;
+                lu.data = lu.call;
+            } else {
+                if ((v.length & 31) != 0) lu.flags |= FLAG_CALL_ERROR;
+                lu.data = v;
+            }
         }
         ccipRead(
             address(this),
-            abi.encodeCall(this.ccipBatch, (batch)),
-            this.resolveBatchCallback.selector,
-            abi.encode(info, callbackFunction, extraData)
+            abi.encodeWithSelector(callbackFunction_, info, lookups, extraData_)
         );
     }
 
