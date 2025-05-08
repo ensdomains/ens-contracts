@@ -11,7 +11,6 @@ import {
   toBytes,
   toFunctionSelector,
   toHex,
-  toHex,
   zeroAddress,
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
