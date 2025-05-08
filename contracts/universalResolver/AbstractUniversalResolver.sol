@@ -269,8 +269,8 @@ abstract contract AbstractUniversalResolver is
         resolver = info.resolver;
     }
 
-	/// @dev Decode address (`addr()` or `addr(coinType)`).
-	///      Ignore `addr() = address(0)`.
+    /// @dev Decode address (`addr()` or `addr(coinType)`).
+    ///      Ignore `addr() = address(0)`.
     function _decodeAddress(
         Lookup memory lu
     ) internal pure returns (bytes memory a) {
