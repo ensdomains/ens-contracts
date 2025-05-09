@@ -21,7 +21,14 @@ const addrs = [
   '0x800000000000000000000000000000000000000000000000000000000000000001', // 33 bytes
 ] as const
 
-const coinTypes = [COIN_TYPE_ETH, EVM_BIT, 0n, 1n]
+const coinTypes = [
+  COIN_TYPE_ETH,
+  EVM_BIT,
+  0n, // btc
+  0x123n,
+  EVM_BIT | 1n,
+  0x1_8000_0123n, // 33 bits
+]
 
 describe('ENSIP19', () => {
   describe('reverseName()', () => {
