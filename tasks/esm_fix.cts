@@ -1,7 +1,7 @@
-import fs = require('fs/promises')
-import task_names = require('hardhat/builtin-tasks/task-names')
-import config = require('hardhat/config')
-import path = require('path')
+import fs from 'node:fs/promises'
+import task_names from 'hardhat/builtin-tasks/task-names'
+import config from 'hardhat/config'
+import path from 'node:path'
 
 config
   .subtask(task_names.TASK_COMPILE_SOLIDITY)

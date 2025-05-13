@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "Node16",
+    "module": "Preserve",
     "moduleDetection": "force",
     "strict": true,
     "esModuleInterop": true,
-    "moduleResolution": "NodeNext",
+    "moduleResolution": "bundler",
     "outDir": "build",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,

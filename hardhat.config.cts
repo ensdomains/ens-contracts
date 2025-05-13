@@ -12,7 +12,7 @@ import 'hardhat-contract-sizer'
 import 'hardhat-deploy'
 import { HardhatUserConfig } from 'hardhat/config'
 
-import('@ensdomains/hardhat-chai-matchers-viem')
+import '@ensdomains/hardhat-chai-matchers-viem'
 
 // hardhat actions
 import './tasks/esm_fix.cjs'
@@ -31,8 +31,6 @@ if (process.env.DEPLOYER_KEY) {
   ]
 }
 
-// circular dependency shared with actions
-export const archivedDeploymentPath = './deployments/archive'
 
 const config = {
   networks: {
@@ -140,7 +138,7 @@ const config = {
   external: {
     contracts: [
       {
-        artifacts: [archivedDeploymentPath],
+        artifacts: ['./deployments/archive'],
       },
     ],
   },
