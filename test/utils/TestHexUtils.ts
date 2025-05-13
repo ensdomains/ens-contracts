@@ -133,7 +133,7 @@ describe('HexUtils', () => {
       ).resolves.toMatchObject([zeroAddress, false])
     })
 
-    it('does allow sizes larger than 40 characters', async () => {
+    it('does not allow sizes larger than 40 characters', async () => {
       const F = await loadFixture(fixture)
       await expect(
         F.read.hexToAddress([
@@ -141,12 +141,9 @@ describe('HexUtils', () => {
             '5cee339e13375638553bdf5a6e36ba80fb9f6a4f0783680884d92b558aa471da',
           ),
           0n,
-          64n,
+          41n,
         ]),
-      ).resolves.toMatchObject([
-        '0x6e36ba80Fb9f6A4F0783680884d92b558aA471Da',
-        true,
-      ])
+      ).resolves.toMatchObject([zeroAddress, false])
     })
   })
 

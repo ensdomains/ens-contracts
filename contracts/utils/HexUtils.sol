@@ -31,8 +31,7 @@ library HexUtils {
     }
 
     /// @dev Convert `hexString[pos:end]` to `address`.
-    ///      Accepts 40-64 hex-chars.
-    ///      Uses right alignment: `FF8000000000000000000000000000000000000001` &rarr; `8000000000000000000000000000000000000001`.
+    ///      Accepts exactly 40 hex-chars.
     /// @param hexString The string to parse.
     /// @param pos The index to start parsing.
     /// @param end The (exclusive) index to stop parsing.
@@ -43,7 +42,7 @@ library HexUtils {
         uint256 pos,
         uint256 end
     ) internal pure returns (address addr, bool valid) {
-        if (end - pos < 40) return (address(0), false); // too short
+        if (end - pos != 40) return (address(0), false); // wrong length
         bytes32 word;
         (word, valid) = hexStringToBytes32(hexString, pos, end);
         addr = address(uint160(uint256(word)));
@@ -107,28 +106,28 @@ library HexUtils {
             valid := true
             let end := add(src, nibbles)
             if and(nibbles, 1) {
-                let b := getHex(mload(src), 0)
-                mstore8(dst, b)
-                src := add(src, 1)
+                let b := getHex(mload(src), 0) // "f" -> 15
+                mstore8(dst, b) // write ascii byte
+                src := add(src, 1) // update pointers
                 dst := add(dst, 1)
                 if gt(b, 255) {
                     valid := false
-                    src := end
+                    src := end // terminate loop
                 }
             }
             for {
 
             } lt(src, end) {
-                src := add(src, 2)
-                dst := add(dst, 1)
+                src := add(src, 2) // 2 nibbles
+                dst := add(dst, 1) // per byte
             } {
-                let word := mload(src)
-                let b := or(shl(4, getHex(word, 0)), getHex(word, 1))
+                let word := mload(src) // read word (left aligned)
+                let b := or(shl(4, getHex(word, 0)), getHex(word, 1)) // "ff" -> 255
                 if gt(b, 255) {
                     valid := false
                     break
                 }
-                mstore8(dst, b)
+                mstore8(dst, b) // write ascii byte
             }
         }
     }

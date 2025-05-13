@@ -67,18 +67,6 @@ library ENSIP19 {
         );
     }
 
-    /// @dev Same as `reverseName()` but uses EVM Address + Chain ID.
-    function reverseName(
-        address addr,
-        uint64 chain
-    ) internal pure returns (string memory) {
-        return
-            reverseName(
-                abi.encodePacked(addr),
-                chain == CHAIN_ID_ETH ? COIN_TYPE_ETH : chain | EVM_BIT
-            );
-    }
-
     /// @dev Parse Reverse Name into Encoded Address + Coin Type.
     ///      Matches: /^[0-9a-fA-F]+\.([0-9a-f]{1,64}|addr|default)\.reverse$/.
     ///      Reverts `DNSDecodingFailed`.
