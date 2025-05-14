@@ -42,19 +42,19 @@ library ENSIP19 {
         isEVM = chainFromCoinType(coinType) != 0 || coinType == EVM_BIT;
     }
 
-    /// @dev Generate Reverse Name from Encoded Address + Coin Type.
-    ///      Reverts `EmptyAddress` if `encodedAddress` is `0x`.
-    /// @param encodedAddress The input address.
+    /// @dev Generate Reverse Name from Address + Coin Type.
+    ///      Reverts `EmptyAddress` if `addressBytes` is `0x`.
+    /// @param addressBytes The input address.
     /// @param coinType The coin type.
     /// @return name The ENS reverse name, eg. `1234abcd.addr.reverse`.
     function reverseName(
-        bytes memory encodedAddress,
+        bytes memory addressBytes,
         uint256 coinType
     ) internal pure returns (string memory name) {
-        if (encodedAddress.length == 0) revert EmptyAddress();
+        if (addressBytes.length == 0) revert EmptyAddress();
         name = string(
             abi.encodePacked(
-                HexUtils.bytesToHex(encodedAddress),
+                HexUtils.bytesToHex(addressBytes),
                 bytes1("."),
                 coinType == COIN_TYPE_ETH
                     ? SLUG_ETH
@@ -67,19 +67,19 @@ library ENSIP19 {
         );
     }
 
-    /// @dev Parse Reverse Name into Encoded Address + Coin Type.
+    /// @dev Parse Reverse Name into Address + Coin Type.
     ///      Matches: /^[0-9a-fA-F]+\.([0-9a-f]{1,64}|addr|default)\.reverse$/.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
-    /// @return encodedAddress The address or empty if invalid.
+    /// @return addressBytes The address or empty if invalid.
     /// @return coinType The coin type.
     function parse(
         bytes memory name
-    ) internal pure returns (bytes memory encodedAddress, uint256 coinType) {
+    ) internal pure returns (bytes memory addressBytes, uint256 coinType) {
         (, uint256 offset) = NameCoder.readLabel(name, 0);
         bool valid;
-        (encodedAddress, valid) = HexUtils.hexToBytes(name, 1, offset);
-        if (!valid) return ("", 0); // encodedAddress not hex
+        (addressBytes, valid) = HexUtils.hexToBytes(name, 1, offset);
+        if (!valid) return ("", 0); // addressBytes not hex
         (bytes32 labelHash, uint256 offset2) = NameCoder.readLabel(
             name,
             offset
