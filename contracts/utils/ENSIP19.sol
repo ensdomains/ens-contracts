@@ -79,7 +79,7 @@ library ENSIP19 {
         (, uint256 offset) = NameCoder.readLabel(name, 0);
         bool valid;
         (addressBytes, valid) = HexUtils.hexToBytes(name, 1, offset);
-        if (!valid) return ("", 0); // addressBytes not hex
+        if (!valid || addressBytes.length == 0) return ("", 0); // addressBytes not 1+ hex
         (bytes32 labelHash, uint256 offset2) = NameCoder.readLabel(
             name,
             offset
@@ -88,6 +88,8 @@ library ENSIP19 {
             coinType = COIN_TYPE_ETH;
         } else if (labelHash == keccak256(bytes(SLUG_DEFAULT))) {
             coinType = EVM_BIT;
+        } else if (labelHash == bytes32(0)) {
+            return ("", 0); // no slug
         } else {
             bytes32 word;
             (word, valid) = HexUtils.hexStringToBytes32(

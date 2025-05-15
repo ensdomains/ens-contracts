@@ -52,7 +52,7 @@ describe('ENSIP19', () => {
     }
   })
 
-  describe('parse()', () => {
+  describe('parse(reverseName(a, c)) == (a, c)', () => {
     for (const addr of addrs) {
       it(addr, async () => {
         const F = await loadFixture(fixture)
@@ -64,8 +64,14 @@ describe('ENSIP19', () => {
         }
       })
     }
+  })
 
+  describe('parse() errors', () => {
     for (const name of [
+      '', // empty
+      '1234', // only address
+      'zzz', // only invalid address
+      'reverse', // only tld
       'zzz.addr.reverse', // invalid address
       '.default.reverse', // empty address
       'abc.reverse', // no address
@@ -73,7 +79,7 @@ describe('ENSIP19', () => {
       '1234.addr.eth', // invalid tld
       '1234.addr.reverse.eth', // not tld
     ]) {
-      it(name, async () => {
+      it(name || '<empty>', async () => {
         const F = await loadFixture(fixture)
         await expect(
           F.read.parse([dnsEncodeName(name)]),
