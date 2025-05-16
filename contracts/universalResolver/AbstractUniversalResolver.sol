@@ -147,14 +147,14 @@ abstract contract AbstractUniversalResolver is
 
     /// @notice Same as `reverseWithGateways()` but uses default batch gateways.
     function reverse(
-        bytes memory encodedAddress,
+        bytes memory lookupAddress,
         uint256 coinType
     ) external view returns (string memory, address /* resolver */, address) {
-        return reverseWithGateways(encodedAddress, coinType, batchGateways);
+        return reverseWithGateways(lookupAddress, coinType, batchGateways);
     }
 
     struct ReverseArgs {
-        bytes encodedAddress;
+        bytes lookupAddress;
         uint256 coinType;
         string[] gateways;
     }
@@ -162,24 +162,24 @@ abstract contract AbstractUniversalResolver is
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
     /// @notice Callers should enable EIP-3668.
     /// @dev This function executes over multiple steps (step 1 of 3).
-    /// @param encodedAddress The input address.
+    /// @param lookupAddress The input address.
     /// @param coinType The coin type.
     /// @param gateways The list of batch gateway URLs to use.
     function reverseWithGateways(
-        bytes memory encodedAddress,
+        bytes memory lookupAddress,
         uint256 coinType,
         string[] memory gateways
     ) public view returns (string memory, address /* resolver */, address) {
         // https://docs.ens.domains/ensip/19
         ResolverInfo memory info = requireResolver(
-            NameCoder.encode(ENSIP19.reverseName(encodedAddress, coinType)) // reverts EmptyAddress
+            NameCoder.encode(ENSIP19.reverseName(lookupAddress, coinType)) // reverts EmptyAddress
         );
         _resolveBatch(
             info,
             _oneCall(abi.encodeCall(INameResolver.name, (info.node))),
             gateways,
             this.reverseNameCallback.selector,
-            abi.encode(ReverseArgs(encodedAddress, coinType, gateways))
+            abi.encode(ReverseArgs(lookupAddress, coinType, gateways))
         );
     }
 
@@ -203,7 +203,7 @@ abstract contract AbstractUniversalResolver is
             _forwardCalls(info.node, args.coinType),
             args.gateways,
             this.reverseAddressCallback.selector,
-            abi.encode(args.encodedAddress, primary, infoRev.resolver)
+            abi.encode(args.lookupAddress, primary, infoRev.resolver)
         );
     }
 
