@@ -4,30 +4,28 @@ pragma solidity ~0.8.17;
 import {HexUtils} from "./HexUtils.sol";
 
 contract TestHexUtils {
-    using HexUtils for *;
-
     function hexToBytes(
         bytes calldata name,
-        uint256 idx,
-        uint256 lastInx
+        uint256 pos,
+        uint256 end
     ) public pure returns (bytes memory, bool) {
-        return name.hexToBytes(idx, lastInx);
+        return HexUtils.hexToBytes(name, pos, end);
     }
 
     function hexStringToBytes32(
         bytes calldata name,
-        uint256 idx,
-        uint256 lastInx
+        uint256 pos,
+        uint256 end
     ) public pure returns (bytes32, bool) {
-        return name.hexStringToBytes32(idx, lastInx);
+        return HexUtils.hexStringToBytes32(name, pos, end);
     }
 
     function hexToAddress(
         bytes calldata input,
-        uint256 idx,
-        uint256 lastInx
+        uint256 pos,
+        uint256 end
     ) public pure returns (address, bool) {
-        return input.hexToAddress(idx, lastInx);
+        return HexUtils.hexToAddress(input, pos, end);
     }
 
     function addressToHex(

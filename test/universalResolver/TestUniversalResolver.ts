@@ -380,13 +380,12 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       {
-        const reverseName = getReverseName(F.Shapeshift1.address)
         //const resolverName = 'resolver.eth'
-        await F.takeControl(reverseName)
-        await F.ENSRegistry.write.setResolver([
-          namehash(reverseName),
-          F.Shapeshift2.address,
-        ])
+        // await F.takeControl(reverseName)
+        // await F.ENSRegistry.write.setResolver([
+        //   namehash(reverseName),
+        //   F.Shapeshift2.address,
+        // ])
         // for (const res of makeResolutions({
         //   name: reverseName,
         //   primary: { name: resolverName },
@@ -408,6 +407,12 @@ describe('UniversalResolver', () => {
         // })) {
         //   await F.Shapeshift2.write.setResponse([res.call, res.answer])
         // }
+        const reverseName = getReverseName(F.Shapeshift1.address)
+        await F.takeControl(reverseName)
+        await F.ENSRegistry.write.setResolver([
+          namehash(reverseName),
+          F.Shapeshift2.address,
+        ])
         for (const res of makeResolutions({
           name: reverseName,
           addresses: [

@@ -10,19 +10,28 @@ export function chainFromCoinType(coinType: bigint): number {
     : 0
 }
 
-export function shortCoin(coinType: bigint) {
-  const chain = chainFromCoinType(coinType)
-  return chain || coinType == EVM_BIT ? `chain:${chain}` : `coin:${coinType}`
+export function isEVMCoinType(coinType: bigint) {
+  return !!chainFromCoinType(coinType) || coinType === EVM_BIT
 }
 
-export function getReverseName(encodedAddress: Hex, coinType = COIN_TYPE_ETH) {
-  const hex = encodedAddress.slice(2)
-  if (!hex) throw new Error('empty address')
-  return `${hex.toLowerCase()}.${
+export function shortCoin(coinType: bigint) {
+  return isEVMCoinType(coinType)
+    ? `chain:${chainFromCoinType(coinType)}`
+    : `coin:${coinType}`
+}
+
+export function getReverseNamespace(coinType: bigint) {
+  return `${
     coinType == COIN_TYPE_ETH
       ? 'addr'
       : coinType == EVM_BIT
       ? 'default'
       : coinType.toString(16)
   }.reverse`
+}
+
+export function getReverseName(encodedAddress: Hex, coinType = COIN_TYPE_ETH) {
+  const hex = encodedAddress.slice(2)
+  if (!hex) throw new Error('empty address')
+  return `${hex.toLowerCase()}.${getReverseNamespace(coinType)}`
 }
