@@ -286,26 +286,31 @@ abstract contract AbstractUniversalResolver is
         }
     }
 
+	/// @dev Check if an IExtendedResolver supports a feature.
     function _supportsFeature(
         ResolverInfo memory info,
         uint256 feature
     ) internal view returns (bool isSupported) {
-        // try
-        //     this.reverse(abi.encodePacked(info.resolver), COIN_TYPE_ETH)
-        // returns (string memory name, address, address) {
-        //     bytes memory reverseName = NameCoder.encode(name);
-        //     try
-        //         this.resolve(
-        //             reverseName,
-        //             abi.encodeCall(
-        //                 IAddressResolver.addr,
-        //                 (NameCoder.namehash(reverseName, 0), feature)
-        //             )
-        //         )
-        //     returns (bytes memory v, address) {
-        //         isSupported = bytes32(v) != bytes32(0);
-        //     } catch {}
-        // } catch {}
+        // (1) ask the forward resolver:
+        bytes memory resolverName = BytesUtils.substring(
+            info.name,
+            info.offset,
+            info.name.length - info.offset
+        );
+        try
+            IExtendedResolver(info.resolver).resolve(
+                resolverName,
+                abi.encodeCall(
+                    IAddressResolver.addr,
+                    (NameCoder.namehash(resolverName, 0), feature)
+                )
+            )
+        returns (bytes memory v) {
+            if (v.length > 0 && bytes32(abi.decode(v, (bytes))) != bytes32(0)) {
+                return true;
+            }
+        } catch {}
+        // (2) ask the reverse resolver:
         bytes memory reverseName = NameCoder.encode(
             ENSIP19.reverseName(abi.encodePacked(info.resolver), COIN_TYPE_ETH)
         );
