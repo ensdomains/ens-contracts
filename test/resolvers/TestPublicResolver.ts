@@ -583,6 +583,13 @@ describe('PublicResolver', () => {
         publicResolver.read.ABI([targetNode, 0xffffffffn]),
       ).resolves.toMatchObject([0n, '0x'])
     })
+
+    it('can try all content types', async () => {
+      const { publicResolver } = await loadFixture(fixture)
+      await expect(
+        publicResolver.read.ABI([targetNode, (1n << 256n) - 1n]),
+      ).resolves.toMatchObject([0n, '0x'])
+    })
   })
 
   describe('test', () => {
@@ -1144,7 +1151,7 @@ describe('PublicResolver', () => {
       await publicResolver.write.setAddr([targetNode, ensRegistry.address])
 
       const supportsInterfaceArtifact = await hre.artifacts.readArtifact(
-        '@openzeppelin/contracts/interfaces/IERC165.sol:IERC165',
+        'IERC165',
       )
       const supportsInterfaceId = createInterfaceId(
         supportsInterfaceArtifact.abi,
@@ -1164,7 +1171,7 @@ describe('PublicResolver', () => {
       await publicResolver.write.setAddr([targetNode, accounts[0].address])
 
       const supportsInterfaceArtifact = await hre.artifacts.readArtifact(
-        '@openzeppelin/contracts/interfaces/IERC165.sol:IERC165',
+        'IERC165',
       )
       const supportsInterfaceId = createInterfaceId(
         supportsInterfaceArtifact.abi,

@@ -41,7 +41,7 @@ abstract contract ABIResolver is IABIResolver, ResolverBase {
 
         for (
             uint256 contentType = 1;
-            contentType <= contentTypes;
+            contentType > 0 && contentType <= contentTypes;
             contentType <<= 1
         ) {
             if (
