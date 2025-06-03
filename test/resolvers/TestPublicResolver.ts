@@ -2,9 +2,9 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import {
-  Address,
-  Hash,
-  Hex,
+  type Address,
+  type Hash,
+  type Hex,
   decodeFunctionResult,
   encodeFunctionData,
   keccak256,
@@ -16,6 +16,7 @@ import {
 } from 'viem'
 import { createInterfaceId } from '../fixtures/createInterfaceId.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
+import { COIN_TYPE_ETH, EVM_BIT, shortCoin } from '../fixtures/ensip19.js'
 
 const targetNode = namehash('eth')
 
@@ -175,7 +176,7 @@ describe('PublicResolver', () => {
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddressChanged')
-        .withArgs(targetNode, 60n, accounts[1].address)
+        .withArgs(targetNode, COIN_TYPE_ETH, accounts[1].address)
 
       await expect(publicResolver)
         .transaction(hash)
@@ -282,13 +283,13 @@ describe('PublicResolver', () => {
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddressChanged')
-        .withArgs(targetNode, 60n, accounts[1].address)
+        .withArgs(targetNode, COIN_TYPE_ETH, accounts[1].address)
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddrChanged')
         .withArgs(targetNode, accounts[1].address)
       await expect(
-        publicResolver.read.addr([targetNode, 60n]) as Promise<Hex>,
+        publicResolver.read.addr([targetNode, COIN_TYPE_ETH]) as Promise<Hex>,
       ).resolves.toEqual(accounts[1].address.toLowerCase() as Address)
     })
 
@@ -297,14 +298,14 @@ describe('PublicResolver', () => {
 
       const hash = await publicResolver.write.setAddr([
         targetNode,
-        60n,
+        COIN_TYPE_ETH,
         accounts[2].address,
       ])
 
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddressChanged')
-        .withArgs(targetNode, 60n, accounts[2].address)
+        .withArgs(targetNode, COIN_TYPE_ETH, accounts[2].address)
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddrChanged')
@@ -328,6 +329,90 @@ describe('PublicResolver', () => {
       await expect(
         publicResolver.read.addr([targetNode]) as Promise<Address>,
       ).resolves.toEqualAddress(zeroAddress)
+    })
+
+    it('clears coin type 60', async () => {
+      const { publicResolver, accounts } = await loadFixture(fixture)
+      await publicResolver.write.setAddr([
+        targetNode,
+        COIN_TYPE_ETH,
+        accounts[1].address,
+      ])
+      await expect(
+        publicResolver.read.addr([targetNode]) as Promise<Address>,
+        'confirm set',
+      ).resolves.toEqualAddress(accounts[1].address)
+      await publicResolver.write.setAddr([targetNode, COIN_TYPE_ETH, '0x'])
+      await expect(
+        publicResolver.read.addr([targetNode]) as Promise<Address>,
+        'addr',
+      ).resolves.toEqualAddress(zeroAddress)
+      await expect(
+        publicResolver.read.addr([
+          targetNode,
+          COIN_TYPE_ETH,
+        ]) as Promise<Address>,
+        'addr(60)',
+      ).resolves.toStrictEqual('0x')
+    })
+
+    it('does fallback for EVM coin types to default coin type', async () => {
+      const { publicResolver, accounts } = await loadFixture(fixture)
+      await publicResolver.write.setAddr([
+        targetNode,
+        EVM_BIT,
+        accounts[1].address,
+      ])
+      for (const coinType of [COIN_TYPE_ETH, EVM_BIT | 1n]) {
+        await expect(
+          publicResolver.read.addr([targetNode, coinType]) as Promise<Address>,
+          shortCoin(coinType),
+        ).resolves.toEqualAddress(accounts[1].address)
+      }
+    })
+
+    it('does not fallback for non EVM coin types', async () => {
+      const { publicResolver, accounts } = await loadFixture(fixture)
+      await publicResolver.write.setAddr([
+        targetNode,
+        EVM_BIT,
+        accounts[1].address,
+      ])
+      for (const coinType of [0n, 1n]) {
+        await expect(
+          publicResolver.read.addr([targetNode, coinType]) as Promise<Address>,
+          shortCoin(coinType),
+        ).resolves.toStrictEqual('0x')
+      }
+    })
+
+    it('forbids setting an invalid EVM address', async () => {
+      const invalidAddr = '0x1234'
+      const { publicResolver } = await loadFixture(fixture)
+      for (const coinType of [COIN_TYPE_ETH, EVM_BIT]) {
+        await expect(publicResolver)
+          .write('setAddr', [targetNode, coinType, invalidAddr])
+          .toBeRevertedWithCustomError('InvalidEVMAddress')
+          .withArgs(invalidAddr)
+      }
+    })
+
+    it('supports hasAddr() even if addr() returns default', async () => {
+      const { publicResolver, accounts } = await loadFixture(fixture)
+      await publicResolver.write.setAddr([
+        targetNode,
+        EVM_BIT,
+        accounts[1].address,
+      ])
+      await expect(
+        publicResolver.read.hasAddr([targetNode, EVM_BIT]),
+      ).resolves.toStrictEqual(true)
+      for (const coinType of [0n, COIN_TYPE_ETH, EVM_BIT | 1n]) {
+        await expect(
+          publicResolver.read.hasAddr([targetNode, coinType]),
+          shortCoin(coinType),
+        ).resolves.toStrictEqual(false)
+      }
     })
   })
 
@@ -1144,7 +1229,7 @@ describe('PublicResolver', () => {
       await publicResolver.write.setAddr([targetNode, ensRegistry.address])
 
       const supportsInterfaceArtifact = await hre.artifacts.readArtifact(
-        '@openzeppelin/contracts/interfaces/IERC165.sol:IERC165',
+        'IERC165',
       )
       const supportsInterfaceId = createInterfaceId(
         supportsInterfaceArtifact.abi,
@@ -1164,7 +1249,7 @@ describe('PublicResolver', () => {
       await publicResolver.write.setAddr([targetNode, accounts[0].address])
 
       const supportsInterfaceArtifact = await hre.artifacts.readArtifact(
-        '@openzeppelin/contracts/interfaces/IERC165.sol:IERC165',
+        'IERC165',
       )
       const supportsInterfaceId = createInterfaceId(
         supportsInterfaceArtifact.abi,
@@ -1494,7 +1579,7 @@ describe('PublicResolver', () => {
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('AddressChanged')
-        .withArgs(targetNode, 60n, accounts[1].address)
+        .withArgs(targetNode, COIN_TYPE_ETH, accounts[1].address)
       await expect(publicResolver)
         .transaction(hash)
         .toEmitEvent('TextChanged')
