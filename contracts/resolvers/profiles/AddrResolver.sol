@@ -2,6 +2,7 @@
 pragma solidity >=0.8.4;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
 import {ResolverBase} from "../ResolverBase.sol";
 import {IAddrResolver} from "./IAddrResolver.sol";
 import {IAddressResolver} from "./IAddressResolver.sol";
@@ -18,16 +19,6 @@ abstract contract AddrResolver is
     /// @dev Error selector: `0x8d666f60`
     error InvalidEVMAddress(bytes addressBytes);
 
-    /// @inheritdoc IERC165
-    function supportsInterface(
-        bytes4 interfaceID
-    ) public view virtual override returns (bool) {
-        return
-            interfaceID == type(IAddrResolver).interfaceId ||
-            interfaceID == type(IAddressResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
-    }
-
     /// @notice Set `addr(60)` of the associated ENS node.
     /// @dev `address(0)` is stored as `bytes(0)`.
     /// @param node The node to update.
@@ -39,7 +30,7 @@ abstract contract AddrResolver is
         setAddr(
             node,
             COIN_TYPE_ETH,
-            _addr == address(0) ? new bytes(0) : abi.encodePacked(_addr)
+            _addr == address(0) ? bytes("") : abi.encodePacked(_addr)
         );
     }
 
@@ -109,5 +100,15 @@ abstract contract AddrResolver is
         has =
             versionable_addresses[recordVersions[node]][node][coinType].length >
             0;
+    }
+
+    /// @inheritdoc IERC165
+    function supportsInterface(
+        bytes4 interfaceID
+    ) public view virtual override returns (bool) {
+        return
+            interfaceID == type(IAddrResolver).interfaceId ||
+            interfaceID == type(IAddressResolver).interfaceId ||
+            super.supportsInterface(interfaceID);
     }
 }
