@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-
-import {ResolverBase} from "../ResolverBase.sol";
+import {ResolverBase, IERC165} from "../ResolverBase.sol";
 import {IAddrResolver} from "./IAddrResolver.sol";
 import {IAddressResolver} from "./IAddressResolver.sol";
 import {ENSIP19, COIN_TYPE_ETH, EVM_BIT} from "../../utils/ENSIP19.sol";
