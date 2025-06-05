@@ -20,7 +20,7 @@ abstract contract AddrResolver is
     error InvalidEVMAddress(bytes addressBytes);
 
     /// @notice Set `addr(60)` of the associated ENS node.
-    /// @dev `address(0)` is stored as `bytes(0)`.
+    ///         `address(0)` is stored as `bytes(0)`.
     /// @param node The node to update.
     /// @param _addr The address to set.
     function setAddr(
@@ -44,7 +44,7 @@ abstract contract AddrResolver is
     }
 
     /// @notice Set the address for coin type of the associated ENS node.
-    ///         If coin type is EVM, require exactly 0 or 20 bytes and replace empty 20 bytes with 0 bytes.
+    ///         If coin type is EVM, require exactly 0 or 20 bytes.
     /// @param node The node to update.
     /// @param coinType The coin type.
     /// @param addressBytes The address to set.
