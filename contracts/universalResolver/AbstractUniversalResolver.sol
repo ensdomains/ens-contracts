@@ -13,7 +13,7 @@ import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IMulticallable} from "../resolvers/IMulticallable.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
-import {ENSIP19, COIN_TYPE_ETH, EVM_BIT} from "../utils/ENSIP19.sol";
+import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
 
 abstract contract AbstractUniversalResolver is
     IUniversalResolver,
@@ -214,7 +214,10 @@ abstract contract AbstractUniversalResolver is
             ? abi.encodeCall(IAddrResolver.addr, (node))
             : abi.encodeCall(IAddressResolver.addr, (node, coinType));
         if (useFallback) {
-            calls[1] = abi.encodeCall(IAddressResolver.addr, (node, EVM_BIT));
+            calls[1] = abi.encodeCall(
+                IAddressResolver.addr,
+                (node, COIN_TYPE_DEFAULT)
+            );
         }
     }
 

@@ -5,7 +5,7 @@ import {ResolverBase, IERC165} from "../ResolverBase.sol";
 import {IAddrResolver} from "./IAddrResolver.sol";
 import {IAddressResolver} from "./IAddressResolver.sol";
 import {IHasAddressResolver} from "./IHasAddressResolver.sol";
-import {ENSIP19, COIN_TYPE_ETH, EVM_BIT} from "../../utils/ENSIP19.sol";
+import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../../utils/ENSIP19.sol";
 
 abstract contract AddrResolver is
     IAddrResolver,
@@ -20,18 +20,14 @@ abstract contract AddrResolver is
     error InvalidEVMAddress(bytes addressBytes);
 
     /// @notice Set `addr(60)` of the associated ENS node.
-    ///         `address(0)` is stored as `bytes(0)`.
+    ///         `address(0)` is stored as `new bytes(20)`.
     /// @param node The node to update.
     /// @param _addr The address to set.
     function setAddr(
         bytes32 node,
         address _addr
     ) external virtual authorised(node) {
-        setAddr(
-            node,
-            COIN_TYPE_ETH,
-            _addr == address(0) ? bytes("") : abi.encodePacked(_addr)
-        );
+        setAddr(node, COIN_TYPE_ETH, abi.encodePacked(_addr));
     }
 
     /// @notice Get `addr(60)` as `address` of the associated ENS node.
@@ -44,7 +40,7 @@ abstract contract AddrResolver is
     }
 
     /// @notice Set the address for coin type of the associated ENS node.
-    ///         If coin type is EVM, require exactly 0 or 20 bytes.
+    ///         Reverts `InvalidEVMAddress` if coin type is EVM and not 0 or 20 bytes.
     /// @param node The node to update.
     /// @param coinType The coin type.
     /// @param addressBytes The address to set.
@@ -70,7 +66,7 @@ abstract contract AddrResolver is
     }
 
     /// @notice Get the address for coin type of the associated ENS node.
-    ///         If coin type is EVM and empty, defaults to `addr(EVM_BIT)`.
+    ///         If coin type is EVM and empty, defaults to `addr(COIN_TYPE_DEFAULT)`.
     /// @param node The node to query.
     /// @param coinType The coin type.
     /// @return addressBytes The assocated address.
@@ -85,7 +81,7 @@ abstract contract AddrResolver is
         if (
             addressBytes.length == 0 && ENSIP19.chainFromCoinType(coinType) > 0
         ) {
-            addressBytes = addrs[EVM_BIT];
+            addressBytes = addrs[COIN_TYPE_DEFAULT];
         }
     }
 

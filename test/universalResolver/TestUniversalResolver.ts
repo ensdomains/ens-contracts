@@ -15,7 +15,11 @@ import {
 } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
-import { COIN_TYPE_ETH, EVM_BIT, getReverseName } from '../fixtures/ensip19.js'
+import {
+  COIN_TYPE_ETH,
+  COIN_TYPE_DEFAULT,
+  getReverseName,
+} from '../fixtures/ensip19.js'
 import { ownedEnsFixture } from './ownedEnsFixture.js'
 import { expectVar } from '../fixtures/expectVar.js'
 import { makeResolutions, bundleCalls, getParentName } from './utils.js'
@@ -603,7 +607,7 @@ describe('UniversalResolver', () => {
         name: testName,
         addresses: [
           {
-            coinType: EVM_BIT,
+            coinType: COIN_TYPE_DEFAULT,
             encodedAddress: F.owner,
           },
         ],

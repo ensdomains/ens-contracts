@@ -16,7 +16,11 @@ import {
 } from 'viem'
 import { createInterfaceId } from '../fixtures/createInterfaceId.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
-import { COIN_TYPE_ETH, EVM_BIT, shortCoin } from '../fixtures/ensip19.js'
+import {
+  COIN_TYPE_ETH,
+  COIN_TYPE_DEFAULT,
+  shortCoin,
+} from '../fixtures/ensip19.js'
 import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 
 const targetNode = namehash('eth')
@@ -132,43 +136,6 @@ describe('PublicResolver', () => {
           }),
         )
         .toBeRevertedWithoutReason()
-    })
-  })
-
-  describe('supportsInterface function', () => {
-    it('supports known interfaces', async () => {
-      const { publicResolver } = await loadFixture(fixture)
-
-      const expectedArtifactSupport = [
-        await hre.artifacts.readArtifact('IAddrResolver'),
-        await hre.artifacts.readArtifact('IAddressResolver'),
-        await hre.artifacts.readArtifact('INameResolver'),
-        await hre.artifacts.readArtifact('IABIResolver'),
-        await hre.artifacts.readArtifact('IPubkeyResolver'),
-        await hre.artifacts.readArtifact('ITextResolver'),
-        await hre.artifacts.readArtifact('IContentHashResolver'),
-        await hre.artifacts.readArtifact('IDNSRecordResolver'),
-        await hre.artifacts.readArtifact('IDNSZoneResolver'),
-        await hre.artifacts.readArtifact('IInterfaceResolver'),
-      ] as const
-
-      const interfaceIds = expectedArtifactSupport.map((a) =>
-        createInterfaceId(a.abi),
-      )
-
-      for (const interfaceId of interfaceIds) {
-        await expect(
-          publicResolver.read.supportsInterface([interfaceId]),
-        ).resolves.toEqual(true)
-      }
-    })
-
-    it('does not support a random interface', async () => {
-      const { publicResolver } = await loadFixture(fixture)
-
-      await expect(
-        publicResolver.read.supportsInterface(['0x3b3b57df']),
-      ).resolves.toEqual(false)
     })
   })
 
@@ -377,7 +344,7 @@ describe('PublicResolver', () => {
       ).resolves.toStrictEqual('0x')
     })
 
-    it('clears address w/setAddr()', async () => {
+    it('zeros address w/setAddr()', async () => {
       const { publicResolver, accounts } = await loadFixture(fixture)
       // set
       await publicResolver.write.setAddr([targetNode, accounts[1].address])
@@ -397,19 +364,19 @@ describe('PublicResolver', () => {
           COIN_TYPE_ETH,
         ]) as Promise<Address>,
         'addr(60)',
-      ).resolves.toStrictEqual('0x')
+      ).resolves.toStrictEqual(zeroAddress)
     })
 
-    it('does fallback for EVM coin types to default coin type', async () => {
+    it('does fallback for EVM coin types to default', async () => {
       const { publicResolver, accounts } = await loadFixture(fixture)
       // set default
       await publicResolver.write.setAddr([
         targetNode,
-        EVM_BIT,
+        COIN_TYPE_DEFAULT,
         accounts[1].address,
       ])
       // expect evm are default
-      for (const coinType of [COIN_TYPE_ETH, EVM_BIT | 1n]) {
+      for (const coinType of [COIN_TYPE_ETH, COIN_TYPE_DEFAULT | 1n]) {
         await expect(
           publicResolver.read.addr([targetNode, coinType]) as Promise<Address>,
           shortCoin(coinType),
@@ -417,12 +384,12 @@ describe('PublicResolver', () => {
       }
     })
 
-    it('does not fallback for non EVM coin types', async () => {
+    it('does not fallback for non-EVM coin types', async () => {
       const { publicResolver, accounts } = await loadFixture(fixture)
       // set default
       await publicResolver.write.setAddr([
         targetNode,
-        EVM_BIT,
+        COIN_TYPE_DEFAULT,
         accounts[1].address,
       ])
       // expect non-evm ignore default
@@ -437,7 +404,7 @@ describe('PublicResolver', () => {
     it('forbids setting an invalid EVM address', async () => {
       const invalidAddr = '0x1234'
       const { publicResolver } = await loadFixture(fixture)
-      for (const coinType of [COIN_TYPE_ETH, EVM_BIT]) {
+      for (const coinType of [COIN_TYPE_ETH, COIN_TYPE_DEFAULT]) {
         await expect(publicResolver)
           .write('setAddr', [targetNode, coinType, invalidAddr])
           .toBeRevertedWithCustomError('InvalidEVMAddress')
@@ -456,7 +423,7 @@ describe('PublicResolver', () => {
       // set default
       await publicResolver.write.setAddr([
         targetNode,
-        EVM_BIT,
+        COIN_TYPE_DEFAULT,
         accounts[1].address,
       ])
       // expect 0
@@ -473,15 +440,15 @@ describe('PublicResolver', () => {
       // set default
       await publicResolver.write.setAddr([
         targetNode,
-        EVM_BIT,
+        COIN_TYPE_DEFAULT,
         accounts[1].address,
       ])
       // has default
       await expect(
-        publicResolver.read.hasAddr([targetNode, EVM_BIT]),
+        publicResolver.read.hasAddr([targetNode, COIN_TYPE_DEFAULT]),
       ).resolves.toStrictEqual(true)
       // does not have any other
-      for (const coinType of [0n, COIN_TYPE_ETH, EVM_BIT | 1n]) {
+      for (const coinType of [0n, COIN_TYPE_ETH, COIN_TYPE_DEFAULT | 1n]) {
         await expect(
           publicResolver.read.hasAddr([targetNode, coinType]),
           shortCoin(coinType),
