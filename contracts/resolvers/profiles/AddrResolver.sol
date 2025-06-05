@@ -4,11 +4,13 @@ pragma solidity >=0.8.4;
 import {ResolverBase, IERC165} from "../ResolverBase.sol";
 import {IAddrResolver} from "./IAddrResolver.sol";
 import {IAddressResolver} from "./IAddressResolver.sol";
+import {IHasAddressResolver} from "./IHasAddressResolver.sol";
 import {ENSIP19, COIN_TYPE_ETH, EVM_BIT} from "../../utils/ENSIP19.sol";
 
 abstract contract AddrResolver is
     IAddrResolver,
     IAddressResolver,
+    IHasAddressResolver,
     ResolverBase
 {
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
@@ -25,20 +27,16 @@ abstract contract AddrResolver is
         bytes32 node,
         address _addr
     ) external virtual authorised(node) {
-        setAddr(
-            node,
-            COIN_TYPE_ETH,
-            _addr == address(0) ? bytes("") : abi.encodePacked(_addr)
-        );
+        setAddr(node, COIN_TYPE_ETH, abi.encodePacked(_addr));
     }
 
     /// @notice Get `addr(60)` as `address` of the associated ENS node.
     /// @param node The node to query.
-    /// @return addr_ The associated address.
+    /// @return The associated address.
     function addr(
         bytes32 node
-    ) public view virtual override returns (address payable addr_) {
-        addr_ = payable(address(bytes20(addr(node, COIN_TYPE_ETH))));
+    ) public view virtual override returns (address payable) {
+        return payable(address(bytes20(addr(node, COIN_TYPE_ETH))));
     }
 
     /// @notice Set the address for coin type of the associated ENS node.
@@ -51,12 +49,12 @@ abstract contract AddrResolver is
         uint256 coinType,
         bytes memory addressBytes
     ) public virtual authorised(node) {
-        if (addressBytes.length != 0 && ENSIP19.isEVMCoinType(coinType)) {
-            if (addressBytes.length != 20) {
-                revert InvalidEVMAddress(addressBytes);
-            } else if (bytes20(addressBytes) == bytes20(0)) {
-                addressBytes = "";
-            }
+        if (
+            addressBytes.length != 0 &&
+            addressBytes.length != 20 &&
+            ENSIP19.isEVMCoinType(coinType)
+        ) {
+            revert InvalidEVMAddress(addressBytes);
         }
         emit AddressChanged(node, coinType, addressBytes);
         if (coinType == COIN_TYPE_ETH) {
@@ -90,23 +88,24 @@ abstract contract AddrResolver is
     /// @notice Determine if coin type of the associated ENS node has been set explicitly.
     /// @param node The node to query.
     /// @param coinType The coin type.
-    /// @return has True if `setAddr(node, coinType)` has been set.
+    /// @return True if `setAddr(node, coinType)` has been set.
     function hasAddr(
         bytes32 node,
         uint256 coinType
-    ) external view returns (bool has) {
-        has =
+    ) external view returns (bool) {
+        return
             versionable_addresses[recordVersions[node]][node][coinType].length >
             0;
     }
 
     /// @inheritdoc IERC165
     function supportsInterface(
-        bytes4 interfaceID
+        bytes4 interfaceId
     ) public view virtual override returns (bool) {
         return
-            interfaceID == type(IAddrResolver).interfaceId ||
-            interfaceID == type(IAddressResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
+            type(IAddrResolver).interfaceId == interfaceId ||
+            type(IAddressResolver).interfaceId == interfaceId ||
+            type(IHasAddressResolver).interfaceId == interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }
