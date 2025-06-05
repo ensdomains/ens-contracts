@@ -70,7 +70,7 @@ abstract contract AddrResolver is
     }
 
     /// @notice Get the address for coin type of the associated ENS node.
-    ///         If coin type is EVM and empty, defaults to `addr(node, EVM_BIT)`.
+    ///         If coin type is EVM and empty, defaults to `addr(EVM_BIT)`.
     /// @param node The node to query.
     /// @param coinType The coin type.
     /// @return addressBytes The assocated address.
