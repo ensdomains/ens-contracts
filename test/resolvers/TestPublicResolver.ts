@@ -1,6 +1,7 @@
+import hre from 'hardhat'
 import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { expect } from 'chai'
-import hre from 'hardhat'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import {
   type Address,
   type Hash,
@@ -21,7 +22,6 @@ import {
   COIN_TYPE_DEFAULT,
   shortCoin,
 } from '../fixtures/ensip19.js'
-import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 
 const targetNode = namehash('eth')
 
