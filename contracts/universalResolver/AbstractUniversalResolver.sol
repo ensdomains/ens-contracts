@@ -6,7 +6,6 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {IUniversalResolver} from "./IUniversalResolver.sol";
-import {IResolverFinder} from "./IResolverFinder.sol";
 import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
@@ -15,11 +14,10 @@ import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IMulticallable} from "../resolvers/IMulticallable.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
-import {ENSIP19, COIN_TYPE_ETH, EVM_BIT} from "../utils/ENSIP19.sol";
+import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
 
 abstract contract AbstractUniversalResolver is
     IUniversalResolver,
-    IResolverFinder,
     CCIPBatcher,
     Ownable,
     ERC165
@@ -32,12 +30,11 @@ abstract contract AbstractUniversalResolver is
 
     /// @inheritdoc ERC165
     function supportsInterface(
-        bytes4 interfaceID
+        bytes4 interfaceId
     ) public view virtual override(ERC165) returns (bool) {
         return
-            type(IUniversalResolver).interfaceId == interfaceID ||
-            type(IResolverFinder).interfaceId == interfaceID ||
-            super.supportsInterface(interfaceID);
+            type(IUniversalResolver).interfaceId == interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /// @dev Set the default batch gateways, see: `resolve()` and `reverse()`.
@@ -53,7 +50,6 @@ abstract contract AbstractUniversalResolver is
         public
         view
         virtual
-        override(IUniversalResolver, IResolverFinder)
         returns (address resolver, bytes32 node, uint256 offset);
 
     // @dev A valid resolver and its relevant properties.

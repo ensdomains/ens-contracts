@@ -24,16 +24,13 @@ async function fixture() {
   const ens = await ownedEnsFixture()
   const bg = await serveBatchGateway()
   after(bg.shutdown)
-  const UniversalResolver = await hre.viem.deployContract(
+  const publicClient = await hre.viem.getPublicClient({ ccipRead: undefined })
+  const universalResolver = await hre.viem.deployContract(
     'UniversalResolver',
     [ens.ENSRegistry.address, [bg.localBatchGatewayUrl]],
-    {
-      client: {
-        public: await hre.viem.getPublicClient({ ccipRead: undefined }),
-      },
-    },
+    { client: { public: publicClient } },
   )
-  return { UniversalResolver, ...ens }
+  return { universalResolver, publicClient, ...ens }
 }
 
 const dummyCalldata = '0x12345678'
@@ -52,8 +49,8 @@ const resolutions = makeResolutions({
 
 describe('UniversalResolver', () => {
   shouldSupportInterfaces({
-    contract: () => loadFixture(fixture).then((F) => F.UniversalResolver),
-    interfaces: ['IERC165', 'IUniversalResolver', 'IResolverFinder'],
+    contract: () => loadFixture(fixture).then((F) => F.universalResolver),
+    interfaces: ['IERC165', 'IUniversalResolver'],
   })
 
   describe('findResolver()', () => {
@@ -61,7 +58,7 @@ describe('UniversalResolver', () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
+        await F.universalResolver.read.findResolver([dnsEncodeName(testName)])
       expectVar({ resolver }).toEqualAddress(zeroAddress)
       expectVar({ node }).toStrictEqual(namehash(testName))
       expectVar({ offset }).toStrictEqual(0n)
@@ -75,7 +72,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
+        await F.universalResolver.read.findResolver([dnsEncodeName(testName)])
       expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
       expectVar({ node }).toStrictEqual(namehash(testName))
       expectVar({ offset }).toStrictEqual(0n)
@@ -90,7 +87,7 @@ describe('UniversalResolver', () => {
       ])
       await F.Shapeshift1.write.setExtended([true])
       const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(testName)])
+        await F.universalResolver.read.findResolver([dnsEncodeName(testName)])
       expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
       expectVar({ node }).toStrictEqual(namehash(testName))
       expectVar({ offset }).toStrictEqual(
@@ -107,7 +104,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(name)])
+        await F.universalResolver.read.findResolver([dnsEncodeName(name)])
       expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
       expectVar({ node }).toStrictEqual(namehash(name))
       expectVar({ offset }).toStrictEqual(0n)
@@ -125,7 +122,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       const [resolver, node, offset] =
-        await F.UniversalResolver.read.findResolver([dnsEncodeName(name)])
+        await F.universalResolver.read.findResolver([dnsEncodeName(name)])
       expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
       expectVar({ node }).toStrictEqual(namehash(name))
       expectVar({ offset }).toStrictEqual(0n)
@@ -135,7 +132,7 @@ describe('UniversalResolver', () => {
   describe('resolve()', () => {
     it('unset', async () => {
       const F = await loadFixture(fixture)
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverNotFound')
         .withArgs(dnsEncodeName(testName))
@@ -148,7 +145,7 @@ describe('UniversalResolver', () => {
         namehash(getParentName(testName)),
         F.owner,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverNotFound')
         .withArgs(dnsEncodeName(testName))
@@ -158,7 +155,7 @@ describe('UniversalResolver', () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ENSRegistry.write.setResolver([namehash(testName), F.owner])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverNotContract')
         .withArgs(dnsEncodeName(testName), F.owner)
@@ -171,7 +168,7 @@ describe('UniversalResolver', () => {
         namehash(testName),
         F.Shapeshift1.address,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('UnsupportedResolverProfile')
         .withArgs(dummyCalldata)
@@ -185,7 +182,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       await F.Shapeshift1.write.setRevertEmpty([true])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverError')
         .withArgs('0x')
@@ -199,7 +196,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('ResolverError')
         .withArgs(dummyCalldata)
@@ -218,7 +215,7 @@ describe('UniversalResolver', () => {
       ])
       await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
       await F.Shapeshift1.write.setOffchain([true])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolveWithGateways', [
           dnsEncodeName(testName),
           dummyCalldata,
@@ -236,7 +233,7 @@ describe('UniversalResolver', () => {
         F.Shapeshift1.address,
       ])
       await F.Shapeshift1.write.setRevertUnsupportedResolverProfile([true])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyCalldata])
         .toBeRevertedWithCustomError('UnsupportedResolverProfile')
         .withArgs(dummyCalldata)
@@ -255,7 +252,7 @@ describe('UniversalResolver', () => {
           name: testName,
         },
       })
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
@@ -285,7 +282,7 @@ describe('UniversalResolver', () => {
           ],
         }),
       )
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -303,7 +300,7 @@ describe('UniversalResolver', () => {
       ])
       const res = resolutions[0]
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
@@ -323,7 +320,7 @@ describe('UniversalResolver', () => {
       for (const res of resolutions) {
         await F.Shapeshift1.write.setResponse([res.call, res.answer])
       }
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -342,7 +339,7 @@ describe('UniversalResolver', () => {
       const res = resolutions[0]
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       await F.Shapeshift1.write.setExtended([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
@@ -363,7 +360,7 @@ describe('UniversalResolver', () => {
         await F.Shapeshift1.write.setResponse([res.call, res.answer])
       }
       await F.Shapeshift1.write.setExtended([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -382,7 +379,7 @@ describe('UniversalResolver', () => {
       const res = resolutions[0]
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       await F.Shapeshift1.write.setOffchain([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
@@ -403,7 +400,7 @@ describe('UniversalResolver', () => {
         await F.Shapeshift1.write.setResponse([res.call, res.answer])
       }
       await F.Shapeshift1.write.setOffchain([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -423,7 +420,7 @@ describe('UniversalResolver', () => {
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       await F.Shapeshift1.write.setExtended([true])
       await F.Shapeshift1.write.setOffchain([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
@@ -445,7 +442,7 @@ describe('UniversalResolver', () => {
       }
       await F.Shapeshift1.write.setExtended([true])
       await F.Shapeshift1.write.setOffchain([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -482,7 +479,7 @@ describe('UniversalResolver', () => {
       }
       await F.Shapeshift1.write.setExtended([true])
       await F.Shapeshift1.write.setOffchain([true])
-      const [answer, resolver] = await F.UniversalResolver.read.resolve([
+      const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
@@ -495,14 +492,14 @@ describe('UniversalResolver', () => {
   describe('reverse()', () => {
     it('empty address', async () => {
       const F = await loadFixture(fixture)
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', ['0x', COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('EmptyAddress')
     })
 
     it('unset reverse resolver', async () => {
       const F = await loadFixture(fixture)
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ResolverNotFound')
         .withArgs(dnsEncodeName(getReverseName(F.owner, COIN_TYPE_ETH)))
@@ -516,7 +513,7 @@ describe('UniversalResolver', () => {
         namehash(reverseName),
         F.OldResolver.address,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ResolverNotFound')
         .withArgs(dnsEncodeName(testName))
@@ -536,7 +533,7 @@ describe('UniversalResolver', () => {
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
-        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+        await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
       expectVar({ name }).toStrictEqual('')
       expectVar({ resolver }).toEqualAddress(zeroAddress)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
@@ -550,7 +547,7 @@ describe('UniversalResolver', () => {
         namehash(reverseName),
         F.Shapeshift1.address,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('UnsupportedResolverProfile')
         .withArgs(toFunctionSelector('name(bytes32)'))
@@ -580,7 +577,7 @@ describe('UniversalResolver', () => {
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
-        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+        await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
       expectVar({ name }).toStrictEqual(testName)
       expectVar({ resolver }).toEqualAddress(F.Shapeshift1.address)
       expectVar({ reverseResolver }).toEqualAddress(F.OldResolver.address)
@@ -609,7 +606,7 @@ describe('UniversalResolver', () => {
         ],
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ReverseAddressMismatch')
         .withArgs(testName, anotherAddress)
@@ -628,7 +625,7 @@ describe('UniversalResolver', () => {
         namehash(testName),
         F.OldResolver.address,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('UnsupportedResolverProfile')
         .withArgs(toFunctionSelector('addr(bytes32)'))
@@ -647,7 +644,7 @@ describe('UniversalResolver', () => {
         namehash(testName),
         F.Shapeshift1.address,
       ])
-      await expect(F.UniversalResolver)
+      await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('UnsupportedResolverProfile')
         .withArgs(toFunctionSelector('addr(bytes32)'))
@@ -684,7 +681,7 @@ describe('UniversalResolver', () => {
       })
       await F.Shapeshift2.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
-        await F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+        await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
       expectVar({ name }).toStrictEqual(testName)
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
@@ -724,7 +721,7 @@ describe('UniversalResolver', () => {
       await F.Shapeshift2.write.setOffchain([true])
       await F.Shapeshift2.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
-        await F.UniversalResolver.read.reverse([F.owner, coinType])
+        await F.universalResolver.read.reverse([F.owner, coinType])
       expectVar({ name }).toStrictEqual(testName)
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)

@@ -5,11 +5,12 @@ import {HexUtils} from "../utils/HexUtils.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 
 uint32 constant CHAIN_ID_ETH = 1;
+
 uint256 constant COIN_TYPE_ETH = 60;
-uint256 constant EVM_BIT = 1 << 31;
+uint256 constant COIN_TYPE_DEFAULT = 1 << 31; // 0x8000_0000
 
 string constant SLUG_ETH = "addr"; // <=> COIN_TYPE_ETH
-string constant SLUG_DEFAULT = "default"; // <=> EVM_BIT
+string constant SLUG_DEFAULT = "default"; // <=> COIN_TYPE_DEFAULT
 string constant TLD_REVERSE = "reverse";
 
 /// @dev Library for generating reverse names according to ENSIP-19.
@@ -20,51 +21,48 @@ library ENSIP19 {
 
     /// @dev Extract Chain ID from `coinType`.
     /// @param coinType The coin type.
-    /// @return chain The Chain ID or 0 if non-EVM Chain.
+    /// @return The Chain ID or 0 if non-EVM Chain.
     function chainFromCoinType(
         uint256 coinType
-    ) internal pure returns (uint32 chain) {
+    ) internal pure returns (uint32) {
         if (coinType == COIN_TYPE_ETH) return CHAIN_ID_ETH;
-        return
-            uint32(
-                uint32(coinType) == coinType && (coinType & EVM_BIT) != 0
-                    ? coinType ^ EVM_BIT
-                    : 0
-            );
+        coinType ^= COIN_TYPE_DEFAULT;
+        return uint32(coinType < COIN_TYPE_DEFAULT ? coinType : 0);
     }
 
     /// @dev Determine if Coin Type is for an EVM address.
     /// @param coinType The coin type.
-    /// @return isEVM True if coin type represents an EVM address.
-    function isEVMCoinType(
-        uint256 coinType
-    ) internal pure returns (bool isEVM) {
-        isEVM = chainFromCoinType(coinType) != 0 || coinType == EVM_BIT;
+    /// @return True if coin type represents an EVM address.
+    function isEVMCoinType(uint256 coinType) internal pure returns (bool) {
+        return coinType == COIN_TYPE_DEFAULT || chainFromCoinType(coinType) > 0;
     }
 
     /// @dev Generate Reverse Name from Address + Coin Type.
     ///      Reverts `EmptyAddress` if `addressBytes` is `0x`.
     /// @param addressBytes The input address.
     /// @param coinType The coin type.
-    /// @return name The ENS reverse name, eg. `1234abcd.addr.reverse`.
+    /// @return The ENS reverse name, eg. `1234abcd.addr.reverse`.
     function reverseName(
         bytes memory addressBytes,
         uint256 coinType
-    ) internal pure returns (string memory name) {
-        if (addressBytes.length == 0) revert EmptyAddress();
-        name = string(
-            abi.encodePacked(
-                HexUtils.bytesToHex(addressBytes),
-                bytes1("."),
-                coinType == COIN_TYPE_ETH
-                    ? SLUG_ETH
-                    : coinType == EVM_BIT
-                        ? SLUG_DEFAULT
-                        : HexUtils.unpaddedUintToHex(coinType, true),
-                bytes1("."),
-                TLD_REVERSE
-            )
-        );
+    ) internal pure returns (string memory) {
+        if (addressBytes.length == 0) {
+            revert EmptyAddress();
+        }
+        return
+            string(
+                abi.encodePacked(
+                    HexUtils.bytesToHex(addressBytes),
+                    bytes1("."),
+                    coinType == COIN_TYPE_ETH
+                        ? SLUG_ETH
+                        : coinType == COIN_TYPE_DEFAULT
+                            ? SLUG_DEFAULT
+                            : HexUtils.unpaddedUintToHex(coinType, true),
+                    bytes1("."),
+                    TLD_REVERSE
+                )
+            );
     }
 
     /// @dev Parse Reverse Name into Address + Coin Type.
@@ -87,7 +85,7 @@ library ENSIP19 {
         if (labelHash == keccak256(bytes(SLUG_ETH))) {
             coinType = COIN_TYPE_ETH;
         } else if (labelHash == keccak256(bytes(SLUG_DEFAULT))) {
-            coinType = EVM_BIT;
+            coinType = COIN_TYPE_DEFAULT;
         } else if (labelHash == bytes32(0)) {
             return ("", 0); // no slug
         } else {
