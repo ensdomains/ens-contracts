@@ -27,7 +27,11 @@ abstract contract AddrResolver is
         bytes32 node,
         address _addr
     ) external virtual authorised(node) {
-        setAddr(node, COIN_TYPE_ETH, abi.encodePacked(_addr));
+        setAddr(
+            node,
+            COIN_TYPE_ETH,
+            _addr == address(0) ? bytes("") : abi.encodePacked(_addr)
+        );
     }
 
     /// @notice Get `addr(60)` as `address` of the associated ENS node.
@@ -85,10 +89,7 @@ abstract contract AddrResolver is
         }
     }
 
-    /// @notice Determine if coin type of the associated ENS node has been set explicitly.
-    /// @param node The node to query.
-    /// @param coinType The coin type.
-    /// @return True if `setAddr(node, coinType)` has been set.
+    /// @inheritdoc IHasAddressResolver
     function hasAddr(
         bytes32 node,
         uint256 coinType
