@@ -22,23 +22,22 @@ const func: DeployFunction = async function (hre) {
 
   const currentRootOwner = await root.read.owner()
   const currentReverseOwner = await registry.read.owner([namehash('reverse')])
-  if (
-    currentRootOwner === owner.address &&
-    currentReverseOwner !== owner.address
-  ) {
-    const setReverseOwnerHash = await root.write.setSubnodeOwner(
-      [labelhash('reverse'), owner.address],
-      { account: owner.account },
-    )
-    console.log(
-      `Setting owner of .reverse to owner on root (tx: ${setReverseOwnerHash})...`,
-    )
-    await viem.waitForTransactionSuccess(setReverseOwnerHash)
-  } else if (currentRootOwner !== owner.address) {
-    console.warn(
-      'Root owner account not available, skipping .reverse setup on registry',
-    )
-    return
+  if (currentReverseOwner !== owner.address) {
+    if (currentRootOwner !== owner.address) {
+      const setReverseOwnerHash = await root.write.setSubnodeOwner(
+        [labelhash('reverse'), owner.address],
+        { account: owner.account },
+      )
+      console.log(
+        `Setting owner of .reverse to owner on root (tx: ${setReverseOwnerHash})...`,
+      )
+      await viem.waitForTransactionSuccess(setReverseOwnerHash)
+    } else {
+      console.warn(
+        'Root owner account not available, skipping .reverse setup on registry',
+      )
+      return
+    }
   }
 
   const setResolverHash = await registry.write.setResolver(
