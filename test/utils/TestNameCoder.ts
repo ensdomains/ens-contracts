@@ -4,7 +4,7 @@ import { expect } from 'chai'
 import { namehash, slice, toHex } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { dnsDecodeName } from '../fixtures/dnsDecodeName.js'
-import { getParentName } from '../universalResolver/utils.js'
+import { getParentName } from './resolutions.js'
 
 async function fixture() {
   return hre.viem.deployContract('TestNameCoder', [])

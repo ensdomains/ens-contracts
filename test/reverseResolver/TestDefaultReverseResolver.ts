@@ -13,7 +13,7 @@ import {
   isEVMCoinType,
   shortCoin,
 } from '../fixtures/ensip19.js'
-import { KnownProfile, makeResolutions } from '../universalResolver/utils.js'
+import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 
 const testName = 'test.eth'
 const coinTypes = [COIN_TYPE_ETH, COIN_TYPE_DEFAULT, 0n, 1n]
@@ -89,7 +89,7 @@ describe('DefaultReverseResolver', () => {
         const F = await loadFixture(fixture)
         const kp: KnownProfile = {
           name: getReverseName(F.owner, coinType),
-          primary: { name: testName },
+          primary: { value: testName },
         }
         const [res] = makeResolutions(kp)
         if (isEVMCoinType(coinType)) {
@@ -121,7 +121,7 @@ describe('DefaultReverseResolver', () => {
         const F = await loadFixture(fixture)
         const kp: KnownProfile = {
           name: `${F.owner.slice(2).toLowerCase()}.${namespace}`,
-          primary: { name: testName },
+          primary: { value: testName },
         }
         const [res] = makeResolutions(kp)
         res.expect(

@@ -9,7 +9,7 @@ import {
   getReverseName,
   getReverseNamespace,
 } from '../fixtures/ensip19.js'
-import { KnownProfile, makeResolutions } from '../universalResolver/utils.js'
+import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 
@@ -71,7 +71,7 @@ const sources = {
     set: async (F, name, account) => {
       const [res] = makeResolutions({
         name: getReverseName(account.address),
-        primary: { name },
+        primary: { value: name },
       })
       await F.shapeshift.write.setResponse([res.call, res.answer])
       await F.claimV1(account.address)
@@ -79,7 +79,7 @@ const sources = {
     setOld: async (F, name, account) => {
       const [res] = makeResolutions({
         name: getReverseName(account.address),
-        primary: { name },
+        primary: { value: name },
       })
       await F.shapeshift.write.setOld()
       await F.shapeshift.write.setResponse([res.call, res.answer])
@@ -88,7 +88,7 @@ const sources = {
     empty: async (F, _, account) => {
       const [res] = makeResolutions({
         name: getReverseName(account.address),
-        primary: { name: '' },
+        primary: { value: '' },
       })
       await F.shapeshift.write.setResponse([res.call, res.answer])
       await F.claimV1(account.address)
@@ -206,7 +206,7 @@ describe('ETHReverseResolver', () => {
         }
         const kp: KnownProfile = {
           name: getReverseName(wallet.account.address),
-          primary: { name },
+          primary: { value: name },
         }
         const [res] = makeResolutions(kp)
         await expect(

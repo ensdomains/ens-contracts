@@ -12,10 +12,11 @@ export async function deployDefaultReverseFixture() {
     'DefaultReverseResolver',
     [defaultReverseRegistrar.address],
   )
-  const defaultReverseNamespace = getReverseNamespace(COIN_TYPE_DEFAULT) // could be "reverse"
-  await F.takeControl(defaultReverseNamespace)
+  const defaultReverseNamespace = getReverseNamespace(COIN_TYPE_DEFAULT)
+  const mountedNamespace = 'reverse' // getParentName(defaultReverseNamespace)
+  await F.takeControl(mountedNamespace)
   await F.ensRegistry.write.setResolver([
-    namehash(defaultReverseNamespace),
+    namehash(mountedNamespace),
     defaultReverseResolver.address,
   ])
   return {

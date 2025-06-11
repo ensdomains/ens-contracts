@@ -15,10 +15,19 @@ import {
 } from 'viem'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
-import { COIN_TYPE_ETH, getReverseName } from '../fixtures/ensip19.js'
+import {
+  COIN_TYPE_DEFAULT,
+  COIN_TYPE_ETH,
+  getReverseName,
+  shortCoin,
+} from '../fixtures/ensip19.js'
 import { expectVar } from '../fixtures/expectVar.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
-import { bundleCalls, getParentName, makeResolutions } from './utils.js'
+import {
+  bundleCalls,
+  getParentName,
+  makeResolutions,
+} from '../utils/resolutions.js'
 
 async function fixture() {
   const F = await deployDefaultReverseFixture()
@@ -29,7 +38,7 @@ async function fixture() {
   await F.ensRegistry.write.setRecord([
     namehash('addr.reverse'),
     reverseRegistrar.address,
-    F.defaultReverseResolver.address,
+    zeroAddress,
     0n,
   ])
   const publicResolver = await hre.viem.deployContract('PublicResolver', [
@@ -277,7 +286,7 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: testName,
-        primary: { name: testName },
+        primary: { value: testName },
       })
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
@@ -298,7 +307,7 @@ describe('UniversalResolver', () => {
       const bundle = bundleCalls(
         makeResolutions({
           name: testName,
-          primary: { name: testName },
+          primary: { value: testName },
           errors: [{ call: dummyCalldata, answer: '0x' }],
         }),
       )
@@ -311,40 +320,67 @@ describe('UniversalResolver', () => {
       bundle.expect(answer)
     })
 
-    it('onchain immediate', async () => {
+    it('PR addr()', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ensRegistry.write.setResolver([
         namehash(testName),
-        F.shapeshift1.address,
+        F.publicResolver.address,
       ])
-      const res = resolutions[0]
-      await F.shapeshift1.write.setResponse([res.call, res.answer])
+      const [res] = makeResolutions({
+        name: testName,
+        addresses: [{ coinType: COIN_TYPE_ETH, value: anotherAddress }],
+      })
+      await F.publicResolver.write.multicall([[res.write]])
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
       ])
-      expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+      expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
       expectVar({ answer }).toStrictEqual(res.answer)
       res.expect(answer)
     })
 
-    it('onchain immediate w/multicall', async () => {
+    it('PR addr() w/fallback', async () => {
       const F = await loadFixture(fixture)
       await F.takeControl(testName)
       await F.ensRegistry.write.setResolver([
         namehash(testName),
-        F.shapeshift1.address,
+        F.publicResolver.address,
+      ])
+      const [res0, res] = makeResolutions({
+        name: testName,
+        addresses: [
+          { coinType: COIN_TYPE_DEFAULT, value: anotherAddress },
+          { coinType: COIN_TYPE_ETH, value: anotherAddress },
+        ],
+      })
+      await F.publicResolver.write.multicall([[res0.write]]) // only set default
+      const [answer, resolver] = await F.universalResolver.read.resolve([
+        dnsEncodeName(testName),
+        res.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+      expectVar({ answer }).toStrictEqual(res.answer)
+      res.expect(answer)
+    })
+
+    it('PR w/multicall', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ensRegistry.write.setResolver([
+        namehash(testName),
+        F.publicResolver.address,
       ])
       const bundle = bundleCalls(resolutions)
-      for (const res of resolutions) {
-        await F.shapeshift1.write.setResponse([res.call, res.answer])
-      }
+      await F.publicResolver.write.multicall([
+        bundle.resolutions.map((x) => x.write),
+      ])
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
       ])
-      expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+      expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
       expectVar({ answer }).toStrictEqual(bundle.answer)
       bundle.expect(answer)
     })
@@ -480,9 +516,7 @@ describe('UniversalResolver', () => {
       ])
       const calls = makeResolutions({
         name: testName,
-        primary: {
-          name: testName,
-        },
+        primary: { value: testName },
         errors: [
           {
             call: dummyCalldata,
@@ -552,7 +586,7 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: reverseName,
-        primary: { name: '' },
+        primary: { value: '' },
       })
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
@@ -576,7 +610,7 @@ describe('UniversalResolver', () => {
         .withArgs(toFunctionSelector('name(bytes32)'))
     })
 
-    it('onchain immediate name() + onchain immediate addr()', async () => {
+    it('old name() + PR addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)
       await F.takeControl(reverseName)
@@ -587,45 +621,60 @@ describe('UniversalResolver', () => {
       await F.takeControl(testName)
       await F.ensRegistry.write.setResolver([
         namehash(testName),
-        F.shapeshift1.address,
+        F.publicResolver.address,
       ])
       const [res] = makeResolutions({
         name: testName,
-        addresses: [
-          {
-            coinType: COIN_TYPE_ETH,
-            value: F.owner,
-          },
-        ],
+        addresses: [{ coinType: COIN_TYPE_ETH, value: F.owner }],
       })
-      await F.shapeshift1.write.setResponse([res.call, res.answer])
+      await F.publicResolver.write.multicall([[res.write]])
       const [name, resolver, reverseResolver] =
         await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
       expectVar({ name }).toStrictEqual(testName)
-      expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+      expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
       expectVar({ reverseResolver }).toEqualAddress(F.oldResolver.address)
     })
 
-    it('onchain immediate name() + onchain immediate mismatch addr()', async () => {
+    it('PR name() + PR addr() w/fallback', async () => {
       const F = await loadFixture(fixture)
       await F.reverseRegistrar.write.setName([testName])
       await F.takeControl(testName)
       await F.ensRegistry.write.setResolver([
         namehash(testName),
-        F.shapeshift1.address,
+        F.publicResolver.address,
+      ])
+      const [res] = makeResolutions({
+        name: testName,
+        addresses: [{ coinType: COIN_TYPE_DEFAULT, value: F.owner }],
+      })
+      await F.publicResolver.write.multicall([[res.write]])
+      const [name, resolver, reverseResolver] =
+        await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
+      expectVar({ name }).toStrictEqual(testName)
+      expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+      expectVar({ reverseResolver }).toEqualAddress(F.publicResolver.address)
+    })
+
+    it('PR name() + PR mismatch addr()', async () => {
+      const F = await loadFixture(fixture)
+      await F.reverseRegistrar.write.setName([testName])
+      await F.takeControl(testName)
+      await F.ensRegistry.write.setResolver([
+        namehash(testName),
+        F.publicResolver.address,
       ])
       const [res] = makeResolutions({
         name: testName,
         addresses: [{ coinType: COIN_TYPE_ETH, value: anotherAddress }],
       })
-      await F.shapeshift1.write.setResponse([res.call, res.answer])
+      await F.publicResolver.write.multicall([[res.write]])
       await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
         .toBeRevertedWithCustomError('ReverseAddressMismatch')
         .withArgs(testName, anotherAddress)
     })
 
-    it('onchain immediate name() + old unimplemented addr()', async () => {
+    it('PR name() + old unimplemented addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)
       await F.takeControl(reverseName)
@@ -644,7 +693,7 @@ describe('UniversalResolver', () => {
         .withArgs(toFunctionSelector('addr(bytes32)'))
     })
 
-    it('onchain immediate name() + onchain immediate unimplemented addr()', async () => {
+    it('PR name() + onchain immediate unimplemented addr()', async () => {
       const F = await loadFixture(fixture)
       const reverseName = getReverseName(F.owner)
       await F.takeControl(reverseName)
@@ -663,37 +712,117 @@ describe('UniversalResolver', () => {
         .withArgs(toFunctionSelector('addr(bytes32)'))
     })
 
-    it('offchain extended name() + onchain immediate addr()', async () => {
-      const F = await loadFixture(fixture)
-      const reverseName = getReverseName(F.owner)
-      await F.takeControl(reverseName)
-      await F.ensRegistry.write.setResolver([
-        namehash(getParentName(reverseName)),
-        F.shapeshift1.address,
-      ])
-      const [rev] = makeResolutions({
-        name: reverseName,
-        primary: { name: testName },
+    for (const coinType of [COIN_TYPE_ETH, COIN_TYPE_DEFAULT + 2n]) {
+      const C = shortCoin(coinType)
+
+      it(`default name() + PR addr(${C})`, async () => {
+        const F = await loadFixture(fixture)
+        await F.defaultReverseRegistrar.write.setName([testName])
+        await F.takeControl(testName)
+        await F.ensRegistry.write.setResolver([
+          namehash(testName),
+          F.publicResolver.address,
+        ])
+        const [res] = makeResolutions({
+          name: testName,
+          addresses: [{ coinType, value: F.owner }],
+        })
+        await F.publicResolver.write.multicall([[res.write]])
+        const [name, resolver, reverseResolver] =
+          await F.universalResolver.read.reverse([F.owner, coinType])
+        expectVar({ name }).toStrictEqual(testName)
+        expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+        expectVar({ reverseResolver }).toEqualAddress(
+          F.defaultReverseResolver.address,
+        )
       })
-      await F.shapeshift1.write.setExtended([true])
-      await F.shapeshift1.write.setOffchain([true])
-      await F.shapeshift1.write.setResponse([rev.call, rev.answer])
-      await F.takeControl(testName)
-      await F.ensRegistry.write.setResolver([
-        namehash(testName),
-        F.shapeshift2.address,
-      ])
-      const [res] = makeResolutions({
-        name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: F.owner }],
+
+      it(`default name() + PR addr(${C}) w/fallback`, async () => {
+        const F = await loadFixture(fixture)
+        await F.defaultReverseRegistrar.write.setName([testName])
+        await F.takeControl(testName)
+        await F.ensRegistry.write.setResolver([
+          namehash(testName),
+          F.publicResolver.address,
+        ])
+        const [res] = makeResolutions({
+          name: testName,
+          addresses: [{ coinType: COIN_TYPE_DEFAULT, value: F.owner }],
+        })
+        await F.publicResolver.write.multicall([[res.write]])
+        const [name, resolver, reverseResolver] =
+          await F.universalResolver.read.reverse([F.owner, coinType])
+        expectVar({ name }).toStrictEqual(testName)
+        expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+        expectVar({ reverseResolver }).toEqualAddress(
+          F.defaultReverseResolver.address,
+        )
       })
-      await F.shapeshift2.write.setResponse([res.call, res.answer])
-      const [name, resolver, reverseResolver] =
-        await F.universalResolver.read.reverse([F.owner, COIN_TYPE_ETH])
-      expectVar({ name }).toStrictEqual(testName)
-      expectVar({ resolver }).toEqualAddress(F.shapeshift2.address)
-      expectVar({ reverseResolver }).toEqualAddress(F.shapeshift1.address)
-    })
+
+      it(`offchain extended name(${C}) + PR addr()`, async () => {
+        const F = await loadFixture(fixture)
+        const reverseName = getReverseName(F.owner, coinType)
+        await F.takeControl(reverseName)
+        await F.ensRegistry.write.setResolver([
+          namehash(getParentName(reverseName)),
+          F.shapeshift1.address,
+        ])
+        const [rev] = makeResolutions({
+          name: reverseName,
+          primary: { value: testName },
+        })
+        await F.shapeshift1.write.setExtended([true])
+        await F.shapeshift1.write.setOffchain([true])
+        await F.shapeshift1.write.setResponse([rev.call, rev.answer])
+        await F.takeControl(testName)
+        await F.ensRegistry.write.setResolver([
+          namehash(testName),
+          F.publicResolver.address,
+        ])
+        const [res] = makeResolutions({
+          name: testName,
+          addresses: [{ coinType, value: F.owner }],
+        })
+        await F.publicResolver.write.multicall([[res.write]])
+        const [name, resolver, reverseResolver] =
+          await F.universalResolver.read.reverse([F.owner, coinType])
+        expectVar({ name }).toStrictEqual(testName)
+        expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+        expectVar({ reverseResolver }).toEqualAddress(F.shapeshift1.address)
+      })
+
+      it(`offchain extended name(${C}) + PR addr() w/fallback`, async () => {
+        const F = await loadFixture(fixture)
+        const reverseName = getReverseName(F.owner, coinType)
+        await F.takeControl(reverseName)
+        await F.ensRegistry.write.setResolver([
+          namehash(getParentName(reverseName)),
+          F.shapeshift1.address,
+        ])
+        const [rev] = makeResolutions({
+          name: reverseName,
+          primary: { value: testName },
+        })
+        await F.shapeshift1.write.setExtended([true])
+        await F.shapeshift1.write.setOffchain([true])
+        await F.shapeshift1.write.setResponse([rev.call, rev.answer])
+        await F.takeControl(testName)
+        await F.ensRegistry.write.setResolver([
+          namehash(testName),
+          F.publicResolver.address,
+        ])
+        const [res] = makeResolutions({
+          name: testName,
+          addresses: [{ coinType: COIN_TYPE_DEFAULT, value: F.owner }],
+        })
+        await F.publicResolver.write.multicall([[res.write]])
+        const [name, resolver, reverseResolver] =
+          await F.universalResolver.read.reverse([F.owner, coinType])
+        expectVar({ name }).toStrictEqual(testName)
+        expectVar({ resolver }).toEqualAddress(F.publicResolver.address)
+        expectVar({ reverseResolver }).toEqualAddress(F.shapeshift1.address)
+      })
+    }
 
     it('offchain extended name() + offchain extended addr()', async () => {
       const F = await loadFixture(fixture)
@@ -706,7 +835,7 @@ describe('UniversalResolver', () => {
       ])
       const [rev] = makeResolutions({
         name: reverseName,
-        primary: { name: testName },
+        primary: { value: testName },
       })
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])

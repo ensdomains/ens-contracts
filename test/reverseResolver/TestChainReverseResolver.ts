@@ -16,7 +16,7 @@ import {
   getReverseNamespace,
 } from '../fixtures/ensip19.js'
 import { urgArtifact } from '../fixtures/externalArtifacts.js'
-import { KnownProfile, makeResolutions } from '../universalResolver/utils.js'
+import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 
 const testName = 'test.eth'
 const l2CoinType = COIN_TYPE_DEFAULT | 12345n // any evm chain
@@ -131,7 +131,7 @@ describe('ChainReverseResolver', () => {
       const F = await loadFixture(fixture)
       const kp: KnownProfile = {
         name: getReverseName(F.owner, l2CoinType),
-        primary: { name: '' },
+        primary: { value: '' },
       }
       const [res] = makeResolutions(kp)
       res.expect(
@@ -147,7 +147,7 @@ describe('ChainReverseResolver', () => {
       await F.reverseRegistrar.write.setName([testName])
       const kp: KnownProfile = {
         name: getReverseName(F.owner, l2CoinType),
-        primary: { name: testName },
+        primary: { value: testName },
       }
       const [res] = makeResolutions(kp)
       res.expect(
@@ -163,7 +163,7 @@ describe('ChainReverseResolver', () => {
       await F.defaultReverseRegistrar.write.setName([testName])
       const kp: KnownProfile = {
         name: getReverseName(F.owner, l2CoinType),
-        primary: { name: testName },
+        primary: { value: testName },
       }
       const [res] = makeResolutions(kp)
       res.expect(

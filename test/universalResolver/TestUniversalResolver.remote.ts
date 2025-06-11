@@ -6,7 +6,7 @@ import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { shortCoin } from '../fixtures/ensip19.js'
 import { isHardhatFork } from '../fixtures/forked.js'
 import { ENS_REGISTRY, KNOWN_PRIMARIES, KNOWN_RESOLUTIONS } from './mainnet.js'
-import { bundleCalls, makeResolutions } from './utils.js'
+import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
 
 // $ bun run test:remote
 

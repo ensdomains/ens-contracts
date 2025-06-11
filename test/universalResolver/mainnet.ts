@@ -1,5 +1,5 @@
 import type { Address } from 'viem'
-import type { KnownProfile, KnownReverse } from './utils.js'
+import type { KnownProfile, KnownReverse } from '../utils/resolutions.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 
 export const ENS_REGISTRY: Address =
