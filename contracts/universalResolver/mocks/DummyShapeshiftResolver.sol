@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IFeatureSupporter} from "../../utils/IFeatureSupporter.sol";
 import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol";
+import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
-//import {IResolveMulticall} from "../../resolvers/IResolveMulticall.sol";
 
 // this resolver can perform all resolver permutations
 // when this contract triggers OffchainLookup(), it uses a data-url, so no server is required
@@ -13,8 +14,9 @@ import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 // https://github.com/ensdomains/ensips/pull/18
 error UnsupportedResolverProfile(bytes4 call);
 
-contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
+contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IFeatureSupporter {
     mapping(bytes => bytes) public responses;
+    mapping(bytes4 => bool) public features;
     bool public isERC165 = true; // default
     bool public isExtended;
     bool public isOffchain;
@@ -25,6 +27,10 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
 
     function setResponse(bytes memory req, bytes memory res) external {
         responses[req] = res;
+    }
+
+    function setFeature(bytes4 feature, bool on) external {
+        features[feature] = on;
     }
 
     function setOld() external {
@@ -76,6 +82,10 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165 {
         return
             type(IERC165).interfaceId == x ||
             (type(IExtendedResolver).interfaceId == x && isExtended);
+    }
+
+    function supportsFeature(bytes4 x) external view returns (bool) {
+        return features[x];
     }
 
     function resolve(

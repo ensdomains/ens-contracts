@@ -28,6 +28,7 @@ import {
   getParentName,
   makeResolutions,
 } from '../utils/resolutions.js'
+import { FEATURES } from '../utils/features.js'
 
 async function fixture() {
   const F = await deployDefaultReverseFixture()
@@ -531,6 +532,31 @@ describe('UniversalResolver', () => {
       for (const res of calls) {
         await F.shapeshift1.write.setResponse([res.call, res.answer])
       }
+      await F.shapeshift1.write.setExtended([true])
+      await F.shapeshift1.write.setOffchain([true])
+      const [answer, resolver] = await F.universalResolver.read.resolve([
+        dnsEncodeName(testName),
+        bundle.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+      expectVar({ answer }).toStrictEqual(bundle.answer)
+      bundle.expect(answer)
+    })
+
+    it('offchain extended w/resolve(multicall)', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ensRegistry.write.setResolver([
+        namehash(getParentName(testName)),
+        F.shapeshift1.address,
+      ])
+      await F.shapeshift1.write.setFeature([
+        FEATURES.RESOLVER.RESOLVE_MULTICALL,
+        true,
+      ])
+      await F.universalResolver.write.setBatchGateways([[]])
+      const bundle = bundleCalls(resolutions)
+      await F.shapeshift1.write.setResponse([bundle.call, bundle.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
       const [answer, resolver] = await F.universalResolver.read.resolve([

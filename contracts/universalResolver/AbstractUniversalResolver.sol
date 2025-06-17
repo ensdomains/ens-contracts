@@ -15,6 +15,8 @@ import {IMulticallable} from "../resolvers/IMulticallable.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
+import {isFeatureSupported} from "../utils/IFeatureSupporter.sol";
+import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 abstract contract AbstractUniversalResolver is
     IUniversalResolver,
@@ -265,22 +267,89 @@ abstract contract AbstractUniversalResolver is
         bytes4 callbackFunction,
         bytes memory extraData
     ) internal view {
-        Batch memory batch = Batch(new Lookup[](calls.length), gateways);
-        for (uint256 i; i < calls.length; i++) {
-            Lookup memory lu = batch.lookups[i];
-            lu.target = info.resolver;
-            lu.call = info.extended
-                ? abi.encodeCall(
+        if (
+            info.extended &&
+            isFeatureSupported(
+                info.resolver,
+                ResolverFeatures.RESOLVE_MULTICALL
+            )
+        ) {
+            ccipRead(
+                address(info.resolver),
+                abi.encodeCall(
                     IExtendedResolver.resolve,
-                    (info.name, calls[i])
-                )
-                : calls[i];
+                    (
+                        info.name,
+                        abi.encodeCall(IMulticallable.multicall, (calls))
+                    )
+                ),
+                this.resolveMulticallCallback.selector,
+                abi.encode(info, callbackFunction, extraData, calls)
+            );
+        } else {
+            Batch memory batch = Batch(new Lookup[](calls.length), gateways);
+            for (uint256 i; i < calls.length; i++) {
+                Lookup memory lu = batch.lookups[i];
+                lu.target = info.resolver;
+                lu.call = info.extended
+                    ? abi.encodeCall(
+                        IExtendedResolver.resolve,
+                        (info.name, calls[i])
+                    )
+                    : calls[i];
+            }
+            ccipRead(
+                address(this),
+                abi.encodeCall(this.ccipBatch, (batch)),
+                this.resolveBatchCallback.selector,
+                abi.encode(info, callbackFunction, extraData)
+            );
+        }
+    }
+
+    /// @dev CCIP-Read callback for `_resolveBatch()` when feature `RESOLVE_MULTICALL` is supported.
+    /// @param response The response data from the resolver.
+    /// @param extraData The contextual data from `_resolveBatch()`.
+    function resolveMulticallCallback(
+        bytes calldata response,
+        bytes calldata extraData
+    ) external view {
+        (
+            ResolverInfo memory info,
+            bytes4 callbackFunction_,
+            bytes memory extraData_,
+            bytes[] memory calls
+        ) = abi.decode(extraData, (ResolverInfo, bytes4, bytes, bytes[]));
+        bytes memory v = abi.decode(response, (bytes)); // unwrap resolve()
+        if (v.length == 0) {
+            revert UnsupportedResolverProfile(
+                IMulticallable.multicall.selector
+            );
+        }
+        if ((v.length & 31) != 0) revert ResolverError(v);
+        bytes[] memory answers = abi.decode(v, (bytes[]));
+        if (answers.length != calls.length) {
+            revert ResolverError(
+                abi.encodeWithSelector(0x08c379a0, "Length mismatch") // Error(string)
+            );
+        }
+        Lookup[] memory lookups = new Lookup[](calls.length);
+        for (uint256 i; i < calls.length; i++) {
+            Lookup memory lu = lookups[i];
+            v = answers[i];
+            lu.call = calls[i];
+            lu.flags = FLAG_DONE;
+            if (v.length == 0) {
+                lu.flags |= FLAG_EMPTY_RESPONSE;
+                lu.data = lu.call;
+            } else {
+                if ((v.length & 31) != 0) lu.flags |= FLAG_CALL_ERROR;
+                lu.data = v;
+            }
         }
         ccipRead(
             address(this),
-            abi.encodeCall(this.ccipBatch, (batch)),
-            this.resolveBatchCallback.selector,
-            abi.encode(info, callbackFunction, extraData)
+            abi.encodeWithSelector(callbackFunction_, info, lookups, extraData_)
         );
     }
 
