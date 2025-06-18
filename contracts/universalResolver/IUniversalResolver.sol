@@ -28,6 +28,10 @@ interface IUniversalResolver {
     /// @dev Error selector: `0x01800152`
     error HttpError(uint16 status, string message);
 
+    /// @notice The resolver supplied an incorrect number of responses.
+    /// @dev Error selector: `0xe5a61c3c`
+    error InvalidMulticallResponse();
+
     /// @dev Find the resolver address for `name`.
     ///      Does not perform any validity checks.
     /// @param name The name to search.

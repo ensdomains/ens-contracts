@@ -329,9 +329,7 @@ abstract contract AbstractUniversalResolver is
         if ((v.length & 31) != 0) revert ResolverError(v);
         bytes[] memory answers = abi.decode(v, (bytes[]));
         if (answers.length != calls.length) {
-            revert ResolverError(
-                abi.encodeWithSelector(0x08c379a0, "Length mismatch") // Error(string)
-            );
+            revert InvalidMulticallResponse();
         }
         Lookup[] memory lookups = new Lookup[](calls.length);
         for (uint256 i; i < calls.length; i++) {
