@@ -27,7 +27,7 @@ contract UniversalSigValidator {
     ) public returns (bool) {
         uint contractCodeLen = address(_signer).code.length;
         bytes memory sigToValidate;
-        // The order here is striclty defined in https://eips.ethereum.org/EIPS/eip-6492
+        // The order here is strictly defined in https://eips.ethereum.org/EIPS/eip-6492
         // - ERC-6492 suffix check and verification first, while being permissive in case the contract is already deployed; if the contract is deployed we will check the sig against the deployed version, this allows 6492 signatures to still be validated while taking into account potential key rotation
         // - ERC-1271 verification if there's contract code
         // - finally, ecrecover
