@@ -130,7 +130,7 @@ export const onERC721ReceivedTests = () => {
       ).resolves.toEqual(true)
     })
 
-    it('Allows specifiying resolver address', async () => {
+    it('Allows specifying resolver address', async () => {
       const { baseRegistrar, nameWrapper, ensRegistry, accounts } =
         await loadFixture(onERC721ReceivedFixture)
 
