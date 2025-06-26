@@ -116,9 +116,9 @@ export function bundleCalls(resolutions: KnownResolution[]): KnownBundle {
         abi: RESOLVE_MULTICALL,
         data,
       }),
-    expect(answer) {
-      const answers = this.unbundle(answer)
-      expect(answers).toHaveLength(resolutions.length)
+    expect(data) {
+      const answers = this.unbundle(data)
+      expect(answers, 'answers.length').toHaveLength(resolutions.length)
       resolutions.forEach((x, i) => x.expect(answers[i]))
     },
     write: encodeFunctionData({

@@ -16,8 +16,8 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
     uint256 constant FLAG_DONE = 1 << 6; // the lookup has finished processing (private)
 
-    uint256 constant FLAGS_ANY_ERROR =
-        FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
+    uint256 constant FLAGS_TARGET_ERROR = FLAG_EMPTY_RESPONSE | FLAG_CALL_ERROR;
+    uint256 constant FLAGS_ANY_ERROR = FLAGS_TARGET_ERROR | FLAG_BATCH_ERROR;
     uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
 
     /// @dev An independent `OffchainLookup` session.
@@ -32,6 +32,21 @@ contract CCIPBatcher is CCIPReader {
     struct Batch {
         Lookup[] lookups;
         string[] gateways;
+    }
+
+    /// @dev Create a `Batch` for a single target with multiple calls.
+    function _createBatch(
+        address target,
+        bytes[] memory calls,
+        string[] memory gateways
+    ) internal pure returns (Batch memory) {
+        Lookup[] memory lookups = new Lookup[](calls.length);
+        for (uint256 i; i < calls.length; i++) {
+            Lookup memory lu = lookups[i];
+            lu.target = target;
+            lu.call = calls[i];
+        }
+        return Batch(lookups, gateways);
     }
 
     /// @dev Use `CCIPReader.ccipRead()` to call this function with a batch.

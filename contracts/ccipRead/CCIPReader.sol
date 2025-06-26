@@ -25,6 +25,7 @@ contract CCIPReader {
         bytes extraData;
         bytes4 myCallbackFunction;
         bytes myExtraData;
+        bool catchReverts;
     }
 
     /// @dev Special-purpose value for identity callback: `f(x) = x`.
@@ -32,7 +33,17 @@ contract CCIPReader {
 
     /// @dev Same as `ccipRead()` but the callback function is the identity.
     function ccipRead(address target, bytes memory call) internal view {
-        ccipRead(target, call, IDENTITY_FUNCTION, "");
+        ccipRead(target, call, IDENTITY_FUNCTION, "", false);
+    }
+
+    /// @dev Same as `ccipRead()` w/catchReverts = false.
+    function ccipRead(
+        address target,
+        bytes memory call,
+        bytes4 callbackFunction,
+        bytes memory extraData
+    ) internal view {
+        ccipRead(target, call, callbackFunction, extraData, false);
     }
 
     /// @dev Performs a CCIP-Read and handles internal recursion.
@@ -41,11 +52,13 @@ contract CCIPReader {
     /// @param call The calldata to `staticcall()` on `target`.
     /// @param callbackFunction The function selector of callback.
     /// @param extraData The contextual data relayed to `callbackFunction`.
+    /// @param catchReverts Pass reverts to the callback.
     function ccipRead(
         address target,
         bytes memory call,
         bytes4 callbackFunction,
-        bytes memory extraData
+        bytes memory extraData,
+        bool catchReverts
     ) internal view {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
@@ -72,14 +85,15 @@ contract CCIPReader {
                             p.callbackFunction,
                             p.extraData,
                             callbackFunction,
-                            extraData
+                            extraData,
+                            catchReverts
                         )
                     )
                 );
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok && callbackFunction != IDENTITY_FUNCTION) {
+        if ((ok || catchReverts) && callbackFunction != IDENTITY_FUNCTION) {
             // The exit point of this architecture is  OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
@@ -118,7 +132,8 @@ contract CCIPReader {
                 ctx.extraData
             ),
             ctx.myCallbackFunction,
-            ctx.myExtraData
+            ctx.myExtraData,
+            ctx.catchReverts
         );
     }
 
