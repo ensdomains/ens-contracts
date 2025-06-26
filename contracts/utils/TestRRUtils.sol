@@ -1,10 +1,9 @@
-pragma solidity ^0.8.4;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import {RRUtils} from "../../contracts/dnssec-oracle/RRUtils.sol";
-import {BytesUtils} from "../../contracts/utils/BytesUtils.sol";
 
 contract TestRRUtils {
-    using BytesUtils for *;
     using RRUtils for *;
 
     uint16 constant DNSTYPE_A = 1;
@@ -141,7 +140,7 @@ contract TestRRUtils {
         require(RRUtils.serialNumberGte(1, 1), "1 >= 1");
     }
 
-    function testKeyTag() public view {
+    function testKeyTag() public pure {
         require(
             hex"0101030803010001a80020a95566ba42e886bb804cda84e47ef56dbd7aec612615552cec906d2116d0ef207028c51554144dfeafe7c7cb8f005dd18234133ac0710a81182ce1fd14ad2283bc83435f9df2f6313251931a176df0da51e54f42e604860dfb359580250f559cc543c4ffd51cbe3de8cfd06719237f9fc47ee729da06835fa452e825e9a18ebc2ecbcf563474652c33cf56a9033bcdf5d973121797ec8089041b6e03a1b72d0a735b984e03687309332324f27c2dba85e9db15e83a0143382e974b0621c18e625ecec907577d9e7bade95241a81ebbe8a901d4d3276e40b114c0a2e6fc38d19c2e6aab02644b2813f575fc21601e0dee49cd9ee96a43103e524d62873d"
                 .computeKeytag() == 19036,
