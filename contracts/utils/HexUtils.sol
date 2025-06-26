@@ -72,7 +72,7 @@ library HexUtils {
 
     /// @dev Convert arbitrary hex-encoded memory to bytes.
     ///      If nibbles is odd, leading hex-char is padded, eg. `F` &rarr; `0x0F`.
-    ///      Matches: /^[0-9a-f]*$/i.
+    ///      Matches: `/^[0-9a-f]*$/i`.
     /// @param src The memory offset of first hex-char of input.
     /// @param dst The memory offset of first byte of output (cannot alias `src`).
     /// @param nibbles The number of hex-chars to convert.
@@ -115,6 +115,7 @@ library HexUtils {
                     src := end // terminate loop
                 }
             }
+            // prettier-ignore
             for {} lt(src, end) {
                 src := add(src, 2) // 2 nibbles
                 dst := add(dst, 1) // per byte
