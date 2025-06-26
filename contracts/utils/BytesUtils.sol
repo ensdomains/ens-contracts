@@ -92,7 +92,7 @@ library BytesUtils {
         return int256(lenA) - int256(lenB);
     }
 
-    /// @dev Returns `a[posA:posA+len] == b[posB:posB+len]`.
+    /// @dev Determine if `a[posA:posA+len] == b[posB:posB+len]`.
     /// @param vA The first bytes.
     /// @param posA The offset into the first bytes.
     /// @param vB The second bytes.
@@ -121,12 +121,14 @@ library BytesUtils {
         bytes memory vB,
         uint256 posB
     ) internal pure returns (bool) {
+        _checkBound(vA, posA);
+        _checkBound(vB, posB);
         return
             keccak(vA, posA, vA.length - posA) ==
             keccak(vB, posB, vB.length - posB);
     }
 
-    /// @dev Returns `a[posA:] == b`.
+    /// @dev Determeine if `a[posA:] == b`.
     /// @param vA The first bytes.
     /// @param posA The offset into the first bytes.
     /// @param vB The second bytes.
@@ -238,11 +240,11 @@ library BytesUtils {
         }
     }
 
-    /// @dev Copies `len` bytes from `src` to `dst`.
+    /// @dev Copy `mem[src:src+len]` to `mem[dst:dst+len]`.
     /// @param src The source memory offset.
     /// @param dst The destination memory offset.
     /// @param len The number of bytes to copy.
-    function unsafeMemcpy(uint256 src, uint256 dst, uint256 len) private pure {
+    function unsafeMemcpy(uint256 dst, uint256 src, uint256 len) private pure {
         assembly {
             // Copy word-length chunks while possible
             // prettier-ignore
@@ -283,7 +285,7 @@ library BytesUtils {
             src := add(add(vSrc, 32), posSrc)
             dst := add(add(vDst, 32), posDst)
         }
-        unsafeMemcpy(src, dst, len);
+        unsafeMemcpy(dst, src, len);
     }
 
     /// @dev Copies a substring into a new byte string.

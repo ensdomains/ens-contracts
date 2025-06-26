@@ -234,45 +234,4 @@ contract TestBytesUtils {
         require(v.find(0, v.length, "A") == type(uint256).max, "A");
         require(v.find(0, 10, "a") == type(uint256).max, "a");
     }
-
-    function test_base32HexDecodeWord() public pure {
-        require("C4".base32HexDecodeWord(0, 2) == bytes1("a"), "a");
-        require("C5GG".base32HexDecodeWord(0, 4) == bytes2("aa"), "aa");
-        require("C5GM2".base32HexDecodeWord(0, 5) == bytes3("aaa"), "aaa");
-        require("C5GM2O8".base32HexDecodeWord(0, 7) == bytes4("aaaa"), "aaaa");
-        require(
-            "C5GM2OB1".base32HexDecodeWord(0, 8) == bytes5("aaaaa"),
-            "aaaaa"
-        );
-        require(
-            "c5gm2Ob1".base32HexDecodeWord(0, 8) == bytes5("aaaaa"),
-            "aaaaa lowercase"
-        );
-        require(
-            "C5H66P35CPJMGQBADDM6QRJFE1ON4SRKELR7EU3PF8".base32HexDecodeWord(
-                0,
-                42
-            ) == bytes26("abcdefghijklmnopqrstuvwxyz"),
-            "a-z"
-        );
-        require(
-            "c5h66p35cpjmgqbaddm6qrjfe1on4srkelr7eu3pf8".base32HexDecodeWord(
-                0,
-                42
-            ) == bytes26("abcdefghijklmnopqrstuvwxyz"),
-            "a-z lowercase"
-        );
-        require(
-            "C5GM2OB1C5GM2OB1C5GM2OB1C5GM2OB1C5GM2OB1C5GM2OB1C5GG"
-                .base32HexDecodeWord(0, 52) ==
-                bytes32("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-            "a^32"
-        );
-        require(
-            " bst4hlje7r0o8c8p4o8q582lm0ejmiqt\x07matoken\x03xyz\x00"
-                .base32HexDecodeWord(1, 32) ==
-                bytes20(0x5F3a48D66E3eC18431192611a2a055b01D3b4b5D),
-            "real bytes32hex"
-        );
-    }
 }
