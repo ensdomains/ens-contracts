@@ -36,16 +36,6 @@ contract CCIPReader {
         ccipRead(target, call, IDENTITY_FUNCTION, "", false);
     }
 
-    /// @dev Same as `ccipRead()` w/catchReverts = false.
-    function ccipRead(
-        address target,
-        bytes memory call,
-        bytes4 callbackFunction,
-        bytes memory extraData
-    ) internal view {
-        ccipRead(target, call, callbackFunction, extraData, false);
-    }
-
     /// @dev Performs a CCIP-Read and handles internal recursion.
     ///      Reverts `OffchainLookup` if necessary.
     /// @param target The contract address.

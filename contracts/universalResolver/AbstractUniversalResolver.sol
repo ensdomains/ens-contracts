@@ -299,7 +299,8 @@ abstract contract AbstractUniversalResolver is
                     (_createBatch(info.resolver, calls, gateways))
                 ),
                 this.resolveBatchCallback.selector,
-                abi.encode(info, multi, callbackFunction, extraData)
+                abi.encode(info, multi, callbackFunction, extraData),
+                false
             );
         }
     }
