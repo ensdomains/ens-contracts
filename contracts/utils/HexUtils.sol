@@ -15,7 +15,7 @@ library HexUtils {
         uint256 pos,
         uint256 end
     ) internal pure returns (bytes32 word, bool valid) {
-        if (end < pos) return ('', false); // invalid range
+        if (end < pos) return ("", false); // invalid range
         uint256 nibbles = end - pos;
         if (nibbles > 64 || end > hexString.length) {
             return (bytes32(0), false); // too large or out of bounds
@@ -60,7 +60,7 @@ library HexUtils {
         uint256 pos,
         uint256 end
     ) internal pure returns (bytes memory v, bool valid) {
-        if (end < pos) return ('', false); // invalid range
+        if (end < pos) return ("", false); // invalid range
         uint256 nibbles = end - pos;
         v = new bytes((1 + nibbles) >> 1); // round up
         uint256 src;
