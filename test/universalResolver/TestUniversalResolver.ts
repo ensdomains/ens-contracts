@@ -4,11 +4,9 @@ import { expect } from 'chai'
 import hre from 'hardhat'
 import {
   encodeErrorResult,
-  Hex,
   HttpRequestError,
   keccak256,
   namehash,
-  parseAbi,
   toBytes,
   toFunctionSelector,
   toHex,
@@ -73,13 +71,6 @@ async function fixture() {
     shapeshift1,
     shapeshift2,
   }
-}
-
-function unsupportedProfileData(selector: Hex) {
-  return encodeErrorResult({
-    abi: parseAbi(['error UnsupportedResolverProfile(bytes4)']),
-    args: [selector],
-  })
 }
 
 const dummyBytes4 = '0x12345678'
@@ -217,8 +208,8 @@ describe('UniversalResolver', () => {
       ])
       await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyBytes4])
-        .toBeRevertedWithCustomError('ResolverError')
-        .withArgs(unsupportedProfileData(dummyBytes4))
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(dummyBytes4)
     })
 
     it('empty revert', async () => {
@@ -282,8 +273,8 @@ describe('UniversalResolver', () => {
       await F.shapeshift1.write.setRevertUnsupportedResolverProfile([true])
       await expect(F.universalResolver)
         .read('resolve', [dnsEncodeName(testName), dummyBytes4])
-        .toBeRevertedWithCustomError('ResolverError')
-        .withArgs(unsupportedProfileData(dummyBytes4))
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(dummyBytes4)
     })
 
     it('old', async () => {
@@ -319,7 +310,11 @@ describe('UniversalResolver', () => {
           errors: [
             {
               call: dummyBytes4,
-              answer: unsupportedProfileData(dummyBytes4),
+              answer: encodeErrorResult({
+                abi: F.universalResolver.abi,
+                errorName: 'UnsupportedResolverProfile',
+                args: [dummyBytes4],
+              }),
             },
           ],
         }),
@@ -523,7 +518,11 @@ describe('UniversalResolver', () => {
         errors: [
           {
             call: dummyBytes4,
-            answer: unsupportedProfileData(dummyBytes4),
+            answer: encodeErrorResult({
+              abi: F.universalResolver.abi,
+              errorName: 'UnsupportedResolverProfile',
+              args: [dummyBytes4],
+            }),
           },
         ],
       })
@@ -695,8 +694,8 @@ describe('UniversalResolver', () => {
       ])
       await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
-        .toBeRevertedWithCustomError('ResolverError')
-        .withArgs(unsupportedProfileData(toFunctionSelector('name(bytes32)')))
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('name(bytes32)'))
     })
 
     it('old name() + PR addr()', async () => {
@@ -778,8 +777,8 @@ describe('UniversalResolver', () => {
       ])
       await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
-        .toBeRevertedWithCustomError('ResolverError')
-        .withArgs(unsupportedProfileData(toFunctionSelector('addr(bytes32)')))
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('addr(bytes32)'))
     })
 
     it('PR name() + onchain immediate unimplemented addr()', async () => {
@@ -797,8 +796,8 @@ describe('UniversalResolver', () => {
       ])
       await expect(F.universalResolver)
         .read('reverse', [F.owner, COIN_TYPE_ETH])
-        .toBeRevertedWithCustomError('ResolverError')
-        .withArgs(unsupportedProfileData(toFunctionSelector('addr(bytes32)')))
+        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
+        .withArgs(toFunctionSelector('addr(bytes32)'))
     })
 
     for (const coinType of [COIN_TYPE_ETH, COIN_TYPE_DEFAULT + 2n]) {

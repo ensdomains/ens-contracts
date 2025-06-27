@@ -363,7 +363,10 @@ abstract contract AbstractUniversalResolver is
             answer = abi.encode(m);
         } else {
             answer = m[0];
-            if ((lookups[0].flags & FLAGS_TARGET_ERROR) != 0) {
+            if (
+                (lookups[0].flags & FLAGS_TARGET_ERROR) != 0 &&
+                bytes4(answer) != UnsupportedResolverProfile.selector // dont wrap
+            ) {
                 answer = abi.encodeWithSelector(ResolverError.selector, answer);
             }
             if (answer.length & 31 != 0) {
