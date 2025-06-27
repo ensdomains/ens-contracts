@@ -206,7 +206,7 @@ abstract contract AbstractUniversalResolver is
     /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
     ///      Reverts `ReverseAddressMismatch`.
     /// @param info The resolver for the primary name that was called.
-    /// @param response The lookups corresponding to the calls: `[addr()]`.
+    /// @param response The response from the resolver.
     /// @param extraData The contextual data passed from `reverseNameCallback()`.
     /// @return primary The resolved primary name.
     /// @return resolver The resolver address for primary name.
@@ -242,7 +242,9 @@ abstract contract AbstractUniversalResolver is
         resolver = info.resolver;
     }
 
-    /// @dev Perform multiple resolver calls in parallel using batch gateway.
+    /// @dev Efficiently call a resolver.
+    ///      If extended and `RESOLVE_MULTICALL` feature is supported, does a direct call.
+    ///      Otherwise, uses the batch gateway.
     /// @param info The resolver to call.
     /// @param call The calldata.
     /// @param gateways The list of batch gateway URLs to use.
@@ -267,12 +269,13 @@ abstract contract AbstractUniversalResolver is
                 address(info.resolver),
                 abi.encodeCall(IExtendedResolver.resolve, (info.name, call)),
                 this.resolveExtendedDirectCallback.selector,
-                abi.encode(info, call, callbackFunction, extraData),
+                abi.encode(info, bytes4(call), callbackFunction, extraData),
                 true
             );
         } else {
             bytes[] memory calls;
-            if (bytes4(call) == IMulticallable.multicall.selector) {
+            bool multi = bytes4(call) == IMulticallable.multicall.selector;
+            if (multi) {
                 calls = abi.decode(
                     BytesUtils.substring(call, 4, call.length - 4),
                     (bytes[])
@@ -296,7 +299,7 @@ abstract contract AbstractUniversalResolver is
                     (_createBatch(info.resolver, calls, gateways))
                 ),
                 this.resolveBatchCallback.selector,
-                abi.encode(info, call, callbackFunction, extraData)
+                abi.encode(info, multi, callbackFunction, extraData)
             );
         }
     }
@@ -308,14 +311,14 @@ abstract contract AbstractUniversalResolver is
     ) external view {
         (
             ResolverInfo memory info,
-            bytes memory call,
-            bytes4 callbackFunction_,
+            bytes4 callSelector,
+            bytes4 callbackFunction,
             bytes memory extraData_
-        ) = abi.decode(extraData, (ResolverInfo, bytes, bytes4, bytes));
+        ) = abi.decode(extraData, (ResolverInfo, bytes4, bytes4, bytes));
         if (response.length == 0) {
             response = abi.encodeWithSelector(
                 UnsupportedResolverProfile.selector,
-                bytes4(call)
+                callSelector
             );
         }
         if ((response.length & 31) != 0) {
@@ -324,27 +327,22 @@ abstract contract AbstractUniversalResolver is
         response = abi.decode(response, (bytes)); // unwrap resolve()
         ccipRead(
             address(this),
-            abi.encodeWithSelector(
-                callbackFunction_,
-                info,
-                response,
-                extraData_
-            )
+            abi.encodeWithSelector(callbackFunction, info, response, extraData_)
         );
     }
 
     /// @dev CCIP-Read callback for `_callResolver()` from calling the batch gateway.
     function resolveBatchCallback(
-        bytes memory response,
+        bytes calldata response,
         bytes calldata extraData
     ) external view {
         Lookup[] memory lookups = abi.decode(response, (Batch)).lookups;
         (
             ResolverInfo memory info,
-            bytes memory call,
-            bytes4 callbackFunction_,
+            bool multi,
+            bytes4 callbackFunction,
             bytes memory extraData_
-        ) = abi.decode(extraData, (ResolverInfo, bytes, bytes4, bytes));
+        ) = abi.decode(extraData, (ResolverInfo, bool, bytes4, bytes));
         bytes[] memory m = new bytes[](lookups.length);
         for (uint256 i; i < lookups.length; i++) {
             Lookup memory lu = lookups[i];
@@ -359,30 +357,23 @@ abstract contract AbstractUniversalResolver is
             }
             m[i] = v;
         }
-        if (bytes4(call) == IMulticallable.multicall.selector) {
-            response = abi.encode(m);
+        bytes memory answer;
+        if (multi) {
+            answer = abi.encode(m);
         } else {
-            response = m[0];
+            answer = m[0];
             if ((lookups[0].flags & FLAGS_TARGET_ERROR) != 0) {
-                response = abi.encodeWithSelector(
-                    ResolverError.selector,
-                    response
-                );
+                answer = abi.encodeWithSelector(ResolverError.selector, answer);
             }
-            if (response.length & 31 != 0) {
+            if (answer.length & 31 != 0) {
                 assembly {
-                    revert(add(response, 32), mload(response))
+                    revert(add(answer, 32), mload(answer))
                 }
             }
         }
         ccipRead(
             address(this),
-            abi.encodeWithSelector(
-                callbackFunction_,
-                info,
-                response,
-                extraData_
-            )
+            abi.encodeWithSelector(callbackFunction, info, answer, extraData_)
         );
     }
 }
