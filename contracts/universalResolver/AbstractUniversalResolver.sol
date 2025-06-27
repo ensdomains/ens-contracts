@@ -28,10 +28,10 @@ abstract contract AbstractUniversalResolver is
     Ownable,
     ERC165
 {
-    string[] public batchGateways;
+    string[] _gateways;
 
     constructor(string[] memory gateways) {
-        batchGateways = gateways;
+        _gateways = gateways;
     }
 
     /// @inheritdoc ERC165
@@ -43,10 +43,16 @@ abstract contract AbstractUniversalResolver is
             super.supportsInterface(interfaceId);
     }
 
-    /// @dev Set the default batch gateways, see: `resolve()` and `reverse()`.
+    /// @notice Set the default batch gateways, see: `resolve()` and `reverse()`.
     /// @param gateways The list of batch gateway URLs to use as default.
     function setBatchGateways(string[] memory gateways) external onlyOwner {
-        batchGateways = gateways;
+        _gateways = gateways;
+    }
+
+    /// @notice Get the default batch gateways.
+    /// @return The batch gateway URLs.
+    function batchGateways() external view returns (string[] memory) {
+        return _gateways;
     }
 
     /// @inheritdoc IUniversalResolver
@@ -97,7 +103,7 @@ abstract contract AbstractUniversalResolver is
         bytes calldata name,
         bytes calldata data
     ) external view returns (bytes memory /*result*/, address /*resolver*/) {
-        return resolveWithGateways(name, data, batchGateways);
+        return resolveWithGateways(name, data, _gateways);
     }
 
     /// @notice Performs ENS name resolution for the supplied name and resolution data.
@@ -135,7 +141,7 @@ abstract contract AbstractUniversalResolver is
         bytes memory lookupAddress,
         uint256 coinType
     ) external view returns (string memory, address, address) {
-        return reverseWithGateways(lookupAddress, coinType, batchGateways);
+        return reverseWithGateways(lookupAddress, coinType, _gateways);
     }
 
     struct ReverseArgs {
