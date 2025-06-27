@@ -6,6 +6,7 @@ import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
 contract CCIPBatcher is CCIPReader {
     /// @dev The batch gateway supplied an incorrect number of responses.
+    ///      Error selector: `0x4a5c31ea`
     error InvalidBatchGatewayResponse();
 
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
@@ -16,8 +17,8 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
     uint256 constant FLAG_DONE = 1 << 6; // the lookup has finished processing (private)
 
-    uint256 constant FLAGS_TARGET_ERROR = FLAG_EMPTY_RESPONSE | FLAG_CALL_ERROR;
-    uint256 constant FLAGS_ANY_ERROR = FLAGS_TARGET_ERROR | FLAG_BATCH_ERROR;
+    uint256 constant FLAGS_ANY_ERROR =
+        FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
     uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
 
     /// @dev An independent `OffchainLookup` session.
