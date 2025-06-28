@@ -32,7 +32,7 @@ library BytesUtils {
     /// @dev Lexicographically compare two byte strings.
     /// @param vA The first bytes to compare.
     /// @param vB The second bytes to compare.
-    /// @return A positive number if `A > B`, a negative number if `A < B`, or zero if `A == B`.
+    /// @return Positive number if `A > B`, negative number if `A < B`, or zero if `A == B`.
     function compare(
         bytes memory vA,
         bytes memory vB
@@ -47,7 +47,7 @@ library BytesUtils {
     /// @param vB The second bytes.
     /// @param posB The offset of the second bytes.
     /// @param lenB The length of the second bytes.
-    /// @return A positive number if `A > B`, a negative number if `A < B`, or zero if `A == B`.
+    /// @return Positive number if `A > B`, negative number if `A < B`, or zero if `A == B`.
     function compare(
         bytes memory vA,
         uint256 posA,
@@ -77,10 +77,9 @@ library BytesUtils {
             if (a != b) {
                 uint256 rest = shortest - i;
                 if (rest < 32) {
-                    // shift out the irrelevant bits
                     rest = (32 - rest) << 3; // bits to drop
-                    a >>= rest;
-                    b >>= rest;
+                    a >>= rest; // shift out the
+                    b >>= rest; // irrelevant bits
                 }
                 if (a < b) {
                     return -1;
@@ -139,7 +138,8 @@ library BytesUtils {
         bytes memory vB
     ) internal pure returns (bool) {
         return
-            vA.length == posA + vB.length && equals(vA, posA, vB, 0, vB.length);
+            vA.length == posA + vB.length &&
+            keccak(vA, posA, vB.length) == keccak256(vB);
     }
 
     /// @dev Determine if `a == b`.
