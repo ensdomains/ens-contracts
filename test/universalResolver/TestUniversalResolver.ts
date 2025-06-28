@@ -396,7 +396,7 @@ describe('UniversalResolver', () => {
         namehash(getParentName(testName)),
         F.shapeshift1.address,
       ])
-      const res = resolutions[0]
+      const [res] = resolutions
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       await F.shapeshift1.write.setExtended([true])
       const [answer, resolver] = await F.universalResolver.read.resolve([
@@ -434,7 +434,7 @@ describe('UniversalResolver', () => {
         namehash(testName),
         F.shapeshift1.address,
       ])
-      const res = resolutions[0]
+      const [res] = resolutions
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       await F.shapeshift1.write.setOffchain([true])
       const [answer, resolver] = await F.universalResolver.read.resolve([
@@ -472,7 +472,7 @@ describe('UniversalResolver', () => {
         namehash(getParentName(testName)),
         F.shapeshift1.address,
       ])
-      const res = resolutions[0]
+      const [res] = resolutions
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
@@ -629,6 +629,42 @@ describe('UniversalResolver', () => {
       expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
       bundle.expect(answer)
     })
+  })
+
+  it('resolveWithGateways()', async () => {
+    const F = await loadFixture(fixture)
+    await F.takeControl(testName)
+    await F.ensRegistry.write.setResolver([
+      namehash(testName),
+      F.shapeshift1.address,
+    ])
+    const [res] = resolutions
+    await F.shapeshift1.write.setResponse([res.call, res.answer])
+    await F.shapeshift1.write.setExtended([true])
+    const [answer, resolver] =
+      await F.universalResolver.read.resolveWithGateways([
+        dnsEncodeName(testName),
+        res.call,
+        await F.universalResolver.read.batchGateways(),
+      ])
+    expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+    res.expect(answer)
+  })
+
+  it('resolveWithResolver()', async () => {
+    const F = await loadFixture(fixture)
+    const [res] = resolutions
+    await F.shapeshift1.write.setResponse([res.call, res.answer])
+    await F.shapeshift1.write.setExtended([true])
+    const [answer, resolver] =
+      await F.universalResolver.read.resolveWithResolver([
+        F.shapeshift1.address,
+        dnsEncodeName(testName),
+        res.call,
+        await F.universalResolver.read.batchGateways(),
+      ])
+    expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+    res.expect(answer)
   })
 
   describe('reverse()', () => {

@@ -64,7 +64,7 @@ abstract contract AbstractUniversalResolver is
         virtual
         returns (address resolver, bytes32 node, uint256 offset);
 
-    // @dev A valid resolver and its relevant properties.
+    /// @dev A valid resolver and its relevant properties.
     struct ResolverInfo {
         bytes name; // dns-encoded name (safe to decode)
         uint256 offset; // byte offset into name used for resolver
@@ -81,8 +81,14 @@ abstract contract AbstractUniversalResolver is
     ) public view returns (ResolverInfo memory info) {
         // https://docs.ens.domains/ensip/10
         (info.resolver, info.node, info.offset) = findResolver(name);
+        info.name = name;
+        _checkResolver(info);
+    }
+
+    /// @dev Asserts that the resolver information is valid.
+    function _checkResolver(ResolverInfo memory info) internal view {
         if (info.resolver == address(0)) {
-            revert ResolverNotFound(name);
+            revert ResolverNotFound(info.name);
         } else if (
             ERC165Checker.supportsERC165InterfaceUnchecked(
                 info.resolver,
@@ -91,22 +97,21 @@ abstract contract AbstractUniversalResolver is
         ) {
             info.extended = true;
         } else if (info.offset != 0) {
-            revert ResolverNotFound(name); // immediate resolver requires exact match
+            revert ResolverNotFound(info.name); // immediate resolver requires exact match
         } else if (info.resolver.code.length == 0) {
-            revert ResolverNotContract(name, info.resolver);
+            revert ResolverNotContract(info.name, info.resolver);
         }
-        info.name = name;
     }
 
     /// @notice Same as `resolveWithGateways()` but uses default batch gateways.
     function resolve(
         bytes calldata name,
         bytes calldata data
-    ) external view returns (bytes memory /*result*/, address /*resolver*/) {
+    ) external view returns (bytes memory, address) {
         return resolveWithGateways(name, data, _gateways);
     }
 
-    /// @notice Performs ENS name resolution for the supplied name and resolution data.
+    /// @notice Performs ENS resolution process for the supplied name and resolution data.
     /// @notice Callers should enable EIP-3668.
     /// @dev This function executes over multiple steps (step 1 of 2).
     /// @return result The encoded response for the requested call.
@@ -115,7 +120,7 @@ abstract contract AbstractUniversalResolver is
         bytes calldata name,
         bytes calldata data,
         string[] memory gateways
-    ) public view returns (bytes memory /*result*/, address /*resolver*/) {
+    ) public view returns (bytes memory result, address /*resolver*/) {
         _callResolver(
             requireResolver(name),
             data,
@@ -123,6 +128,21 @@ abstract contract AbstractUniversalResolver is
             this.resolveCallback.selector,
             ""
         );
+    }
+
+    /// @notice Same as `resolveWithGateways()` but uses the supplied resolver.
+    function resolveWithResolver(
+        address resolver,
+        bytes calldata name,
+        bytes calldata data,
+        string[] memory gateways
+    ) external view returns (bytes memory, address) {
+        ResolverInfo memory info;
+        info.name = name;
+        info.node = NameCoder.namehash(name, 0);
+        info.resolver = resolver;
+        _checkResolver(info);
+        _callResolver(info, data, gateways, this.resolveCallback.selector, "");
     }
 
     /// @dev CCIP-Read callback for `resolveWithGateways()` (step 2 of 2).
