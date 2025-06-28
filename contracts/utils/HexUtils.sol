@@ -50,6 +50,7 @@ library HexUtils {
 
     /// @dev Convert `hexString[pos:end]` to `bytes`.
     ///      Accepts 0+ hex-chars.
+    /// @param hexString The string to parse.
     /// @param pos The index to start parsing.
     /// @param end The (exclusive) index to stop parsing.
     /// @return v The parsed bytes.
