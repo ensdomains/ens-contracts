@@ -7,30 +7,35 @@ import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol"
 import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 
-// this resolver can perform all resolver permutations
-// when this contract triggers OffchainLookup(), it uses a data-url, so no server is required
-// the actual response is set using `setResponse()`
+/// @dev This resolver can perform all resolver permutations.
+///      When this contract triggers OffchainLookup(), it uses a data-url, so no server is required.
+///      The actual response is set using `setResponse()`.
+contract DummyShapeshiftResolver is
+    IExtendedResolver,
+    IERC165,
+    IFeatureSupporter
+{
+    // https://github.com/ensdomains/ensips/pull/18
+    error UnsupportedResolverProfile(bytes4 call);
 
-// https://github.com/ensdomains/ensips/pull/18
-error UnsupportedResolverProfile(bytes4 call);
-
-contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IFeatureSupporter {
     mapping(bytes => bytes) public responses;
     mapping(bytes4 => bool) public features;
+    uint256 public featureCount;
     bool public isERC165 = true; // default
     bool public isExtended;
     bool public isOffchain;
     bool public revertUnsupported;
     bool public revertEmpty;
-    //bool public isWrapperSafe;
-    //bool public isResolveMulticallable;
 
     function setResponse(bytes memory req, bytes memory res) external {
         responses[req] = res;
     }
 
     function setFeature(bytes4 feature, bool on) external {
-        features[feature] = on;
+        if (features[feature] != on) {
+            features[feature] = on;
+            featureCount = on ? featureCount + 1 : featureCount - 1;
+        }
     }
 
     function setOld() external {
@@ -81,7 +86,8 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IFeatureSupporte
         }
         return
             type(IERC165).interfaceId == x ||
-            (type(IExtendedResolver).interfaceId == x && isExtended);
+            (type(IExtendedResolver).interfaceId == x && isExtended) ||
+            (type(IFeatureSupporter).interfaceId == x && featureCount > 0);
     }
 
     function supportsFeature(bytes4 x) external view returns (bool) {

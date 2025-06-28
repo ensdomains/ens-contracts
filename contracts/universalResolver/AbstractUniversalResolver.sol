@@ -10,6 +10,8 @@ import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
+import {IFeatureSupporter} from "../utils/IFeatureSupporter.sol";
+import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 // resolver profiles
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
@@ -17,10 +19,6 @@ import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IMulticallable} from "../resolvers/IMulticallable.sol";
-
-// resolver features
-import {isFeatureSupported} from "../utils/IFeatureSupporter.sol";
-import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 abstract contract AbstractUniversalResolver is
     IUniversalResolver,
@@ -44,7 +42,7 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @notice Set the default batch gateways, see: `resolve()` and `reverse()`.
-    /// @param gateways The list of batch gateway URLs to use as default.
+    /// @param gateways The batch gateway URLs.
     function setBatchGateways(string[] memory gateways) external onlyOwner {
         _gateways = gateways;
     }
@@ -271,7 +269,7 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @dev Efficiently call a resolver.
-    ///      If extended and `RESOLVE_MULTICALL` feature is supported, does a direct call.
+    ///      If features are supported, and not a multicall or extended + multicall + `RESOLVE_MULTICALL`, performs a direct call.
     ///      Otherwise, uses the batch gateway.
     /// @param info The resolver to call.
     /// @param call The calldata.
@@ -287,16 +285,25 @@ abstract contract AbstractUniversalResolver is
         bytes memory extraData
     ) internal view {
         if (
-            info.extended &&
-            isFeatureSupported(
+            ERC165Checker.supportsERC165InterfaceUnchecked(
                 info.resolver,
-                ResolverFeatures.RESOLVE_MULTICALL
-            )
+                type(IFeatureSupporter).interfaceId
+            ) &&
+            (bytes4(call) != IMulticallable.multicall.selector ||
+                (info.extended &&
+                    IFeatureSupporter(info.resolver).supportsFeature(
+                        ResolverFeatures.RESOLVE_MULTICALL
+                    )))
         ) {
             ccipRead(
                 address(info.resolver),
-                abi.encodeCall(IExtendedResolver.resolve, (info.name, call)),
-                this.resolveExtendedDirectCallback.selector,
+                info.extended
+                    ? abi.encodeCall(
+                        IExtendedResolver.resolve,
+                        (info.name, call)
+                    )
+                    : call,
+                this.resolveDirectCallback.selector,
                 abi.encode(info, bytes4(call), callbackFunction, extraData),
                 true
             );
@@ -334,7 +341,7 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @dev CCIP-Read callback for `_callResolver()` from calling the resolver directly.
-    function resolveExtendedDirectCallback(
+    function resolveDirectCallback(
         bytes memory response,
         bytes calldata extraData
     ) external view {
@@ -353,7 +360,9 @@ abstract contract AbstractUniversalResolver is
         if ((response.length & 31) != 0) {
             revert ResolverError(response);
         }
-        response = abi.decode(response, (bytes)); // unwrap resolve()
+        if (info.extended) {
+            response = abi.decode(response, (bytes)); // unwrap resolve()
+        }
         ccipRead(
             address(this),
             abi.encodeWithSelector(callbackFunction, info, response, extraData_)
