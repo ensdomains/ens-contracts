@@ -28,10 +28,6 @@ interface IUniversalResolver {
     /// @dev Error selector: `0x01800152`
     error HttpError(uint16 status, string message);
 
-    /// @notice The resolver supplied an incorrect number of responses.
-    /// @dev Error selector: `0xe5a61c3c`
-    error InvalidMulticallResponse();
-
     /// @dev Find the resolver address for `name`.
     ///      Does not perform any validity checks.
     /// @param name The name to search.
@@ -46,7 +42,7 @@ interface IUniversalResolver {
     /// @notice Callers should enable EIP-3668.
     /// @param name The name to resolve, in normalised and DNS-encoded form.
     /// @param data The resolution data, as specified in ENSIP-10.
-    ///             For a multicall, the data should be encoded as `(bytes[])`.
+    ///             For a multicall, the data should be encoded as `multicall(bytes[])`.
     /// @return result The result of the resolution.
     ///                For a multicall, the result is encoded as `(bytes[])`.
     /// @return resolver The resolver that was used to resolve the name.

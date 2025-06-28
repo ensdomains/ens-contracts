@@ -58,11 +58,7 @@ abstract contract AbstractUniversalResolver is
     /// @inheritdoc IUniversalResolver
     function findResolver(
         bytes memory name
-    )
-        public
-        view
-        virtual
-        returns (address resolver, bytes32 node, uint256 offset);
+    ) public view virtual returns (address, bytes32, uint256);
 
     /// @dev A valid resolver and its relevant properties.
     struct ResolverInfo {
@@ -112,15 +108,20 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @notice Performs ENS resolution process for the supplied name and resolution data.
-    /// @notice Callers should enable EIP-3668.
+    ///         Callers should enable EIP-3668.
     /// @dev This function executes over multiple steps (step 1 of 2).
+    /// @param name The name to resolve, in normalised and DNS-encoded form.
+    /// @param data The resolution data, as specified in ENSIP-10.
+    /// @param gateways The list of batch gateway URLs to use.
     /// @return result The encoded response for the requested call.
     /// @return resolver The address of the resolver that supplied `result`.
     function resolveWithGateways(
         bytes calldata name,
         bytes calldata data,
         string[] memory gateways
-    ) public view returns (bytes memory result, address /*resolver*/) {
+    ) public view returns (bytes memory result, address resolver) {
+        result;
+        resolver;
         _callResolver(
             requireResolver(name),
             data,
@@ -171,16 +172,30 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
-    /// @notice Callers should enable EIP-3668.
+    ///         Callers should enable EIP-3668.
     /// @dev This function executes over multiple steps (step 1 of 3).
     /// @param lookupAddress The input address.
     /// @param coinType The coin type.
     /// @param gateways The list of batch gateway URLs to use.
+    /// @return primary The resolved primary name.
+    /// @return resolver The resolver address for primary name.
+    /// @return reverseResolver The resolver address for the reverse name.
     function reverseWithGateways(
         bytes memory lookupAddress,
         uint256 coinType,
         string[] memory gateways
-    ) public view returns (string memory, address /* resolver */, address) {
+    )
+        public
+        view
+        returns (
+            string memory primary,
+            address resolver,
+            address reverseResolver
+        )
+    {
+        primary;
+        resolver;
+        reverseResolver;
         // https://docs.ens.domains/ensip/19
         ResolverInfo memory info = requireResolver(
             NameCoder.encode(ENSIP19.reverseName(lookupAddress, coinType)) // reverts EmptyAddress
@@ -226,11 +241,8 @@ abstract contract AbstractUniversalResolver is
     /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
     ///      Reverts `ReverseAddressMismatch`.
     /// @param info The resolver for the primary name that was called.
-    /// @param response The response from the resolver.
+    /// @param response The abi-encoded `addr()` response.
     /// @param extraData The contextual data passed from `reverseNameCallback()`.
-    /// @return primary The resolved primary name.
-    /// @return resolver The resolver address for primary name.
-    /// @return reverseResolver The resolver address for the reverse name.
     function reverseAddressCallback(
         ResolverInfo calldata info,
         bytes calldata response,
@@ -238,11 +250,7 @@ abstract contract AbstractUniversalResolver is
     )
         external
         pure
-        returns (
-            string memory primary,
-            address resolver,
-            address reverseResolver
-        )
+        returns (string memory primary, address, address reverseResolver)
     {
         ReverseArgs memory args;
         (args, primary, reverseResolver) = abi.decode(
@@ -259,7 +267,7 @@ abstract contract AbstractUniversalResolver is
         if (!BytesUtils.equals(args.lookupAddress, primaryAddress)) {
             revert ReverseAddressMismatch(primary, primaryAddress);
         }
-        resolver = info.resolver;
+        return (primary, info.resolver, reverseResolver);
     }
 
     /// @dev Efficiently call a resolver.
@@ -385,10 +393,10 @@ abstract contract AbstractUniversalResolver is
             answer = m[0];
             if (
                 (lookups[0].flags & (FLAG_EMPTY_RESPONSE | FLAG_CALL_ERROR)) !=
-                0 && // resolver-originating error
-                bytes4(answer) != UnsupportedResolverProfile.selector // dont wrap
+                0 && // resolver-originating error should be wrapped
+                bytes4(answer) != UnsupportedResolverProfile.selector // exception
             ) {
-                answer = abi.encodeWithSelector(ResolverError.selector, answer);
+                revert ResolverError(answer);
             }
             if (answer.length & 31 != 0) {
                 assembly {
