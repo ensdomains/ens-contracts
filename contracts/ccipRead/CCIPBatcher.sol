@@ -35,8 +35,8 @@ contract CCIPBatcher is CCIPReader {
         string[] gateways;
     }
 
-    /// @dev Create a `Batch` for a single target with multiple calls.
-    function _createBatch(
+    /// @dev Create a batch for a single target with multiple calls.
+    function createBatch(
         address target,
         bytes[] memory calls,
         string[] memory gateways
@@ -58,7 +58,7 @@ contract CCIPBatcher is CCIPReader {
         for (uint256 i; i < batch.lookups.length; i++) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAGS_ANY_EIP140) == 0) {
-                uint256 flags = _detectEIP140(lu.target)
+                uint256 flags = detectEIP140(lu.target)
                     ? FLAG_EIP140_AFTER
                     : FLAG_EIP140_BEFORE;
                 for (uint256 j = i; j < batch.lookups.length; j++) {
@@ -68,7 +68,7 @@ contract CCIPBatcher is CCIPReader {
                 }
             }
             bool old = (lu.flags & FLAG_EIP140_AFTER) == 0;
-            (bool ok, bytes memory v) = _safeCall(!old, lu.target, lu.call);
+            (bool ok, bytes memory v) = safeCall(!old, lu.target, lu.call);
             if (ok || (old && v.length == 0)) {
                 lu.flags |= FLAG_DONE;
                 if (v.length == 0) {

@@ -41,7 +41,7 @@ abstract contract AbstractUniversalResolver is
             super.supportsInterface(interfaceId);
     }
 
-    /// @notice Set the default batch gateways, see: `resolve()` and `reverse()`.
+    /// @notice Set the default batch gateways.
     /// @param gateways The batch gateway URLs.
     function setBatchGateways(string[] memory gateways) external onlyOwner {
         _gateways = gateways;
@@ -120,12 +120,13 @@ abstract contract AbstractUniversalResolver is
     ) public view returns (bytes memory result, address resolver) {
         result;
         resolver;
+        ResolverInfo memory info = requireResolver(name);
         _callResolver(
-            requireResolver(name),
+            info,
             data,
             gateways,
             this.resolveCallback.selector,
-            ""
+            abi.encode(info.resolver)
         );
     }
 
@@ -141,23 +142,28 @@ abstract contract AbstractUniversalResolver is
         info.node = NameCoder.namehash(name, 0);
         info.resolver = resolver;
         _checkResolver(info);
-        _callResolver(info, data, gateways, this.resolveCallback.selector, "");
+        _callResolver(
+            info,
+            data,
+            gateways,
+            this.resolveCallback.selector,
+            abi.encode(resolver)
+        );
     }
 
     /// @dev CCIP-Read callback for `resolveWithGateways()` (step 2 of 2).
-    /// @param info The resolver that was called.
     /// @param response The response from the resolver.
+    /// @param extraData The contextual data passed from `resolveWith*()`.
     function resolveCallback(
-        ResolverInfo calldata info,
         bytes calldata response,
-        bytes calldata
+        bytes calldata extraData
     ) external pure returns (bytes memory, address) {
-        return (response, info.resolver);
+        return (response, abi.decode(extraData, (address)));
     }
 
     /// @notice Same as `reverseWithGateways()` but uses default batch gateways.
     function reverse(
-        bytes memory lookupAddress,
+        bytes calldata lookupAddress,
         uint256 coinType
     ) external view returns (string memory, address, address) {
         return reverseWithGateways(lookupAddress, coinType, _gateways);
@@ -167,6 +173,7 @@ abstract contract AbstractUniversalResolver is
         bytes lookupAddress;
         uint256 coinType;
         string[] gateways;
+        address resolver;
     }
 
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
@@ -179,7 +186,7 @@ abstract contract AbstractUniversalResolver is
     /// @return resolver The resolver address for primary name.
     /// @return reverseResolver The resolver address for the reverse name.
     function reverseWithGateways(
-        bytes memory lookupAddress,
+        bytes calldata lookupAddress,
         uint256 coinType,
         string[] memory gateways
     )
@@ -203,23 +210,23 @@ abstract contract AbstractUniversalResolver is
             abi.encodeCall(INameResolver.name, (info.node)),
             gateways,
             this.reverseNameCallback.selector,
-            abi.encode(ReverseArgs(lookupAddress, coinType, gateways))
+            abi.encode(
+                ReverseArgs(lookupAddress, coinType, gateways, info.resolver)
+            )
         );
     }
 
     /// @dev CCIP-Read callback for `reverseWithGateways()` (step 2 of 3).
-    /// @param infoRev The resolver for the reverse name that was called.
-    /// @param response The abi-encoded `name()` response.
+    /// @param response The abi-encoded `name()` response from the reverse resolver.
     /// @param extraData The contextual data passed from `reverseWithGateways()`.
     function reverseNameCallback(
-        ResolverInfo calldata infoRev,
         bytes calldata response,
-        bytes memory extraData // this cannot be calldata due to "stack too deep"
+        bytes calldata extraData
     ) external view returns (string memory primary, address, address) {
         ReverseArgs memory args = abi.decode(extraData, (ReverseArgs));
         primary = abi.decode(response, (string));
         if (bytes(primary).length == 0) {
-            return ("", address(0), infoRev.resolver);
+            return ("", address(0), args.resolver);
         }
         ResolverInfo memory info = requireResolver(NameCoder.encode(primary));
         _callResolver(
@@ -232,28 +239,30 @@ abstract contract AbstractUniversalResolver is
                 ),
             args.gateways,
             this.reverseAddressCallback.selector,
-            abi.encode(args, primary, infoRev.resolver)
+            abi.encode(args, primary, info.resolver, args.resolver)
         );
     }
 
     /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
     ///      Reverts `ReverseAddressMismatch`.
-    /// @param info The resolver for the primary name that was called.
-    /// @param response The abi-encoded `addr()` response.
+    /// @param response The abi-encoded `addr()` response from the forward resolver.
     /// @param extraData The contextual data passed from `reverseNameCallback()`.
     function reverseAddressCallback(
-        ResolverInfo calldata info,
         bytes calldata response,
         bytes calldata extraData
     )
         external
         pure
-        returns (string memory primary, address, address reverseResolver)
+        returns (
+            string memory primary,
+            address resolver,
+            address reverseResolver
+        )
     {
         ReverseArgs memory args;
-        (args, primary, reverseResolver) = abi.decode(
+        (args, primary, resolver, reverseResolver) = abi.decode(
             extraData,
-            (ReverseArgs, string, address)
+            (ReverseArgs, string, address, address)
         );
         bytes memory primaryAddress;
         if (args.coinType == COIN_TYPE_ETH) {
@@ -265,11 +274,10 @@ abstract contract AbstractUniversalResolver is
         if (!BytesUtils.equals(args.lookupAddress, primaryAddress)) {
             revert ReverseAddressMismatch(primary, primaryAddress);
         }
-        return (primary, info.resolver, reverseResolver);
     }
 
     /// @dev Efficiently call a resolver.
-    ///      If features are supported, and not a multicall or extended + multicall + `RESOLVE_MULTICALL`, performs a direct call.
+    ///      If features are supported, and not a multicall or extended w/`RESOLVE_MULTICALL`, performs a direct call.
     ///      Otherwise, uses the batch gateway.
     /// @param info The resolver to call.
     /// @param call The calldata.
@@ -304,7 +312,12 @@ abstract contract AbstractUniversalResolver is
                     )
                     : call,
                 this.resolveDirectCallback.selector,
-                abi.encode(info, bytes4(call), callbackFunction, extraData),
+                abi.encode(
+                    info.extended,
+                    bytes4(call),
+                    callbackFunction,
+                    extraData
+                ),
                 true
             );
         } else {
@@ -331,10 +344,10 @@ abstract contract AbstractUniversalResolver is
                 address(this),
                 abi.encodeCall(
                     this.ccipBatch,
-                    (_createBatch(info.resolver, calls, gateways))
+                    (createBatch(info.resolver, calls, gateways))
                 ),
                 this.resolveBatchCallback.selector,
-                abi.encode(info, multi, callbackFunction, extraData),
+                abi.encode(info.extended, multi, callbackFunction, extraData),
                 false
             );
         }
@@ -346,11 +359,11 @@ abstract contract AbstractUniversalResolver is
         bytes calldata extraData
     ) external view {
         (
-            ResolverInfo memory info,
+            bool extended,
             bytes4 callSelector,
             bytes4 callbackFunction,
             bytes memory extraData_
-        ) = abi.decode(extraData, (ResolverInfo, bytes4, bytes4, bytes));
+        ) = abi.decode(extraData, (bool, bytes4, bytes4, bytes));
         if (response.length == 0) {
             response = abi.encodeWithSelector(
                 UnsupportedResolverProfile.selector,
@@ -360,12 +373,12 @@ abstract contract AbstractUniversalResolver is
         if ((response.length & 31) != 0) {
             revert ResolverError(response);
         }
-        if (info.extended) {
+        if (extended) {
             response = abi.decode(response, (bytes)); // unwrap resolve()
         }
         ccipRead(
             address(this),
-            abi.encodeWithSelector(callbackFunction, info, response, extraData_)
+            abi.encodeWithSelector(callbackFunction, response, extraData_)
         );
     }
 
@@ -376,16 +389,16 @@ abstract contract AbstractUniversalResolver is
     ) external view {
         Lookup[] memory lookups = abi.decode(response, (Batch)).lookups;
         (
-            ResolverInfo memory info,
+            bool extended,
             bool multi,
             bytes4 callbackFunction,
             bytes memory extraData_
-        ) = abi.decode(extraData, (ResolverInfo, bool, bytes4, bytes));
+        ) = abi.decode(extraData, (bool, bool, bytes4, bytes));
         bytes[] memory m = new bytes[](lookups.length);
         for (uint256 i; i < lookups.length; i++) {
             Lookup memory lu = lookups[i];
             bytes memory v = lu.data;
-            if ((lu.flags & FLAGS_ANY_ERROR) == 0 && info.extended) {
+            if ((lu.flags & FLAGS_ANY_ERROR) == 0 && extended) {
                 v = abi.decode(v, (bytes)); // unwrap resolve()
             } else if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
                 v = abi.encodeWithSelector(
@@ -415,7 +428,7 @@ abstract contract AbstractUniversalResolver is
         }
         ccipRead(
             address(this),
-            abi.encodeWithSelector(callbackFunction, info, answer, extraData_)
+            abi.encodeWithSelector(callbackFunction, answer, extraData_)
         );
     }
 }

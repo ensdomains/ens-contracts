@@ -42,7 +42,7 @@ contract CCIPReader {
     /// @param call The calldata to `staticcall()` on `target`.
     /// @param callbackFunction The function selector of callback.
     /// @param extraData The contextual data relayed to `callbackFunction`.
-    /// @param catchReverts Pass reverts to the callback.
+    /// @param catchReverts If true, passes revert data to the callback too.
     function ccipRead(
         address target,
         bytes memory call,
@@ -52,8 +52,8 @@ contract CCIPReader {
     ) internal view {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
-        (bool ok, bytes memory v) = _safeCall(
-            _detectEIP140(target),
+        (bool ok, bytes memory v) = safeCall(
+            detectEIP140(target),
             target,
             call
         );
@@ -84,7 +84,7 @@ contract CCIPReader {
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
         if ((ok || catchReverts) && callbackFunction != IDENTITY_FUNCTION) {
-            // The exit point of this architecture is  OUR callback in the 'real'
+            // The exit point of this architecture is OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
                 abi.encodeWithSelector(callbackFunction, v, extraData)
@@ -140,7 +140,7 @@ contract CCIPReader {
     //       Assumption: only newer contracts revert `OffchainLookup`.
     /// @param target The contract to test.
     /// @return safe True if safe to call.
-    function _detectEIP140(address target) internal view returns (bool safe) {
+    function detectEIP140(address target) internal view returns (bool safe) {
         if (target == address(this)) return true;
         // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
         assembly {
@@ -152,7 +152,7 @@ contract CCIPReader {
     }
 
     /// @dev Same as `staticcall()` but prevents OOG when not `safe`.
-    function _safeCall(
+    function safeCall(
         bool safe,
         address target,
         bytes memory call
