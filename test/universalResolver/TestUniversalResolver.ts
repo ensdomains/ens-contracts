@@ -307,16 +307,7 @@ describe('UniversalResolver', () => {
         makeResolutions({
           name: testName,
           primary: { value: testName },
-          errors: [
-            {
-              call: dummyBytes4,
-              answer: encodeErrorResult({
-                abi: F.universalResolver.abi,
-                errorName: 'UnsupportedResolverProfile',
-                args: [dummyBytes4],
-              }),
-            },
-          ],
+          errors: [{ call: dummyBytes4, answer: '0x' }],
         }),
       )
       const [answer, resolver] = await F.universalResolver.read.resolve([
@@ -361,7 +352,7 @@ describe('UniversalResolver', () => {
           { coinType: COIN_TYPE_ETH, value: anotherAddress },
         ],
       })
-      await F.publicResolver.write.multicall([[res0.write]]) // only set default
+      await F.publicResolver.write.multicall([[res0.write]]) // just default
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
@@ -597,7 +588,7 @@ describe('UniversalResolver', () => {
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
-      await F.universalResolver.write.setBatchGateways([[]])
+      await F.universalResolver.write.setBatchGateways([[]]) // disable
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
@@ -617,11 +608,41 @@ describe('UniversalResolver', () => {
         FEATURES.RESOLVER.RESOLVE_MULTICALL,
         true,
       ])
-      await F.universalResolver.write.setBatchGateways([[]])
       const bundle = bundleCalls(resolutions)
       await F.shapeshift1.write.setResponse([bundle.call, bundle.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
+      await F.universalResolver.write.setBatchGateways([[]]) // disable
+      const [answer, resolver] = await F.universalResolver.read.resolve([
+        dnsEncodeName(testName),
+        bundle.call,
+      ])
+      expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+      bundle.expect(answer)
+    })
+
+    it('offchain extended w/multicall (1 revert)', async () => {
+      const F = await loadFixture(fixture)
+      await F.takeControl(testName)
+      await F.ensRegistry.write.setResolver([
+        namehash(getParentName(testName)),
+        F.shapeshift1.address,
+      ])
+      await F.shapeshift1.write.setFeature([
+        FEATURES.RESOLVER.RESOLVE_MULTICALL,
+        true,
+      ])
+      const bundle = bundleCalls(
+        makeResolutions({
+          name: testName,
+          primary: { value: testName },
+          errors: [{ call: dummyBytes4, answer: '0x' }],
+        }),
+      )
+      await F.shapeshift1.write.setResponse([bundle.call, bundle.answer])
+      await F.shapeshift1.write.setExtended([true])
+      await F.shapeshift1.write.setOffchain([true])
+      await F.universalResolver.write.setBatchGateways([[]]) // disable
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,

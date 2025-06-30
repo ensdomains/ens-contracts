@@ -389,34 +389,39 @@ abstract contract AbstractUniversalResolver is
             bytes4 callbackFunction,
             bytes memory extraData_
         ) = abi.decode(extraData, (bool, bool, bytes4, bytes));
-        bytes[] memory m = new bytes[](lookups.length);
-        for (uint256 i; i < lookups.length; i++) {
-            Lookup memory lu = lookups[i];
-            bytes memory v = lu.data;
-            if ((lu.flags & FLAGS_ANY_ERROR) == 0 && extended) {
-                v = abi.decode(v, (bytes)); // unwrap resolve()
-            } else if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
-                v = abi.encodeWithSelector(
-                    UnsupportedResolverProfile.selector,
-                    bytes4(v)
-                );
-            }
-            m[i] = v;
-        }
         bytes memory answer;
         if (multi) {
+            bytes[] memory m = new bytes[](lookups.length);
+            for (uint256 i; i < lookups.length; i++) {
+                Lookup memory lu = lookups[i];
+                if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
+                    continue;
+                }
+                bytes memory v = lu.data;
+                if (extended && (lu.flags & FLAGS_ANY_ERROR) == 0) {
+                    v = abi.decode(v, (bytes)); // unwrap resolve()
+                }
+                m[i] = v;
+            }
             answer = abi.encode(m);
         } else {
-            answer = m[0];
-            if (
-                (lookups[0].flags & FLAG_CALL_ERROR) != 0 && // wrap any error from the resolver
+            Lookup memory lu = lookups[0];
+            answer = lu.data;
+            if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
+                revert UnsupportedResolverProfile(bytes4(answer));
+            } else if (
+                (lu.flags & FLAG_CALL_ERROR) != 0 && // wrap any error from the resolver
                 bytes4(answer) != UnsupportedResolverProfile.selector // except this
             ) {
                 revert ResolverError(answer);
-            } else if (answer.length & 31 != 0) {
+            }
+            if ((answer.length & 31) != 0) {
                 assembly {
                     revert(add(answer, 32), mload(answer))
                 }
+            }
+            if (extended) {
+                answer = abi.decode(answer, (bytes)); // unwrap resolve()
             }
         }
         ccipRead(
