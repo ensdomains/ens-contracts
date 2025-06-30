@@ -69,7 +69,6 @@ contract ChainReverseResolver is
     }
 
     /// @inheritdoc AbstractReverseResolver
-    /// @dev This function executes over multiple steps (step 1 of 2).
     function _resolveName(
         address addr
     ) internal view override returns (string memory) {
@@ -80,13 +79,13 @@ contract ChainReverseResolver is
         fetch(
             gatewayVerifier,
             req,
-            this.resolveNameCallback.selector,
+            this.resolveNameCallback.selector, // ==> step 2
             abi.encode(addr),
             gatewayURLs
         );
     }
 
-    /// @dev CCIP-Read callback for `_resolveName()` (step 2 of 2).
+    /// @dev CCIP-Read callback for `_resolveName()`.
     /// @param values The outputs for `GatewayRequest` (1 name).
     /// @param extraData The contextual data passed from `_resolveName()`.
     /// @return result The abi-encoded name for the given address.
@@ -113,7 +112,7 @@ contract ChainReverseResolver is
     }
 
     /// @dev Resolve the next page of addresses to names.
-    ///      This function executes over multiple steps (step 1 of 2).
+    ///      This function executes over multiple steps.
     function _resolveNames(
         address[] memory addrs,
         string[] memory names,
@@ -133,13 +132,13 @@ contract ChainReverseResolver is
         fetch(
             gatewayVerifier,
             req,
-            this.resolveNamesCallback.selector,
+            this.resolveNamesCallback.selector, // ==> step 2
             abi.encode(addrs, names, start, perPage),
             gatewayURLs
         );
     }
 
-    /// @dev CCIP-Read callback for `_resolveNames()` (step 2 of 2).
+    /// @dev CCIP-Read callback for `_resolveNames()`.
     ///      Recursive if there are still addresses to resolve.
     /// @param values The outputs for `GatewayRequest` (N names).
     /// @param extraData The contextual data passed from `_resolveNames()`.
@@ -163,6 +162,6 @@ contract ChainReverseResolver is
             }
             names[start + i] = name;
         }
-        _resolveNames(addrs, names, start + values.length, perPage);
+        _resolveNames(addrs, names, start + values.length, perPage); // ==> goto step 1 again
     }
 }

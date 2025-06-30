@@ -106,8 +106,8 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @notice Performs ENS resolution process for the supplied name and resolution data.
-    ///         Callers should enable EIP-3668.
-    /// @dev This function executes over multiple steps (step 1 of 2).
+    ///         Caller should enable EIP-3668.
+    /// @dev This function executes over multiple steps.
     /// @param name The name to resolve, in normalised and DNS-encoded form.
     /// @param data The resolution data, as specified in ENSIP-10.
     /// @param gateways The list of batch gateway URLs to use.
@@ -125,7 +125,7 @@ abstract contract AbstractUniversalResolver is
             info,
             data,
             gateways,
-            this.resolveCallback.selector,
+            this.resolveCallback.selector, // ==> step 2
             abi.encode(info.resolver)
         );
     }
@@ -146,12 +146,12 @@ abstract contract AbstractUniversalResolver is
             info,
             data,
             gateways,
-            this.resolveCallback.selector,
+            this.resolveCallback.selector, // ==> step 2
             abi.encode(resolver)
         );
     }
 
-    /// @dev CCIP-Read callback for `resolveWithGateways()` (step 2 of 2).
+    /// @dev CCIP-Read callback for `resolveWithGateways()`.
     /// @param response The response from the resolver.
     /// @param extraData The contextual data passed from `resolveWith*()`.
     function resolveCallback(
@@ -177,8 +177,8 @@ abstract contract AbstractUniversalResolver is
     }
 
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
-    ///         Callers should enable EIP-3668.
-    /// @dev This function executes over multiple steps (step 1 of 3).
+    ///         Caller should enable EIP-3668.
+    /// @dev This function executes over multiple steps.
     /// @param lookupAddress The input address.
     /// @param coinType The coin type.
     /// @param gateways The list of batch gateway URLs to use.
@@ -209,14 +209,14 @@ abstract contract AbstractUniversalResolver is
             info,
             abi.encodeCall(INameResolver.name, (info.node)),
             gateways,
-            this.reverseNameCallback.selector,
+            this.reverseNameCallback.selector, // ==> step 2
             abi.encode(
                 ReverseArgs(lookupAddress, coinType, gateways, info.resolver)
             )
         );
     }
 
-    /// @dev CCIP-Read callback for `reverseWithGateways()` (step 2 of 3).
+    /// @dev CCIP-Read callback for `reverseWithGateways()`.
     /// @param response The abi-encoded `name()` response from the reverse resolver.
     /// @param extraData The contextual data passed from `reverseWithGateways()`.
     function reverseNameCallback(
@@ -238,12 +238,12 @@ abstract contract AbstractUniversalResolver is
                     (info.node, args.coinType)
                 ),
             args.gateways,
-            this.reverseAddressCallback.selector,
+            this.reverseAddressCallback.selector, // ==> step 3
             abi.encode(args, primary, info.resolver, args.resolver)
         );
     }
 
-    /// @dev CCIP-Read callback for `reverseNameCallback()` (step 3 of 3).
+    /// @dev CCIP-Read callback for `reverseNameCallback()`.
     ///      Reverts `ReverseAddressMismatch`.
     /// @param response The abi-encoded `addr()` response from the forward resolver.
     /// @param extraData The contextual data passed from `reverseNameCallback()`.
@@ -284,7 +284,6 @@ abstract contract AbstractUniversalResolver is
     /// @param gateways The list of batch gateway URLs to use.
     /// @param callbackFunction The function selector to call after resolution.
     /// @param extraData The contextual data passed to `callbackFunction`.
-    /// @dev The return type of this function is polymorphic depending on the caller.
     function _callResolver(
         ResolverInfo memory info,
         bytes memory call,
@@ -416,7 +415,7 @@ abstract contract AbstractUniversalResolver is
             if (
                 (lookups[0].flags & (FLAG_EMPTY_RESPONSE | FLAG_CALL_ERROR)) !=
                 0 && // resolver-originating error should be wrapped
-                bytes4(answer) != UnsupportedResolverProfile.selector // exception
+                bytes4(answer) != UnsupportedResolverProfile.selector // except this error
             ) {
                 revert ResolverError(answer);
             }

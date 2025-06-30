@@ -58,7 +58,7 @@ abstract contract AbstractReverseResolver is
     /// @notice Resolves the following profiles according to ENSIP-10:
     ///         - `name()` if `name` is an ENSIP-19 reverse name of an EVM address for `coinType`.
     ///         - `addr(*) = registrar` if `name` is an ENSIP-19 reverse namespace for `coinType`.
-    ///         Callers should enable EIP-3668.
+    ///         Caller should enable EIP-3668.
     /// @dev This function may execute over multiple steps.
     /// @param name The reverse name to resolve, in normalised and DNS-encoded form.
     /// @param data The resolution data, as specified in ENSIP-10.
