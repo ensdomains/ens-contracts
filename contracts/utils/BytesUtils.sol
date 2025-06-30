@@ -108,7 +108,7 @@ library BytesUtils {
         return keccak(vA, posA, len) == keccak(vB, posB, len);
     }
 
-    /// @dev Determeine if `a[posA:] == b[posB:]`.
+    /// @dev Determine if `a[posA:] == b[posB:]`.
     /// @param vA The first bytes.
     /// @param posA The offset into the first bytes.
     /// @param vB The second bytes.
@@ -127,7 +127,7 @@ library BytesUtils {
             keccak(vB, posB, vB.length - posB);
     }
 
-    /// @dev Determeine if `a[posA:] == b`.
+    /// @dev Determine if `a[posA:] == b`.
     /// @param vA The first bytes.
     /// @param posA The offset into the first bytes.
     /// @param vB The second bytes.
@@ -232,7 +232,7 @@ library BytesUtils {
         uint256 pos,
         uint256 len
     ) internal pure returns (bytes32 ret) {
-        require(len <= 32);
+        assert(len <= 32);
         _checkBound(v, pos + len);
         assembly {
             let mask := sub(shl(shl(3, sub(32, len)), 1), 1) // <(32-N)x00><NxFF>
