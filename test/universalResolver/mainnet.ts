@@ -1,4 +1,4 @@
-import { type Address, encodeErrorResult, parseAbi} from 'viem'
+import type { Address } from 'viem'
 import type { KnownProfile, KnownReverse } from '../utils/resolutions.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 
@@ -19,10 +19,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     errors: [
       {
         call: '0x12345678',
-        answer: encodeErrorResult({
-          abi: parseAbi(['error UnsupportedResolverProfile(bytes4)']),
-          args: ['0x12345678'],
-        }),
+        answer: '0x',
       },
     ],
   },
