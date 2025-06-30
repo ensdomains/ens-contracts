@@ -17,6 +17,7 @@ string constant TLD_REVERSE = "reverse";
 /// https://docs.ens.domains/ensip/19
 library ENSIP19 {
     /// @dev The supplied address was `0x`.
+    ///      Error selector: `0x7138356f`
     error EmptyAddress();
 
     /// @dev Extract Chain ID from `coinType`.
