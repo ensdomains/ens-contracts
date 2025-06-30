@@ -170,10 +170,10 @@ abstract contract AbstractUniversalResolver is
     }
 
     struct ReverseArgs {
-        bytes lookupAddress;
-        uint256 coinType;
-        string[] gateways;
-        address resolver;
+        bytes lookupAddress; // parsed input address
+        uint256 coinType; // parsed coinType
+        string[] gateways; // supplied gateways
+        address resolver; // valid reverse resolver
     }
 
     /// @notice Performs ENS reverse resolution for the supplied address and coin type.
