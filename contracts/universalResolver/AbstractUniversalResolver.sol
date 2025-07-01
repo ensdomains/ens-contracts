@@ -394,9 +394,6 @@ abstract contract AbstractUniversalResolver is
             bytes[] memory m = new bytes[](lookups.length);
             for (uint256 i; i < lookups.length; i++) {
                 Lookup memory lu = lookups[i];
-                if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
-                    continue;
-                }
                 bytes memory v = lu.data;
                 if (extended && (lu.flags & FLAGS_ANY_ERROR) == 0) {
                     v = abi.decode(v, (bytes)); // unwrap resolve()
@@ -407,13 +404,14 @@ abstract contract AbstractUniversalResolver is
         } else {
             Lookup memory lu = lookups[0];
             answer = lu.data;
-            if ((lu.flags & FLAG_EMPTY_RESPONSE) != 0) {
-                revert UnsupportedResolverProfile(bytes4(answer));
-            } else if (
+            if (
                 (lu.flags & FLAG_CALL_ERROR) != 0 && // wrap any error from the resolver
                 bytes4(answer) != UnsupportedResolverProfile.selector // except this
             ) {
                 revert ResolverError(answer);
+            }
+            if (answer.length == 0) {
+                revert UnsupportedResolverProfile(bytes4(lu.call));
             }
             if ((answer.length & 31) != 0) {
                 assembly {

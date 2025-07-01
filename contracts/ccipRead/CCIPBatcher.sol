@@ -5,20 +5,18 @@ import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
 contract CCIPBatcher is CCIPReader {
-    /// @dev The batch gateway supplied an incorrect number of responses.
-    ///      Error selector: `0x4a5c31ea`
+    /// @notice The batch gateway supplied an incorrect number of responses.
+    /// @dev Error selector: `0x4a5c31ea`
     error InvalidBatchGatewayResponse();
 
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
     uint256 constant FLAG_CALL_ERROR = 1 << 1; // the initial call or callback reverted
     uint256 constant FLAG_BATCH_ERROR = 1 << 2; // `OffchainLookup` failed on the batch gateway
-    uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3; // the initial call or callback returned `0x`
     uint256 constant FLAG_EIP140_BEFORE = 1 << 4; // does not have revert op code
     uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
     uint256 constant FLAG_DONE = 1 << 6; // the lookup has finished processing (private)
 
-    uint256 constant FLAGS_ANY_ERROR =
-        FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
+    uint256 constant FLAGS_ANY_ERROR = FLAG_CALL_ERROR | FLAG_BATCH_ERROR;
     uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
 
     /// @dev An independent `OffchainLookup` session.
@@ -67,14 +65,12 @@ contract CCIPBatcher is CCIPReader {
                     }
                 }
             }
-            bool old = (lu.flags & FLAG_EIP140_AFTER) == 0;
-            (bool ok, bytes memory v) = safeCall(!old, lu.target, lu.call);
-            if (ok || (old && v.length == 0)) {
+            bool unsafe = (lu.flags & FLAG_EIP140_AFTER) == 0;
+            (bool ok, bytes memory v) = safeCall(!unsafe, lu.target, lu.call);
+            // unsafe contracts appear the same for throw and unimplemented fallback
+            // decision: interpret both as empty response
+            if (ok || (unsafe && v.length == 0)) {
                 lu.flags |= FLAG_DONE;
-                if (v.length == 0) {
-                    v = abi.encodePacked(bytes4(lu.call));
-                    lu.flags |= FLAG_EMPTY_RESPONSE;
-                }
             } else if (bytes4(v) == OffchainLookup.selector) {
                 lu.flags |= FLAG_OFFCHAIN;
             } else {
@@ -145,6 +141,7 @@ contract CCIPBatcher is CCIPReader {
                     } else {
                         EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                         bool ok;
+                        // assumption: unsafe contracts don't revert OffchainLookup()
                         (ok, v) = p.sender.staticcall(
                             abi.encodeWithSelector(
                                 p.callbackFunction,
@@ -152,12 +149,11 @@ contract CCIPBatcher is CCIPReader {
                                 p.extraData
                             )
                         );
-                        if (ok) {
+                        // decision: promote empty response from the callback => call error
+                        // ie. the initial function was implemented but the callback was not
+                        // note: FLAG_OFFCHAIN will be true
+                        if (ok && v.length > 0) {
                             lu.flags |= FLAG_DONE;
-                            if (v.length == 0) {
-                                v = abi.encodePacked(p.callbackFunction);
-                                lu.flags |= FLAG_EMPTY_RESPONSE;
-                            }
                         } else if (bytes4(v) != OffchainLookup.selector) {
                             lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
                         }
