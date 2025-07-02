@@ -28,7 +28,7 @@ abstract contract AbstractUniversalResolver is
 {
     string[] _gateways;
 
-    constructor(string[] memory gateways) {
+    constructor(string[] memory gateways) CCIPBatcher(50000) {
         _gateways = gateways;
     }
 
@@ -311,13 +311,13 @@ abstract contract AbstractUniversalResolver is
                     )
                     : call,
                 this.resolveDirectCallback.selector,
+                this.resolveDirectCallbackError.selector,
                 abi.encode(
                     info.extended,
                     bytes4(call),
                     callbackFunction,
                     extraData
-                ),
-                true
+                )
             );
         } else {
             bytes[] memory calls;
@@ -332,7 +332,7 @@ abstract contract AbstractUniversalResolver is
                 calls[0] = call;
             }
             if (info.extended) {
-                for (uint256 i; i < calls.length; i++) {
+                for (uint256 i; i < calls.length; ++i) {
                     calls[i] = abi.encodeCall(
                         IExtendedResolver.resolve,
                         (info.name, calls[i])
@@ -346,13 +346,13 @@ abstract contract AbstractUniversalResolver is
                     (createBatch(info.resolver, calls, gateways))
                 ),
                 this.resolveBatchCallback.selector,
-                abi.encode(info.extended, multi, callbackFunction, extraData),
-                false
+                IDENTITY_FUNCTION,
+                abi.encode(info.extended, multi, callbackFunction, extraData)
             );
         }
     }
 
-    /// @dev CCIP-Read callback for `_callResolver()` from calling the resolver directly.
+    /// @dev CCIP-Read callback for `_callResolver()` from calling the resolver successfully.
     function resolveDirectCallback(
         bytes memory response,
         bytes calldata extraData
@@ -365,8 +365,6 @@ abstract contract AbstractUniversalResolver is
         ) = abi.decode(extraData, (bool, bytes4, bytes4, bytes));
         if (response.length == 0) {
             revert UnsupportedResolverProfile(callSelector);
-        } else if ((response.length & 31) != 0) {
-            revert ResolverError(response);
         }
         if (extended) {
             response = abi.decode(response, (bytes)); // unwrap resolve()
@@ -377,7 +375,15 @@ abstract contract AbstractUniversalResolver is
         );
     }
 
-    /// @dev CCIP-Read callback for `_callResolver()` from calling the batch gateway.
+    /// @dev CCIP-Read callback for `_callResolver()` from calling the resolver unsuccessfully.
+    function resolveDirectCallbackError(
+        bytes calldata response,
+        bytes calldata
+    ) external pure {
+        _propagateResolverError(response);
+    }
+
+    /// @dev CCIP-Read callback for `_callResolver()` from calling the batch gateway successfully.
     function resolveBatchCallback(
         bytes calldata response,
         bytes calldata extraData
@@ -392,7 +398,7 @@ abstract contract AbstractUniversalResolver is
         bytes memory answer;
         if (multi) {
             bytes[] memory m = new bytes[](lookups.length);
-            for (uint256 i; i < lookups.length; i++) {
+            for (uint256 i; i < lookups.length; ++i) {
                 Lookup memory lu = lookups[i];
                 bytes memory v = lu.data;
                 if (extended && (lu.flags & FLAGS_ANY_ERROR) == 0) {
@@ -404,19 +410,14 @@ abstract contract AbstractUniversalResolver is
         } else {
             Lookup memory lu = lookups[0];
             answer = lu.data;
-            if (
-                (lu.flags & FLAG_CALL_ERROR) != 0 && // wrap any error from the resolver
-                bytes4(answer) != UnsupportedResolverProfile.selector // except this
-            ) {
-                revert ResolverError(answer);
-            }
-            if (answer.length == 0) {
-                revert UnsupportedResolverProfile(bytes4(lu.call));
-            }
-            if ((answer.length & 31) != 0) {
+            if ((lu.flags & FLAG_BATCH_ERROR) != 0) {
                 assembly {
-                    revert(add(answer, 32), mload(answer))
+                    revert(add(answer, 32), mload(answer)) // propagate batch gateway errors
                 }
+            } else if ((lu.flags & FLAG_CALL_ERROR) != 0) {
+                _propagateResolverError(answer);
+            } else if (answer.length == 0) {
+                revert UnsupportedResolverProfile(bytes4(lu.call));
             }
             if (extended) {
                 answer = abi.decode(answer, (bytes)); // unwrap resolve()
@@ -426,5 +427,17 @@ abstract contract AbstractUniversalResolver is
             address(this),
             abi.encodeWithSelector(callbackFunction, answer, extraData_)
         );
+    }
+
+    /// @dev Propagate the revert from the resolver.
+    /// @param v The error data.
+    function _propagateResolverError(bytes memory v) internal pure {
+        if (bytes4(v) == UnsupportedResolverProfile.selector) {
+            assembly {
+                revert(add(v, 32), mload(v))
+            }
+        } else {
+            revert ResolverError(v);
+        }
     }
 }

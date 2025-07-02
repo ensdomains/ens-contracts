@@ -19,6 +19,8 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAGS_ANY_ERROR = FLAG_CALL_ERROR | FLAG_BATCH_ERROR;
     uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
 
+    constructor(uint256 unsafeCallGas) CCIPReader(unsafeCallGas) {}
+
     /// @dev An independent `OffchainLookup` session.
     struct Lookup {
         address target; // contract to call
