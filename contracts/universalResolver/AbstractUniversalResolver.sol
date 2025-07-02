@@ -6,7 +6,7 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {IUniversalResolver} from "./IUniversalResolver.sol";
-import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
+import {CCIPBatcher, CCIPReader} from "../ccipRead/CCIPBatcher.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
@@ -28,7 +28,7 @@ abstract contract AbstractUniversalResolver is
 {
     string[] _gateways;
 
-    constructor(string[] memory gateways) CCIPBatcher(DEFAULT_UNSAFE_CALL_GAS) {
+    constructor(string[] memory gateways) CCIPReader(DEFAULT_UNSAFE_CALL_GAS) {
         _gateways = gateways;
     }
 

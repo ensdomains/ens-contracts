@@ -4,7 +4,7 @@ pragma solidity ^0.8.17;
 import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
-contract CCIPBatcher is CCIPReader {
+abstract contract CCIPBatcher is CCIPReader {
     /// @notice The batch gateway supplied an incorrect number of responses.
     /// @dev Error selector: `0x4a5c31ea`
     error InvalidBatchGatewayResponse();
@@ -12,14 +12,14 @@ contract CCIPBatcher is CCIPReader {
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
     uint256 constant FLAG_CALL_ERROR = 1 << 1; // the initial call or callback reverted
     uint256 constant FLAG_BATCH_ERROR = 1 << 2; // `OffchainLookup` failed on the batch gateway
+    uint256 constant FLAG_EMPTY_RESPONSE = 1 << 3; // the initial call or callback returned `0x`
     uint256 constant FLAG_EIP140_BEFORE = 1 << 4; // does not have revert op code
     uint256 constant FLAG_EIP140_AFTER = 1 << 5; // has revert op code
     uint256 constant FLAG_DONE = 1 << 6; // the lookup has finished processing (private)
 
-    uint256 constant FLAGS_ANY_ERROR = FLAG_CALL_ERROR | FLAG_BATCH_ERROR;
+    uint256 constant FLAGS_ANY_ERROR =
+        FLAG_CALL_ERROR | FLAG_BATCH_ERROR | FLAG_EMPTY_RESPONSE;
     uint256 constant FLAGS_ANY_EIP140 = FLAG_EIP140_BEFORE | FLAG_EIP140_AFTER;
-
-    constructor(uint256 unsafeCallGas) CCIPReader(unsafeCallGas) {}
 
     /// @dev An independent `OffchainLookup` session.
     struct Lookup {
@@ -36,13 +36,16 @@ contract CCIPBatcher is CCIPReader {
     }
 
     /// @dev Create a batch for a single target with multiple calls.
+    /// @param target The target contract.
+    /// @param calls The list of calldata.
+    /// @param gateways The batch gateway URLs.
     function createBatch(
         address target,
         bytes[] memory calls,
         string[] memory gateways
     ) internal pure returns (Batch memory) {
         Lookup[] memory lookups = new Lookup[](calls.length);
-        for (uint256 i; i < calls.length; i++) {
+        for (uint256 i; i < calls.length; ++i) {
             Lookup memory lu = lookups[i];
             lu.target = target;
             lu.call = calls[i];
@@ -50,18 +53,18 @@ contract CCIPBatcher is CCIPReader {
         return Batch(lookups, gateways);
     }
 
-    /// @dev Use `CCIPReader.ccipRead()` to call this function with a batch.
-    ///      The callback `response` will be `abi.encode(batch)`.
+    /// @dev Use `ccipRead()` to call this function with a batch.
+    ///      The callback response will be `abi.encode(batch)`.
     function ccipBatch(
         Batch memory batch
     ) external view returns (Batch memory) {
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAGS_ANY_EIP140) == 0) {
                 uint256 flags = detectEIP140(lu.target)
                     ? FLAG_EIP140_AFTER
                     : FLAG_EIP140_BEFORE;
-                for (uint256 j = i; j < batch.lookups.length; j++) {
+                for (uint256 j = i; j < batch.lookups.length; ++j) {
                     if (batch.lookups[j].target == lu.target) {
                         batch.lookups[j].flags |= flags;
                     }
@@ -69,14 +72,19 @@ contract CCIPBatcher is CCIPReader {
             }
             bool unsafe = (lu.flags & FLAG_EIP140_AFTER) == 0;
             (bool ok, bytes memory v) = safeCall(!unsafe, lu.target, lu.call);
-            // unsafe contracts appear the same for throw and unimplemented fallback
-            // decision: interpret both as empty response
-            if (ok || (unsafe && v.length == 0)) {
-                lu.flags |= FLAG_DONE;
-            } else if (bytes4(v) == OffchainLookup.selector) {
+            if (!ok && bytes4(v) == OffchainLookup.selector) {
                 lu.flags |= FLAG_OFFCHAIN;
             } else {
-                lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                // unsafe contracts appear the same for throw and unimplemented fallback
+                // decision: interpret both as empty response
+                if (ok || (unsafe && v.length == 0)) {
+                    lu.flags |= FLAG_DONE;
+                } else {
+                    lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                }
+                if (v.length == 0) {
+                    lu.flags |= FLAG_EMPTY_RESPONSE;
+                }
             }
             lu.data = v;
         }
@@ -90,7 +98,7 @@ contract CCIPBatcher is CCIPReader {
             batch.lookups.length
         );
         uint256 count;
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
                 EIP3668.Params memory p = decodeOffchainLookup(lu.data);
@@ -133,7 +141,7 @@ contract CCIPBatcher is CCIPReader {
         }
         batch = abi.decode(extraData, (Batch));
         uint256 expected;
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
                 if (expected < responses.length) {
@@ -151,13 +159,17 @@ contract CCIPBatcher is CCIPReader {
                                 p.extraData
                             )
                         );
-                        // decision: promote empty response from the callback => call error
-                        // ie. the initial function was implemented but the callback was not
-                        // note: FLAG_OFFCHAIN will be true
-                        if (ok && v.length > 0) {
+                        if (ok || bytes4(v) != OffchainLookup.selector) {
                             lu.flags |= FLAG_DONE;
-                        } else if (bytes4(v) != OffchainLookup.selector) {
-                            lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                            // decision: promote empty response from the callback => call error
+                            // ie. the initial function was implemented but the callback was not
+                            // this can be detected via FLAG_OFFCHAIN
+                            if (!ok || v.length == 0) {
+                                lu.flags |= FLAG_CALL_ERROR;
+                            }
+                            if (v.length == 0) {
+                                lu.flags |= FLAG_EMPTY_RESPONSE;
+                            }
                         }
                     }
                     lu.data = v;
