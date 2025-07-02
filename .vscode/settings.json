@@ -1,3 +1,24 @@
 {
-  "typescript.tsdk": "node_modules/typescript/lib"
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "solidity.remappings": [
+    "@ensdomains/buffer/=node_modules/@ensdomains/buffer/",
+    "@ensdomains/solsha1/=node_modules/@ensdomains/solsha1/",
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "test/=test/"
+  ],
+  "solidity.packageDefaultDependenciesContractsDirectory": "contracts",
+  "solidity.packageDefaultDependenciesDirectory": "lib",
+  "search.exclude": {
+    "**/test/foundry-artifacts": true,
+    "**/test/foundry-cache": true,
+    "**/node_modules": true,
+    "**/cache": true,
+    "**/artifacts": true,
+    "**/build": true
+  },
+  "files.exclude": {
+    "**/test/foundry-artifacts": true,
+    "**/test/foundry-cache": true
+  }
 }

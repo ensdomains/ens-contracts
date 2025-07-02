@@ -1,6 +1,6 @@
 import { labelhash, namehash } from 'viem/ens'
 import * as dotenv from 'dotenv'
-import { task } from 'hardhat/config.js'
+import { task } from 'hardhat/config'
 import { Address, Hex, hexToBigInt } from 'viem'
 
 function getOpenSeaUrl(contract: Address, namehashedname: Hex) {
@@ -9,8 +9,9 @@ function getOpenSeaUrl(contract: Address, namehashedname: Hex) {
 }
 
 task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
-  .addPositionalParam('name', 'The ENS label to seed subdomains')
+  .addPositionalArgument({ name: 'name', description: 'The ENS label to seed subdomains' })
   .setAction(async ({ name }: { name: string }, hre) => {
+    const { viem } = await hre.network.connect();
     const { parsed: parsedFile, error } = dotenv.config({
       path: './.env',
       encoding: 'utf8',
@@ -19,7 +20,7 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
     if (error) throw error
     if (!parsedFile) throw new Error('Failed to parse .env')
 
-    const [deployer] = await hre.viem.getWalletClients()
+    const [deployer] = await viem.getWalletClients()
     const CAN_DO_EVERYTHING = 0
     const CANNOT_UNWRAP = 1
     const CANNOT_SET_RESOLVER = 8
@@ -40,7 +41,7 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
     ) {
       throw 'Set addresses on .env'
     }
-    const publicClient = await hre.viem.getPublicClient()
+    const publicClient = await viem.getPublicClient()
     console.log(
       'Account balance:',
       publicClient.getBalance({ address: deployer.account.address }),
@@ -53,22 +54,22 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
       firstAddress,
       name,
     })
-    const EnsRegistry = await hre.viem.getContractAt(
+    const EnsRegistry = await viem.getContractAt(
       'ENSRegistry',
       registryAddress,
     )
 
-    const BaseRegistrar = await hre.viem.getContractAt(
+    const BaseRegistrar = await viem.getContractAt(
       'BaseRegistrarImplementation',
       registrarAddress,
     )
 
-    const NameWrapper = await hre.viem.getContractAt(
+    const NameWrapper = await viem.getContractAt(
       'NameWrapper',
       wrapperAddress,
     )
 
-    const Resolver = await hre.viem.getContractAt(
+    const Resolver = await viem.getContractAt(
       'PublicResolver',
       resolverAddress,
     )

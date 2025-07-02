@@ -1,0 +1,76 @@
+[profile.default]
+src = "contracts"
+out = "test/foundry-artifacts"
+libs = ["node_modules", "lib"]
+test = "test"
+cache_path = "test/foundry-cache"
+broadcast = "test/foundry-broadcast"
+
+# Solidity compiler settings
+auto_detect_solc = true
+optimizer = true
+optimizer_runs = 1200
+via_ir = true
+
+# Test configuration
+verbosity = 2
+gas_limit = 9223372036854775807
+gas_price = 20000000000
+block_gas_limit = 9223372036854775807
+ffi = true
+
+# Coverage configuration
+no_match_coverage = "(test|Test|Mock|Dummy)"
+
+# Remappings for ENS dependencies
+remappings = [
+    "@ensdomains/buffer/=node_modules/@ensdomains/buffer/",
+    "@ensdomains/solsha1/=node_modules/@ensdomains/solsha1/",
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "forge-std/=lib/forge-std/src/",
+    "test/=test/"
+]
+
+# Skip problematic old files and test compilation optimization
+skip = [
+    "**/DummyOldResolver.sol",
+    # Skip test files during compilation for faster builds
+    "test/**/foundry-artifacts/**",
+    "test/**/foundry-cache/**"
+]
+
+# Fuzz testing configuration
+[fuzz]
+runs = 1000
+max_test_rejects = 65536
+seed = '0x3e8'
+dictionary_weight = 40
+include_storage = true
+include_push_bytes = true
+
+# Invariant testing configuration
+[invariant]
+runs = 256
+depth = 15
+fail_on_revert = false
+call_override = false
+dictionary_weight = 80
+include_storage = true
+include_push_bytes = true
+
+
+# Fast profile for development
+[profile.fast]
+optimizer = false         # Skip optimization for faster compilation
+via_ir = false            # Disable IR for speed
+fuzz = { runs = 10 }      # Minimal fuzz runs
+invariant = { runs = 10 } # Minimal invariant runs
+
+# CI profile for faster testing
+[profile.ci]
+fuzz = { runs = 10000 }
+invariant = { runs = 1000 }
+
+# Test-specific environment variables
+[profile.env]
+FOUNDRY_PROFILE = "default"

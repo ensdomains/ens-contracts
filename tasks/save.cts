@@ -4,19 +4,18 @@ import fs from 'fs/promises'
 import { promisify } from 'util'
 
 import { task } from 'hardhat/config'
-import { Artifact } from 'hardhat/types'
+import type { Artifact } from 'hardhat/types/artifacts'
 
-import { archivedDeploymentPath } from '../hardhat.config.cts'
+import { archivedDeploymentPath } from '../hardhat.config.ts'
 
 const exec = promisify(_exec)
 
 task('save', 'Saves a specified contract as a deployed contract')
-  .addPositionalParam('contract', 'The contract to save')
-  .addPositionalParam('block', 'The block number the contract was deployed at')
-  .addOptionalParam(
-    'fullName',
-    '(Optional) The fully qualified name of the contract (e.g. contracts/resolvers/PublicResolver.sol:PublicResolver)',
-  )
+  .addPositionalArgument({ name: 'contract', description: 'The contract to save' })
+  .addPositionalArgument({ name: 'block', description: 'The block number the contract was deployed at' })
+  .addPositionalArgument({ name: 'fullName',
+    description: '(Optional) The fully qualified name of the contract (e.g. contracts/resolvers/PublicResolver.sol:PublicResolver)'
+  })
   .setAction(
     async (
       {
@@ -26,12 +25,12 @@ task('save', 'Saves a specified contract as a deployed contract')
       }: { contract: string; block: string; fullName?: string },
       hre,
     ) => {
-      const network = hre.network.name
-
+      const { networkName } = await hre.network.connect();
+      
       const artifactReference = fullName || contract
-      const artifact = await hre.deployments.getArtifact(artifactReference)
+      const artifact = await hre.artifacts.readArtifact(artifactReference)
 
-      const archiveName = `${contract}_${network}_${block}`
+      const archiveName = `${contract}_${networkName}_${block}`
       const archivePath = `${archivedDeploymentPath}/${archiveName}.sol`
 
       if (existsSync(archivePath)) {

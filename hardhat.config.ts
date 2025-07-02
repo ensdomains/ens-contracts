@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import { HardhatUserConfig } from 'hardhat/config'
+import hardhatViem from "@nomicfoundation/hardhat-viem";
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -21,8 +22,7 @@ export const archivedDeploymentPath = './deployments/archive'
 const config: HardhatUserConfig = {
   networks: {
     hardhat: {
-      type: 'http',
-      allowUnlimitedContractSize: false,
+      type: 'edr',
       forking: process.env.FORKING_ENABLED
         ? {
             url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
@@ -75,6 +75,9 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  plugins: [
+    hardhatViem,
+  ],
 }
 
 export default config
