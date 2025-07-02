@@ -75,12 +75,12 @@ abstract contract CCIPBatcher is CCIPReader {
             if (!ok && bytes4(v) == OffchainLookup.selector) {
                 lu.flags |= FLAG_OFFCHAIN;
             } else {
-                // unsafe contracts appear the same for throw and unimplemented fallback
-                // decision: interpret both as empty response
-                if (ok || (unsafe && v.length == 0)) {
-                    lu.flags |= FLAG_DONE;
-                } else {
-                    lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                lu.flags |= FLAG_DONE;
+                if (unsafe && v.length == 0) {
+                    // unsafe contracts appear the same for throw and unimplemented fallback
+                    // decision: interpret like an unimplemented function selector response
+                } else if (!ok) {
+                    lu.flags |= FLAG_CALL_ERROR;
                 }
                 if (v.length == 0) {
                     lu.flags |= FLAG_EMPTY_RESPONSE;
