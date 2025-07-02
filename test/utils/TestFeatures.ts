@@ -16,9 +16,9 @@ describe('ResolverFeatures', () => {
   for (const [_, name, featureName] of code.matchAll(
     /constant (\S+) =\s+bytes4\(keccak256\("([^"]+)"\)\);/gm,
   )) {
-    it(name, async () => {
+    const feature = makeFeature(featureName)
+    it(`${name} = "${featureName}" = ${feature}`, async () => {
       expect(name in FEATURES.RESOLVER, 'missing').toStrictEqual(true)
-      const feature = makeFeature(featureName)
       expect(feature, 'hash').toStrictEqual(
         FEATURES.RESOLVER[name as keyof typeof FEATURES.RESOLVER],
       )

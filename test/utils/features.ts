@@ -4,10 +4,9 @@ export function makeFeature(s: string) {
   return slice(keccak256(stringToHex(s)), 0, 4)
 }
 
-// see: src/common/ResolverFeatures.sol
 export const FEATURES = {
   RESOLVER: {
-    RESOLVE_MULTICALL: makeFeature('ens.resolver.extended.multicall'),
-    SINGULAR: makeFeature('ens.resolver.singular'),
+    RESOLVE_MULTICALL: makeFeature('eth.ens.resolver.extended.multicall'),
+    SINGULAR: makeFeature('eth.ens.resolver.singular'),
   },
 } as const
