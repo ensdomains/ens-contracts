@@ -28,7 +28,7 @@ abstract contract AbstractUniversalResolver is
 {
     string[] _gateways;
 
-    constructor(string[] memory gateways) CCIPBatcher(50000) {
+    constructor(string[] memory gateways) CCIPBatcher(DEFAULT_UNSAFE_CALL_GAS) {
         _gateways = gateways;
     }
 

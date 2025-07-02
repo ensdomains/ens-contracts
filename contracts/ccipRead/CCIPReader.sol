@@ -18,6 +18,8 @@ import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 
 contract CCIPReader {
+    /// @dev Default unsafe call gas (sufficient for legacy ENS resolver profiles).
+    uint256 constant DEFAULT_UNSAFE_CALL_GAS = 50000;
 
     /// @dev Special-purpose value for identity callback: `f(x) = x`.
     bytes4 constant IDENTITY_FUNCTION = bytes4(0);
@@ -93,7 +95,9 @@ contract CCIPReader {
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
         // figure out what callback to call
-        bytes4 callbackFunction = ok ? successCallbackFunction : failureCallbackFunction;
+        bytes4 callbackFunction = ok
+            ? successCallbackFunction
+            : failureCallbackFunction;
         if (callbackFunction != IDENTITY_FUNCTION) {
             // The exit point of this architecture is OUR callback in the 'real'
             // We pass through the response to that callback
@@ -168,6 +172,8 @@ contract CCIPReader {
         address target,
         bytes memory call
     ) internal view returns (bool ok, bytes memory v) {
-        (ok, v) = target.staticcall{gas: safe ? gasleft() : unsafeCallGas}(call);
+        (ok, v) = target.staticcall{gas: safe ? gasleft() : unsafeCallGas}(
+            call
+        );
     }
 }
