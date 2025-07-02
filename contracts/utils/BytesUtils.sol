@@ -13,19 +13,19 @@ library BytesUtils {
         }
     }
 
-    /// @dev Compute `keccak256(v[pos:pos+len])`.
+    /// @dev Compute `keccak256(v[off:off+len])`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @param len The number of bytes to hash.
     /// @return ret The corresponding hash.
     function keccak(
         bytes memory v,
-        uint256 pos,
+        uint256 off,
         uint256 len
     ) internal pure returns (bytes32 ret) {
-        _checkBound(v, pos + len);
+        _checkBound(v, off + len);
         assembly {
-            ret := keccak256(add(add(v, 32), pos), len)
+            ret := keccak256(add(add(v, 32), off), len)
         }
     }
 
@@ -40,29 +40,29 @@ library BytesUtils {
         return compare(vA, 0, vA.length, vB, 0, vB.length);
     }
 
-    /// @dev Lexicographically compare two byte ranges: `A = vA[posA:posA+lenA]` and `B = vB[posB:posB+lenB]`.
+    /// @dev Lexicographically compare two byte ranges: `A = vA[offA:offA+lenA]` and `B = vB[offB:offB+lenB]`.
     /// @param vA The first bytes.
-    /// @param posA The offset of the first bytes.
+    /// @param offA The offset of the first bytes.
     /// @param lenA The length of the first bytes.
     /// @param vB The second bytes.
-    /// @param posB The offset of the second bytes.
+    /// @param offB The offset of the second bytes.
     /// @param lenB The length of the second bytes.
     /// @return Positive number if `A > B`, negative number if `A < B`, or zero if `A == B`.
     function compare(
         bytes memory vA,
-        uint256 posA,
+        uint256 offA,
         uint256 lenA,
         bytes memory vB,
-        uint256 posB,
+        uint256 offB,
         uint256 lenB
     ) internal pure returns (int256) {
-        _checkBound(vA, posA + lenA);
-        _checkBound(vB, posB + lenB);
+        _checkBound(vA, offA + lenA);
+        _checkBound(vB, offB + lenB);
         uint256 ptrA;
         uint256 ptrB;
         assembly {
-            ptrA := add(vA, posA)
-            ptrB := add(vB, posB)
+            ptrA := add(vA, offA)
+            ptrB := add(vB, offB)
         }
         uint256 shortest = lenA < lenB ? lenA : lenB;
         for (uint256 i; i < shortest; i += 32) {
@@ -91,55 +91,55 @@ library BytesUtils {
         return int256(lenA) - int256(lenB);
     }
 
-    /// @dev Determine if `a[posA:posA+len] == b[posB:posB+len]`.
+    /// @dev Determine if `a[offA:offA+len] == b[offB:offB+len]`.
     /// @param vA The first bytes.
-    /// @param posA The offset into the first bytes.
+    /// @param offA The offset into the first bytes.
     /// @param vB The second bytes.
-    /// @param posB The offset into the second bytes.
+    /// @param offB The offset into the second bytes.
     /// @param len The number of bytes to compare.
     /// @return True if the byte ranges are equal.
     function equals(
         bytes memory vA,
-        uint256 posA,
+        uint256 offA,
         bytes memory vB,
-        uint256 posB,
+        uint256 offB,
         uint256 len
     ) internal pure returns (bool) {
-        return keccak(vA, posA, len) == keccak(vB, posB, len);
+        return keccak(vA, offA, len) == keccak(vB, offB, len);
     }
 
-    /// @dev Determine if `a[posA:] == b[posB:]`.
+    /// @dev Determine if `a[offA:] == b[offB:]`.
     /// @param vA The first bytes.
-    /// @param posA The offset into the first bytes.
+    /// @param offA The offset into the first bytes.
     /// @param vB The second bytes.
-    /// @param posB The offset into the second bytes.
+    /// @param offB The offset into the second bytes.
     /// @return True if the byte ranges are equal.
     function equals(
         bytes memory vA,
-        uint256 posA,
+        uint256 offA,
         bytes memory vB,
-        uint256 posB
+        uint256 offB
     ) internal pure returns (bool) {
-        _checkBound(vA, posA);
-        _checkBound(vB, posB);
+        _checkBound(vA, offA);
+        _checkBound(vB, offB);
         return
-            keccak(vA, posA, vA.length - posA) ==
-            keccak(vB, posB, vB.length - posB);
+            keccak(vA, offA, vA.length - offA) ==
+            keccak(vB, offB, vB.length - offB);
     }
 
-    /// @dev Determine if `a[posA:] == b`.
+    /// @dev Determine if `a[offA:] == b`.
     /// @param vA The first bytes.
-    /// @param posA The offset into the first bytes.
+    /// @param offA The offset into the first bytes.
     /// @param vB The second bytes.
     /// @return True if the byte ranges are equal.
     function equals(
         bytes memory vA,
-        uint256 posA,
+        uint256 offA,
         bytes memory vB
     ) internal pure returns (bool) {
         return
-            vA.length == posA + vB.length &&
-            keccak(vA, posA, vB.length) == keccak256(vB);
+            vA.length == offA + vB.length &&
+            keccak(vA, offA, vB.length) == keccak256(vB);
     }
 
     /// @dev Determine if `a == b`.
@@ -153,90 +153,90 @@ library BytesUtils {
         return vA.length == vB.length && keccak256(vA) == keccak256(vB);
     }
 
-    /// @dev Returns `uint8(v[pos])`.
+    /// @dev Returns `uint8(v[off])`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @return The corresponding `uint8`.
     function readUint8(
         bytes memory v,
-        uint256 pos
+        uint256 off
     ) internal pure returns (uint8) {
-        // _checkBound(v, pos + 1);
-        return uint8(v[pos]);
+        _checkBound(v, off + 1);
+        return uint8(v[off]);
     }
 
-    /// @dev Returns `uint16(bytes2(v[pos:pos+2]))`.
+    /// @dev Returns `uint16(bytes2(v[off:off+2]))`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @return ret The corresponding `uint16`.
     function readUint16(
         bytes memory v,
-        uint256 pos
+        uint256 off
     ) internal pure returns (uint16 ret) {
-        _checkBound(v, pos + 2);
+        _checkBound(v, off + 2);
         assembly {
-            ret := shr(240, mload(add(add(v, 32), pos)))
+            ret := shr(240, mload(add(add(v, 32), off)))
         }
     }
 
-    /// @dev Returns `uint32(bytes4(v[pos:pos+4]))`.
+    /// @dev Returns `uint32(bytes4(v[off:off+4]))`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @return ret The corresponding `uint32`.
     function readUint32(
         bytes memory v,
-        uint256 pos
+        uint256 off
     ) internal pure returns (uint32 ret) {
-        _checkBound(v, pos + 4);
+        _checkBound(v, off + 4);
         assembly {
-            ret := shr(224, mload(add(add(v, 32), pos)))
+            ret := shr(224, mload(add(add(v, 32), off)))
         }
     }
 
-    /// @dev Returns `bytes20(v[pos:pos+20])`.
+    /// @dev Returns `bytes20(v[off:off+20])`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @return ret The corresponding `bytes20`.
     function readBytes20(
         bytes memory v,
-        uint256 pos
+        uint256 off
     ) internal pure returns (bytes20 ret) {
-        _checkBound(v, pos + 20);
+        _checkBound(v, off + 20);
         assembly {
-            ret := shl(96, mload(add(add(v, 20), pos)))
+            ret := shl(96, mload(add(add(v, 20), off)))
         }
     }
 
-    /// @dev Returns `bytes32(v[pos:pos+32])`.
+    /// @dev Returns `bytes32(v[off:off+32])`.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @return ret The corresponding `bytes32`.
     function readBytes32(
         bytes memory v,
-        uint256 pos
+        uint256 off
     ) internal pure returns (bytes32 ret) {
-        _checkBound(v, pos + 32);
+        _checkBound(v, off + 32);
         assembly {
-            ret := mload(add(add(v, 32), pos))
+            ret := mload(add(add(v, 32), off))
         }
     }
 
-    /// @dev Returns `bytes32(bytesN(v[pos:pos+len]))`.
+    /// @dev Returns `bytes32(bytesN(v[off:off+len]))`.
     ///      Accepts 0-32 bytes or reverts.
     /// @param v The source bytes.
-    /// @param pos The offset into the source.
+    /// @param off The offset into the source.
     /// @param len The number of bytes.
     /// @return ret The corresponding N-bytes left-aligned in a `bytes32`.
     function readBytesN(
         bytes memory v,
-        uint256 pos,
+        uint256 off,
         uint256 len
     ) internal pure returns (bytes32 ret) {
         assert(len <= 32);
-        _checkBound(v, pos + len);
+        _checkBound(v, off + len);
         assembly {
             let mask := sub(shl(shl(3, sub(32, len)), 1), 1) // <(32-N)x00><NxFF>
-            ret := and(mload(add(add(v, 32), pos)), not(mask))
+            ret := and(mload(add(add(v, 32), off)), not(mask))
         }
     }
 
@@ -246,7 +246,7 @@ library BytesUtils {
     /// @param len The number of bytes to copy.
     function unsafeMemcpy(uint256 dst, uint256 src, uint256 len) private pure {
         assembly {
-            // Copy word-length chunks while possible
+            // Copy word-length chunks while offsible
             // prettier-ignore
             for {} gt(len, 31) {} {
                 mstore(dst, mload(src))
@@ -264,59 +264,59 @@ library BytesUtils {
         }
     }
 
-    /// @dev Copy `vSrc[posSrc:posSrc+len]` to `vDst[posDst:posDst:len]`.
+    /// @dev Copy `vSrc[offSrc:offSrc+len]` to `vDst[offDst:offDst:len]`.
     /// @param vSrc The source bytes.
-    /// @param posSrc The offset into the source to begin the copy.
+    /// @param offSrc The offset into the source to begin the copy.
     /// @param vDst The destination bytes.
-    /// @param posDst The offset into the destination to place the copy.
+    /// @param offDst The offset into the destination to place the copy.
     /// @param len The number of bytes to copy.
     function copyBytes(
         bytes memory vSrc,
-        uint256 posSrc,
+        uint256 offSrc,
         bytes memory vDst,
-        uint256 posDst,
+        uint256 offDst,
         uint256 len
     ) internal pure {
-        _checkBound(vSrc, posSrc + len);
-        _checkBound(vDst, posDst + len);
+        _checkBound(vSrc, offSrc + len);
+        _checkBound(vDst, offDst + len);
         uint256 src;
         uint256 dst;
         assembly {
-            src := add(add(vSrc, 32), posSrc)
-            dst := add(add(vDst, 32), posDst)
+            src := add(add(vSrc, 32), offSrc)
+            dst := add(add(vDst, 32), offDst)
         }
         unsafeMemcpy(dst, src, len);
     }
 
     /// @dev Copies a substring into a new byte string.
     /// @param vSrc The byte string to copy from.
-    /// @param pos The offset to start copying at.
+    /// @param off The offset to start copying at.
     /// @param len The number of bytes to copy.
     /// @return vDst The copied substring.
     function substring(
         bytes memory vSrc,
-        uint256 pos,
+        uint256 off,
         uint256 len
     ) internal pure returns (bytes memory vDst) {
         vDst = new bytes(len);
-        copyBytes(vSrc, pos, vDst, 0, len);
+        copyBytes(vSrc, off, vDst, 0, len);
     }
 
     /// @dev Find the first occurrence of `needle`.
     /// @param v The bytes to search.
-    /// @param pos The offset to start searching.
+    /// @param off The offset to start searching.
     /// @param len The number of bytes to search.
     /// @param needle The byte to search for.
-    /// @return The offset of `needle`, or -1 if not found.
+    /// @return The offset of `needle`, or `type(uint256).max` if not found.
     function find(
         bytes memory v,
-        uint256 pos,
+        uint256 off,
         uint256 len,
         bytes1 needle
     ) internal pure returns (uint256) {
-        for (uint256 end = pos + len; pos < end; pos++) {
-            if (v[pos] == needle) {
-                return pos;
+        for (uint256 end = off + len; off < end; off++) {
+            if (v[off] == needle) {
+                return off;
             }
         }
         return type(uint256).max;
