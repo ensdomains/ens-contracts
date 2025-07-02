@@ -6,10 +6,15 @@
   "scripts": {
     "hh": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' hardhat",
     "compile": "bun run hh compile && bun scripts/generate-artifacts.ts",
-    "test": "bun run hh test",
-    "test:remote": "FORKING_ENABLED=1 bun hh test ./test/**/Test*.remote.ts",
-    "test:parallel": "bun run hh test ./test/**/Test*.ts --parallel",
-    "test:local": "bun run hh --network localhost test",
+    "test": "forge test",
+    "test:fast": "FOUNDRY_PROFILE=fast forge test",
+    "test:verbose": "forge test -vv",
+    "test:gas": "forge test --gas-report",
+    "test:coverage": "forge coverage",
+    "test:legacy": "bun run hh test ./testLegacy/**/Test*.ts",
+    "test:legacy:remote": "FORKING_ENABLED=1 bun hh test ./testLegacy/**/Test*.remote.ts",
+    "test:legacy:parallel": "bun run hh test ./testLegacy/**/Test*.ts --parallel",
+    "test:legacy:local": "bun run hh --network localhost test ./testLegacy/**/Test*.ts",
     "test:deploy": "bun ./scripts/deploy-test.ts",
     "lint": "hardhat check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
@@ -28,14 +33,14 @@
   "main": "index.js",
   "devDependencies": {
     "@ensdomains/dnsprovejs": "^0.5.1",
-    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.8",
-    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.1.4",
+    "@nomicfoundation/hardhat-toolbox-viem": "^4.0.0-next.14",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
     "@vitest/expect": "^1.6.0",
     "abitype": "^1.0.2",
-    "chai": "^5.1.1",
+    "chai": "^5.2.0",
     "dotenv": "^16.4.5",
     "hardhat": "next",
     "hardhat-abi-exporter": "^2.9.0",
@@ -52,11 +57,9 @@
   "dependencies": {
     "@ensdomains/buffer": "^0.1.1",
     "@ensdomains/solsha1": "0.0.3",
+    "@nomicfoundation/hardhat-viem": "^3.0.0-next.14",
     "@openzeppelin/contracts": "^4.1.0",
     "dns-packet": "^5.3.0"
-  },
-  "patchedDependencies": {
-    "@nomicfoundation/hardhat-viem@2.0.6": "patches/@nomicfoundation%2Fhardhat-viem@2.0.6.patch"
   },
   "directories": {
     "test": "test"
@@ -70,5 +73,8 @@
   "bugs": {
     "url": "https://github.com/ensdomains/ens-contracts/issues"
   },
-  "homepage": "https://github.com/ensdomains/ens-contracts#readme"
+  "homepage": "https://github.com/ensdomains/ens-contracts#readme",
+  "volta": {
+    "node": "22.16.0"
+  }
 }
