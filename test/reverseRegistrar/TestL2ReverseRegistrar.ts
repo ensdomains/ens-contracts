@@ -145,6 +145,123 @@ describe('L2ReverseRegistrar', () => {
     expect(l2ReverseRegistrar.address).not.toBeUndefined()
   })
 
+  describe('Ownable', () => {
+    it('should set deployer as owner', async () => {
+      const { l2ReverseRegistrar, accounts } = await loadFixture(fixture)
+      
+      await expect(
+        l2ReverseRegistrar.read.owner()
+      ).resolves.toBe(getAddress(accounts[0].address))
+    })
+  })
+  
+  describe('Controllers', () => {
+    it('should allow owner to add a controller', async () => {
+      const { l2ReverseRegistrar, accounts } = await loadFixture(fixture)
+      
+      await expect(l2ReverseRegistrar)
+        .write('addController', [accounts[1].address])
+        .toEmitEvent('ControllerAdded')
+        .withArgs(getAddress(accounts[1].address))
+        
+      await expect(
+        l2ReverseRegistrar.read.controllers([accounts[1].address])
+      ).resolves.toBe(true)
+    })
+    
+    it('should prevent non-owner from adding a controller', async () => {
+      const { l2ReverseRegistrar, accounts } = await loadFixture(fixture)
+      
+      await expect(l2ReverseRegistrar)
+        .write('addController', [accounts[2].address], { account: accounts[1] })
+        .toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+        
+      await expect(
+        l2ReverseRegistrar.read.controllers([accounts[2].address])
+      ).resolves.toBe(false)
+    })
+    
+    it('should allow owner to remove a controller', async () => {
+      const { l2ReverseRegistrar, accounts } = await loadFixture(fixture)
+      
+      // First add a controller
+      await l2ReverseRegistrar.write.addController([accounts[1].address])
+      
+      // Then remove it
+      await expect(l2ReverseRegistrar)
+        .write('removeController', [accounts[1].address])
+        .toEmitEvent('ControllerRemoved')
+        .withArgs(getAddress(accounts[1].address))
+        
+      await expect(
+        l2ReverseRegistrar.read.controllers([accounts[1].address])
+      ).resolves.toBe(false)
+    })
+    
+    it('should prevent non-owner from removing a controller', async () => {
+      const { l2ReverseRegistrar, accounts } = await loadFixture(fixture)
+      
+      // First add a controller
+      await l2ReverseRegistrar.write.addController([accounts[1].address])
+      
+      // Attempt removal by non-owner
+      await expect(l2ReverseRegistrar)
+        .write('removeController', [accounts[1].address], { account: accounts[2] })
+        .toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+        
+      // Controller should still exist
+      await expect(
+        l2ReverseRegistrar.read.controllers([accounts[1].address])
+      ).resolves.toBe(true)
+    })
+  })
+  
+  describe('Authorised modifier', () => {
+    async function authorisedFixture() {
+      const initial = await loadFixture(fixture)
+      const name = 'test-auth.eth'
+      
+      // Add a controller
+      await initial.l2ReverseRegistrar.write.addController([initial.accounts[1].address])
+      
+      return {
+        ...initial,
+        name,
+      }
+    }
+    
+    it('should allow owner of contract to set name for ownable contract', async () => {
+      const { l2ReverseRegistrar, name, mockOwnableEoa } = 
+        await loadFixture(authorisedFixture)
+      
+      await expect(l2ReverseRegistrar)
+        .write('setNameForAddr', [mockOwnableEoa.address, name])
+        .toEmitEvent('NameForAddrChanged')
+        .withArgs(getAddress(mockOwnableEoa.address), name)
+    })
+    
+    it('should allow controller to set name for any address', async () => {
+      const { l2ReverseRegistrar, name, accounts } = 
+        await loadFixture(authorisedFixture)
+      
+      // Controller (account[1]) sets name for account[2]
+      await expect(l2ReverseRegistrar)
+        .write('setNameForAddr', [accounts[2].address, name], { account: accounts[1] })
+        .toEmitEvent('NameForAddrChanged')
+        .withArgs(getAddress(accounts[2].address), name)
+    })
+    
+    it('should prevent unauthorized account from setting name for another address', async () => {
+      const { l2ReverseRegistrar, name, accounts } = 
+        await loadFixture(authorisedFixture)
+      
+      // Non-controller account[2] tries to set name for account[3]
+      await expect(l2ReverseRegistrar)
+        .write('setNameForAddr', [accounts[3].address, name], { account: accounts[2] })
+        .toBeRevertedWithCustomError('Unauthorised')
+    })
+  })
+
   describe('setName', () => {
     async function setNameFixture() {
       const initial = await loadFixture(fixture)
