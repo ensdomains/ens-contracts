@@ -15,13 +15,23 @@ import {SignatureUtils} from "./SignatureUtils.sol";
 contract L2ReverseRegistrar is
     IL2ReverseRegistrar,
     ERC165,
-    StandaloneReverseRegistrar
+    StandaloneReverseRegistrar,
+    Ownable
 {
     using SignatureUtils for bytes;
     using MessageHashUtils for bytes32;
 
     /// @notice The coin type for the chain this contract is deployed to.
     uint256 public immutable coinType;
+
+    /// @notice A map of addresses that are authorised to set names for any address.
+    mapping(address => bool) public controllers;
+
+    /// @notice Emitted when a controller is added.
+    event ControllerAdded(address indexed controller);
+
+    /// @notice Emitted when a controller is removed.
+    event ControllerRemoved(address indexed controller);
 
     /// @notice Thrown when the specified address is not the owner of the contract
     error NotOwnerOfContract();
@@ -36,7 +46,11 @@ contract L2ReverseRegistrar is
     ///
     /// @param addr The address to check.
     modifier authorised(address addr) {
-        if (addr != msg.sender && !_ownsContract(addr, msg.sender)) {
+        if (
+            addr != msg.sender &&
+            !_ownsContract(addr, msg.sender) &&
+            !controllers[msg.sender]
+        ) {
             revert Unauthorised();
         }
         _;
@@ -53,8 +67,23 @@ contract L2ReverseRegistrar is
     /// @notice Initialises the contract by setting the coin type.
     ///
     /// @param coinType_ The cointype converted from the chainId of the chain this contract is deployed to.
-    constructor(uint256 coinType_) {
+    /// @param owner_ The owner of the contract
+    constructor(uint256 coinType_, address owner_) Ownable(owner_) {
         coinType = coinType_;
+    }
+
+    /// @notice Authorises a controller, who can set names for any address.
+    /// @param controller The address to add as a controller.
+    function addController(address controller) external onlyOwner {
+        controllers[controller] = true;
+        emit ControllerAdded(controller);
+    }
+
+    /// @notice Revoke controller permission for an address.
+    /// @param controller The address to remove as a controller.
+    function removeController(address controller) external onlyOwner {
+        controllers[controller] = false;
+        emit ControllerRemoved(controller);
     }
 
     /// @inheritdoc IL2ReverseRegistrar

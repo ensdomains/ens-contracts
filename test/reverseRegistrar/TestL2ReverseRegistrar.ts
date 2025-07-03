@@ -28,7 +28,11 @@ async function fixture() {
 
   const l2ReverseRegistrar = await hre.viem.deployContract(
     'L2ReverseRegistrar',
-    [coinType],
+    [coinType, accounts[0].address],
+  )
+  const mockNonOwnableSc = await hre.viem.deployContract(
+    'LegacyResolver',
+    [],
   )
   const mockSmartContractAccount = await hre.viem.deployContract(
     'MockSmartContractWallet',
@@ -46,6 +50,7 @@ async function fixture() {
 
   return {
     l2ReverseRegistrar,
+    mockNonOwnableSc,
     mockSmartContractAccount,
     mockErc6492WalletFactory,
     mockOwnableSca,
@@ -797,6 +802,7 @@ describe('L2ReverseRegistrar', () => {
 
     it('reverts if the target address does not implement Ownable', async () => {
       const {
+        mockNonOwnableSc,
         l2ReverseRegistrar,
         name,
         functionSelector,
@@ -808,7 +814,7 @@ describe('L2ReverseRegistrar', () => {
       const messageHash = createMessageHashForOwnable({
         contractAddress: l2ReverseRegistrar.address,
         functionSelector,
-        targetOwnableAddress: l2ReverseRegistrar.address,
+        targetOwnableAddress: mockNonOwnableSc.address,
         ownerAddress: accounts[0].address,
         signatureExpiry,
         name,
@@ -822,7 +828,7 @@ describe('L2ReverseRegistrar', () => {
         .write(
           'setNameForOwnableWithSignature',
           [
-            l2ReverseRegistrar.address,
+            mockNonOwnableSc.address,
             accounts[0].address,
             signatureExpiry,
             name,

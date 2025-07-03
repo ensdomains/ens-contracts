@@ -39,6 +39,7 @@ async function fixture() {
   })
   const reverseRegistrar = await hre.viem.deployContract('L2ReverseRegistrar', [
     l2CoinType,
+    F.owner,
   ])
   const reverseResolver = await hre.viem.deployContract(
     'ChainReverseResolver',

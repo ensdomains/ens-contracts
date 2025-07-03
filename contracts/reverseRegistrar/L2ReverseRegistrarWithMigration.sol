@@ -9,7 +9,7 @@ import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {AddressUtils} from "../utils/AddressUtils.sol";
 
 /// @notice An L2 Reverse Registrar that allows migrating from a prior resolver.
-contract L2ReverseRegistrarWithMigration is L2ReverseRegistrar, Ownable {
+contract L2ReverseRegistrarWithMigration is L2ReverseRegistrar {
     using AddressUtils for address;
 
     /// @notice The old reverse resolver to migrate from
@@ -29,7 +29,7 @@ contract L2ReverseRegistrarWithMigration is L2ReverseRegistrar, Ownable {
         address owner_,
         bytes32 parentNode_,
         INameResolver oldReverseResolver_
-    ) L2ReverseRegistrar(coinType_) Ownable(owner_) {
+    ) L2ReverseRegistrar(coinType_, owner_) {
         parentNode = parentNode_;
         oldReverseResolver = oldReverseResolver_;
     }
