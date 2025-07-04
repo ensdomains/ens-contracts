@@ -244,7 +244,7 @@ library BytesUtils {
     /// @param src The source memory offset.
     /// @param dst The destination memory offset.
     /// @param len The number of bytes to copy.
-    function unsafeMemcpy(uint256 dst, uint256 src, uint256 len) private pure {
+    function unsafeMemcpy(uint256 dst, uint256 src, uint256 len) internal pure {
         assembly {
             // Copy word-length chunks while offsible
             // prettier-ignore
