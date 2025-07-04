@@ -18,39 +18,53 @@ import {EIP3668, OffchainLookup} from "./EIP3668.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 
 contract CCIPReader {
+    /// @dev Default unsafe call gas (sufficient for legacy ENS resolver profiles).
+    uint256 constant DEFAULT_UNSAFE_CALL_GAS = 50000;
+
+    /// @dev Special-purpose value for identity callback: `f(x) = x`.
+    bytes4 constant IDENTITY_FUNCTION = bytes4(0);
+
+    /// @dev The gas limit for calling functions on unsafe contracts.
+    uint256 immutable unsafeCallGas;
+
+    constructor(uint256 _unsafeCallGas) {
+        unsafeCallGas = _unsafeCallGas;
+    }
+
     /// @dev A recursive CCIP-Read session.
     struct Context {
         address target;
         bytes4 callbackFunction;
         bytes extraData;
-        bytes4 myCallbackFunction;
+        bytes4 successCallbackFunction;
+        bytes4 failureCallbackFunction;
         bytes myExtraData;
     }
 
-    /// @dev Special-purpose value for identity callback: `f(x) = x`.
-    bytes4 constant IDENTITY_FUNCTION = bytes4(0);
-
     /// @dev Same as `ccipRead()` but the callback function is the identity.
     function ccipRead(address target, bytes memory call) internal view {
-        ccipRead(target, call, IDENTITY_FUNCTION, "");
+        ccipRead(target, call, IDENTITY_FUNCTION, IDENTITY_FUNCTION, "");
     }
 
     /// @dev Performs a CCIP-Read and handles internal recursion.
     ///      Reverts `OffchainLookup` if necessary.
+    ///      Use `IDENTITY_FUNCTION` as the callback function selector for return/revert behavior.
     /// @param target The contract address.
     /// @param call The calldata to `staticcall()` on `target`.
-    /// @param callbackFunction The function selector of callback.
-    /// @param extraData The contextual data relayed to `callbackFunction`.
+    /// @param successCallbackFunction The function selector of callback on success.
+    /// @param failureCallbackFunction The function selector of callback on failure.
+    /// @param extraData The contextual data relayed to callback function.
     function ccipRead(
         address target,
         bytes memory call,
-        bytes4 callbackFunction,
+        bytes4 successCallbackFunction,
+        bytes4 failureCallbackFunction,
         bytes memory extraData
     ) internal view {
         // We call the intended function that **could** revert with an `OffchainLookup`
         // We destructure the response into an execution status bool and our return bytes
-        (bool ok, bytes memory v) = _safeCall(
-            _detectEIP140(target),
+        (bool ok, bytes memory v) = safeCall(
+            detectEIP140(target),
             target,
             call
         );
@@ -71,7 +85,8 @@ contract CCIPReader {
                             target,
                             p.callbackFunction,
                             p.extraData,
-                            callbackFunction,
+                            successCallbackFunction,
+                            failureCallbackFunction,
                             extraData
                         )
                     )
@@ -79,8 +94,12 @@ contract CCIPReader {
             }
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
-        if (ok && callbackFunction != IDENTITY_FUNCTION) {
-            // The exit point of this architecture is  OUR callback in the 'real'
+        // figure out what callback to call
+        bytes4 callbackFunction = ok
+            ? successCallbackFunction
+            : failureCallbackFunction;
+        if (callbackFunction != IDENTITY_FUNCTION) {
+            // The exit point of this architecture is OUR callback in the 'real'
             // We pass through the response to that callback
             (ok, v) = address(this).staticcall(
                 abi.encodeWithSelector(callbackFunction, v, extraData)
@@ -117,7 +136,8 @@ contract CCIPReader {
                 response,
                 ctx.extraData
             ),
-            ctx.myCallbackFunction,
+            ctx.successCallbackFunction,
+            ctx.failureCallbackFunction,
             ctx.myExtraData
         );
     }
@@ -135,7 +155,7 @@ contract CCIPReader {
     //       Assumption: only newer contracts revert `OffchainLookup`.
     /// @param target The contract to test.
     /// @return safe True if safe to call.
-    function _detectEIP140(address target) internal view returns (bool safe) {
+    function detectEIP140(address target) internal view returns (bool safe) {
         if (target == address(this)) return true;
         // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-140.md
         assembly {
@@ -147,11 +167,13 @@ contract CCIPReader {
     }
 
     /// @dev Same as `staticcall()` but prevents OOG when not `safe`.
-    function _safeCall(
+    function safeCall(
         bool safe,
         address target,
         bytes memory call
     ) internal view returns (bool ok, bytes memory v) {
-        (ok, v) = target.staticcall{gas: safe ? gasleft() : 50000}(call);
+        (ok, v) = target.staticcall{gas: safe ? gasleft() : unsafeCallGas}(
+            call
+        );
     }
 }

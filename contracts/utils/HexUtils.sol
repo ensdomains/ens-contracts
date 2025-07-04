@@ -15,6 +15,7 @@ library HexUtils {
         uint256 off,
         uint256 end
     ) internal pure returns (bytes32 word, bool valid) {
+        if (end < off) return ("", false); // invalid range
         uint256 nibbles = end - off;
         if (nibbles > 64 || end > hexString.length) {
             return (bytes32(0), false); // too large or out of bounds
@@ -42,7 +43,7 @@ library HexUtils {
         uint256 off,
         uint256 end
     ) internal pure returns (address addr, bool valid) {
-        if (end - off != 40) return (address(0), false); // wrong length
+        if (off + 40 != end) return (address(0), false); // wrong length
         bytes32 word;
         (word, valid) = hexStringToBytes32(hexString, off, end);
         addr = address(uint160(uint256(word)));
@@ -60,6 +61,7 @@ library HexUtils {
         uint256 off,
         uint256 end
     ) internal pure returns (bytes memory v, bool valid) {
+        if (end < off) return ("", false); // invalid range
         uint256 nibbles = end - off;
         v = new bytes((1 + nibbles) >> 1); // round up
         uint256 src;
