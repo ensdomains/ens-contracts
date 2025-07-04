@@ -10,6 +10,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Use Bun 1.2.0
         uses: oven-sh/setup-bun@v2
@@ -25,6 +27,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Use Bun 1.2.0
         uses: oven-sh/setup-bun@v2
@@ -40,21 +44,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Required for forge-std submodule
 
       - name: Use Bun 1.2.0
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.2.0
 
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
       - run: bun install --frozen-lockfile
 
-      - name: Run tests
-        run: bun run test:parallel
+      - name: Run Foundry tests
+        run: bun run test:fast
+
+      - name: Run gas report
+        run: bun run test:gas
 
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive  # Required for forge-std submodule
 
       - name: Use Bun 1.2.0
         uses: oven-sh/setup-bun@v2

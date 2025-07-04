@@ -28,7 +28,10 @@ remappings = [
     "@ensdomains/solsha1/=node_modules/@ensdomains/solsha1/",
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
     "forge-std/=lib/forge-std/src/",
-    "test/=test/"
+    "test/=test/",
+    "@rocketh/=node_modules/@rocketh/",
+    "eth-gas-reporter/=node_modules/eth-gas-reporter/",
+    "hardhat/=node_modules/hardhat/"
 ]
 
 # Skip problematic old files and test compilation optimization
@@ -65,6 +68,14 @@ optimizer = false         # Skip optimization for faster compilation
 via_ir = false            # Disable IR for speed
 fuzz = { runs = 10 }      # Minimal fuzz runs
 invariant = { runs = 10 } # Minimal invariant runs
+
+# Gas reporting profile
+[profile.gas]
+optimizer = true
+optimizer_runs = 200      # Reduce optimizer runs for gas reporting compatibility  
+via_ir = false            # Disable IR to avoid gas reporting conflicts
+# Exclude only the problematic DNS tests that cause failures with gas reporting
+no_match_test = "testResolveCallback.*"
 
 # CI profile for faster testing
 [profile.ci]
