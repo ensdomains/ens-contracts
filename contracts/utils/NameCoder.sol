@@ -22,6 +22,7 @@ import {HexUtils} from "../utils/HexUtils.sol";
 ///
 /// w/o hashed labels: `dns.length == 2 + ens.length` and the mapping is injective.
 ///  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
+///
 library NameCoder {
     /// @dev The DNS-encoded name is malformed.
     ///      Error selector: `0xba4adc23`
@@ -31,53 +32,108 @@ library NameCoder {
     ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
-    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
-    ///      Only the last labelHash is zero.
+    /// @dev Read the `size` of the label at `offset` and the offset for the next label.
+    ///      If `size = 0`, it must be the end of `name`.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param name The DNS-encoded name.
+    /// @param offset The offset into `name` to start reading forwards.
+    function nextLabel(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (uint256 size, uint256 nextOffset) {
+        assembly {
+            size := byte(0, mload(add(add(name, 32), offset))) // uint8(name[offset])
+            nextOffset := add(offset, add(1, size)) // offset + 1 + size
+        }
+        if (size == 0 ? nextOffset != name.length : nextOffset >= name.length) {
+            revert DNSDecodingFailed(name);
+        }
+    }
+
+    /// @dev Find the offset of the label before `offset` in `name`.
+    ///      * `prevOffset(name, 0)` reverts.
+    ///      * `prevOffset(name, name.length + 1)` reverts.
+    ///      * `prevOffset(name, name.length) = name.length - 1`.
+    ///      * `prevOffset(name, name.length - 1) = <tld>`.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param name The DNS-encoded name.
+    /// @param offset The offset into `name` to start reading backwards.
+    /// @return prevOffset The offset of the previous label.
+    function prevLabel(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (uint256 prevOffset) {
+        while (true) {
+            (, uint256 nextOffset) = nextLabel(name, prevOffset);
+            if (nextOffset == offset) break;
+            if (nextOffset > offset) {
+                revert DNSDecodingFailed(name);
+            }
+            prevOffset = nextOffset;
+        }
+    }
+
+    /// @dev Compute the `labelHash` of the label at `offset` and the offset for the next label.
     ///      Disallows hashed label of zero (eg. `[0..0]`) to prevent confusion with terminator.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
-    /// @param idx The offset into `name` to start reading.
+    /// @param offset The offset into `name` to start reading.
+    /// @param parseHashed If true, supports hashed labels.
     /// @return labelHash The resulting labelhash.
-    /// @return newIdx The offset into `name` of the next label.
+    /// @return wasHashed If true, the label was interpreted as a hashed label.
+    /// @return nextOffset The offset into `name` of the next label.
     function readLabel(
         bytes memory name,
-        uint256 idx
-    ) internal pure returns (bytes32 labelHash, uint256 newIdx) {
-        if (idx >= name.length) revert DNSDecodingFailed(name); // "readLabel: expected length"
-        uint256 len = uint256(uint8(name[idx++]));
-        newIdx = idx + len;
-        if (newIdx > name.length) revert DNSDecodingFailed(name); // "readLabel: expected label"
-        if (len == 66 && name[idx] == "[" && name[newIdx - 1] == "]") {
-            bool valid;
-            (labelHash, valid) = HexUtils.hexStringToBytes32(
+        uint256 offset,
+        bool parseHashed
+    )
+        internal
+        pure
+        returns (bytes32 labelHash, bool wasHashed, uint256 nextOffset)
+    {
+        uint256 size;
+        (size, nextOffset) = nextLabel(name, offset);
+        if (
+            parseHashed &&
+            size == 66 &&
+            name[offset + 1] == "[" &&
+            name[nextOffset - 1] == "]"
+        ) {
+            (labelHash, wasHashed) = HexUtils.hexStringToBytes32(
                 name,
-                idx + 1,
-                newIdx - 1
+                offset + 2,
+                nextOffset - 1
             ); // will not revert
-            if (!valid || labelHash == bytes32(0)) {
+            if (!wasHashed || labelHash == bytes32(0)) {
                 revert DNSDecodingFailed(name); // "readLabel: malformed" or null literal
             }
-        } else if (len > 0) {
+        } else if (size > 0) {
             assembly {
-                labelHash := keccak256(add(add(name, idx), 32), len)
+                labelHash := keccak256(add(add(name, offset), 33), size)
             }
         }
+    }
+
+    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
+    function readLabel(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
+        (labelHash, , nextOffset) = readLabel(name, offset, true);
     }
 
     /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
-    /// @param idx The offset into name start hashing.
+    /// @param offset The offset into name start hashing.
     /// @return hash The resulting namehash.
     function namehash(
         bytes memory name,
-        uint256 idx
+        uint256 offset
     ) internal pure returns (bytes32 hash) {
-        (hash, idx) = readLabel(name, idx);
-        if (hash == bytes32(0)) {
-            if (idx != name.length) revert DNSDecodingFailed(name); // "namehash: Junk at end of name"
-        } else {
-            bytes32 parent = namehash(name, idx);
+        (hash, offset) = readLabel(name, offset);
+        if (hash != bytes32(0)) {
+            bytes32 parent = namehash(name, offset);
             assembly {
                 mstore(0, parent)
                 mstore(32, hash)
