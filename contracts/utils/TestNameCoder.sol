@@ -25,9 +25,14 @@ contract TestNameCoder {
     )
         external
         pure
-        returns (bytes32 labelHash, bool wasHashed, uint256 nextOffset)
+        returns (
+            uint256 size,
+            bytes32 labelHash,
+            bool wasHashed,
+            uint256 nextOffset
+        )
     {
-        (labelHash, wasHashed, nextOffset) = NameCoder.readLabel(
+        (size, labelHash, wasHashed, nextOffset) = NameCoder.readLabel(
             name,
             offset,
             parseHashed

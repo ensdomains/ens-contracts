@@ -32,11 +32,13 @@ library NameCoder {
     ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
-    /// @dev Read the `size` of the label at `offset` and the offset for the next label.
+    /// @dev Read the `size` of the label at `offset`.
     ///      If `size = 0`, it must be the end of `name` (no junk at end).
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
-    /// @param offset The offset into `name` to start reading forwards.
+    /// @param offset The offset into `name` to start reading.
+    /// @return size The size of the label in bytes.
+    /// @return nextOffset The offset into `name` of the next label.
     function nextLabel(
         bytes memory name,
         uint256 offset
@@ -58,7 +60,7 @@ library NameCoder {
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading backwards.
-    /// @return prevOffset The offset of the previous label.
+    /// @return prevOffset The offset into `name` of the previous label.
     function prevLabel(
         bytes memory name,
         uint256 offset
@@ -79,6 +81,7 @@ library NameCoder {
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
     /// @param parseHashed If true, supports hashed labels.
+    /// @return size The size of the label in bytes.
     /// @return labelHash The resulting labelhash.
     /// @return wasHashed If true, the label was interpreted as a hashed label.
     /// @return nextOffset The offset into `name` of the next label.
@@ -89,9 +92,13 @@ library NameCoder {
     )
         internal
         pure
-        returns (bytes32 labelHash, bool wasHashed, uint256 nextOffset)
+        returns (
+            uint256 size,
+            bytes32 labelHash,
+            bool wasHashed,
+            uint256 nextOffset
+        )
     {
-        uint256 size;
         (size, nextOffset) = nextLabel(name, offset);
         if (
             parseHashed &&
@@ -119,7 +126,7 @@ library NameCoder {
         bytes memory name,
         uint256 offset
     ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
-        (labelHash, , nextOffset) = readLabel(name, offset, true);
+        (, labelHash, , nextOffset) = readLabel(name, offset, true);
     }
 
     /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.

@@ -75,10 +75,11 @@ describe('NameCoder', () => {
         F.read.prevLabel([dns, offset]),
         'prevLabel',
       ).resolves.toStrictEqual(prev)
+      const v = stringToBytes(tld)
       await expect(
         F.read.readLabel([dns, prev, true]),
         'readLabel',
-      ).resolves.toStrictEqual([keccak256(stringToBytes(tld)), false, offset])
+      ).resolves.toStrictEqual([BigInt(v.length), keccak256(v), false, offset])
     })
 
     it('offset = 0 reverts', async () => {
@@ -99,9 +100,10 @@ describe('NameCoder', () => {
   it('disable hashed label support', async () => {
     const F = await loadFixture(fixture)
     const label = `[${'0'.repeat(64)}]`
+    const v = stringToBytes(label)
     await expect(
       F.read.readLabel([dnsEncodeName(label), 0n, false]),
-    ).resolves.toStrictEqual([keccak256(stringToBytes(label)), false, 67n])
+    ).resolves.toStrictEqual([BigInt(v.length), keccak256(v), false, 67n])
   })
 
   it('invalid hashed label', async () => {
