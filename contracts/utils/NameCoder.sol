@@ -33,7 +33,7 @@ library NameCoder {
     error DNSEncodingFailed(string ens);
 
     /// @dev Read the `size` of the label at `offset` and the offset for the next label.
-    ///      If `size = 0`, it must be the end of `name`.
+    ///      If `size = 0`, it must be the end of `name` (no junk at end).
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading forwards.
@@ -45,7 +45,7 @@ library NameCoder {
             size := byte(0, mload(add(add(name, 32), offset))) // uint8(name[offset])
             nextOffset := add(offset, add(1, size)) // offset + 1 + size
         }
-        if (size == 0 ? nextOffset != name.length : nextOffset >= name.length) {
+        if (size > 0 ? nextOffset >= name.length : nextOffset != name.length) {
             revert DNSDecodingFailed(name);
         }
     }
