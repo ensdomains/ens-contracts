@@ -61,7 +61,7 @@ describe('NameCoder', () => {
       await expect(
         F.read.nextLabel([dns, prev]),
         'nextLabel',
-      ).resolves.toStrictEqual([0n, offset])
+      ).resolves.toStrictEqual([0, offset])
     })
 
     it('offset = name.length-1 is <tld>', async () => {
@@ -79,7 +79,7 @@ describe('NameCoder', () => {
       await expect(
         F.read.readLabel([dns, prev, true]),
         'readLabel',
-      ).resolves.toStrictEqual([BigInt(v.length), keccak256(v), false, offset])
+      ).resolves.toStrictEqual([keccak256(v), offset, v.length, false])
     })
 
     it('offset = 0 reverts', async () => {
@@ -103,7 +103,7 @@ describe('NameCoder', () => {
     const v = stringToBytes(label)
     await expect(
       F.read.readLabel([dnsEncodeName(label), 0n, false]),
-    ).resolves.toStrictEqual([BigInt(v.length), keccak256(v), false, 67n])
+    ).resolves.toStrictEqual([keccak256(v), 67n, v.length, false])
   })
 
   it('invalid hashed label', async () => {

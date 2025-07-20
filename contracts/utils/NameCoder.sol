@@ -42,7 +42,7 @@ library NameCoder {
     function nextLabel(
         bytes memory name,
         uint256 offset
-    ) internal pure returns (uint256 size, uint256 nextOffset) {
+    ) internal pure returns (uint8 size, uint256 nextOffset) {
         assembly {
             size := byte(0, mload(add(add(name, 32), offset))) // uint8(name[offset])
             nextOffset := add(offset, add(1, size)) // offset + 1 + size
@@ -81,10 +81,10 @@ library NameCoder {
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
     /// @param parseHashed If true, supports hashed labels.
-    /// @return size The size of the label in bytes.
     /// @return labelHash The resulting labelhash.
-    /// @return wasHashed If true, the label was interpreted as a hashed label.
     /// @return nextOffset The offset into `name` of the next label.
+    /// @return size The size of the label in bytes.
+    /// @return wasHashed If true, the label was interpreted as a hashed label.
     function readLabel(
         bytes memory name,
         uint256 offset,
@@ -93,10 +93,10 @@ library NameCoder {
         internal
         pure
         returns (
-            uint256 size,
             bytes32 labelHash,
-            bool wasHashed,
-            uint256 nextOffset
+            uint256 nextOffset,
+            uint8 size,
+            bool wasHashed
         )
     {
         (size, nextOffset) = nextLabel(name, offset);
@@ -126,7 +126,7 @@ library NameCoder {
         bytes memory name,
         uint256 offset
     ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
-        (, labelHash, , nextOffset) = readLabel(name, offset, true);
+        (labelHash, nextOffset, , ) = readLabel(name, offset, true);
     }
 
     /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.

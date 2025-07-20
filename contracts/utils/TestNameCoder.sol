@@ -7,7 +7,7 @@ contract TestNameCoder {
     function nextLabel(
         bytes memory name,
         uint256 offset
-    ) external pure returns (uint256 size, uint256 nextOffset) {
+    ) external pure returns (uint8 size, uint256 nextOffset) {
         return NameCoder.nextLabel(name, offset);
     }
 
@@ -26,13 +26,13 @@ contract TestNameCoder {
         external
         pure
         returns (
-            uint256 size,
             bytes32 labelHash,
-            bool wasHashed,
-            uint256 nextOffset
+            uint256 nextOffset,
+            uint8 size,
+            bool wasHashed
         )
     {
-        (size, labelHash, wasHashed, nextOffset) = NameCoder.readLabel(
+        (labelHash, nextOffset, size, wasHashed) = NameCoder.readLabel(
             name,
             offset,
             parseHashed
