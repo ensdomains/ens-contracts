@@ -4,23 +4,31 @@ import { expect } from 'chai'
 import { namehash, toHex, size, keccak256, stringToBytes } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { dnsDecodeName } from '../fixtures/dnsDecodeName.js'
+import { getParentName } from './resolutions.js'
 
 async function fixture() {
   return hre.viem.deployContract('TestNameCoder', [])
 }
 
+function forceHashedLabel(s: string) {
+  return `[${keccak256(stringToBytes(s)).slice(2)}]`
+}
+
+function fmt(s: string) {
+  return s || '<root>'
+}
+
 describe('NameCoder', () => {
   describe('valid', () => {
-    for (let [title, ens] of [
-      ['empty', ''],
+    for (const [title, ens = title] of [
+      [''],
       ['a.bb.ccc.dddd.eeeee'],
       ['1x255', '1'.repeat(255)],
       ['1x300', '1'.repeat(300)],
-      [`[${'1'.repeat(64)}]`],
-      ['mixed', `${'1'.repeat(300)}.[${'1'.repeat(64)}].eth`],
+      ['hashed("eth")', forceHashedLabel('eth')],
+      ['mixed', `1.${'1'.repeat(300)}.[${'1'.repeat(64)}].eth`],
     ]) {
-      ens ??= title
-      it(title, async () => {
+      it(fmt(title), async () => {
         const F = await loadFixture(fixture)
         const dns = dnsEncodeName(ens)
         await expect(F.read.encode([ens]), 'encode').resolves.toStrictEqual(dns)
@@ -49,7 +57,22 @@ describe('NameCoder', () => {
   })
 
   describe('prevLabel()', () => {
-    it('offset = name.length is <root>', async () => {
+    it('0 reverts', async () => {
+      const F = await loadFixture(fixture)
+      await expect(F)
+        .read('prevLabel', [dnsEncodeName(''), 0n])
+        .toBeRevertedWithCustomError('DNSDecodingFailed')
+    })
+
+    it('name.length+1 reverts', async () => {
+      const F = await loadFixture(fixture)
+      const dns = dnsEncodeName('')
+      await expect(F)
+        .read('prevLabel', [dns, BigInt(dns.length + 1)])
+        .toBeRevertedWithCustomError('DNSDecodingFailed')
+    })
+
+    it('name.length is <root>', async () => {
       const F = await loadFixture(fixture)
       const dns = dnsEncodeName('eth')
       const offset = BigInt(size(dns))
@@ -64,7 +87,7 @@ describe('NameCoder', () => {
       ).resolves.toStrictEqual([0, offset])
     })
 
-    it('offset = name.length-1 is <tld>', async () => {
+    it('name.length-1 is <tld>', async () => {
       const F = await loadFixture(fixture)
       const namespace = 'a.b.c.'
       const tld = 'eth'
@@ -80,13 +103,6 @@ describe('NameCoder', () => {
         F.read.readLabel([dns, prev, true]),
         'readLabel',
       ).resolves.toStrictEqual([keccak256(v), offset, v.length, false])
-    })
-
-    it('offset = 0 reverts', async () => {
-      const F = await loadFixture(fixture)
-      await expect(F)
-        .read('prevLabel', [dnsEncodeName(''), 0n])
-        .toBeRevertedWithCustomError('DNSDecodingFailed')
     })
   })
 
@@ -143,5 +159,63 @@ describe('NameCoder', () => {
         .read('decode', [toHex('\x03a.b\x00')])
         .toBeRevertedWithCustomError('DNSDecodingFailed')
     })
+  })
+
+  describe('matchSuffix()', () => {
+    function testNoMatch(name: string, suffix: string) {
+      it(`no match: ${fmt(name)} / ${fmt(suffix)}`, async () => {
+        const F = await loadFixture(fixture)
+        await expect(
+          F.read.matchSuffix([dnsEncodeName(name), 0n, namehash(suffix)]),
+        ).resolves.toStrictEqual([false, namehash(name), 0n])
+      })
+    }
+
+    function testMatch(
+      name: string,
+      suffix = name,
+      nameTitle = name,
+      suffixTitle = suffix,
+    ) {
+      it(`match: ${fmt(nameTitle)} / ${fmt(suffixTitle)}`, async () => {
+        const F = await loadFixture(fixture)
+        const nodeSuffix = namehash(suffix)
+        let temp = name
+        while (namehash(temp) !== nodeSuffix) {
+          if (!temp) throw new Error('expected match')
+          temp = getParentName(temp)
+        }
+        const offset = BigInt(
+          size(dnsEncodeName(name)) - size(dnsEncodeName(temp)),
+        )
+        await expect(
+          F.read.matchSuffix([dnsEncodeName(name), 0n, namehash(suffix)]),
+        ).resolves.toStrictEqual([true, namehash(name), offset])
+      })
+    }
+
+    testNoMatch('test.eth', 'com')
+    testNoMatch('a', 'b')
+    testNoMatch('a', 'a.b')
+    testNoMatch('a', 'b.a')
+
+    testMatch('')
+    testMatch('eth')
+    testMatch('a.b.c')
+
+    testMatch('test.eth', 'eth')
+    testMatch('a.b.c.com', 'com')
+    testMatch('test.xyz', 'xyz')
+
+    testMatch('a.b.c.d', 'b.c.d')
+    testMatch('a.b.c.d', 'c.d')
+    testMatch('a.b.c.d', 'd')
+    testMatch('a.b.c.d', '')
+
+    testMatch('1'.repeat(300), undefined, '1^300', '1^300')
+    testMatch('2'.repeat(300), forceHashedLabel('2'.repeat(300)), '2^300')
+    testMatch('3.eth', forceHashedLabel('eth'))
+    testMatch(`4.${forceHashedLabel('eth')}`, 'eth')
+    testMatch(`5.${forceHashedLabel('test')}.eth`, 'test.eth')
   })
 })

@@ -248,4 +248,33 @@ library NameCoder {
             next = start + 1 + size; // advance
         }
     }
+
+    /// @dev Find the offset of `name` that namehashes to `nodeSuffix`.
+    /// @param name The name to search.
+    /// @param nodeSuffix The node to match.
+    /// @return matched True if `name` ends with the suffix.
+    /// @return node The namehash of `name`.
+    /// @return suffixOffset The offset into `name` that namehashes to the `nodeSuffix` or 0 if no match.
+    function matchSuffix(
+        bytes memory name,
+        uint256 offset,
+        bytes32 nodeSuffix
+    ) internal pure returns (bool matched, bytes32 node, uint256 suffixOffset) {
+        (bytes32 labelHash, uint256 next) = readLabel(name, offset);
+        if (labelHash != bytes32(0)) {
+            (matched, node, suffixOffset) = matchSuffix(name, next, nodeSuffix);
+            if (node == nodeSuffix) {
+                matched = true;
+                suffixOffset = next;
+            }
+            assembly {
+                mstore(0, node)
+                mstore(32, labelHash)
+                node := keccak256(0, 64) // compute namehash()
+            }
+        }
+        if (node == nodeSuffix) {
+            matched = true;
+        }
+    }
 }

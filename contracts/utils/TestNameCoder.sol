@@ -57,4 +57,12 @@ contract TestNameCoder {
     ) external pure returns (string memory ens) {
         return NameCoder.decode(dns);
     }
+
+    function matchSuffix(
+        bytes memory name,
+        uint256 offset,
+        bytes32 nodeSuffix
+    ) external pure returns (bool matched, bytes32 node, uint256 suffixOffset) {
+        return NameCoder.matchSuffix(name, offset, nodeSuffix);
+    }
 }
