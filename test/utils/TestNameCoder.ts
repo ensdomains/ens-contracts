@@ -10,12 +10,12 @@ async function fixture() {
   return hre.viem.deployContract('TestNameCoder', [])
 }
 
-function forceHashedLabel(s: string) {
-  return `[${keccak256(stringToBytes(s)).slice(2)}]`
+function forceHashedLabel(label: string) {
+  return `[${keccak256(stringToBytes(label)).slice(2)}]`
 }
 
-function fmt(s: string) {
-  return s || '<root>'
+function fmt(name: string) {
+  return name || '<root>'
 }
 
 describe('NameCoder', () => {
@@ -26,7 +26,7 @@ describe('NameCoder', () => {
       ['1x255', '1'.repeat(255)],
       ['1x300', '1'.repeat(300)],
       ['hashed("eth")', forceHashedLabel('eth')],
-      ['mixed', `1.${'1'.repeat(300)}.[${'1'.repeat(64)}].eth`],
+      ['mixed', `${'1'.repeat(300)}.${forceHashedLabel('test')}.eth`],
     ]) {
       it(fmt(title), async () => {
         const F = await loadFixture(fixture)
