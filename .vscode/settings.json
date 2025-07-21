@@ -4,6 +4,7 @@
     "@ensdomains/buffer/=node_modules/@ensdomains/buffer/",
     "@ensdomains/solsha1/=node_modules/@ensdomains/solsha1/",
     "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
     "forge-std/=lib/forge-std/src/",
     "test/=test/"
   ],

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv'
 import { HardhatUserConfig } from 'hardhat/config'
-import hardhatViem from "@nomicfoundation/hardhat-viem";
+import hardhatViem from '@nomicfoundation/hardhat-viem'
 
 // Load environment variables from .env file. Suppress warnings using silent
 // if this file is missing. dotenv will never modify any environment variables
@@ -75,9 +75,7 @@ const config: HardhatUserConfig = {
       },
     ],
   },
-  plugins: [
-    hardhatViem,
-  ],
+  plugins: [hardhatViem],
 }
 
 export default config
