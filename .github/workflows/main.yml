@@ -45,7 +45,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive  # Required for forge-std submodule
+          submodules: recursive # Required for forge-std submodule
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
@@ -71,7 +71,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive  # Required for forge-std submodule
+          submodules: recursive # Required for forge-std submodule
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2

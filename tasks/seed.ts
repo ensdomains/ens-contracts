@@ -9,9 +9,12 @@ function getOpenSeaUrl(contract: Address, namehashedname: Hex) {
 }
 
 task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
-  .addPositionalArgument({ name: 'name', description: 'The ENS label to seed subdomains' })
+  .addPositionalArgument({
+    name: 'name',
+    description: 'The ENS label to seed subdomains',
+  })
   .setAction(async ({ name }: { name: string }, hre) => {
-    const { viem } = await hre.network.connect();
+    const { viem } = await hre.network.connect()
     const { parsed: parsedFile, error } = dotenv.config({
       path: './.env',
       encoding: 'utf8',
@@ -54,25 +57,16 @@ task('seed', 'Creates test subbdomains and wraps them with Namewrapper')
       firstAddress,
       name,
     })
-    const EnsRegistry = await viem.getContractAt(
-      'ENSRegistry',
-      registryAddress,
-    )
+    const EnsRegistry = await viem.getContractAt('ENSRegistry', registryAddress)
 
     const BaseRegistrar = await viem.getContractAt(
       'BaseRegistrarImplementation',
       registrarAddress,
     )
 
-    const NameWrapper = await viem.getContractAt(
-      'NameWrapper',
-      wrapperAddress,
-    )
+    const NameWrapper = await viem.getContractAt('NameWrapper', wrapperAddress)
 
-    const Resolver = await viem.getContractAt(
-      'PublicResolver',
-      resolverAddress,
-    )
+    const Resolver = await viem.getContractAt('PublicResolver', resolverAddress)
 
     const domain = `${name}.eth`
     const namehashedname = namehash(domain)

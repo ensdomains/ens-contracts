@@ -14,7 +14,7 @@ library ENSTestUtils {
     function labelhash(string memory label) internal pure returns (bytes32) {
         return keccak256(bytes(label));
     }
-    
+
     /**
      * @dev Computes the namehash of a name
      * @param name The name to hash (e.g., "sub.example.eth")
@@ -25,60 +25,67 @@ library ENSTestUtils {
         if (bytes(name).length == 0) {
             return bytes32(0);
         }
-        
+
         // Start with zero hash
         node = bytes32(0);
-        
+
         // Split the name by dots and hash from right to left
         bytes memory nameBytes = bytes(name);
         uint256 i = nameBytes.length;
-        
+
         while (i > 0) {
             uint256 labelLength = 0;
             for (uint256 j = i; j > 0; j--) {
-                if (nameBytes[j - 1] == 0x2e) { // '.'
+                if (nameBytes[j - 1] == 0x2e) {
+                    // '.'
                     break;
                 }
                 labelLength++;
             }
-            
+
             bytes memory label = new bytes(labelLength);
             for (uint256 j = 0; j < labelLength; j++) {
                 label[j] = nameBytes[i - labelLength + j];
             }
-            
+
             node = keccak256(abi.encodePacked(node, keccak256(label)));
-            
+
             if (i > labelLength) {
                 i = i - labelLength - 1; // Skip the dot
             } else {
                 break;
             }
         }
-        
+
         return node;
     }
-    
+
     /**
      * @dev Computes the namehash of a single label under a parent node
      * @param parentNode The parent node
      * @param label The label to add
      * @return The namehash of parentNode + label
      */
-    function namehash(bytes32 parentNode, string memory label) internal pure returns (bytes32) {
+    function namehash(
+        bytes32 parentNode,
+        string memory label
+    ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(parentNode, labelhash(label)));
     }
-    
+
     /**
      * @dev Computes the namehash of a label under a parent node
      * @param parentNode The parent node
      * @param labelHash The hash of the label to add
      * @return The namehash of parentNode + labelHash
      */
-    function namehash(bytes32 parentNode, bytes32 labelHash) internal pure returns (bytes32) {
+    function namehash(
+        bytes32 parentNode,
+        bytes32 labelHash
+    ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(parentNode, labelHash));
     }
-    
+
     /**
      * @dev Converts an address to its reverse node
      * @param addr The address to convert
@@ -86,9 +93,12 @@ library ENSTestUtils {
      */
     function reverseNode(address addr) internal pure returns (bytes32) {
         bytes32 ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
-        return keccak256(abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr)));
+        return
+            keccak256(
+                abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr))
+            );
     }
-    
+
     /**
      * @dev Computes the sha3 hash of the lowercased hexadecimal representation of an address
      * @param addr The address to hash
@@ -96,9 +106,11 @@ library ENSTestUtils {
      */
     function sha3HexAddress(address addr) internal pure returns (bytes32 ret) {
         assembly {
-            let lookup := 0x3031323334353637383961626364656600000000000000000000000000000000
+            let
+                lookup
+            := 0x3031323334353637383961626364656600000000000000000000000000000000
             let i := 40
-            for { } gt(i, 0) { } {
+            for {} gt(i, 0) {} {
                 i := sub(i, 1)
                 mstore8(i, byte(and(addr, 0xf), lookup))
                 addr := div(addr, 0x10)
@@ -109,7 +121,7 @@ library ENSTestUtils {
             ret := keccak256(0, 40)
         }
     }
-    
+
     /**
      * @dev Converts a string to lowercase
      * @param str The string to convert
@@ -129,17 +141,20 @@ library ENSTestUtils {
         }
         return string(bLower);
     }
-    
+
     /**
      * @dev Checks if two strings are equal
      * @param a First string
      * @param b Second string
      * @return True if strings are equal
      */
-    function strEqual(string memory a, string memory b) internal pure returns (bool) {
+    function strEqual(
+        string memory a,
+        string memory b
+    ) internal pure returns (bool) {
         return keccak256(bytes(a)) == keccak256(bytes(b));
     }
-    
+
     /**
      * @dev Converts bytes32 to string (for labels)
      * @param x The bytes32 to convert
@@ -161,7 +176,7 @@ library ENSTestUtils {
         }
         return string(bytesStringTrimmed);
     }
-    
+
     /**
      * @dev Creates a commitment hash for name registration
      * @param name The name to register
@@ -184,20 +199,21 @@ library ENSTestUtils {
         bool reverseRecord,
         uint16 ownerControlledFuses
     ) internal pure returns (bytes32) {
-        return keccak256(
-            abi.encode(
-                labelhash(name),
-                owner,
-                duration,
-                secret,
-                resolver,
-                data,
-                reverseRecord,
-                ownerControlledFuses
-            )
-        );
+        return
+            keccak256(
+                abi.encode(
+                    labelhash(name),
+                    owner,
+                    duration,
+                    secret,
+                    resolver,
+                    data,
+                    reverseRecord,
+                    ownerControlledFuses
+                )
+            );
     }
-    
+
     /**
      * @dev Creates a simple commitment hash (no resolver data)
      * @param name The name to register
@@ -213,6 +229,16 @@ library ENSTestUtils {
         bytes32 secret
     ) internal pure returns (bytes32) {
         bytes[] memory emptyData;
-        return makeCommitment(name, owner, duration, secret, address(0), emptyData, false, 0);
+        return
+            makeCommitment(
+                name,
+                owner,
+                duration,
+                secret,
+                address(0),
+                emptyData,
+                false,
+                0
+            );
     }
 }

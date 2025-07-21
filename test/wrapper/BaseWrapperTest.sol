@@ -17,46 +17,63 @@ import {StaticMetadataService} from "../../contracts/wrapper/StaticMetadataServi
  *      the exact setup patterns used throughout the test suite.
  */
 abstract contract BaseWrapperTest is Test {
-    
     // Core ENS contracts used by all wrapper tests
     NameWrapper public nameWrapper;
     ENSRegistry public ens;
     BaseRegistrarImplementation public baseRegistrar;
     IMetadataService public metadataService;
     ReverseRegistrar public reverseRegistrar;
-    
+
     // Standard test accounts used across wrapper tests
     address constant OWNER = address(0x1);
     address constant ACCOUNT = address(0x2);
     address constant ACCOUNT2 = address(0x3);
     address constant OTHER = address(0x4);
     address constant APPROVED = address(0x5);
-    
+
     // ENS registry node constants
     bytes32 constant ROOT_NODE = bytes32(0);
     bytes32 constant ETH_LABEL = keccak256("eth");
-    bytes32 constant ETH_NODE = keccak256(abi.encodePacked(ROOT_NODE, ETH_LABEL));
-    bytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
-    
+    bytes32 constant ETH_NODE =
+        keccak256(abi.encodePacked(ROOT_NODE, ETH_LABEL));
+    bytes32 constant ADDR_REVERSE_NODE =
+        0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;
+
     // Default test domain setup - can be overridden by inheriting contracts
     string internal defaultLabel = "test";
     bytes32 internal defaultLabelHash;
     uint256 internal defaultLabelId;
     bytes32 internal defaultNode;
     uint256 internal defaultNodeId;
-    
+
     // Time and expiry constants
     uint256 constant DAY = 86400;
     uint64 constant MAX_EXPIRY = type(uint64).max;
-    
+
     // Standard events emitted by NameWrapper operations
-    event NameWrapped(bytes32 indexed node, bytes name, address owner, uint32 fuses, uint64 expiry);
+    event NameWrapped(
+        bytes32 indexed node,
+        bytes name,
+        address owner,
+        uint32 fuses,
+        uint64 expiry
+    );
     event NameUnwrapped(bytes32 indexed node, address owner);
     event FusesSet(bytes32 indexed node, uint32 fuses);
     event ExpiryExtended(bytes32 indexed node, uint64 expiry);
-    event ApprovalForAll(address indexed account, address indexed operator, bool approved);
-    event TransferSingle(address indexed operator, address indexed from, address indexed to, uint256 id, uint256 value);
-    
+    event ApprovalForAll(
+        address indexed account,
+        address indexed operator,
+        bool approved
+    );
+    event TransferSingle(
+        address indexed operator,
+        address indexed from,
+        address indexed to,
+        uint256 id,
+        uint256 value
+    );
+
     /**
      * @dev Sets up the complete ENS and NameWrapper environment.
      *      Virtual function allows inheriting contracts to extend setup.
@@ -66,55 +83,57 @@ abstract contract BaseWrapperTest is Test {
         _configurePermissions();
         _setupDefaultDomain();
     }
-    
+
     /**
      * @dev Deploys all core ENS contracts in the standard test configuration.
      *      This matches the exact deployment pattern used across all wrapper tests.
      */
     function _deployContracts() internal {
         vm.startPrank(OWNER);
-        
+
         // Deploy core ENS registry and .eth registrar
         ens = new ENSRegistry();
         baseRegistrar = new BaseRegistrarImplementation(ens, ETH_NODE);
-        metadataService = IMetadataService(address(new StaticMetadataService("https://ens.domains")));
-        
+        metadataService = IMetadataService(
+            address(new StaticMetadataService("https://ens.domains"))
+        );
+
         // Deploy reverse registrar and set up reverse registry FIRST
         // This is required before deploying NameWrapper because ReverseClaimer
         // constructor needs the reverse registrar to be available
         reverseRegistrar = new ReverseRegistrar(ens);
-        
+
         // Set up reverse registry structure (.reverse and .addr.reverse)
         ens.setSubnodeOwner(ROOT_NODE, keccak256("reverse"), OWNER);
         ens.setSubnodeOwner(
-            keccak256(abi.encodePacked(ROOT_NODE, keccak256("reverse"))), 
-            keccak256("addr"), 
+            keccak256(abi.encodePacked(ROOT_NODE, keccak256("reverse"))),
+            keccak256("addr"),
             address(reverseRegistrar)
         );
-        
+
         // Now deploy the NameWrapper - ReverseClaimer can find the reverse registrar
         nameWrapper = new NameWrapper(ens, baseRegistrar, metadataService);
-        
+
         vm.stopPrank();
     }
-    
+
     /**
      * @dev Configures ENS registry structure and contract permissions.
      *      Sets up the .eth TLD and controller permissions.
      */
     function _configurePermissions() internal {
         vm.startPrank(OWNER);
-        
+
         // Set up .eth top-level domain owned by BaseRegistrar
         ens.setSubnodeOwner(ROOT_NODE, ETH_LABEL, address(baseRegistrar));
-        
+
         // Grant NameWrapper controller permissions on BaseRegistrar
         baseRegistrar.addController(address(nameWrapper));
         baseRegistrar.addController(OWNER);
-        
+
         vm.stopPrank();
     }
-    
+
     /**
      * @dev Sets up default domain constants based on the configured label.
      *      Inheriting contracts can override defaultLabel before calling setUp().
@@ -125,7 +144,7 @@ abstract contract BaseWrapperTest is Test {
         defaultNode = keccak256(abi.encodePacked(ETH_NODE, defaultLabelHash));
         defaultNodeId = uint256(defaultNode);
     }
-    
+
     /**
      * @dev Registers and wraps a domain with specified parameters.
      * @param label The domain label to register (without .eth)
@@ -133,27 +152,36 @@ abstract contract BaseWrapperTest is Test {
      * @param fuses The fuse configuration for the wrapped domain
      * @return The expiry timestamp of the wrapped domain
      */
-    function _wrapDomain(string memory label, address owner, uint32 fuses) internal returns (uint64) {
+    function _wrapDomain(
+        string memory label,
+        address owner,
+        uint32 fuses
+    ) internal returns (uint64) {
         vm.startPrank(owner);
-        
+
         // Move past grace period to allow registration
         vm.warp(block.timestamp + baseRegistrar.GRACE_PERIOD() + 1);
-        
+
         uint256 labelId = uint256(keccak256(bytes(label)));
-        
+
         // Register the domain in BaseRegistrar first
         baseRegistrar.register(labelId, owner, 365 days);
-        
+
         // Approve NameWrapper to transfer the domain
         baseRegistrar.setApprovalForAll(address(nameWrapper), true);
-        
+
         // Wrap the domain with specified fuses
-        uint64 expiry = nameWrapper.wrapETH2LD(label, owner, uint16(fuses), address(0));
-        
+        uint64 expiry = nameWrapper.wrapETH2LD(
+            label,
+            owner,
+            uint16(fuses),
+            address(0)
+        );
+
         vm.stopPrank();
         return expiry;
     }
-    
+
     /**
      * @dev Convenience function to wrap the default test domain with no restrictions.
      * @return The expiry timestamp of the wrapped domain
@@ -161,16 +189,18 @@ abstract contract BaseWrapperTest is Test {
     function _wrapDefaultDomain() internal returns (uint64) {
         return _wrapDomain(defaultLabel, OWNER, CAN_DO_EVERYTHING);
     }
-    
+
     /**
      * @dev Convenience function to wrap the default test domain with specific fuses.
      * @param fuses The fuse configuration to apply
      * @return The expiry timestamp of the wrapped domain
      */
-    function _wrapDefaultDomainWithFuses(uint32 fuses) internal returns (uint64) {
+    function _wrapDefaultDomainWithFuses(
+        uint32 fuses
+    ) internal returns (uint64) {
         return _wrapDomain(defaultLabel, OWNER, fuses);
     }
-    
+
     /**
      * @dev Creates a subdomain under a wrapped parent domain.
      * @param parentNode The namehash of the parent domain
@@ -198,17 +228,20 @@ abstract contract BaseWrapperTest is Test {
         vm.stopPrank();
         return subNode;
     }
-    
+
     /**
      * @dev Utility function to calculate a node hash from parent and label.
      * @param parent The parent node hash
      * @param label The label string
      * @return The calculated node hash
      */
-    function _makeNode(bytes32 parent, string memory label) internal pure returns (bytes32) {
+    function _makeNode(
+        bytes32 parent,
+        string memory label
+    ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(parent, keccak256(bytes(label))));
     }
-    
+
     /**
      * @dev Utility function to convert a node hash to token ID.
      * @param node The node hash

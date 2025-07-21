@@ -7,7 +7,7 @@ library TestStringUtils {
     function escape(string memory s) external pure returns (string memory) {
         return StringUtils.escape(s);
     }
-    
+
     function strlen(string memory s) external pure returns (uint256) {
         return StringUtils.strlen(s);
     }

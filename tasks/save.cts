@@ -11,10 +11,18 @@ import { archivedDeploymentPath } from '../hardhat.config.ts'
 const exec = promisify(_exec)
 
 task('save', 'Saves a specified contract as a deployed contract')
-  .addPositionalArgument({ name: 'contract', description: 'The contract to save' })
-  .addPositionalArgument({ name: 'block', description: 'The block number the contract was deployed at' })
-  .addPositionalArgument({ name: 'fullName',
-    description: '(Optional) The fully qualified name of the contract (e.g. contracts/resolvers/PublicResolver.sol:PublicResolver)'
+  .addPositionalArgument({
+    name: 'contract',
+    description: 'The contract to save',
+  })
+  .addPositionalArgument({
+    name: 'block',
+    description: 'The block number the contract was deployed at',
+  })
+  .addPositionalArgument({
+    name: 'fullName',
+    description:
+      '(Optional) The fully qualified name of the contract (e.g. contracts/resolvers/PublicResolver.sol:PublicResolver)',
   })
   .setAction(
     async (
@@ -25,8 +33,8 @@ task('save', 'Saves a specified contract as a deployed contract')
       }: { contract: string; block: string; fullName?: string },
       hre,
     ) => {
-      const { networkName } = await hre.network.connect();
-      
+      const { networkName } = await hre.network.connect()
+
       const artifactReference = fullName || contract
       const artifact = await hre.artifacts.readArtifact(artifactReference)
 

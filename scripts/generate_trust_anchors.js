@@ -2,7 +2,7 @@
 
 // Generate trust anchors that match TypeScript test fixtures
 
-import packet from 'dns-packet';
+import packet from 'dns-packet'
 
 const realEntries = [
   {
@@ -35,7 +35,7 @@ const realEntries = [
       ),
     },
   },
-];
+]
 
 const dummyEntry = {
   name: '.',
@@ -48,12 +48,12 @@ const dummyEntry = {
     digestType: 253,
     digest: Buffer.from('', 'hex'),
   },
-};
+}
 
-const testEntries = [...realEntries, dummyEntry];
+const testEntries = [...realEntries, dummyEntry]
 
 const encodedAnchors = `0x${testEntries
   .map((entry) => packet.answer.encode(entry).toString('hex'))
-  .join('')}`;
+  .join('')}`
 
-console.log('Trust anchors hex:', encodedAnchors);
+console.log('Trust anchors hex:', encodedAnchors)
