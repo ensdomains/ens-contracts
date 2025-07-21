@@ -1,5 +1,5 @@
 import type { Address } from 'viem'
-import type { KnownProfile, KnownReverse } from './utils.js'
+import type { KnownProfile, KnownReverse } from '../utils/resolutions.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 
 export const ENS_REGISTRY: Address =
@@ -12,7 +12,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x8c4Eb6988A199DAbcae0Ce31052b3f3aC591787e',
+        value: '0x8c4Eb6988A199DAbcae0Ce31052b3f3aC591787e',
         origin: 'on',
       },
     ],
@@ -29,7 +29,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0xb8c2C29ee19D8307cb7255e1Cd9CbDE883A267d5',
+        value: '0xb8c2C29ee19D8307cb7255e1Cd9CbDE883A267d5',
         origin: 'on',
       },
     ],
@@ -41,7 +41,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+        value: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
         origin: 'on',
       },
     ],
@@ -53,7 +53,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'on',
       },
     ],
@@ -75,7 +75,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'on',
       },
     ],
@@ -103,15 +103,15 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: 0n,
-        encodedAddress: '0x00142e6414903e4b24d05132352f71b75c165932a381',
+        value: '0x00142e6414903e4b24d05132352f71b75c165932a381',
       },
       {
         coinType: 2n,
-        encodedAddress: '0x00142016d413f40444a390ca68cd604e39c6ca94ecf4',
+        value: '0x00142016d413f40444a390ca68cd604e39c6ca94ecf4',
       },
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0xC973b97c1F8f9E3b150E2C12d4856A24b3d563cb',
+        value: '0xC973b97c1F8f9E3b150E2C12d4856A24b3d563cb',
       },
     ],
   },
@@ -122,7 +122,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x534631Bcf33BDb069fB20A93d2fdb9e4D4dD42CF',
+        value: '0x534631Bcf33BDb069fB20A93d2fdb9e4D4dD42CF',
         origin: 'on',
       },
     ],
@@ -141,7 +141,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x035eBd096AFa6b98372494C7f08f3402324117D3',
+        value: '0x035eBd096AFa6b98372494C7f08f3402324117D3',
         origin: 'off',
       },
     ],
@@ -159,7 +159,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x41563129cDbbD0c5D3e1c86cf9563926b243834d',
+        value: '0x41563129cDbbD0c5D3e1c86cf9563926b243834d',
         origin: 'off',
       },
     ],
@@ -178,7 +178,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x6cEDe3712346471a57DBB07A610714a109Db2550',
+        value: '0x6cEDe3712346471a57DBB07A610714a109Db2550',
         origin: 'off',
       },
     ],
@@ -190,7 +190,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x28816c4C4792467390C90e5B426F198570E29307',
+        value: '0x28816c4C4792467390C90e5B426F198570E29307',
         origin: 'off',
       },
     ],
@@ -202,7 +202,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'off',
       },
     ],
@@ -221,7 +221,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'off',
       },
     ],
@@ -233,7 +233,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0xAD59EA85DB6F36c93DF955C9780F99e0bF447FF2',
+        value: '0xAD59EA85DB6F36c93DF955C9780F99e0bF447FF2',
         origin: 'off',
       },
     ],
@@ -245,7 +245,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'on',
       },
     ],
@@ -258,7 +258,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x682A689A89Db38a8F51CE58cA7Ee0705D1EDC523',
+        value: '0x682A689A89Db38a8F51CE58cA7Ee0705D1EDC523',
         origin: 'off',
       },
     ],
@@ -271,7 +271,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x8e8Db5CcEF88cca9d624701Db544989C996E3216',
+        value: '0x8e8Db5CcEF88cca9d624701Db544989C996E3216',
         origin: 'batch',
       },
     ],
@@ -283,7 +283,7 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
-        encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+        value: '0x51050ec063d393217b436747617ad1c2285aeeee',
         origin: 'batch',
       },
     ],
@@ -295,36 +295,60 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
       },
     ],
   },
+  {
+    title: 'JustaName',
+    name: 'yodl.eth',
+    extended: true,
+    addresses: [
+      {
+        coinType: COIN_TYPE_ETH,
+        value: '0x3Fbe48F4314f6817B7Fe39cdAD635E8Dd12ab299',
+      },
+    ],
+  },
+  {
+    // warning: this requires chainId = 1
+    title: 'Uninames',
+    name: 'raffy.uni.eth',
+    extended: true,
+    addresses: [
+      {
+        coinType: COIN_TYPE_ETH,
+        value: '0x51050ec063d393217B436747617aD1C2285Aeeee',
+      },
+    ],
+    texts: [{ key: 'com.twitter', value: 'adraffy' }],
+  },
 ]
 
 export const KNOWN_PRIMARIES: KnownReverse[] = [
   {
     title: 'ReverseV1',
-    encodedAddress: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
+    address: '0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045',
     coinType: COIN_TYPE_ETH,
     expectPrimary: true,
   },
   {
     title: 'ReverseV2',
-    encodedAddress: '0x51050ec063d393217b436747617ad1c2285aeeee',
+    address: '0x51050ec063d393217b436747617ad1c2285aeeee',
     coinType: COIN_TYPE_ETH,
     expectPrimary: true,
   },
   {
     title: 'PublicResolverV3',
-    encodedAddress: '0xacE594e18275c46302a6E76F3518b80D92849000',
+    address: '0xacE594e18275c46302a6E76F3518b80D92849000',
     coinType: COIN_TYPE_ETH,
     expectPrimary: true,
   },
   {
     title: 'does not exist',
-    encodedAddress: '0x0000000000000000000000000000000000000001',
+    address: '0x0000000000000000000000000000000000000001',
     coinType: COIN_TYPE_ETH,
     expectError: true,
   },
   {
     title: 'does not exist',
-    encodedAddress: '0x0000000000000000000000000000000000000001',
+    address: '0x0000000000000000000000000000000000000001',
     coinType: 0n,
     expectError: true,
   },

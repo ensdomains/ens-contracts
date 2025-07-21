@@ -2,6 +2,7 @@ import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpe
 import { expect } from 'chai'
 import hre from 'hardhat'
 import { type Address, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+
 import { getReverseName } from '../fixtures/ensip19.js'
 
 function getReverseNodeHash(addr: Address) {

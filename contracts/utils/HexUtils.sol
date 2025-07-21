@@ -2,26 +2,27 @@
 pragma solidity ^0.8.4;
 
 library HexUtils {
-    /// @dev Convert `hexString[pos:end]` to `bytes32`.
+    /// @dev Convert `hexString[off:end]` to `bytes32`.
     ///      Accepts 0-64 hex-chars.
     ///      Uses right alignment: `1` &rarr; `0000000000000000000000000000000000000000000000000000000000000001`.
     /// @param hexString The string to parse.
-    /// @param pos The index to start parsing.
+    /// @param off The index to start parsing.
     /// @param end The (exclusive) index to stop parsing.
     /// @return word The parsed bytes32.
     /// @return valid True if the parse was successful.
     function hexStringToBytes32(
         bytes memory hexString,
-        uint256 pos,
+        uint256 off,
         uint256 end
     ) internal pure returns (bytes32 word, bool valid) {
-        uint256 nibbles = end - pos;
+        if (end < off) return ("", false); // invalid range
+        uint256 nibbles = end - off;
         if (nibbles > 64 || end > hexString.length) {
             return (bytes32(0), false); // too large or out of bounds
         }
         uint256 src;
         assembly {
-            src := add(add(hexString, 32), pos)
+            src := add(add(hexString, 32), off)
         }
         valid = unsafeBytes(src, 0, nibbles);
         assembly {
@@ -30,41 +31,43 @@ library HexUtils {
         }
     }
 
-    /// @dev Convert `hexString[pos:end]` to `address`.
+    /// @dev Convert `hexString[off:end]` to `address`.
     ///      Accepts exactly 40 hex-chars.
     /// @param hexString The string to parse.
-    /// @param pos The index to start parsing.
+    /// @param off The index to start parsing.
     /// @param end The (exclusive) index to stop parsing.
     /// @return addr The parsed address.
     /// @return valid True if the parse was successful.
     function hexToAddress(
         bytes memory hexString,
-        uint256 pos,
+        uint256 off,
         uint256 end
     ) internal pure returns (address addr, bool valid) {
-        if (end - pos != 40) return (address(0), false); // wrong length
+        if (off + 40 != end) return (address(0), false); // wrong length
         bytes32 word;
-        (word, valid) = hexStringToBytes32(hexString, pos, end);
+        (word, valid) = hexStringToBytes32(hexString, off, end);
         addr = address(uint160(uint256(word)));
     }
 
-    /// @dev Convert `hexString[pos:end]` to `bytes`.
+    /// @dev Convert `hexString[off:end]` to `bytes`.
     ///      Accepts 0+ hex-chars.
-    /// @param pos The index to start parsing.
+    /// @param hexString The string to parse.
+    /// @param off The index to start parsing.
     /// @param end The (exclusive) index to stop parsing.
     /// @return v The parsed bytes.
     /// @return valid True if the parse was successful.
     function hexToBytes(
         bytes memory hexString,
-        uint256 pos,
+        uint256 off,
         uint256 end
     ) internal pure returns (bytes memory v, bool valid) {
-        uint256 nibbles = end - pos;
+        if (end < off) return ("", false); // invalid range
+        uint256 nibbles = end - off;
         v = new bytes((1 + nibbles) >> 1); // round up
         uint256 src;
         uint256 dst;
         assembly {
-            src := add(add(hexString, 32), pos)
+            src := add(add(hexString, 32), off)
             dst := add(v, 32)
         }
         valid = unsafeBytes(src, dst, nibbles);
@@ -72,7 +75,7 @@ library HexUtils {
 
     /// @dev Convert arbitrary hex-encoded memory to bytes.
     ///      If nibbles is odd, leading hex-char is padded, eg. `F` &rarr; `0x0F`.
-    ///      Matches: /^[0-9a-f]*$/i.
+    ///      Matches: `/^[0-9a-f]*$/i`.
     /// @param src The memory offset of first hex-char of input.
     /// @param dst The memory offset of first byte of output (cannot alias `src`).
     /// @param nibbles The number of hex-chars to convert.
@@ -115,6 +118,7 @@ library HexUtils {
                     src := end // terminate loop
                 }
             }
+            // prettier-ignore
             for {} lt(src, end) {
                 src := add(src, 2) // 2 nibbles
                 dst := add(dst, 1) // per byte

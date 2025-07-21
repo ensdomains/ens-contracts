@@ -20,8 +20,8 @@ export default execute(
     })
   },
   {
-    id: 'metadata',
-    tags: ['wrapper', 'StaticMetadataService'],
+    id: 'StaticMetadataService v1.0.0',
+    tags: ['category:wrapper', 'StaticMetadataService'],
     // technically not a dep, but we want to make sure it's deployed first for the consistent address
     dependencies: ['BaseRegistrarImplementation'],
   },

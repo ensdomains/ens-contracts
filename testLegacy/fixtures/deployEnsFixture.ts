@@ -194,6 +194,11 @@ export async function deployEnsStack(): Promise<EnsStack> {
     contract: nameWrapper,
   })
 
+  const defaultReverseRegistrar = await hre.viem.deployContract(
+    'DefaultReverseRegistrar',
+    [],
+  )
+
   const ethRegistrarController = await hre.viem.deployContract(
     'ETHRegistrarController',
     [
@@ -202,7 +207,7 @@ export async function deployEnsStack(): Promise<EnsStack> {
       60n,
       86400n,
       reverseRegistrar.address,
-      nameWrapper.address,
+      defaultReverseRegistrar.address,
       ensRegistry.address,
     ],
   )

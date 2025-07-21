@@ -27,8 +27,12 @@ export default execute(
     })
   },
   {
-    id: 'price-oracle',
-    tags: ['ethregistrar', 'ExponentialPremiumPriceOracle', 'DummyOracle'],
-    dependencies: ['registry'],
+    id: 'ExponentialPremiumPriceOracle v1.0.0',
+    tags: [
+      'category:ethregistrar',
+      'ExponentialPremiumPriceOracle',
+      'DummyOracle',
+    ],
+    dependencies: [],
   },
 )

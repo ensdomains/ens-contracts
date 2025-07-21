@@ -1,37 +1,34 @@
 import { execute, artifacts } from '@rocketh'
 
 export default execute(
-  async ({ deploy, get, execute: executeContract, namedAccounts }) => {
+  async ({ deploy, get, namedAccounts, viem }) => {
     const { deployer, owner } = namedAccounts
 
     const registrar = await get('BaseRegistrarImplementation')
     const wrapper = await get('NameWrapper')
 
-    const migrationHelper = await deploy('MigrationHelper', {
+    await deploy('MigrationHelper', {
       account: deployer,
       artifact: artifacts.MigrationHelper,
       args: [registrar.address, wrapper.address],
     })
 
-    if (!migrationHelper.newlyDeployed) {
-      return
-    }
-
-    console.log('MigrationHelper deployed successfully')
-
-    // Transfer ownership to owner if different from deployer
-    if (owner !== deployer) {
-      await executeContract(migrationHelper, {
-        functionName: 'transferOwnership',
-        args: [owner],
-        account: deployer,
-      })
-      console.log(`Transferred ownership to ${owner}`)
+    if (owner && owner.address !== deployer.address) {
+      const migrationHelper = await get('MigrationHelper')
+      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+      const hash = await (migrationHelper as any).write.transferOwnership(
+        [owner.address],
+        {
+          account: deployer,
+        },
+      )
+      console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
+      await viem.waitForTransactionSuccess(hash)
     }
   },
   {
-    id: 'migration-helper',
-    tags: ['utils', 'MigrationHelper'],
+    id: 'MigrationHelper v1.0.0',
+    tags: ['category:utils', 'MigrationHelper'],
     dependencies: ['BaseRegistrarImplementation', 'NameWrapper'],
   },
 )

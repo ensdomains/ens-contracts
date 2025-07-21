@@ -31,7 +31,15 @@ export default execute(
     }
   },
   {
-    tags: ['dnssec-algorithms'],
-    dependencies: ['BaseRegistrarImplementation'], // not necessary but allows registrar to be deployed first
+    id: 'dnssec-algorithms v1.0.0',
+    tags: [
+      'category:dnssec-oracle',
+      'dnssec-algorithms',
+      'RSASHA1Algorithm',
+      'RSASHA256Algorithm',
+      'P256SHA256Algorithm',
+      'DummyAlgorithm',
+    ],
+    dependencies: [],
   },
 )

@@ -1,10 +1,13 @@
 import { execute, artifacts } from '@rocketh'
 
 export default execute(
-  async ({ deploy, get, execute: executeContract, namedAccounts }) => {
+  async ({ deploy, get, namedAccounts, viem }) => {
     const { deployer, owner } = namedAccounts
 
+    // Get dependencies
     const registry = await get('ENSRegistry')
+
+    // Get batch gateway URLs from environment
     const batchGatewayURLs: string[] = JSON.parse(
       process.env.BATCH_GATEWAY_URLS || '[]',
     )
@@ -13,31 +16,30 @@ export default execute(
       throw new Error('UniversalResolver: No batch gateway URLs provided')
     }
 
-    const universalResolver = await deploy('UniversalResolver', {
+    // Deploy UniversalResolver
+    await deploy('UniversalResolver', {
       account: deployer,
       artifact: artifacts.UniversalResolver,
       args: [registry.address, batchGatewayURLs],
     })
 
-    if (!universalResolver.newlyDeployed) {
-      return
-    }
-
-    console.log('UniversalResolver deployed successfully')
-
-    // Transfer ownership to owner if different from deployer
-    if (owner !== deployer) {
-      await executeContract(universalResolver, {
-        functionName: 'transferOwnership',
-        args: [owner],
-        account: deployer,
-      })
-      console.log(`Transferred ownership to ${owner}`)
+    // Transfer ownership to owner
+    if (owner && owner.address !== deployer.address) {
+      const universalResolver = await get('UniversalResolver')
+      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+      const hash = await (universalResolver as any).write.transferOwnership(
+        [owner.address],
+        {
+          account: deployer,
+        },
+      )
+      console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
+      await viem.waitForTransactionSuccess(hash)
     }
   },
   {
-    id: 'universal-resolver',
-    tags: ['utils', 'UniversalResolver'],
-    dependencies: ['registry'],
+    id: 'UniversalResolver v1.0.0',
+    tags: ['category:utils', 'UniversalResolver'],
+    dependencies: ['ENSRegistry'],
   },
 )

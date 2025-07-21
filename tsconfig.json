@@ -19,6 +19,7 @@
     "./scripts/**/*.ts",
     "./test/**/*.ts",
     "./tasks/**/*.ts",
+    "./tasks/**/*.cts",
     "./deploy/**/*.ts",
     "./typings-custom/**/*.ts",
     "./artifacts/**/*.d.ts",

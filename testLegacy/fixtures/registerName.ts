@@ -1,5 +1,13 @@
 import hre from 'hardhat'
-import { Address, Hex, zeroAddress } from 'viem'
+import {
+  Address,
+  encodeAbiParameters,
+  Hex,
+  keccak256,
+  parseAbiParameters,
+  zeroAddress,
+  zeroHash,
+} from 'viem'
 import { EnsStack } from './deployEnsFixture.js'
 
 export type Mutable<T> = {
@@ -13,8 +21,13 @@ type RegisterNameOptions = {
   secret?: Hex
   resolverAddress?: Address
   data?: Hex[]
-  shouldSetReverseRecord?: boolean
-  ownerControlledFuses?: number
+  reverseRecord?: ('ethereum' | 'default')[]
+  referrer?: Hex
+}
+
+const ReverseRecord = {
+  ethereum: 1,
+  default: 2,
 }
 
 export const getDefaultRegistrationOptions = async ({
@@ -24,8 +37,8 @@ export const getDefaultRegistrationOptions = async ({
   secret,
   resolverAddress,
   data,
-  shouldSetReverseRecord,
-  ownerControlledFuses,
+  reverseRecord,
+  referrer,
 }: RegisterNameOptions) => ({
   label,
   ownerAddress: await (async () => {
@@ -39,44 +52,64 @@ export const getDefaultRegistrationOptions = async ({
     '0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF',
   resolverAddress: resolverAddress ?? zeroAddress,
   data: data ?? [],
-  shouldSetReverseRecord: shouldSetReverseRecord ?? false,
-  ownerControlledFuses: ownerControlledFuses ?? 0,
+  reverseRecord: reverseRecord ?? [],
+  referrer: referrer ?? zeroHash,
 })
 
-export const getRegisterNameParameterArray = ({
+export const getRegisterNameParameters = ({
   label,
   ownerAddress,
   duration,
   secret,
   resolverAddress,
   data,
-  shouldSetReverseRecord,
-  ownerControlledFuses,
+  reverseRecord,
+  referrer,
 }: Required<RegisterNameOptions>) => {
-  const immutable = [
+  const immutable = {
     label,
-    ownerAddress,
+    owner: ownerAddress,
     duration,
     secret,
-    resolverAddress,
+    resolver: resolverAddress,
     data,
-    shouldSetReverseRecord,
-    ownerControlledFuses,
-  ] as const
+    reverseRecord: reverseRecord.reduce(
+      (acc, record) => acc | ReverseRecord[record],
+      0,
+    ),
+    referrer,
+  } as const
   return immutable as Mutable<typeof immutable>
 }
 
+export const createCommitmentHash = (
+  args: ReturnType<typeof getRegisterNameParameters>,
+) =>
+  keccak256(
+    encodeAbiParameters(
+      parseAbiParameters(
+        '(string label,address owner,uint256 duration,bytes32 secret,address resolver,bytes[] data,uint8 reverseRecord,bytes32 referrer)',
+      ),
+      [args],
+    ),
+  )
+
 export const commitName = async (
   { ethRegistrarController }: Pick<EnsStack, 'ethRegistrarController'>,
-  params_: RegisterNameOptions,
+  {
+    createLocalCommitmentHash,
+    ...params_
+  }: RegisterNameOptions & { createLocalCommitmentHash?: boolean },
 ) => {
   const params = await getDefaultRegistrationOptions(params_)
-  const args = getRegisterNameParameterArray(params)
+  const args = getRegisterNameParameters(params)
 
   const testClient = await hre.viem.getTestClient()
   const [deployer] = await hre.viem.getWalletClients()
 
-  const commitmentHash = await ethRegistrarController.read.makeCommitment(args)
+  const commitmentHash = createLocalCommitmentHash
+    ? createCommitmentHash(args)
+    : await ethRegistrarController.read.makeCommitment([args])
   await ethRegistrarController.write.commit([commitmentHash], {
     account: deployer.account,
   })
@@ -96,12 +129,14 @@ export const registerName = async (
   params_: RegisterNameOptions,
 ) => {
   const params = await getDefaultRegistrationOptions(params_)
-  const args = getRegisterNameParameterArray(params)
+  const args = getRegisterNameParameters(params)
   const { label, duration } = params
 
   const testClient = await hre.viem.getTestClient()
   const [deployer] = await hre.viem.getWalletClients()
-  const commitmentHash = await ethRegistrarController.read.makeCommitment(args)
+  const commitmentHash = await ethRegistrarController.read.makeCommitment([
+    args,
+  ])
   await ethRegistrarController.write.commit([commitmentHash], {
     account: deployer.account,
   })
@@ -113,7 +148,7 @@ export const registerName = async (
     .rentPrice([label, duration])
     .then(({ base, premium }) => base + premium)
 
-  await ethRegistrarController.write.register(args, {
+  await ethRegistrarController.write.register([args], {
     value,
     account: deployer.account,
   })

@@ -1,5 +1,25 @@
 {
-  "ens": 1626404011,
-  "root": 1580387832,
-  "setupRoot": 1580387832
+  "ENSRegistry v1.0.0": 1,
+  "dnssec-algorithms v1.0.0": 1,
+  "dnssec-digests v1.0.0": 1,
+  "DNSSECImpl v1.0.0": 1,
+  "OffchainDNSResolver v1.0.0": 1,
+  "SimplePublicSuffixList v1.0.0": 1,
+  "Root:contract v1.0.0": 1,
+  "Root:setup v1.0.0": 1,
+  "DNSRegistrar:contract v1.0.0": 1,
+  "DNSRegistrar:set-tlds v1.0.0": 1,
+  "BaseRegistrarImplementation:contract v1.0.0": 1,
+  "BaseRegistrarImplementation:setup v1.0.0": 1,
+  "ExponentialPremiumPriceOracle v1.0.0": 1,
+  "ReverseRegistrar v1.0.0": 1,
+  "ETHRegistrarController v1.0.0": 1,
+  "EthOwnedResolver v1.0.0": 1,
+  "NameWrapper v1.0.0": 1,
+  "ETHRegistrarController v2.0.0": 1,
+  "ExtendedDNSResolver v1.0.0": 1,
+  "PublicResolver v1.0.0": 1,
+  "PublicResolver v2.0.0": 1,
+  "UniversalResolver v1.0.0": 1,
+  "StaticMetadataService v1.0.0": 1
 }

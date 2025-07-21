@@ -1070,7 +1070,10 @@ export const shouldBehaveLikeErc1155 = <
 
     shouldSupportInterfaces({
       contract: () => contracts().then(({ contract }) => contract),
-      interfaces: ['IERC165', 'IERC1155'],
+      interfaces: [
+        '@openzeppelin/contracts/utils/introspection/IERC165.sol:IERC165',
+        'IERC1155',
+      ],
     })
   })
 }

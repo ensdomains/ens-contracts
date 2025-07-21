@@ -4,36 +4,35 @@ pragma solidity ~0.8.17;
 import "./IPriceOracle.sol";
 
 interface IETHRegistrarController {
+    struct Registration {
+        string label;
+        address owner;
+        uint256 duration;
+        bytes32 secret;
+        address resolver;
+        bytes[] data;
+        uint8 reverseRecord;
+        bytes32 referrer;
+    }
+
     function rentPrice(
-        string memory,
-        uint256
+        string memory label,
+        uint256 duration
     ) external view returns (IPriceOracle.Price memory);
 
-    function available(string memory) external returns (bool);
+    function available(string memory label) external returns (bool);
 
     function makeCommitment(
-        string memory,
-        address,
-        uint256,
-        bytes32,
-        address,
-        bytes[] calldata,
-        bool,
-        uint16
-    ) external pure returns (bytes32);
+        Registration memory registration
+    ) external pure returns (bytes32 commitment);
 
-    function commit(bytes32) external;
+    function commit(bytes32 commitment) external;
 
-    function register(
-        string calldata,
-        address,
-        uint256,
-        bytes32,
-        address,
-        bytes[] calldata,
-        bool,
-        uint16
+    function register(Registration memory registration) external payable;
+
+    function renew(
+        string calldata label,
+        uint256 duration,
+        bytes32 referrer
     ) external payable;
-
-    function renew(string calldata, uint256) external payable;
 }

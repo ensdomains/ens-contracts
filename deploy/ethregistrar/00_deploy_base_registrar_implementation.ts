@@ -18,8 +18,12 @@ export default execute(
     })
   },
   {
-    id: 'registrar',
-    tags: ['ethregistrar', 'BaseRegistrarImplementation'],
-    dependencies: ['registry', 'root'],
+    id: 'BaseRegistrarImplementation:contract v1.0.0',
+    tags: [
+      'category:ethregistrar',
+      'BaseRegistrarImplementation',
+      'BaseRegistrarImplementation:contract',
+    ],
+    dependencies: ['ENSRegistry'],
   },
 )

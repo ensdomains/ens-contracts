@@ -4,8 +4,9 @@ pragma solidity ^0.8.17;
 import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
-contract CCIPBatcher is CCIPReader {
-    /// @dev The batch gateway supplied an incorrect number of responses.
+abstract contract CCIPBatcher is CCIPReader {
+    /// @notice The batch gateway supplied an incorrect number of responses.
+    /// @dev Error selector: `0x4a5c31ea`
     error InvalidBatchGatewayResponse();
 
     uint256 constant FLAG_OFFCHAIN = 1 << 0; // the lookup reverted `OffchainLookup`
@@ -34,35 +35,56 @@ contract CCIPBatcher is CCIPReader {
         string[] gateways;
     }
 
-    /// @dev Use `CCIPReader.ccipRead()` to call this function with a batch.
-    ///      The callback `response` will be `abi.encode(batch)`.
+    /// @dev Create a batch for a single target with multiple calls.
+    /// @param target The target contract.
+    /// @param calls The list of calldata.
+    /// @param gateways The batch gateway URLs.
+    function createBatch(
+        address target,
+        bytes[] memory calls,
+        string[] memory gateways
+    ) internal pure returns (Batch memory) {
+        Lookup[] memory lookups = new Lookup[](calls.length);
+        for (uint256 i; i < calls.length; ++i) {
+            Lookup memory lu = lookups[i];
+            lu.target = target;
+            lu.call = calls[i];
+        }
+        return Batch(lookups, gateways);
+    }
+
+    /// @dev Use `ccipRead()` to call this function with a batch.
+    ///      The callback response will be `abi.encode(batch)`.
     function ccipBatch(
         Batch memory batch
     ) external view returns (Batch memory) {
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAGS_ANY_EIP140) == 0) {
-                uint256 flags = _detectEIP140(lu.target)
+                uint256 flags = detectEIP140(lu.target)
                     ? FLAG_EIP140_AFTER
                     : FLAG_EIP140_BEFORE;
-                for (uint256 j = i; j < batch.lookups.length; j++) {
+                for (uint256 j = i; j < batch.lookups.length; ++j) {
                     if (batch.lookups[j].target == lu.target) {
                         batch.lookups[j].flags |= flags;
                     }
                 }
             }
-            bool old = (lu.flags & FLAG_EIP140_AFTER) == 0;
-            (bool ok, bytes memory v) = _safeCall(!old, lu.target, lu.call);
-            if (ok || (old && v.length == 0)) {
-                lu.flags |= FLAG_DONE;
-                if (v.length == 0) {
-                    v = abi.encodePacked(bytes4(lu.call));
-                    lu.flags |= FLAG_EMPTY_RESPONSE;
-                }
-            } else if (bytes4(v) == OffchainLookup.selector) {
+            bool unsafe = (lu.flags & FLAG_EIP140_AFTER) == 0;
+            (bool ok, bytes memory v) = safeCall(!unsafe, lu.target, lu.call);
+            if (!ok && bytes4(v) == OffchainLookup.selector) {
                 lu.flags |= FLAG_OFFCHAIN;
             } else {
-                lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                lu.flags |= FLAG_DONE;
+                if (unsafe && v.length == 0) {
+                    // unsafe contracts appear the same for throw and unimplemented fallback
+                    // decision: interpret like an unimplemented function selector response
+                } else if (!ok) {
+                    lu.flags |= FLAG_CALL_ERROR;
+                }
+                if (v.length == 0) {
+                    lu.flags |= FLAG_EMPTY_RESPONSE;
+                }
             }
             lu.data = v;
         }
@@ -76,7 +98,7 @@ contract CCIPBatcher is CCIPReader {
             batch.lookups.length
         );
         uint256 count;
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
                 EIP3668.Params memory p = decodeOffchainLookup(lu.data);
@@ -119,7 +141,7 @@ contract CCIPBatcher is CCIPReader {
         }
         batch = abi.decode(extraData, (Batch));
         uint256 expected;
-        for (uint256 i; i < batch.lookups.length; i++) {
+        for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
                 if (expected < responses.length) {
@@ -129,6 +151,7 @@ contract CCIPBatcher is CCIPReader {
                     } else {
                         EIP3668.Params memory p = decodeOffchainLookup(lu.data);
                         bool ok;
+                        // assumption: unsafe contracts don't revert OffchainLookup()
                         (ok, v) = p.sender.staticcall(
                             abi.encodeWithSelector(
                                 p.callbackFunction,
@@ -136,14 +159,17 @@ contract CCIPBatcher is CCIPReader {
                                 p.extraData
                             )
                         );
-                        if (ok) {
+                        if (ok || bytes4(v) != OffchainLookup.selector) {
                             lu.flags |= FLAG_DONE;
+                            // decision: promote empty response from the callback => call error
+                            // ie. the initial function was implemented but the callback was not
+                            // this can be detected via FLAG_OFFCHAIN
+                            if (!ok || v.length == 0) {
+                                lu.flags |= FLAG_CALL_ERROR;
+                            }
                             if (v.length == 0) {
-                                v = abi.encodePacked(p.callbackFunction);
                                 lu.flags |= FLAG_EMPTY_RESPONSE;
                             }
-                        } else if (bytes4(v) != OffchainLookup.selector) {
-                            lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
                         }
                     }
                     lu.data = v;

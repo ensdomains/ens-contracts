@@ -4,8 +4,9 @@ import { expect } from 'chai'
 import {
   chainFromCoinType,
   COIN_TYPE_ETH,
-  EVM_BIT,
+  COIN_TYPE_DEFAULT,
   getReverseName,
+  getReverseNamespace,
   isEVMCoinType,
   shortCoin,
 } from '../fixtures/ensip19.js'
@@ -23,10 +24,10 @@ const addrs = [
 
 const coinTypes = [
   COIN_TYPE_ETH,
-  EVM_BIT,
+  COIN_TYPE_DEFAULT,
   0n, // btc
   0x123n,
-  EVM_BIT | 1n,
+  COIN_TYPE_DEFAULT | 1n,
   0x1_8000_0123n, // 33 bits
 ]
 
@@ -48,6 +49,21 @@ describe('ENSIP19', () => {
             shortCoin(coinType),
           ).resolves.toStrictEqual(getReverseName(addr, coinType))
         }
+      })
+    }
+  })
+
+  describe('parseNamespace()', () => {
+    for (const coinType of coinTypes) {
+      it(shortCoin(coinType), async () => {
+        const F = await loadFixture(fixture)
+        await expect(
+          F.read.parseNamespace([
+            dnsEncodeName(getReverseNamespace(coinType)),
+            0n,
+          ]),
+          shortCoin(coinType),
+        ).resolves.toStrictEqual([true, coinType])
       })
     }
   })

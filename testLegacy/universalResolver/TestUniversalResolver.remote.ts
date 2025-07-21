@@ -6,7 +6,9 @@ import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { shortCoin } from '../fixtures/ensip19.js'
 import { isHardhatFork } from '../fixtures/forked.js'
 import { ENS_REGISTRY, KNOWN_PRIMARIES, KNOWN_RESOLUTIONS } from './mainnet.js'
-import { bundleCalls, makeResolutions } from './utils.js'
+import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
+
+// $ bun run test:remote
 
 async function fixture() {
   const bg = await serveBatchGateway()
@@ -41,11 +43,9 @@ async function fixture() {
     })
     describe('reverse()', () => {
       for (const x of KNOWN_PRIMARIES) {
-        it(`${x.title}: ${shortCoin(x.coinType)} ${
-          x.encodedAddress
-        }`, async () => {
+        it(`${x.title}: ${shortCoin(x.coinType)} ${x.address}`, async () => {
           const F = await loadFixture(fixture)
-          const promise = F.read.reverse([x.encodedAddress, x.coinType])
+          const promise = F.read.reverse([x.address, x.coinType])
           if (x.expectError) {
             await expect(promise).rejects.toThrow()
           } else {

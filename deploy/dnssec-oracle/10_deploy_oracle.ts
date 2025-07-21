@@ -1,6 +1,6 @@
 import packet from 'dns-packet'
 import { execute, artifacts } from '@rocketh'
-import type { Hex } from 'viem'
+import type { Address, Hash, Hex } from 'viem'
 
 const realAnchors = [
   {
@@ -9,25 +9,10 @@ const realAnchors = [
     class: 'IN',
     ttl: 3600,
     data: {
-      keyTag: 19036,
-      algorithm: 8,
-      digestType: 2,
-      digest: new Buffer(
-        '49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5',
-        'hex',
-      ),
-    },
-  },
-  {
-    name: '.',
-    type: 'DS',
-    klass: 'IN',
-    ttl: 3600,
-    data: {
       keyTag: 20326,
       algorithm: 8,
       digestType: 2,
-      digest: new Buffer(
+      digest: Buffer.from(
         'E06D44B80B8F1D39A95C0B0D7C65D08458E880409BBC683457104237C7F8EC8D',
         'hex',
       ),
@@ -44,7 +29,7 @@ const dummyAnchor = {
     keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
     algorithm: 253,
     digestType: 253,
-    digest: new Buffer('', 'hex'),
+    digest: Buffer.from('', 'hex'),
   },
 }
 
@@ -57,7 +42,7 @@ function encodeAnchors(anchors: any[]): Hex {
 }
 
 export default execute(
-  async ({ deploy, get, read, execute, namedAccounts, network }) => {
+  async ({ deploy, get, namedAccounts, network, viem }) => {
     const { deployer } = namedAccounts
 
     const anchors = realAnchors.slice()
@@ -79,69 +64,61 @@ export default execute(
       digests[253] = 'DummyDigest'
     }
 
-    const dnssec = await deploy('DNSSECImpl', {
+    await deploy('DNSSECImpl', {
       account: deployer,
       artifact: artifacts.DNSSECImpl,
       args: [encodeAnchors(anchors)],
     })
 
-    if (!dnssec.newlyDeployed) {
-      return
-    }
+    const dnssec = await get('DNSSECImpl')
 
-    console.log('DNSSECImpl deployed successfully')
-
-    const transactionPromises: Promise<any>[] = []
-
-    // Set algorithms
+    const transactions: Hash[] = []
     for (const [id, alg] of Object.entries(algorithms)) {
       const deployedAlgorithm = await get(alg)
-      const currentAlgorithmAddress = await read(dnssec, {
-        functionName: 'algorithms',
-        args: [parseInt(id)],
-      })
+      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+      const currentAlgorithmAddress = await (dnssec as any).read.algorithms([
+        parseInt(id),
+      ])
 
       if (deployedAlgorithm.address !== currentAlgorithmAddress) {
-        const txPromise = execute(dnssec, {
-          functionName: 'setAlgorithm',
-          args: [parseInt(id), deployedAlgorithm.address],
-          account: deployer,
-        })
-        transactionPromises.push(txPromise)
-        console.log(`Queued algorithm ${id} to ${alg}`)
+        const hash = await (dnssec as any).write.setAlgorithm(
+          [parseInt(id), deployedAlgorithm.address],
+          {
+            account: deployer,
+          },
+        )
+        transactions.push(hash)
       }
     }
 
-    // Set digests
     for (const [id, digest] of Object.entries(digests)) {
       const deployedDigest = await get(digest)
-      const currentDigestAddress = await read(dnssec, {
-        functionName: 'digests',
-        args: [parseInt(id)],
-      })
+      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+      const currentDigestAddress = await (dnssec as any).read.digests([
+        parseInt(id),
+      ])
 
       if (deployedDigest.address !== currentDigestAddress) {
-        const txPromise = execute(dnssec, {
-          functionName: 'setDigest',
-          args: [parseInt(id), deployedDigest.address],
-          account: deployer,
-        })
-        transactionPromises.push(txPromise)
-        console.log(`Queued digest ${id} to ${digest}`)
+        const hash = await (dnssec as any).write.setDigest(
+          [parseInt(id), deployedDigest.address],
+          {
+            account: deployer,
+          },
+        )
+        transactions.push(hash)
       }
     }
 
-    if (transactionPromises.length > 0) {
-      console.log(
-        `Waiting on ${transactionPromises.length} transactions setting DNSSEC parameters`,
-      )
-      await Promise.all(transactionPromises)
-    }
-
-    console.log('DNSSEC oracle configuration completed')
+    console.log(
+      `Waiting on ${transactions.length} transactions setting DNSSEC parameters`,
+    )
+    await Promise.all(
+      transactions.map(async (hash) => viem.waitForTransactionSuccess(hash)),
+    )
   },
   {
-    tags: ['dnssec-oracle'],
+    id: 'DNSSECImpl v1.0.0',
+    tags: ['category:dnssec-oracle', 'DNSSECImpl'],
     dependencies: ['dnssec-algorithms', 'dnssec-digests'],
   },
 )

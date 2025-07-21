@@ -85,7 +85,8 @@ export default execute(
     console.log('Public suffix list configuration completed')
   },
   {
-    tags: ['SimplePublicSuffixList'],
+    id: 'SimplePublicSuffixList v1.0.0',
+    tags: ['category:dnsregistrar', 'SimplePublicSuffixList'],
     dependencies: [],
   },
 )

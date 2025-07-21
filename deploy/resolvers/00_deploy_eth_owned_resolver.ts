@@ -2,41 +2,34 @@ import { execute, artifacts } from '@rocketh'
 import { namehash } from 'viem'
 
 export default execute(
-  async ({ deploy, get, read, execute: executeContract, namedAccounts }) => {
+  async ({ deploy, get, namedAccounts, viem }) => {
     const { deployer, owner } = namedAccounts
 
+    // Deploy OwnedResolver
     const ethOwnedResolver = await deploy('OwnedResolver', {
       account: deployer,
       artifact: artifacts.OwnedResolver,
+      args: [],
     })
 
-    if (!ethOwnedResolver.newlyDeployed) {
-      return
-    }
-
-    console.log('OwnedResolver deployed successfully')
+    if (!ethOwnedResolver.newlyDeployed) return
 
     const registry = await get('ENSRegistry')
     const registrar = await get('BaseRegistrarImplementation')
 
-    // Set resolver on registrar to OwnedResolver
-    await executeContract(registrar, {
-      functionName: 'setResolver',
-      args: [ethOwnedResolver.address],
-      account: owner,
-    })
-    console.log('Set resolver on registrar to OwnedResolver')
+    // using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+    const setResolverHash = await (registrar as any).write.setResolver(
+      [ethOwnedResolver.address],
+      { account: owner.account },
+    )
+    await viem.waitForTransactionSuccess(setResolverHash)
 
-    // Verify resolver is set for .eth
-    const resolver = await read(registry, {
-      functionName: 'resolver',
-      args: [namehash('eth')],
-    })
-    console.log(`Set resolver for .eth to ${resolver}`)
+    const resolver = await (registry as any).read.resolver([namehash('eth')])
+    console.log(`set resolver for .eth to ${resolver}`)
   },
   {
-    id: 'eth-owned-resolver',
-    tags: ['resolvers', 'OwnedResolver', 'EthOwnedResolver'],
-    dependencies: ['BaseRegistrarImplementation'],
+    id: 'EthOwnedResolver v1.0.0',
+    tags: ['category:resolvers', 'OwnedResolver', 'EthOwnedResolver'],
+    dependencies: ['ENSRegistry', 'BaseRegistrarImplementation'],
   },
 )

@@ -59,14 +59,12 @@ async function fixture() {
     600n,
     86400n,
     zeroAddress,
-    nameWrapper.address,
+    zeroAddress,
     ensRegistry.address,
   ])
 
   await baseRegistrar.write.addController([controller.address])
   await baseRegistrar.write.addController([accounts[0].address])
-  await baseRegistrar.write.addController([nameWrapper.address])
-  await nameWrapper.write.setController([controller.address, true])
 
   // Create the bulk renewal contract
   const bulkRenewal = await hre.viem.deployContract('BulkRenewal', [
@@ -115,7 +113,7 @@ describe('BulkRenewal', () => {
     const { bulkRenewal } = await loadFixture(fixture)
 
     await expect(bulkRenewal)
-      .write('renewAll', [['foobar'], 86400n])
+      .write('renewAll', [['foobar'], 86400n, zeroHash])
       .toBeRevertedWithoutReason()
   })
 
@@ -125,7 +123,7 @@ describe('BulkRenewal', () => {
 
     const oldExpiry = await baseRegistrar.read.nameExpires([toLabelId('test2')])
 
-    await bulkRenewal.write.renewAll([['test1', 'test2'], 86400n], {
+    await bulkRenewal.write.renewAll([['test1', 'test2'], 86400n, zeroHash], {
       value: 86400n * 2n,
     })
 

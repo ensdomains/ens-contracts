@@ -157,7 +157,13 @@ export default execute(
     console.log('TLD setup completed')
   },
   {
-    tags: ['settlds'],
-    dependencies: ['DNSRegistrar', 'SimplePublicSuffixList'],
+    id: 'DNSRegistrar:set-tlds v1.0.0',
+    tags: ['category:dnsregistrar', 'DNSRegistrar', 'DNSRegistrar:set-tlds'],
+    dependencies: [
+      'ENSRegistry',
+      'SimplePublicSuffixList',
+      'DNSRegistrar:contract',
+      'Root',
+    ],
   },
 )

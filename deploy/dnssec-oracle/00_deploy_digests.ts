@@ -25,6 +25,13 @@ export default execute(
     }
   },
   {
-    tags: ['dnssec-digests'],
+    id: 'dnssec-digests v1.0.0',
+    tags: [
+      'category:dnssec-oracle',
+      'dnssec-digests',
+      'SHA1Digest',
+      'SHA256Digest',
+      'DummyDigest',
+    ],
   },
 )

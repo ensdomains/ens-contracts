@@ -9,6 +9,7 @@ interface IBulkRenewal {
 
     function renewAll(
         string[] calldata names,
-        uint256 duration
+        uint256 duration,
+        bytes32 referrer
     ) external payable;
 }

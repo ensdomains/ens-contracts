@@ -1,11 +1,11 @@
-import { execute } from '@rocketh'
-import { zeroHash, type Address } from 'viem'
+import { execute, artifacts } from '@rocketh'
+import { zeroHash } from 'viem'
 
 export default execute(
-  async ({ get, read, execute: executeContract, namedAccounts, network }) => {
+  async ({ get, namedAccounts, network, viem }) => {
     const { deployer, owner } = namedAccounts
 
-    if (!network.tags?.use_root) {
+    if (!network.tags.use_root) {
       return
     }
 
@@ -14,41 +14,39 @@ export default execute(
     const registry = await get('ENSRegistry')
     const root = await get('Root')
 
-    // 1. Set owner of root node to root contract
-    await executeContract(registry, {
-      functionName: 'setOwner',
-      args: [zeroHash, root.address],
-      account: deployer,
-    })
-    console.log('Set owner of root node to root contract')
+    const setOwnerHash = await (registry as any).write.setOwner([
+      zeroHash,
+      root.address,
+    ])
+    console.log(
+      `Setting owner of root node to root contract (tx: ${setOwnerHash})...`,
+    )
+    await viem.waitForTransactionSuccess(setOwnerHash)
 
-    // 2. Check current root owner and transfer if needed
-    const rootOwner = (await read(root, {
-      functionName: 'owner',
-      args: [],
-    })) as Address
+    const rootOwner = await (root as any).read.owner()
 
-    switch (rootOwner.toLowerCase()) {
-      case deployer.toLowerCase():
-        await executeContract(root, {
-          functionName: 'transferOwnership',
-          args: [owner],
-          account: deployer,
-        })
-        console.log('Transferred root ownership to final owner')
-      // Fallthrough to set controller
-      case owner.toLowerCase():
-        const ownerIsRootController = await read(root, {
-          functionName: 'controllers',
-          args: [owner],
-        })
+    switch (rootOwner) {
+      case deployer.address:
+        const transferOwnershipHash = await (
+          root as any
+        ).write.transferOwnership([owner.address])
+        console.log(
+          `Transferring root ownership to final owner (tx: ${transferOwnershipHash})...`,
+        )
+        await viem.waitForTransactionSuccess(transferOwnershipHash)
+      case owner.address:
+        const ownerIsRootController = await (root as any).read.controllers([
+          owner.address,
+        ])
         if (!ownerIsRootController) {
-          await executeContract(root, {
-            functionName: 'setController',
-            args: [owner, true],
-            account: owner,
-          })
-          console.log('Set final owner as controller on root contract')
+          const setControllerHash = await (root as any).write.setController(
+            [owner.address, true],
+            { account: owner.account },
+          )
+          console.log(
+            `Setting final owner as controller on root contract (tx: ${setControllerHash})...`,
+          )
+          await viem.waitForTransactionSuccess(setControllerHash)
         }
         break
       default:
@@ -58,8 +56,8 @@ export default execute(
     }
   },
   {
-    id: 'setupRoot',
-    tags: ['setupRoot'],
-    dependencies: ['Root'],
+    id: 'Root:setup v1.0.0',
+    tags: ['category:root', 'Root', 'Root:setup'],
+    dependencies: ['Root:contract'],
   },
 )

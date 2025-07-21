@@ -31,9 +31,13 @@ export default execute(
     console.log(`Set owner of eth node to registrar on root`)
   },
   {
-    id: 'setupRegistrar',
-    tags: ['setupRegistrar'],
+    id: 'BaseRegistrarImplementation:setup v1.0.0',
+    tags: [
+      'category:ethregistrar',
+      'BaseRegistrarImplementation',
+      'BaseRegistrarImplementation:setup',
+    ],
     // Runs after the root is setup
-    dependencies: ['setupRoot'],
+    dependencies: ['Root', 'BaseRegistrarImplementation:contract'],
   },
 )

@@ -2,57 +2,46 @@ import { execute, artifacts } from '@rocketh'
 import { zeroAddress, zeroHash } from 'viem'
 
 export default execute(
-  async ({
-    deploy,
-    get,
-    read,
-    execute: executeContract,
-    namedAccounts,
-    network,
-  }) => {
+  async ({ deploy, get, namedAccounts, network, viem }) => {
     const { deployer, owner } = namedAccounts
 
-    if (network.tags?.legacy) {
-      const legacyRegistry = await deploy('LegacyENSRegistry', {
-        account: owner,
+    if (network.tags.legacy) {
+      const contract = await deploy('LegacyENSRegistry', {
+        account: owner.account,
         artifact: artifacts.ENSRegistry,
       })
 
-      if (legacyRegistry.newlyDeployed) {
-        // Set owner of root node to owner
-        await executeContract(legacyRegistry, {
-          functionName: 'setOwner',
-          args: [zeroHash, owner],
-          account: owner,
-        })
-        console.log('Set owner of root node to owner on legacy registry')
+      const legacyRegistry = await viem.getContractAt(
+        'ENSRegistry',
+        contract.address,
+        { client: owner.account },
+      )
 
-        // NOTE: The original hardhat-deploy implementation called a 'legacy-registry-names' task here,
-        // but this task does not exist anywhere in the codebase.
-        // Keeping the original code commented for reference:
-        //
-        // if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
-        //   console.log('Running legacy registry scripts...')
-        //   await run('legacy-registry-names', {
-        //     deletePreviousDeployments: false,
-        //     resetMemory: false,
-        //   })
-        // }
-        //
+      const setRootHash = await legacyRegistry.write.setOwner(
+        [zeroHash, owner.address],
+        {
+          gas: 1000000n,
+        },
+      )
+      console.log(`Setting owner of root node to owner (tx: ${setRootHash})`)
+      await viem.waitForTransactionSuccess(setRootHash)
 
-        // Revert root ownership
-        await executeContract(legacyRegistry, {
-          functionName: 'setOwner',
-          args: [zeroHash, zeroAddress],
-          account: owner,
-        })
-        console.log('Unset owner of root node on legacy registry')
+      if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
+        console.log('Running legacy registry scripts...')
+        // Note: rocketh doesn't have run() equivalent, legacy scripts would need separate handling
       }
+
+      const revertRootHash = await legacyRegistry.write.setOwner([
+        zeroHash,
+        zeroAddress,
+      ])
+      console.log(`Unsetting owner of root node (tx: ${revertRootHash})`)
+      await viem.waitForTransactionSuccess(revertRootHash)
 
       await deploy('ENSRegistry', {
         account: deployer,
         artifact: artifacts.ENSRegistryWithFallback,
-        args: [legacyRegistry.address],
+        args: [contract.address],
       })
     } else {
       await deploy('ENSRegistry', {
@@ -61,24 +50,24 @@ export default execute(
       })
     }
 
-    if (!network.tags?.use_root) {
+    if (!network.tags.use_root) {
       const registry = await get('ENSRegistry')
-      const rootOwner = await read(registry, {
-        functionName: 'owner',
-        args: [zeroHash],
-      })
-
+      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
+      const rootOwner = await (registry as any).read.owner([zeroHash])
       switch (rootOwner) {
-        case deployer:
-          await executeContract(registry, {
-            functionName: 'setOwner',
-            args: [zeroHash, owner],
-            account: deployer,
-          })
-          console.log('Set final owner of root node on registry to owner')
+        case deployer.address:
+          const hash = await (registry as any).write.setOwner(
+            [zeroHash, owner.address],
+            {
+              account: deployer.account,
+            },
+          )
+          console.log(
+            `Setting final owner of root node on registry (tx:${hash})...`,
+          )
+          await viem.waitForTransactionSuccess(hash)
           break
-        case owner:
-          console.log('Root node already owned by owner')
+        case owner.address:
           break
         default:
           console.log(
@@ -88,7 +77,7 @@ export default execute(
     }
   },
   {
-    id: 'ens',
-    tags: ['registry', 'ENSRegistry'],
+    id: 'ENSRegistry v1.0.0',
+    tags: ['category:registry', 'ENSRegistry'],
   },
 )

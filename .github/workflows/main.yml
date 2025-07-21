@@ -13,10 +13,10 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Use Bun 1.2.0
+      - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.0
+          bun-version: 1.2.3
 
       - run: bun install --frozen-lockfile
 
@@ -47,10 +47,13 @@ jobs:
         with:
           submodules: recursive  # Required for forge-std submodule
 
-      - name: Use Bun 1.2.0
+      - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.0
+          bun-version: 1.2.3
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
@@ -70,10 +73,10 @@ jobs:
         with:
           submodules: recursive  # Required for forge-std submodule
 
-      - name: Use Bun 1.2.0
+      - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.2.0
+          bun-version: 1.2.3
 
       - run: bun install --frozen-lockfile
 

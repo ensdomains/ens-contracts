@@ -3,9 +3,10 @@ artifacts
 cache
 gasreport-*
 generated
-.env
+.env*
 *.DS_Store
 build
 forge-cache
 out
 test/foundry-*
+deployments/**/.pendingSafeTransactions

@@ -1,84 +1,108 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../ResolverBase.sol";
-import "./IAddrResolver.sol";
-import "./IAddressResolver.sol";
+import {ResolverBase, IERC165} from "../ResolverBase.sol";
+import {IAddrResolver} from "./IAddrResolver.sol";
+import {IAddressResolver} from "./IAddressResolver.sol";
+import {IHasAddressResolver} from "./IHasAddressResolver.sol";
+import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../../utils/ENSIP19.sol";
 
 abstract contract AddrResolver is
     IAddrResolver,
     IAddressResolver,
+    IHasAddressResolver,
     ResolverBase
 {
-    uint256 private constant COIN_TYPE_ETH = 60;
-
     mapping(uint64 => mapping(bytes32 => mapping(uint256 => bytes))) versionable_addresses;
 
-    /// Sets the address associated with an ENS node.
-    /// May only be called by the owner of that node in the ENS registry.
+    /// @notice The supplied address could not be converted to `address`.
+    /// @dev Error selector: `0x8d666f60`
+    error InvalidEVMAddress(bytes addressBytes);
+
+    /// @notice Set `addr(60)` of the associated ENS node.
+    ///         `address(0)` is stored as `new bytes(20)`.
     /// @param node The node to update.
-    /// @param a The address to set.
+    /// @param _addr The address to set.
     function setAddr(
         bytes32 node,
-        address a
+        address _addr
     ) external virtual authorised(node) {
-        setAddr(node, COIN_TYPE_ETH, addressToBytes(a));
+        setAddr(node, COIN_TYPE_ETH, abi.encodePacked(_addr));
     }
 
-    /// Returns the address associated with an ENS node.
-    /// @param node The ENS node to query.
+    /// @notice Get `addr(60)` as `address` of the associated ENS node.
+    /// @param node The node to query.
     /// @return The associated address.
     function addr(
         bytes32 node
     ) public view virtual override returns (address payable) {
-        bytes memory a = addr(node, COIN_TYPE_ETH);
-        if (a.length == 0) {
-            return payable(0);
-        }
-        return bytesToAddress(a);
+        return payable(address(bytes20(addr(node, COIN_TYPE_ETH))));
     }
 
+    /// @notice Set the address for coin type of the associated ENS node.
+    ///         Reverts `InvalidEVMAddress` if coin type is EVM and not 0 or 20 bytes.
+    /// @param node The node to update.
+    /// @param coinType The coin type.
+    /// @param addressBytes The address to set.
     function setAddr(
         bytes32 node,
         uint256 coinType,
-        bytes memory a
+        bytes memory addressBytes
     ) public virtual authorised(node) {
-        emit AddressChanged(node, coinType, a);
-        if (coinType == COIN_TYPE_ETH) {
-            emit AddrChanged(node, bytesToAddress(a));
+        if (
+            addressBytes.length != 0 &&
+            addressBytes.length != 20 &&
+            ENSIP19.isEVMCoinType(coinType)
+        ) {
+            revert InvalidEVMAddress(addressBytes);
         }
-        versionable_addresses[recordVersions[node]][node][coinType] = a;
+        emit AddressChanged(node, coinType, addressBytes);
+        if (coinType == COIN_TYPE_ETH) {
+            emit AddrChanged(node, address(bytes20(addressBytes)));
+        }
+        versionable_addresses[recordVersions[node]][node][
+            coinType
+        ] = addressBytes;
     }
 
+    /// @notice Get the address for coin type of the associated ENS node.
+    ///         If coin type is EVM and empty, defaults to `addr(COIN_TYPE_DEFAULT)`.
+    /// @param node The node to query.
+    /// @param coinType The coin type.
+    /// @return addressBytes The assocated address.
     function addr(
         bytes32 node,
         uint256 coinType
-    ) public view virtual override returns (bytes memory) {
-        return versionable_addresses[recordVersions[node]][node][coinType];
+    ) public view virtual override returns (bytes memory addressBytes) {
+        mapping(uint256 => bytes) storage addrs = versionable_addresses[
+            recordVersions[node]
+        ][node];
+        addressBytes = addrs[coinType];
+        if (
+            addressBytes.length == 0 && ENSIP19.chainFromCoinType(coinType) > 0
+        ) {
+            addressBytes = addrs[COIN_TYPE_DEFAULT];
+        }
     }
 
+    /// @inheritdoc IHasAddressResolver
+    function hasAddr(
+        bytes32 node,
+        uint256 coinType
+    ) external view returns (bool) {
+        return
+            versionable_addresses[recordVersions[node]][node][coinType].length >
+            0;
+    }
+
+    /// @inheritdoc IERC165
     function supportsInterface(
-        bytes4 interfaceID
+        bytes4 interfaceId
     ) public view virtual override returns (bool) {
         return
-            interfaceID == type(IAddrResolver).interfaceId ||
-            interfaceID == type(IAddressResolver).interfaceId ||
-            super.supportsInterface(interfaceID);
-    }
-
-    function bytesToAddress(
-        bytes memory b
-    ) internal pure returns (address payable a) {
-        require(b.length == 20);
-        assembly {
-            a := div(mload(add(b, 32)), exp(256, 12))
-        }
-    }
-
-    function addressToBytes(address a) internal pure returns (bytes memory b) {
-        b = new bytes(20);
-        assembly {
-            mstore(add(b, 32), mul(a, exp(256, 12)))
-        }
+            type(IAddrResolver).interfaceId == interfaceId ||
+            type(IAddressResolver).interfaceId == interfaceId ||
+            type(IHasAddressResolver).interfaceId == interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 }

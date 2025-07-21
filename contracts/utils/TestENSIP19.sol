@@ -17,6 +17,13 @@ contract TestENSIP19 {
         return ENSIP19.parse(name);
     }
 
+    function parseNamespace(
+        bytes memory name,
+        uint256 offset
+    ) external pure returns (bool, uint256) {
+        return ENSIP19.parseNamespace(name, offset);
+    }
+
     function chainFromCoinType(
         uint256 coinType
     ) external pure returns (uint32) {

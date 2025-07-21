@@ -24,9 +24,11 @@ import {HexUtils} from "../utils/HexUtils.sol";
 ///  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
 library NameCoder {
     /// @dev The DNS-encoded name is malformed.
+    ///      Error selector: `0xba4adc23`
     error DNSDecodingFailed(bytes dns);
 
     /// @dev A label of the ENS name has an invalid size.
+    ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
     /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.

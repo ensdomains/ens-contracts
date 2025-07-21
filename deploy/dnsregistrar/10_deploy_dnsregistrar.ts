@@ -49,13 +49,14 @@ export default execute(
     }
   },
   {
-    tags: ['DNSRegistrar'],
+    id: 'DNSRegistrar:contract v1.0.0',
+    tags: ['category:dnsregistrar', 'DNSRegistrar', 'DNSRegistrar:contract'],
     dependencies: [
-      'registry',
-      'dnssec-oracle',
+      'ENSRegistry',
+      'DNSSECImpl',
       'OffchainDNSResolver',
       'Root',
-      'setupRoot',
+      'SimplePublicSuffixList',
     ],
   },
 )
