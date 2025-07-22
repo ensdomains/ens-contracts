@@ -14,9 +14,8 @@ contract UniversalResolver is AbstractUniversalResolver {
         registry = ens;
     }
 
-    /// @dev Find the resolver address for `name`.
-    ///      Does not perform any validity checks.
-    /// @param name The name to search.
+    /// @inheritdoc AbstractUniversalResolver
+    /// @dev Does not perform any validity checks on the resolver.
     function findResolver(
         bytes memory name
     ) public view override returns (address, bytes32, uint256) {
