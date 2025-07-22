@@ -33,7 +33,7 @@ interface IUniversalResolver {
     /// @param name The name to search.
     /// @return resolver The resolver responsible for this name, or `address(0)` if none.
     /// @return node The namehash of name corresponding to the resolver.
-    /// @return offset The byte-offset into `name` of the name corresponding to the resolver.
+    /// @return offset The offset into `name` of the name corresponding to the resolver.
     function findResolver(
         bytes memory name
     ) external view returns (address resolver, bytes32 node, uint256 offset);
