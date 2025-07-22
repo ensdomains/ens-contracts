@@ -6,12 +6,12 @@ import {NameCoder} from "../utils/NameCoder.sol";
 
 library RegistryUtils {
     /// @notice Efficiently find the resolver address for `name[offset:]`.
-	/// @dev Reverts `DNSDecodingFailed`.
+    /// @dev Reverts `DNSDecodingFailed`.
     /// @param registry The ENS registry.
     /// @param name The DNS-encoded name to search.
     /// @param offset The byte-offset into `name` to begin the search.
     /// @return resolver The address of the resolver.
-    /// @return node The namehash of name corresponding to the resolver.
+    /// @return node The namehash of name.
     /// @return resolverOffset The byte-offset into `name` of the name corresponding to the resolver.
     function findResolver(
         ENS registry,
