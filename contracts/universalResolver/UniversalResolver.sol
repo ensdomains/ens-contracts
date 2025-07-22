@@ -15,7 +15,6 @@ contract UniversalResolver is AbstractUniversalResolver {
     }
 
     /// @inheritdoc AbstractUniversalResolver
-    /// @dev Does not perform any validity checks on the resolver.
     function findResolver(
         bytes memory name
     ) public view override returns (address, bytes32, uint256) {

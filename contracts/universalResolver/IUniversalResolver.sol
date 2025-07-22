@@ -29,7 +29,7 @@ interface IUniversalResolver {
     error HttpError(uint16 status, string message);
 
     /// @dev Find the resolver address for `name`.
-    ///      Does not perform any validity checks.
+    ///      Does not perform any validity checks on the resolver.
     /// @param name The name to search.
     /// @return resolver The resolver responsible for this name, or `address(0)` if none.
     /// @return node The namehash of name corresponding to the resolver.
