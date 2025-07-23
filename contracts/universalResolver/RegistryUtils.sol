@@ -29,7 +29,7 @@ library RegistryUtils {
                 bytes32 parentNode,
                 uint256 parentOffset
             ) = findResolver(registry, name, next);
-            node = keccak256(abi.encode(parentNode, labelHash)); // assembly saves ~100 gas
+            node = NameCoder.namehash(parentNode, labelHash);
             resolver = registry.resolver(node);
             return
                 resolver != address(0)
