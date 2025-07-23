@@ -75,7 +75,7 @@ library NameCoder {
         }
     }
 
-    /// @dev Compute the `labelHash` of the label at `offset` and the offset for the next label.
+    /// @dev Compute the ENS labelhash of the label at `offset` and the offset for the next label.
     ///      Disallows hashed label of zero (eg. `[0..0]`) to prevent confusion with terminator.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
@@ -121,7 +121,7 @@ library NameCoder {
         }
     }
 
-    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
+    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
     function readLabel(
         bytes memory name,
         uint256 offset
@@ -129,23 +129,35 @@ library NameCoder {
         (labelHash, nextOffset, , ) = readLabel(name, offset, true);
     }
 
-    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
+    /// @dev Compute the ENS namehash of `name[:offset]`.
+    ///      Supports hashed labels.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param offset The offset into name start hashing.
-    /// @return hash The resulting namehash.
+    /// @return hash The namehash of `name[:offset]`.
     function namehash(
         bytes memory name,
         uint256 offset
     ) internal pure returns (bytes32 hash) {
         (hash, offset) = readLabel(name, offset);
         if (hash != bytes32(0)) {
-            bytes32 parent = namehash(name, offset);
-            assembly {
-                mstore(0, parent)
-                mstore(32, hash)
-                hash := keccak256(0, 64)
-            }
+            hash = namehash(namehash(name, offset), hash);
+        }
+    }
+
+    /// @dev Compute a child namehash from a parent namehash.
+    /// @param parentNode The namehash of the parent.
+    /// @param labelHash The labelhash of the child.
+    /// @return node The namehash of the child.
+    function namehash(
+        bytes32 parentNode,
+        bytes32 labelHash
+    ) internal pure returns (bytes32 node) {
+		// ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
+        assembly {
+            mstore(0, parentNode)
+            mstore(32, labelHash)
+            node := keccak256(0, 64)
         }
     }
 
@@ -254,7 +266,7 @@ library NameCoder {
     /// @param nodeSuffix The node to match.
     /// @return matched True if `name` ends with the suffix.
     /// @return node The namehash of `name`.
-    /// @return suffixOffset The offset into `name` that namehashes to the `nodeSuffix` or 0 if no match.
+    /// @return suffixOffset The offset into `name` that namehashes to the `nodeSuffix`.
     function matchSuffix(
         bytes memory name,
         uint256 offset,
@@ -267,11 +279,7 @@ library NameCoder {
                 matched = true;
                 suffixOffset = next;
             }
-            assembly {
-                mstore(0, node)
-                mstore(32, labelHash)
-                node := keccak256(0, 64) // compute namehash()
-            }
+            node = namehash(node, labelHash);
         }
         if (node == nodeSuffix) {
             matched = true;
