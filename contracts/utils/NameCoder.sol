@@ -153,7 +153,7 @@ library NameCoder {
         bytes32 parentNode,
         bytes32 labelHash
     ) internal pure returns (bytes32 node) {
-		// ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
+        // ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
         assembly {
             mstore(0, parentNode)
             mstore(32, labelHash)
