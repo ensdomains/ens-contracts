@@ -29,11 +29,11 @@ interface IUniversalResolver {
     error HttpError(uint16 status, string message);
 
     /// @dev Find the resolver address for `name`.
-    ///      Does not perform any validity checks.
+    ///      Does not perform any validity checks on the resolver.
     /// @param name The name to search.
-    /// @return resolver The resolver responsible for this name, or `address(0)` if none.
-    /// @return node The namehash of name corresponding to the resolver.
-    /// @return offset The byte-offset into `name` of the name corresponding to the resolver.
+    /// @return resolver The resolver or `address(0)` if not found.
+    /// @return node The namehash of `name`.
+    /// @return offset The offset into `name` corresponding to `resolver`.
     function findResolver(
         bytes memory name
     ) external view returns (address resolver, bytes32 node, uint256 offset);
