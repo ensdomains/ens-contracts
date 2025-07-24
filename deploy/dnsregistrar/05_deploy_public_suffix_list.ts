@@ -43,46 +43,40 @@ export default execute(
     // Right now we're only going to support top-level, non-idna suffixes
     suffixes = suffixes.filter((suffix) => suffix.match(/^[a-z0-9]+$/))
 
-    const transactionPromises: Promise<any>[] = []
-    console.log('Starting suffix transactions')
+    console.log(`Starting suffix transactions for ${suffixes.length} suffixes`)
+    const totalBatches = Math.ceil(suffixes.length / 100)
+    let successfulBatches = 0
+    let failedBatches = 0
 
+    // Send transactions sequentially to avoid nonce conflicts
     for (let i = 0; i < suffixes.length; i += 100) {
       const batch = suffixes
         .slice(i, i + 100)
         .map((suffix) => dnsEncodeName(suffix))
 
-      const txPromise = execute(psl, {
-        functionName: 'addPublicSuffixes',
-        args: [batch],
-        account: owner,
-      })
-      transactionPromises.push(txPromise)
+      const batchIndex = Math.floor(i / 100) + 1
       console.log(
-        `Queued suffixes batch ${Math.floor(i / 100) + 1}/${Math.ceil(
-          suffixes.length / 100,
-        )}`,
+        `Sending suffixes batch ${batchIndex}/${totalBatches} (${batch.length} suffixes)`,
       )
+
+      try {
+        await execute(psl, {
+          functionName: 'addPublicSuffixes',
+          args: [batch],
+          account: owner,
+        })
+        successfulBatches++
+        console.log(`Batch ${batchIndex} completed successfully`)
+      } catch (error) {
+        failedBatches++
+        console.error(`Batch ${batchIndex} failed:`, error.message || error)
+        // Continue with next batch
+      }
     }
 
     console.log(
-      `Waiting on ${transactionPromises.length} suffix-setting transactions to complete...`,
+      `Public suffix list configuration completed: ${successfulBatches} successful, ${failedBatches} failed`,
     )
-    const results = await Promise.allSettled(transactionPromises)
-
-    // Check results and log any failures
-    const failed = results.filter((result, index) => {
-      if (result.status === 'rejected') {
-        console.error(`Batch ${index + 1} failed:`, result.reason)
-        return true
-      }
-      return false
-    })
-
-    if (failed.length > 0) {
-      console.log(`${failed.length} batches failed, but continuing...`)
-    }
-
-    console.log('Public suffix list configuration completed')
   },
   {
     id: 'SimplePublicSuffixList v1.0.0',

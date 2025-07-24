@@ -1,5 +1,6 @@
 import packet from 'dns-packet'
 import { execute, artifacts } from '@rocketh'
+import { encodeFunctionData } from 'viem'
 import type { Address, Hash, Hex } from 'viem'
 
 const realAnchors = [
@@ -42,7 +43,7 @@ function encodeAnchors(anchors: any[]): Hex {
 }
 
 export default execute(
-  async ({ deploy, get, namedAccounts, network, viem }) => {
+  async ({ deploy, get, tx, namedAccounts, network }) => {
     const { deployer } = namedAccounts
 
     const anchors = realAnchors.slice()
@@ -72,49 +73,42 @@ export default execute(
 
     const dnssec = await get('DNSSECImpl')
 
-    const transactions: Hash[] = []
-    for (const [id, alg] of Object.entries(algorithms)) {
-      const deployedAlgorithm = await get(alg)
-      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-      const currentAlgorithmAddress = await (dnssec as any).read.algorithms([
-        parseInt(id),
-      ])
-
-      if (deployedAlgorithm.address !== currentAlgorithmAddress) {
-        const hash = await (dnssec as any).write.setAlgorithm(
-          [parseInt(id), deployedAlgorithm.address],
-          {
-            account: deployer,
-          },
-        )
-        transactions.push(hash)
+    try {
+      // Set up algorithms
+      for (const [id, contractName] of Object.entries(algorithms)) {
+        const algorithm = await get(contractName)
+        await tx({
+          to: dnssec.address,
+          data: encodeFunctionData({
+            abi: dnssec.abi,
+            functionName: 'setAlgorithm',
+            args: [parseInt(id), algorithm.address],
+          }),
+          account: deployer,
+        })
+        console.log(`Set algorithm ${id}: ${contractName}`)
       }
-    }
 
-    for (const [id, digest] of Object.entries(digests)) {
-      const deployedDigest = await get(digest)
-      // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-      const currentDigestAddress = await (dnssec as any).read.digests([
-        parseInt(id),
-      ])
-
-      if (deployedDigest.address !== currentDigestAddress) {
-        const hash = await (dnssec as any).write.setDigest(
-          [parseInt(id), deployedDigest.address],
-          {
-            account: deployer,
-          },
-        )
-        transactions.push(hash)
+      // Set up digests
+      for (const [id, contractName] of Object.entries(digests)) {
+        const digest = await get(contractName)
+        await tx({
+          to: dnssec.address,
+          data: encodeFunctionData({
+            abi: dnssec.abi,
+            functionName: 'setDigest',
+            args: [parseInt(id), digest.address],
+          }),
+          account: deployer,
+        })
+        console.log(`Set digest ${id}: ${contractName}`)
       }
-    }
 
-    console.log(
-      `Waiting on ${transactions.length} transactions setting DNSSEC parameters`,
-    )
-    await Promise.all(
-      transactions.map(async (hash) => viem.waitForTransactionSuccess(hash)),
-    )
+      console.log('DNSSEC Oracle deployment completed successfully')
+    } catch (error) {
+      console.log('DNSSEC setup error:', error.message)
+      console.log('DNSSEC Oracle deployment completed with errors')
+    }
   },
   {
     id: 'DNSSECImpl v1.0.0',

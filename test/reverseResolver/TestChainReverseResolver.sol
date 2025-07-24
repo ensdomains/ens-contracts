@@ -13,10 +13,10 @@ import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/ITextResolver.sol";
 import "../../contracts/utils/ENSIP19.sol";
 import "../../contracts/utils/UniversalSigValidator.sol";
-import "@unruggable/gateways/contracts/GatewayFetchTarget.sol";
-import "@unruggable/gateways/contracts/GatewayFetcher.sol";
-import "@unruggable/gateways/contracts/IGatewayVerifier.sol";
-import "@unruggable/gateways/contracts/GatewayRequest.sol";
+import "../../node_modules/@unruggable/gateways/contracts/GatewayFetchTarget.sol";
+import "../../node_modules/@unruggable/gateways/contracts/GatewayFetcher.sol";
+import "../../node_modules/@unruggable/gateways/contracts/IGatewayVerifier.sol";
+import "../../node_modules/@unruggable/gateways/contracts/GatewayRequest.sol";
 
 /**
  * @title MockGatewayVerifier

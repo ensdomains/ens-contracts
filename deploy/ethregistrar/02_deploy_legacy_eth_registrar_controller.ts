@@ -19,13 +19,7 @@ export default execute(
     await deploy('LegacyETHRegistrarController', {
       account: deployer,
       artifact: legacyArtifact,
-      args: [
-        registrar.address,
-        priceOracle.address,
-        60n,
-        86400n,
-        reverseRegistrar.address,
-      ],
+      args: [registrar.address, priceOracle.address, 60n, 86400n],
     })
   },
   {

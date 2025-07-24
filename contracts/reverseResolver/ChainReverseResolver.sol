@@ -3,8 +3,8 @@ pragma solidity ^0.8.17;
 
 import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
 import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
-import {GatewayFetchTarget, IGatewayVerifier} from "@unruggable/gateways/contracts/GatewayFetchTarget.sol";
-import {GatewayFetcher, GatewayRequest} from "@unruggable/gateways/contracts/GatewayFetcher.sol";
+import {GatewayFetchTarget, IGatewayVerifier} from "../../node_modules/@unruggable/gateways/contracts/GatewayFetchTarget.sol";
+import {GatewayFetcher, GatewayRequest} from "../../node_modules/@unruggable/gateways/contracts/GatewayFetcher.sol";
 import {IStandaloneReverseRegistrar} from "../reverseRegistrar/IStandaloneReverseRegistrar.sol";
 import {INameReverser} from "./INameReverser.sol";
 

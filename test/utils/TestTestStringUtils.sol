@@ -119,7 +119,7 @@ contract TestTestStringUtils is Test {
     function testEscapeMultipleSpecialCharacters() public pure {
         string memory input = 'Quote: "Hello"\nPath: C:\\\\temp\tDone';
         string
-            memory expected = 'Quote: \\"Hello\\"\nPath: C:\\\\\\\\temp\\tDone';
+            memory expected = 'Quote: \\"Hello\\"\\nPath: C:\\\\\\\\temp\\tDone';
         string memory result = TestStringUtils.escape(input);
 
         assertEq(
@@ -312,7 +312,7 @@ contract TestTestStringUtils is Test {
         string
             memory longASCII = "This is a longer string to test the strlen function with more characters";
         uint256 result1 = TestStringUtils.strlen(longASCII);
-        assertEq(result1, 71, "Long ASCII string should be counted correctly");
+        assertEq(result1, 72, "Long ASCII string should be counted correctly");
 
         // Test with repeated extended characters using hex encoding
         string memory repeatExtended = "\xE2\x82\xAC\xE2\x82\xAC\xE2\x82\xAC"; // Three Euro symbols

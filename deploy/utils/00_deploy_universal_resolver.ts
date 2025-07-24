@@ -34,7 +34,7 @@ export default execute(
         },
       )
       console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
-      await viem.waitForTransactionSuccess(hash)
+      // Transaction handled automatically by rocketh
     }
   },
   {

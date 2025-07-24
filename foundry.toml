@@ -47,7 +47,6 @@ skip = [
     # Skip non-existent test files that cause compilation errors
     "**/TestSolidityTests.sol",
     "**/TestRecordParser.sol",
-    "**/TestStringUtils.sol",
     # Skip TestBytesUtils due to deprecated testFail_* pattern
     "**/TestBytesUtils.sol"
 ]

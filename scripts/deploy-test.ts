@@ -17,11 +17,10 @@ process.on('exit', exitHandler)
 
 process.on('beforeExit', exitHandler)
 
-execSync('bun run hardhat --network localhost deploy', {
+execSync('bun rocketh --network localhost --skip-prompts', {
   stdio: 'inherit',
   env: {
     ...process.env,
-    NODE_OPTIONS: '--experimental-loader ts-node/esm/transpile-only',
     BATCH_GATEWAY_URLS: '["https://example.com/"]',
   },
 })

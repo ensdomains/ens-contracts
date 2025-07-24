@@ -10,3 +10,4 @@ forge-cache
 out
 test/foundry-*
 deployments/**/.pendingSafeTransactions
+deployments/localhost

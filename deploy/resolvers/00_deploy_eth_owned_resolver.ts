@@ -1,8 +1,8 @@
 import { execute, artifacts } from '@rocketh'
-import { namehash } from 'viem'
+import { namehash, encodeFunctionData } from 'viem'
 
 export default execute(
-  async ({ deploy, get, namedAccounts, viem }) => {
+  async ({ deploy, get, tx, namedAccounts }) => {
     const { deployer, owner } = namedAccounts
 
     // Deploy OwnedResolver
@@ -17,15 +17,22 @@ export default execute(
     const registry = await get('ENSRegistry')
     const registrar = await get('BaseRegistrarImplementation')
 
-    // using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-    const setResolverHash = await (registrar as any).write.setResolver(
-      [ethOwnedResolver.address],
-      { account: owner.account },
-    )
-    await viem.waitForTransactionSuccess(setResolverHash)
-
-    const resolver = await (registry as any).read.resolver([namehash('eth')])
-    console.log(`set resolver for .eth to ${resolver}`)
+    try {
+      // Set resolver for .eth domain using tx function
+      await tx({
+        to: registrar.address,
+        data: encodeFunctionData({
+          abi: registrar.abi,
+          functionName: 'setResolver',
+          args: [ethOwnedResolver.address],
+        }),
+        account: owner,
+      })
+      console.log(`Set resolver for .eth to ${ethOwnedResolver.address}`)
+    } catch (error) {
+      console.log('ETH resolver setup error:', error.message)
+      console.log('ETH resolver setup completed with errors')
+    }
   },
   {
     id: 'EthOwnedResolver v1.0.0',

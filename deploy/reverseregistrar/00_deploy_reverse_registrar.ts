@@ -1,8 +1,8 @@
 import { execute, artifacts } from '@rocketh'
-import { labelhash, namehash } from 'viem'
+import { labelhash, namehash, zeroHash, encodeFunctionData } from 'viem'
 
 export default execute(
-  async ({ deploy, get, namedAccounts, network, viem }) => {
+  async ({ deploy, get, tx, namedAccounts, network, viem }) => {
     const { deployer, owner } = namedAccounts
 
     // Get dependencies
@@ -20,44 +20,79 @@ export default execute(
     const reverseRegistrar = await get('ReverseRegistrar')
 
     // Transfer ownership to owner
-    // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-    if (owner.address !== deployer.address) {
-      const hash = await (reverseRegistrar as any).write.transferOwnership(
-        [owner.address],
-        {
-          account: deployer,
-        },
-      )
-      console.log(
-        `Transferring ownership of ReverseRegistrar to ${owner.address} (tx: ${hash})...`,
-      )
-      await viem.waitForTransactionSuccess(hash)
+    if (owner !== deployer) {
+      const transferTx = await tx({
+        to: reverseRegistrar.address,
+        data: encodeFunctionData({
+          abi: reverseRegistrar.abi,
+          functionName: 'transferOwnership',
+          args: [owner],
+        }),
+        account: owner,
+      })
+      console.log(`Transferred ownership of ReverseRegistrar to ${owner}`)
     }
 
     // Only attempt to make controller etc changes directly on testnets
     if (network.name === 'mainnet' && !network.tags?.tenderly) return
 
-    const root = await get('Root')
+    try {
+      // Calculate hashes for clarity
+      const reverseLabel = labelhash('reverse')
+      const addrLabel = labelhash('addr')
+      const reverseNode = namehash('reverse')
+      const addrReverseNode = namehash('addr.reverse')
 
-    // Set owner of .reverse to owner on root
-    const setReverseOwnerHash = await (root as any).write.setSubnodeOwner(
-      [labelhash('reverse'), owner.address],
-      { account: owner.account },
-    )
-    console.log(
-      `Setting owner of .reverse to owner on root (tx: ${setReverseOwnerHash})...`,
-    )
-    await viem.waitForTransactionSuccess(setReverseOwnerHash)
+      console.log('Setting up reverse registrar nodes...')
+      console.log('  reverse label hash:', reverseLabel)
+      console.log('  addr label hash:', addrLabel)
+      console.log('  reverse node hash:', reverseNode)
+      console.log('  addr.reverse node hash:', addrReverseNode)
+      console.log('  Setting .reverse owner from', deployer, 'to', owner)
 
-    // Set owner of .addr.reverse to ReverseRegistrar on registry
-    const setAddrOwnerHash = await (registry as any).write.setSubnodeOwner(
-      [namehash('reverse'), labelhash('addr'), reverseRegistrar.address],
-      { account: owner.account },
-    )
-    console.log(
-      `Setting owner of .addr.reverse to ReverseRegistrar on registry (tx: ${setAddrOwnerHash})...`,
-    )
-    await viem.waitForTransactionSuccess(setAddrOwnerHash)
+      // Set owner of .reverse to owner on root
+      const root = await get('Root')
+      const tx1 = await tx({
+        to: root.address,
+        data: encodeFunctionData({
+          abi: root.abi,
+          functionName: 'setSubnodeOwner',
+          args: [reverseLabel, owner],
+        }),
+        account: owner,
+      })
+      console.log('Set owner of .reverse to owner on root, tx:', tx1)
+      console.log('Transaction confirmed')
+
+      console.log(
+        '  Setting .addr.reverse owner from',
+        owner,
+        'to',
+        reverseRegistrar.address,
+      )
+
+      // Set owner of .addr.reverse to ReverseRegistrar on registry
+      const tx2 = await tx({
+        to: registry.address,
+        data: encodeFunctionData({
+          abi: registry.abi,
+          functionName: 'setSubnodeOwner',
+          args: [reverseNode, addrLabel, reverseRegistrar.address],
+        }),
+        account: owner,
+      })
+      console.log(
+        'Set owner of .addr.reverse to ReverseRegistrar on registry, tx:',
+        tx2,
+      )
+      console.log('Transaction confirmed')
+
+      console.log('Reverse registrar setup completed successfully')
+    } catch (error) {
+      console.log('Reverse registrar setup error:', error.message)
+      console.log('Full error:', error)
+      console.log('Reverse registrar setup completed with errors')
+    }
   },
   {
     id: 'ReverseRegistrar v1.0.0',

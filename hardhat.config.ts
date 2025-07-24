@@ -8,7 +8,7 @@ import hardhatViem from '@nomicfoundation/hardhat-viem'
 // https://github.com/motdotla/dotenv
 dotenv.config({ debug: false })
 
-let real_accounts = undefined
+let real_accounts: string[] | undefined = undefined
 if (process.env.DEPLOYER_KEY) {
   real_accounts = [
     process.env.DEPLOYER_KEY,
@@ -20,6 +20,12 @@ if (process.env.DEPLOYER_KEY) {
 export const archivedDeploymentPath = './deployments/archive'
 
 const config: HardhatUserConfig = {
+  paths: {
+    sources: './contracts',
+    tests: './test',
+    cache: './cache',
+    artifacts: './artifacts',
+  },
   networks: {
     hardhat: {
       type: 'edr',
@@ -55,11 +61,11 @@ const config: HardhatUserConfig = {
   solidity: {
     compilers: [
       {
-        version: '0.8.17',
+        version: '0.8.28',
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1200,
+            runs: 200,
           },
         },
       },

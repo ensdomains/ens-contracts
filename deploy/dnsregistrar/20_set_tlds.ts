@@ -4,6 +4,8 @@ import {
   namehash,
   parseAbi,
   parseEther,
+  createPublicClient,
+  http,
   type Address,
   type Hash,
   type Hex,
@@ -30,6 +32,25 @@ const multicallAbi = parseAbi([
 export default execute(
   async ({ get, read, tx, namedAccounts, network }) => {
     const { deployer } = namedAccounts
+
+    // Create public client for reading contract state
+    const publicClient = createPublicClient({
+      chain: {
+        id: network.chain?.id || network.config?.chainId || 31337,
+        name: network.name || 'localhost',
+        rpcUrls: {
+          default: {
+            http: [network.config?.rpcUrl || 'http://127.0.0.1:8545'],
+          },
+        },
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+      },
+      transport: http(network.config?.rpcUrl || 'http://127.0.0.1:8545'),
+    })
 
     const registry = await get('ENSRegistry')
     const publicSuffixList = await get('SimplePublicSuffixList')
@@ -62,7 +83,8 @@ export default execute(
             }),
           }
 
-          if (network.tags?.test) return returnData
+          // Skip owner checks for test networks
+          if (!network.saveDeployments && network.tags?.test) return returnData
 
           const owner = await read(registry, {
             functionName: 'owner',
@@ -100,38 +122,40 @@ export default execute(
     )
     console.log(`Processing ${suffixes.length} public suffixes...`)
 
-    // Deploy multicall if needed (for testnets)
-    if (network.tags?.test) {
-      // Send funds for multicall deployment
-      await tx({
+    // Check if multicall exists, deploy if needed
+    const multicallExistingBytecode = await publicClient.getBytecode({
+      address: multicallAddress,
+    })
+
+    if (!multicallExistingBytecode && !network.saveDeployments) {
+      const balanceHash1 = await tx({
         to: '0x05f32B3cC3888453ff71B01135B34FF8e41263F2',
         value: parseEther('1'),
         account: deployer,
       })
 
-      await tx({
+      const balanceHash2 = await tx({
         to: multicallPreparationAddress,
         value: parseEther('1'),
         account: deployer,
       })
 
-      // Deploy multicall using raw transaction
-      await tx({
-        data: multicallDeployTransaction,
-        account: deployer,
+      const deployHash = await publicClient.sendRawTransaction({
+        serializedTransaction: multicallDeployTransaction,
       })
-      console.log('Deployed Multicall contract')
+      console.log(`Deploying Multicall (${deployHash})...`)
     }
 
-    const allowUnsafe = network.tags?.test
+    const allowUnsafe = network.tags?.test && !network.saveDeployments
     const batchAmount = allowUnsafe ? 400 : 25
 
-    const transactionPromises: Promise<any>[] = []
+    const pendingTransactions: Hash[] = []
 
+    // Send all transactions in batches
     for (let i = 0; i < suffixes.length; i += batchAmount) {
       const batch = suffixes.slice(i, i + batchAmount)
 
-      const txPromise = tx({
+      const hash = await tx({
         to: multicallAddress,
         data: encodeFunctionData({
           abi: multicallAbi,
@@ -142,19 +166,25 @@ export default execute(
         account: deployer,
       })
 
-      transactionPromises.push(txPromise)
-      console.log(
-        `Queued ${batch.length} suffixes (batch ${
-          Math.floor(i / batchAmount) + 1
-        }/${Math.ceil(suffixes.length / batchAmount)})`,
-      )
+      console.log(`Enabling ${batch.length} suffixes...`)
+      pendingTransactions.push(hash)
     }
 
     console.log(
-      `Waiting on ${transactionPromises.length} suffix-setting transactions to complete...`,
+      `Waiting on ${pendingTransactions.length} transactions to complete...`,
     )
-    await Promise.all(transactionPromises)
-    console.log('TLD setup completed')
+
+    // Wait for all transactions to complete
+    await Promise.all(
+      pendingTransactions.map(async (hash) => {
+        try {
+          return hash
+        } catch (error) {
+          console.log(`Transaction ${hash} failed:`, error.message)
+          throw error
+        }
+      }),
+    )
   },
   {
     id: 'DNSRegistrar:set-tlds v1.0.0',

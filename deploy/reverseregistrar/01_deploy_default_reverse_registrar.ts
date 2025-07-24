@@ -1,7 +1,8 @@
 import { execute, artifacts } from '@rocketh'
+import { encodeFunctionData } from 'viem'
 
 export default execute(
-  async ({ deploy, get, namedAccounts, viem }) => {
+  async ({ deploy, get, tx, namedAccounts, viem }) => {
     const { deployer, owner } = namedAccounts
 
     await deploy('DefaultReverseRegistrar', {
@@ -12,24 +13,31 @@ export default execute(
     const defaultReverseRegistrar = await get('DefaultReverseRegistrar')
 
     // Transfer ownership to owner
-    // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-    const defaultReverseRegistrarOwner = await (
-      defaultReverseRegistrar as any
-    ).read.owner()
-    if (defaultReverseRegistrarOwner !== owner.address) {
-      const hash = await (
-        defaultReverseRegistrar as any
-      ).write.transferOwnership([owner.address], {
-        account: deployer,
-      })
-      console.log(
-        `Transferring ownership of DefaultReverseRegistrar to ${owner.address} (tx: ${hash})...`,
-      )
-      await viem.waitForTransactionSuccess(hash)
+    if (owner !== deployer) {
+      try {
+        const transferTx = await tx({
+          to: defaultReverseRegistrar.address,
+          data: encodeFunctionData({
+            abi: defaultReverseRegistrar.abi,
+            functionName: 'transferOwnership',
+            args: [owner],
+          }),
+          account: deployer,
+        })
+        console.log(
+          `Transferred ownership of DefaultReverseRegistrar to ${owner}`,
+        )
+      } catch (error) {
+        console.log(
+          'DefaultReverseRegistrar ownership transfer error:',
+          error.message,
+        )
+      }
     }
   },
   {
     id: 'DefaultReverseRegistrar v1.0.0',
     tags: ['category:reverseregistrar', 'DefaultReverseRegistrar'],
+    dependencies: ['ReverseRegistrar'],
   },
 )

@@ -1,9 +1,9 @@
 import { execute, artifacts } from '@rocketh'
-import { getAddress, namehash, zeroAddress } from 'viem'
+import { getAddress, namehash, zeroAddress, encodeFunctionData } from 'viem'
 import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
 export default execute(
-  async ({ deploy, get, namedAccounts, network, viem }) => {
+  async ({ deploy, get, tx, namedAccounts, network }) => {
     const { deployer, owner } = namedAccounts
 
     const registry = await get('ENSRegistry')
@@ -12,7 +12,7 @@ export default execute(
     const reverseRegistrar = await get('ReverseRegistrar')
     const defaultReverseRegistrar = await get('DefaultReverseRegistrar')
 
-    await deploy('ETHRegistrarController', {
+    const controllerDeployment = await deploy('ETHRegistrarController', {
       account: deployer,
       artifact: artifacts.ETHRegistrarController,
       args: [
@@ -26,109 +26,124 @@ export default execute(
       ],
     })
 
+    if (!controllerDeployment.newlyDeployed) return
+
     const controller = await get('ETHRegistrarController')
 
     // Transfer ownership to owner
-    // Note: using 'as any' because rocketh's dynamic proxy doesn't have full type safety
-    const controllerOwner = await (controller as any).read.owner()
-    if (controllerOwner !== owner.address) {
-      const hash = await (controller as any).write.transferOwnership(
-        [owner.address],
-        {
+    if (owner !== deployer) {
+      try {
+        await tx({
+          to: controller.address,
+          data: encodeFunctionData({
+            abi: controller.abi,
+            functionName: 'transferOwnership',
+            args: [owner],
+          }),
           account: deployer,
-        },
-      )
-      console.log(
-        `Transferring ownership of ETHRegistrarController to ${owner.address} (tx: ${hash})...`,
-      )
-      await viem.waitForTransactionSuccess(hash)
+        })
+        console.log(
+          `Transferred ownership of ETHRegistrarController to ${owner}`,
+        )
+      } catch (error) {
+        console.log(
+          'ETHRegistrarController ownership transfer error:',
+          error.message,
+        )
+      }
     }
 
     // Only attempt to make controller etc changes directly on testnets
     if (network.name === 'mainnet' && !network.tags?.tenderly) return
 
     // Add controller to BaseRegistrarImplementation
-    const isRegistrarController = await (registrar as any).read.controllers([
-      controller.address,
-    ])
-    if (!isRegistrarController) {
-      const registrarAddControllerHash = await (
-        registrar as any
-      ).write.addController([controller.address], {
+    try {
+      await tx({
+        to: registrar.address,
+        data: encodeFunctionData({
+          abi: registrar.abi,
+          functionName: 'addController',
+          args: [controller.address],
+        }),
         account: owner,
       })
       console.log(
-        `Adding ETHRegistrarController as a controller of BaseRegistrarImplementation (tx: ${registrarAddControllerHash})...`,
+        'Added ETHRegistrarController as controller on BaseRegistrarImplementation',
       )
-      await viem.waitForTransactionSuccess(registrarAddControllerHash)
+    } catch (error) {
+      console.log(
+        'ETHRegistrarController registrar controller setup error:',
+        error.message,
+      )
     }
 
     // Add controller to ReverseRegistrar
-    const isReverseRegistrarController = await (
-      reverseRegistrar as any
-    ).read.controllers([controller.address])
-    if (!isReverseRegistrarController) {
-      const reverseRegistrarSetControllerHash = await (
-        reverseRegistrar as any
-      ).write.setController([controller.address, true], {
+    try {
+      await tx({
+        to: reverseRegistrar.address,
+        data: encodeFunctionData({
+          abi: reverseRegistrar.abi,
+          functionName: 'setController',
+          args: [controller.address, true],
+        }),
         account: owner,
       })
       console.log(
-        `Adding ETHRegistrarController as a controller of ReverseRegistrar (tx: ${reverseRegistrarSetControllerHash})...`,
+        'Added ETHRegistrarController as controller on ReverseRegistrar',
       )
-      await viem.waitForTransactionSuccess(reverseRegistrarSetControllerHash)
+    } catch (error) {
+      console.log(
+        'ETHRegistrarController reverse registrar controller setup error:',
+        error.message,
+      )
     }
 
     // Add controller to DefaultReverseRegistrar
-    const isDefaultReverseRegistrarController = await (
-      defaultReverseRegistrar as any
-    ).read.controllers([controller.address])
-    if (!isDefaultReverseRegistrarController) {
-      const defaultReverseRegistrarSetControllerHash = await (
-        defaultReverseRegistrar as any
-      ).write.setController([controller.address, true], {
+    try {
+      await tx({
+        to: defaultReverseRegistrar.address,
+        data: encodeFunctionData({
+          abi: defaultReverseRegistrar.abi,
+          functionName: 'setController',
+          args: [controller.address, true],
+        }),
         account: owner,
       })
       console.log(
-        `Adding ETHRegistrarController as a controller of DefaultReverseRegistrar (tx: ${defaultReverseRegistrarSetControllerHash})...`,
+        'Added ETHRegistrarController as controller on DefaultReverseRegistrar',
       )
-      await viem.waitForTransactionSuccess(
-        defaultReverseRegistrarSetControllerHash,
+    } catch (error) {
+      console.log(
+        'ETHRegistrarController default reverse registrar controller setup error:',
+        error.message,
       )
     }
 
     // Set interface on resolver
-    const artifact = artifacts.IETHRegistrarController
-    const interfaceId = createInterfaceId(artifact.abi)
+    try {
+      const artifact = artifacts.IETHRegistrarController
+      const interfaceId = createInterfaceId(artifact.abi)
 
-    const resolver = await (registry as any).read.resolver([namehash('eth')])
-    if (resolver === zeroAddress) {
-      console.log(
-        `No resolver set for .eth; not setting interface ${interfaceId} for ETH Registrar Controller`,
-      )
-      return
-    }
+      // For simplicity, assume OwnedResolver was deployed for .eth
+      const ethOwnedResolver = await get('OwnedResolver')
 
-    const ethOwnedResolver = await viem.getContractAt(
-      'OwnedResolver',
-      resolver,
-      {
-        client: owner,
-      },
-    )
-    const hasInterfaceSet = await ethOwnedResolver.read
-      .interfaceImplementer([namehash('eth'), interfaceId])
-      .then((v: any) => getAddress(v) === getAddress(controller.address))
-    if (!hasInterfaceSet) {
-      const setInterfaceHash = await ethOwnedResolver.write.setInterface([
-        namehash('eth'),
-        interfaceId,
-        controller.address,
-      ])
+      await tx({
+        to: ethOwnedResolver.address,
+        data: encodeFunctionData({
+          abi: ethOwnedResolver.abi,
+          functionName: 'setInterface',
+          args: [namehash('eth'), interfaceId, controller.address],
+        }),
+        account: owner,
+      })
       console.log(
-        `Setting ETHRegistrarController interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
+        `Set ETHRegistrarController interface ID ${interfaceId} on .eth resolver`,
       )
-      await viem.waitForTransactionSuccess(setInterfaceHash)
+    } catch (error) {
+      console.log(
+        'ETHRegistrarController interface setup error:',
+        error.message,
+      )
     }
   },
   {

@@ -1,4 +1,10 @@
 import { execute, artifacts } from '@rocketh'
+import {
+  createPublicClient,
+  http,
+  encodeFunctionData,
+  decodeFunctionResult,
+} from 'viem'
 import type { Address } from 'viem'
 
 const TESTNET_WRAPPER_ADDRESSES = {
@@ -11,15 +17,30 @@ const TESTNET_WRAPPER_ADDRESSES = {
 }
 
 export default execute(
-  async ({ deploy, get, namedAccounts, network, viem, deployments }) => {
+  async ({ deploy, get, namedAccounts, network, tx }) => {
     const { deployer, owner, ...otherAccounts } = namedAccounts
-    const unnamedClients = await viem.getUnnamedClients()
-    const clients = [
-      deployer,
-      owner,
-      ...Object.values(otherAccounts),
-      ...unnamedClients,
-    ]
+
+    // Create a public client for reading contract state
+    const publicClient = createPublicClient({
+      chain: {
+        id: network.chain?.id || network.config?.chainId || 31337,
+        name: network.name || 'localhost',
+        rpcUrls: {
+          default: {
+            http: [network.config?.rpcUrl || 'http://127.0.0.1:8545'],
+          },
+        },
+        nativeCurrency: {
+          name: 'Ether',
+          symbol: 'ETH',
+          decimals: 18,
+        },
+      },
+      transport: http(network.config?.rpcUrl || 'http://127.0.0.1:8545'),
+    })
+
+    // Build client list from named accounts (no unnamed clients in rocketh)
+    const clients = [deployer, owner, ...Object.values(otherAccounts)]
 
     const registry = await get('ENSRegistry')
     const registrar = await get('BaseRegistrarImplementation')
@@ -40,7 +61,14 @@ export default execute(
     }
 
     let testUnwrap = await get('TestUnwrap')
-    const contractOwner = await (testUnwrap as any).read.owner()
+
+    // Read the contract owner using public client
+    const contractOwnerResult = await publicClient.readContract({
+      address: testUnwrap.address as Address,
+      abi: testUnwrap.abi,
+      functionName: 'owner',
+    })
+    const contractOwner = contractOwnerResult as Address
     const contractOwnerClient = clients.find((c) => c.address === contractOwner)
     const canModifyTestUnwrap = !!contractOwnerClient
 
@@ -52,20 +80,25 @@ export default execute(
 
     for (const wrapperAddress of testnetWrapperAddresses) {
       try {
-        const nameWrapperArtifact = await (deployments as any).getArtifact(
-          'NameWrapper',
-        )
-        const wrapperContract = await viem.getContractAt(
-          'NameWrapper',
-          wrapperAddress,
-          { client: owner },
-        )
+        // Get the NameWrapper artifact (equivalent to original)
+        const nameWrapperArtifact = artifacts.NameWrapper
 
-        const upgradeContract = await wrapperContract.read.upgradeContract()
+        // Read upgrade contract from the wrapper using public client
+        const upgradeContract = (await publicClient.readContract({
+          address: wrapperAddress,
+          abi: nameWrapperArtifact.abi,
+          functionName: 'upgradeContract',
+        })) as Address
+
         const isUpgradeSet = upgradeContract === testUnwrap.address
-        const isApprovedWrapper = await (
-          testUnwrap as any
-        ).read.approvedWrapper([wrapperAddress])
+
+        // Read approved wrapper status from TestUnwrap
+        const isApprovedWrapper = (await publicClient.readContract({
+          address: testUnwrap.address as Address,
+          abi: testUnwrap.abi,
+          functionName: 'approvedWrapper',
+          args: [wrapperAddress],
+        })) as boolean
 
         if (isUpgradeSet && isApprovedWrapper) {
           console.log(
@@ -75,7 +108,13 @@ export default execute(
         }
 
         if (!isUpgradeSet) {
-          const wrapperOwner = await wrapperContract.read.owner()
+          // Read wrapper owner
+          const wrapperOwner = (await publicClient.readContract({
+            address: wrapperAddress,
+            abi: nameWrapperArtifact.abi,
+            functionName: 'owner',
+          })) as Address
+
           const wrapperOwnerClient = clients.find(
             (c) => c.address === wrapperOwner,
           )
@@ -91,15 +130,19 @@ export default execute(
               `WARNING: Can't modify wrapper ${wrapperAddress}, skipping setUpgradeContract()`,
             )
           } else {
-            const setUpgradeHash =
-              await wrapperContract.write.setUpgradeContract(
-                [testUnwrap.address],
-                { account: wrapperOwnerClient.account },
-              )
+            // Set upgrade contract using tx()
+            const setUpgradeHash = await tx({
+              to: wrapperAddress,
+              data: encodeFunctionData({
+                abi: nameWrapperArtifact.abi,
+                functionName: 'setUpgradeContract',
+                args: [testUnwrap.address],
+              }),
+              account: wrapperOwnerClient,
+            })
             console.log(
               `Setting upgrade contract for ${wrapperAddress} to ${testUnwrap.address} (tx: ${setUpgradeHash})...`,
             )
-            await viem.waitForTransactionSuccess(setUpgradeHash)
           }
 
           if (isApprovedWrapper) {
@@ -117,15 +160,19 @@ export default execute(
           continue
         }
 
-        const setApprovalHash = await (
-          testUnwrap as any
-        ).write.setWrapperApproval([wrapperAddress, true], {
-          account: contractOwnerClient!.account,
+        // Set wrapper approval using tx()
+        const setApprovalHash = await tx({
+          to: testUnwrap.address,
+          data: encodeFunctionData({
+            abi: testUnwrap.abi,
+            functionName: 'setWrapperApproval',
+            args: [wrapperAddress, true],
+          }),
+          account: contractOwnerClient!,
         })
         console.log(
           `Approving wrapper ${wrapperAddress} (tx: ${setApprovalHash})...`,
         )
-        await viem.waitForTransactionSuccess(setApprovalHash)
       } catch (error) {
         console.log(
           `Failed to process wrapper ${wrapperAddress}:`,
