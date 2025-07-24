@@ -18,7 +18,7 @@ jobs:
         with:
           bun-version: 1.2.3
 
-      - run: bun install --frozen-lockfile
+      - run: bun install
 
       - name: Run wikiCheck
         run: bun run wikiCheck
@@ -35,7 +35,7 @@ jobs:
         with:
           bun-version: 1.2.0
 
-      - run: bun install --frozen-lockfile
+      - run: bun install
 
       - name: Run tests
         run: bun run build
@@ -58,7 +58,7 @@ jobs:
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
 
-      - run: bun install --frozen-lockfile
+      - run: bun install
 
       - name: Run Foundry tests
         run: bun run test:fast
@@ -78,7 +78,7 @@ jobs:
         with:
           bun-version: 1.2.3
 
-      - run: bun install --frozen-lockfile
+      - run: bun install
 
       - name: Install Foundry
         uses: foundry-rs/foundry-toolchain@v1
