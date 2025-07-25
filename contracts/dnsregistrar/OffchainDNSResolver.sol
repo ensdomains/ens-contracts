@@ -1,34 +1,22 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+
 import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedDNSResolver.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
 import "../registry/ENSRegistry.sol";
 import "../utils/HexUtils.sol";
 import "../utils/BytesUtils.sol";
-
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IDNSGateway} from "../dnssec-oracle/IDNSGateway.sol";
+import {OffchainLookup} from "../ccipRead/EIP3668.sol";
 import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 
 error InvalidOperation();
-error OffchainLookup(
-    address sender,
-    string[] urls,
-    bytes callData,
-    bytes4 callbackFunction,
-    bytes extraData
-);
-
-interface IDNSGateway {
-    function resolve(
-        bytes memory name,
-        uint16 qtype
-    ) external returns (DNSSEC.RRSetWithSignature[] memory);
-}
 
 uint16 constant CLASS_INET = 1;
 uint16 constant TYPE_TXT = 16;
