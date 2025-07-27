@@ -17,15 +17,9 @@ const func: DeployFunction = async function (hre) {
     from: deployer.address,
   })
 
-  // await hre.viem.deploy('GatewayProvider', [
-  //   batchGatewayURLs,
-  // ])
-
   if (owner !== undefined && owner.address !== deployer.address) {
-    const deployed = await hre.viem.getContractAt('GatewayProvider', address);
-    const hash = await deployed.write.transferOwnership([
-      owner.address,
-    ])
+    const deployed = await hre.viem.getContractAt('GatewayProvider', address)
+    const hash = await deployed.write.transferOwnership([owner.address])
     console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
     await hre.viem.waitForTransactionSuccess(hash)
   }

@@ -1,4 +1,5 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
+import type { Address } from 'viem'
 
 const func: DeployFunction = async function (hre) {
   const { deployer, owner } = await hre.viem.getNamedClients()
@@ -9,7 +10,7 @@ const func: DeployFunction = async function (hre) {
 
   await hre.viem.deploy('UniversalResolver', [
     registry.address,
-    batchGatewayProvider.address,
+    batchGatewayProvider.address as Address,
   ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
