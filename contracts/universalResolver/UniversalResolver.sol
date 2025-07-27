@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AbstractUniversalResolver} from "./AbstractUniversalResolver.sol";
+import {AbstractUniversalResolver, IGatewayProvider} from "./AbstractUniversalResolver.sol";
 import {RegistryUtils, ENS} from "./RegistryUtils.sol";
 
 contract UniversalResolver is AbstractUniversalResolver {
@@ -9,8 +9,8 @@ contract UniversalResolver is AbstractUniversalResolver {
 
     constructor(
         ENS ens,
-        string[] memory gateways
-    ) AbstractUniversalResolver(gateways) {
+        IGatewayProvider batchGatewayProvider
+    ) AbstractUniversalResolver(batchGatewayProvider) {
         registry = ens;
     }
 

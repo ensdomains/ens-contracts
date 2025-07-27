@@ -7,6 +7,7 @@ import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165C
 
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 import {CCIPBatcher, CCIPReader} from "../ccipRead/CCIPBatcher.sol";
+import {IGatewayProvider} from "../ccipRead/IGatewayProvider.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
@@ -26,10 +27,13 @@ abstract contract AbstractUniversalResolver is
     Ownable,
     ERC165
 {
-    string[] _gateways;
+    /// @dev The default batch gateways.
+    IGatewayProvider public immutable batchGatewayProvider;
 
-    constructor(string[] memory gateways) CCIPReader(DEFAULT_UNSAFE_CALL_GAS) {
-        _gateways = gateways;
+    constructor(
+        IGatewayProvider _batchGatewayProvider
+    ) CCIPReader(DEFAULT_UNSAFE_CALL_GAS) {
+        batchGatewayProvider = _batchGatewayProvider;
     }
 
     /// @inheritdoc ERC165
@@ -39,18 +43,6 @@ abstract contract AbstractUniversalResolver is
         return
             type(IUniversalResolver).interfaceId == interfaceId ||
             super.supportsInterface(interfaceId);
-    }
-
-    /// @notice Set the default batch gateways.
-    /// @param gateways The batch gateway URLs.
-    function setBatchGateways(string[] memory gateways) external onlyOwner {
-        _gateways = gateways;
-    }
-
-    /// @notice Get the default batch gateways.
-    /// @return The batch gateway URLs.
-    function batchGateways() external view returns (string[] memory) {
-        return _gateways;
     }
 
     /// @inheritdoc IUniversalResolver
@@ -102,7 +94,7 @@ abstract contract AbstractUniversalResolver is
         bytes calldata name,
         bytes calldata data
     ) external view returns (bytes memory, address) {
-        return resolveWithGateways(name, data, _gateways);
+        return resolveWithGateways(name, data, batchGatewayProvider.gateways());
     }
 
     /// @notice Performs ENS resolution process for the supplied name and resolution data.
@@ -166,7 +158,12 @@ abstract contract AbstractUniversalResolver is
         bytes calldata lookupAddress,
         uint256 coinType
     ) external view returns (string memory, address, address) {
-        return reverseWithGateways(lookupAddress, coinType, _gateways);
+        return
+            reverseWithGateways(
+                lookupAddress,
+                coinType,
+                batchGatewayProvider.gateways()
+            );
     }
 
     struct ReverseArgs {

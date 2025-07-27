@@ -53,9 +53,13 @@ async function fixture() {
   const shapeshift2 = await hre.viem.deployContract('DummyShapeshiftResolver')
   const bg = await serveBatchGateway()
   after(bg.shutdown)
+  const batchGatewayProvider = await hre.viem.deployContract(
+    'GatewayProvider',
+    [[bg.localBatchGatewayUrl]],
+  )
   const universalResolver = await hre.viem.deployContract(
     'UniversalResolver',
-    [F.ensRegistry.address, [bg.localBatchGatewayUrl]],
+    [F.ensRegistry.address, batchGatewayProvider.address],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
@@ -65,6 +69,7 @@ async function fixture() {
   return {
     ...F,
     universalResolver,
+    batchGatewayProvider,
     publicResolver,
     reverseRegistrar,
     oldResolver,
@@ -542,7 +547,7 @@ describe('UniversalResolver', () => {
       ])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
-      await F.universalResolver.write.setBatchGateways([[]])
+      await F.batchGatewayProvider.write.setGateways([[]])
       await expect(
         F.universalResolver.read.resolve([
           dnsEncodeName(testName),
@@ -588,7 +593,7 @@ describe('UniversalResolver', () => {
       await F.shapeshift1.write.setResponse([res.call, res.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
-      await F.universalResolver.write.setBatchGateways([[]]) // disable
+      await F.batchGatewayProvider.write.setGateways([[]]) // disable
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         res.call,
@@ -612,7 +617,7 @@ describe('UniversalResolver', () => {
       await F.shapeshift1.write.setResponse([bundle.call, bundle.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
-      await F.universalResolver.write.setBatchGateways([[]]) // disable
+      await F.batchGatewayProvider.write.setGateways([[]]) // disable
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
@@ -642,7 +647,7 @@ describe('UniversalResolver', () => {
       await F.shapeshift1.write.setResponse([bundle.call, bundle.answer])
       await F.shapeshift1.write.setExtended([true])
       await F.shapeshift1.write.setOffchain([true])
-      await F.universalResolver.write.setBatchGateways([[]]) // disable
+      await F.batchGatewayProvider.write.setGateways([[]]) // disable
       const [answer, resolver] = await F.universalResolver.read.resolve([
         dnsEncodeName(testName),
         bundle.call,
@@ -666,7 +671,7 @@ describe('UniversalResolver', () => {
       await F.universalResolver.read.resolveWithGateways([
         dnsEncodeName(testName),
         res.call,
-        await F.universalResolver.read.batchGateways(),
+        await F.batchGatewayProvider.read.gateways(),
       ])
     expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
     res.expect(answer)
@@ -682,7 +687,7 @@ describe('UniversalResolver', () => {
         F.shapeshift1.address,
         dnsEncodeName(testName),
         res.call,
-        await F.universalResolver.read.batchGateways(),
+        await F.batchGatewayProvider.read.gateways(),
       ])
     expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
     res.expect(answer)
