@@ -11,7 +11,7 @@ const func: DeployFunction = async function (hre) {
     throw new Error('BatchGatewayProvider: No batch gateway URLs provided')
   }
 
-  await hre.deployments.deploy('BatchGatewayProvider', {
+  const { address } = await hre.deployments.deploy('BatchGatewayProvider', {
     args: [batchGatewayURLs],
     contract: 'GatewayProvider',
     from: deployer.address,
@@ -22,8 +22,8 @@ const func: DeployFunction = async function (hre) {
   // ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
-    const universalResolver = await hre.viem.getContract('BatchGatewayProvider')
-    const hash = await universalResolver.write.transferOwnership([
+    const deployed = await hre.viem.getContractAt('GatewayProvider', address);
+    const hash = await deployed.write.transferOwnership([
       owner.address,
     ])
     console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)

@@ -5,7 +5,7 @@ const func: DeployFunction = async function (hre) {
 
   const registry = await hre.viem.getContract('ENSRegistry')
 
-  const batchGatewayProvider = await hre.viem.getContract('BatchGatewayProvider')
+  const batchGatewayProvider = await hre.deployments.get('BatchGatewayProvider')
 
   await hre.viem.deploy('UniversalResolver', [
     registry.address,
