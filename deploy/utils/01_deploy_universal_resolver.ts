@@ -4,17 +4,12 @@ const func: DeployFunction = async function (hre) {
   const { deployer, owner } = await hre.viem.getNamedClients()
 
   const registry = await hre.viem.getContract('ENSRegistry')
-  const batchGatewayURLs: string[] = JSON.parse(
-    process.env.BATCH_GATEWAY_URLS || '[]',
-  )
 
-  if (batchGatewayURLs.length === 0) {
-    throw new Error('UniversalResolver: No batch gateway URLs provided')
-  }
+  const batchGatewayProvider = await hre.viem.getContract('BatchGatewayProvider')
 
   await hre.viem.deploy('UniversalResolver', [
     registry.address,
-    batchGatewayURLs,
+    batchGatewayProvider.address,
   ])
 
   if (owner !== undefined && owner.address !== deployer.address) {
@@ -29,8 +24,8 @@ const func: DeployFunction = async function (hre) {
   return true
 }
 
-func.id = 'UniversalResolver v1.0.0'
+func.id = 'UniversalResolver v1.0.1'
 func.tags = ['category:utils', 'UniversalResolver']
-func.dependencies = ['ENSRegistry']
+func.dependencies = ['ENSRegistry', 'BatchGatewayProvider']
 
 export default func
