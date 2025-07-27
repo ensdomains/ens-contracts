@@ -255,9 +255,14 @@ export async function deployEnsStack(): Promise<EnsStack> {
     contract: publicResolver,
   })
 
+  const batchGatewayProvider = await hre.viem.deployContract(
+    'GatewayProvider',
+    [['http://universal-offchain-resolver.local/']],
+  )
+
   const universalResolver = await hre.viem.deployContract('UniversalResolver', [
     ensRegistry.address,
-    ['http://universal-offchain-resolver.local/'],
+    batchGatewayProvider.address,
   ])
 
   return {
