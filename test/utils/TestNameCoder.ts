@@ -167,7 +167,7 @@ describe('NameCoder', () => {
         const F = await loadFixture(fixture)
         await expect(
           F.read.matchSuffix([dnsEncodeName(name), 0n, namehash(suffix)]),
-        ).resolves.toStrictEqual([false, namehash(name), 0n])
+        ).resolves.toStrictEqual([false, namehash(name), 0n, 0n])
       })
     }
 
@@ -180,17 +180,21 @@ describe('NameCoder', () => {
       it(`match: ${fmt(nameTitle)} / ${fmt(suffixTitle)}`, async () => {
         const F = await loadFixture(fixture)
         const nodeSuffix = namehash(suffix)
-        let temp = name
-        while (namehash(temp) !== nodeSuffix) {
-          if (!temp) throw new Error('expected match')
-          temp = getParentName(temp)
+        let prev = name
+        let match = name
+        while (namehash(match) !== nodeSuffix) {
+          if (!match) throw new Error('expected match')
+          prev = match
+          match = getParentName(match)
         }
-        const offset = BigInt(
-          size(dnsEncodeName(name)) - size(dnsEncodeName(temp)),
-        )
         await expect(
           F.read.matchSuffix([dnsEncodeName(name), 0n, namehash(suffix)]),
-        ).resolves.toStrictEqual([true, namehash(name), offset])
+        ).resolves.toStrictEqual([
+          true,
+          namehash(name),
+          BigInt(size(dnsEncodeName(name)) - size(dnsEncodeName(prev))),
+          BigInt(size(dnsEncodeName(name)) - size(dnsEncodeName(match))),
+        ])
       })
     }
 
@@ -217,5 +221,28 @@ describe('NameCoder', () => {
     testMatch('3.eth', forceHashedLabel('eth'))
     testMatch(`4.${forceHashedLabel('eth')}`, 'eth')
     testMatch(`5.${forceHashedLabel('test')}.eth`, 'test.eth')
+
+    describe('nonzero offset', () => {
+      it('no match', async () => {
+        const F = await loadFixture(fixture)
+        await expect(
+          F.read.matchSuffix([dnsEncodeName('a.b.c.eth'), 4n, namehash('xyz')]),
+        ).resolves.toStrictEqual([false, namehash('c.eth'), 0n, 0n])
+      })
+
+      it('exact exact', async () => {
+        const F = await loadFixture(fixture)
+        await expect(
+          F.read.matchSuffix([dnsEncodeName('a.b.c.eth'), 6n, namehash('eth')]),
+        ).resolves.toStrictEqual([true, namehash('eth'), 6n, 6n])
+      })
+
+      it('match', async () => {
+        const F = await loadFixture(fixture)
+        await expect(
+          F.read.matchSuffix([dnsEncodeName('a.b.c.eth'), 2n, namehash('eth')]),
+        ).resolves.toStrictEqual([true, namehash('b.c.eth'), 4n, 6n])
+      })
+    })
   })
 })

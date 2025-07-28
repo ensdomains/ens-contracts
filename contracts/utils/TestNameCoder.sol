@@ -62,7 +62,16 @@ contract TestNameCoder {
         bytes memory name,
         uint256 offset,
         bytes32 nodeSuffix
-    ) external pure returns (bool matched, bytes32 node, uint256 suffixOffset) {
+    )
+        external
+        pure
+        returns (
+            bool matched,
+            bytes32 node,
+            uint256 prevOffset,
+            uint256 matchOffset
+        )
+    {
         return NameCoder.matchSuffix(name, offset, nodeSuffix);
     }
 }

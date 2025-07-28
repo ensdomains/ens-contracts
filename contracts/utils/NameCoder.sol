@@ -265,24 +265,40 @@ library NameCoder {
     /// @param name The name to search.
     /// @param nodeSuffix The node to match.
     /// @return matched True if `name` ends with the suffix.
-    /// @return node The namehash of `name`.
-    /// @return suffixOffset The offset into `name` that namehashes to the `nodeSuffix`.
+    /// @return node The namehash of `name[offset:]`.
+    /// @return prevOffset The offset into `name` of the label before the suffix, or `matchOffset` if no match or prior label.
+    /// @return matchOffset The offset into `name` that namehashes to the `nodeSuffix`, or 0 if no match.
     function matchSuffix(
         bytes memory name,
         uint256 offset,
         bytes32 nodeSuffix
-    ) internal pure returns (bool matched, bytes32 node, uint256 suffixOffset) {
+    )
+        internal
+        pure
+        returns (
+            bool matched,
+            bytes32 node,
+            uint256 prevOffset,
+            uint256 matchOffset
+        )
+    {
         (bytes32 labelHash, uint256 next) = readLabel(name, offset);
         if (labelHash != bytes32(0)) {
-            (matched, node, suffixOffset) = matchSuffix(name, next, nodeSuffix);
+            (matched, node, prevOffset, matchOffset) = matchSuffix(
+                name,
+                next,
+                nodeSuffix
+            );
             if (node == nodeSuffix) {
                 matched = true;
-                suffixOffset = next;
+                prevOffset = offset;
+                matchOffset = next;
             }
             node = namehash(node, labelHash);
         }
         if (node == nodeSuffix) {
             matched = true;
+            prevOffset = matchOffset = offset;
         }
     }
 }
