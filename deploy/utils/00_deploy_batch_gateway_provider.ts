@@ -1,5 +1,4 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import type { Hex } from 'viem'
 
 const func: DeployFunction = async function (hre) {
   const { deployer, owner } = await hre.viem.getNamedClients()
@@ -12,20 +11,13 @@ const func: DeployFunction = async function (hre) {
     throw new Error('BatchGatewayProvider: No batch gateway URLs provided')
   }
 
-  // deploy with different name
-  const batchGatewayProvider = await hre.deployments.deploy(
-    'BatchGatewayProvider',
-    {
-      args: [batchGatewayURLs],
-      contract: 'GatewayProvider',
-      from: deployer.address,
-    },
-  )
+  await hre.viem.deploy('BatchGatewayProvider', [batchGatewayURLs], {
+    artifact: await hre.deployments.getArtifact('GatewayProvider'),
+  })
 
   if (owner !== undefined && owner.address !== deployer.address) {
-    const deployed = await hre.viem.getContractAt(
-      'GatewayProvider',
-      batchGatewayProvider.address as Hex,
+    const deployed = await hre.viem.getContract(
+      'BatchGatewayProvider' as 'GatewayProvider',
     )
     const hash = await deployed.write.transferOwnership([owner.address])
     console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)

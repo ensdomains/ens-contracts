@@ -59,7 +59,7 @@ async function fixture() {
   )
   const universalResolver = await hre.viem.deployContract(
     'UniversalResolver',
-    [F.ensRegistry.address, batchGatewayProvider.address],
+    [F.owner, F.ensRegistry.address, batchGatewayProvider.address],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
@@ -682,14 +682,12 @@ describe('UniversalResolver', () => {
     const [res] = resolutions
     await F.shapeshift1.write.setResponse([res.call, res.answer])
     await F.shapeshift1.write.setExtended([true])
-    const [answer, resolver] =
-      await F.universalResolver.read.resolveWithResolver([
-        F.shapeshift1.address,
-        dnsEncodeName(testName),
-        res.call,
-        await F.batchGatewayProvider.read.gateways(),
-      ])
-    expectVar({ resolver }).toEqualAddress(F.shapeshift1.address)
+    const answer = await F.universalResolver.read.resolveWithResolver([
+      F.shapeshift1.address,
+      dnsEncodeName(testName),
+      res.call,
+      await F.batchGatewayProvider.read.gateways(),
+    ])
     res.expect(answer)
   })
 

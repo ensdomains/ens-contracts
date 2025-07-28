@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
@@ -24,7 +23,6 @@ import {IMulticallable} from "../resolvers/IMulticallable.sol";
 abstract contract AbstractUniversalResolver is
     IUniversalResolver,
     CCIPBatcher,
-    Ownable,
     ERC165
 {
     /// @dev The default batch gateways.
@@ -128,7 +126,7 @@ abstract contract AbstractUniversalResolver is
         bytes calldata name,
         bytes calldata data,
         string[] memory gateways
-    ) external view returns (bytes memory, address) {
+    ) external view returns (bytes memory) {
         ResolverInfo memory info;
         info.name = name;
         info.node = NameCoder.namehash(name, 0);
@@ -236,7 +234,7 @@ abstract contract AbstractUniversalResolver is
                 ),
             args.gateways,
             this.reverseAddressCallback.selector, // ==> step 3
-            abi.encode(args, primary, info.resolver, args.resolver)
+            abi.encode(args, primary, info.resolver)
         );
     }
 
@@ -257,9 +255,9 @@ abstract contract AbstractUniversalResolver is
         )
     {
         ReverseArgs memory args;
-        (args, primary, resolver, reverseResolver) = abi.decode(
+        (args, primary, resolver) = abi.decode(
             extraData,
-            (ReverseArgs, string, address, address)
+            (ReverseArgs, string, address)
         );
         bytes memory primaryAddress;
         if (args.coinType == COIN_TYPE_ETH) {
@@ -271,6 +269,7 @@ abstract contract AbstractUniversalResolver is
         if (!BytesUtils.equals(args.lookupAddress, primaryAddress)) {
             revert ReverseAddressMismatch(primary, primaryAddress);
         }
+        reverseResolver = args.resolver;
     }
 
     /// @dev Efficiently call a resolver.

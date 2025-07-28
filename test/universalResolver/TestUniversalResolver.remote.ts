@@ -19,7 +19,11 @@ async function fixture() {
   )
   return hre.viem.deployContract(
     'UniversalResolver',
-    [ENS_REGISTRY, batchGatewayProvider.address],
+    [
+      ENS_REGISTRY, // owner (any address will work)
+      ENS_REGISTRY,
+      batchGatewayProvider.address,
+    ],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),

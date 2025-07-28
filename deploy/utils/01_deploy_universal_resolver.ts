@@ -1,26 +1,19 @@
 import type { DeployFunction } from 'hardhat-deploy/types.js'
-import type { Address } from 'viem'
 
 const func: DeployFunction = async function (hre) {
-  const { deployer, owner } = await hre.viem.getNamedClients()
+  const { owner } = await hre.viem.getNamedClients()
 
   const registry = await hre.viem.getContract('ENSRegistry')
 
-  const batchGatewayProvider = await hre.deployments.get('BatchGatewayProvider')
+  const batchGatewayProvider = await hre.viem.getContract(
+    'BatchGatewayProvider' as 'GatewayProvider',
+  )
 
   await hre.viem.deploy('UniversalResolver', [
+    owner.address,
     registry.address,
-    batchGatewayProvider.address as Address,
+    batchGatewayProvider.address,
   ])
-
-  if (owner !== undefined && owner.address !== deployer.address) {
-    const universalResolver = await hre.viem.getContract('UniversalResolver')
-    const hash = await universalResolver.write.transferOwnership([
-      owner.address,
-    ])
-    console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
-    await hre.viem.waitForTransactionSuccess(hash)
-  }
 
   return true
 }

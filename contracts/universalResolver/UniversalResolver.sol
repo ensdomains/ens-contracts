@@ -3,14 +3,19 @@ pragma solidity ^0.8.17;
 
 import {AbstractUniversalResolver, IGatewayProvider} from "./AbstractUniversalResolver.sol";
 import {RegistryUtils, ENS} from "./RegistryUtils.sol";
+import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 
-contract UniversalResolver is AbstractUniversalResolver {
+contract UniversalResolver is AbstractUniversalResolver, ReverseClaimer {
     ENS public immutable registry;
 
     constructor(
+        address owner,
         ENS ens,
         IGatewayProvider batchGatewayProvider
-    ) AbstractUniversalResolver(batchGatewayProvider) {
+    )
+        AbstractUniversalResolver(batchGatewayProvider)
+        ReverseClaimer(ens, owner)
+    {
         registry = ens;
     }
 
