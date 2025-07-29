@@ -95,14 +95,14 @@ abstract contract AbstractUniversalResolver is
         return resolveWithGateways(name, data, batchGatewayProvider.gateways());
     }
 
-    /// @notice Performs ENS resolution process for the supplied name and resolution data.
+    /// @notice Performs ENS forward resolution for the supplied name and data.
     ///         Caller should enable EIP-3668.
     /// @dev This function executes over multiple steps.
-    /// @param name The name to resolve, in normalised and DNS-encoded form.
-    /// @param data The resolution data, as specified in ENSIP-10.
+    /// @param name The DNS-encoded name to resolve.
+    /// @param data The ABI-encoded resolver calldata.
     /// @param gateways The list of batch gateway URLs to use.
-    /// @return result The encoded response for the requested call.
-    /// @return resolver The address of the resolver that supplied `result`.
+    /// @return result The ABI-encoded response for the calldata.
+    /// @return resolver The resolver that was used to resolve the name.
     function resolveWithGateways(
         bytes calldata name,
         bytes calldata data,

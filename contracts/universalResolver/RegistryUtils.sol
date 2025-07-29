@@ -10,7 +10,7 @@ library RegistryUtils {
     /// @param registry The ENS registry.
     /// @param name The DNS-encoded name to search.
     /// @param offset The offset into `name` to begin the search.
-    /// @return resolver The resolver or `address(0)` if not found.
+    /// @return resolver The resolver, or null if not found.
     /// @return node The namehash of `name[offset:]`.
     /// @return resolverOffset The offset into `name` corresponding to `resolver`.
     function findResolver(

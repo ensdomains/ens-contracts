@@ -28,37 +28,38 @@ interface IUniversalResolver {
     /// @dev Error selector: `0x01800152`
     error HttpError(uint16 status, string message);
 
-    /// @dev Find the resolver address for `name`.
-    ///      Does not perform any validity checks on the resolver.
+    /// @notice Find the resolver address for `name`.
+    ///         Does not perform any validity checks on the resolver.
     /// @param name The name to search.
-    /// @return resolver The resolver or `address(0)` if not found.
+    /// @return resolver The found resolver, or null if not found.
     /// @return node The namehash of `name`.
-    /// @return offset The offset into `name` corresponding to `resolver`.
+    /// @return resolverOffset The offset into `name` corresponding to `resolver`.
     function findResolver(
         bytes memory name
-    ) external view returns (address resolver, bytes32 node, uint256 offset);
+    )
+        external
+        view
+        returns (address resolver, bytes32 node, uint256 resolverOffset);
 
-    /// @notice Performs ENS name resolution for the supplied name and resolution data.
-    /// @notice Caller should enable EIP-3668.
-    /// @param name The name to resolve, in normalised and DNS-encoded form.
-    /// @param data The resolution data, as specified in ENSIP-10.
-    ///             For a multicall, the data should be encoded as `multicall(bytes[])`.
-    /// @return result The result of the resolution.
-    ///                For a multicall, the result is encoded as `(bytes[])`.
+    /// @notice Performs ENS forward resolution for the supplied name and data.
+    ///         Caller should enable EIP-3668.
+    /// @param name The DNS-encoded name to resolve.
+    /// @param data The ABI-encoded resolver calldata.
+    ///             For a multicall, encode as `multicall(bytes[])`.
+    /// @return result The ABI-encoded response for the calldata.
+    ///                For a multicall, the results are encoded as `(bytes[])`.
     /// @return resolver The resolver that was used to resolve the name.
     function resolve(
         bytes calldata name,
         bytes calldata data
     ) external view returns (bytes memory result, address resolver);
 
-    /// @notice Performs ENS reverse resolution for the supplied address and coin type.
-    /// @notice Caller should enable EIP-3668.
-    /// @param lookupAddress The address to reverse resolve, in encoded form.
-    /// @param coinType The coin type to use for the reverse resolution.
-    ///                 For ETH, this is 60.
-    ///                 For other EVM chains, coinType is calculated as `0x80000000 | chainId`.
-    /// @return primary The reverse resolution result.
-    /// @return resolver The resolver that was used to resolve the name.
+    /// @notice Performs ENS primary name resolution for the supplied address and coin type, as specified in ENSIP-19.
+    ///         Caller should enable EIP-3668.
+    /// @param lookupAddress The byte-encoded address to resolve.
+    /// @param coinType The coin type of the address to resolve.
+    /// @return primary The verified primary name, or null if not set.
+    /// @return resolver The resolver that was used to resolve the primary name.
     /// @return reverseResolver The resolver that was used to resolve the reverse name.
     function reverse(
         bytes calldata lookupAddress,
