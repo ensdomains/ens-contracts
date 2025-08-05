@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 
 import {IGatewayProvider} from "./IGatewayProvider.sol";
 
 contract GatewayProvider is Ownable, IGatewayProvider {
     string[] _urls;
 
-    constructor(string[] memory urls) {
+    constructor(address owner, string[] memory urls) Ownable(owner) {
         _urls = urls;
     }
 

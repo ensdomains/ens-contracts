@@ -55,7 +55,7 @@ async function fixture() {
   after(bg.shutdown)
   const batchGatewayProvider = await hre.viem.deployContract(
     'GatewayProvider',
-    [[bg.localBatchGatewayUrl]],
+    [F.owner, [bg.localBatchGatewayUrl]],
   )
   const universalResolver = await hre.viem.deployContract(
     'UniversalResolver',

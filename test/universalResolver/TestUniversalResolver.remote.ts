@@ -13,17 +13,14 @@ import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
 async function fixture() {
   const bg = await serveBatchGateway()
   after(bg.shutdown)
+  const [owner] = await hre.viem.getWalletClients()
   const batchGatewayProvider = await hre.viem.deployContract(
     'GatewayProvider',
-    [[bg.localBatchGatewayUrl]],
+    [owner.account.address, [bg.localBatchGatewayUrl]],
   )
   return hre.viem.deployContract(
     'UniversalResolver',
-    [
-      ENS_REGISTRY, // owner (any address will work)
-      ENS_REGISTRY,
-      batchGatewayProvider.address,
-    ],
+    [owner.account.address, ENS_REGISTRY, batchGatewayProvider.address],
     {
       client: {
         public: await hre.viem.getPublicClient({ ccipRead: undefined }),
