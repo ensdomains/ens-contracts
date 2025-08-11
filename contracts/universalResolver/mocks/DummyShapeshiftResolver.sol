@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IFeatureSupporter} from "../../utils/IFeatureSupporter.sol";
+import {IERC7996} from "../../utils/IERC7996.sol";
 import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol";
 import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
@@ -13,7 +13,7 @@ import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 contract DummyShapeshiftResolver is
     IExtendedResolver,
     IERC165,
-    IFeatureSupporter
+    IERC7996
 {
     // https://github.com/ensdomains/ensips/pull/18
     error UnsupportedResolverProfile(bytes4 call);
@@ -87,7 +87,7 @@ contract DummyShapeshiftResolver is
         return
             type(IERC165).interfaceId == x ||
             (type(IExtendedResolver).interfaceId == x && isExtended) ||
-            (type(IFeatureSupporter).interfaceId == x && featureCount > 0);
+            (type(IERC7996).interfaceId == x && featureCount > 0);
     }
 
     function supportsFeature(bytes4 x) external view returns (bool) {
