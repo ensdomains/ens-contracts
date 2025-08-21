@@ -32,5 +32,7 @@
   "ChainReverseResolver:Optimism v1.0.0": 1750302448,
   "ChainReverseResolver:Scroll v1.0.0": 1750302615,
   "DefaultReverseResolver v1.0.0": 1750303141,
-  "MigrationHelper v1.0.0": 1750303167
+  "MigrationHelper v1.0.0": 1750303167,
+  "BatchGatewayProvider v1.0.0": 1754525030,
+  "UniversalResolver v1.0.1": 1754525042
 }

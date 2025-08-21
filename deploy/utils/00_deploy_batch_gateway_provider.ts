@@ -11,11 +11,16 @@ const func: DeployFunction = async function (hre) {
     throw new Error('BatchGatewayProvider: No batch gateway URLs provided')
   }
 
+  const artifact = {
+    ...(await hre.deployments.getExtendedArtifact('GatewayProvider')),
+    ...(await hre.deployments.getArtifact('GatewayProvider')),
+  }
+
   await hre.viem.deploy(
     'BatchGatewayProvider',
     [(owner ?? deployer).address, batchGatewayURLs],
     {
-      artifact: await hre.deployments.getArtifact('GatewayProvider'),
+      artifact,
     },
   )
 

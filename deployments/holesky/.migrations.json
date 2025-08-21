@@ -28,5 +28,7 @@
   "UniversalSigValidator v1.0.0": 1750305243,
   "PublicResolver v3.0.0": 1750305448,
   "DefaultReverseResolver v1.0.0": 1750305481,
-  "MigrationHelper v1.0.0": 1750305497
+  "MigrationHelper v1.0.0": 1750305497,
+  "BatchGatewayProvider v1.0.0": 1754524828,
+  "UniversalResolver v1.0.1": 1754524841
 }
