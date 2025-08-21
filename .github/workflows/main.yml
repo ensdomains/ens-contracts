@@ -9,7 +9,7 @@ jobs:
   wiki_address_check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
@@ -24,7 +24,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
@@ -39,7 +39,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
@@ -57,7 +57,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Use Bun 1.2.3
         uses: oven-sh/setup-bun@v2
