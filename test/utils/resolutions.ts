@@ -60,7 +60,6 @@ type TextRecord = StringRecord & { key: string }
 export type KnownProfile = {
   title?: string
   name: string
-  extended?: boolean
   addresses?: AddressRecord[]
   texts?: TextRecord[]
   primary?: StringRecord

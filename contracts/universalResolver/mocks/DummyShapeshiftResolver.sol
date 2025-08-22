@@ -10,11 +10,7 @@ import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 /// @dev This resolver can perform all resolver permutations.
 ///      When this contract triggers OffchainLookup(), it uses a data-url, so no server is required.
 ///      The actual response is set using `setResponse()`.
-contract DummyShapeshiftResolver is
-    IExtendedResolver,
-    IERC165,
-    IERC7996
-{
+contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     // https://github.com/ensdomains/ensips/pull/18
     error UnsupportedResolverProfile(bytes4 call);
 
@@ -61,6 +57,7 @@ contract DummyShapeshiftResolver is
     }
 
     fallback() external {
+        if (msg.data.length < 4) return;
         if (isExtended) return;
         bytes memory v = responses[msg.data];
         if (v.length == 0) {

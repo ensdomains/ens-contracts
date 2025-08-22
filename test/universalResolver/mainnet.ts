@@ -90,7 +90,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Coinbase',
     name: 'raffy.base.eth',
-    extended: true,
     texts: [
       { key: 'url', value: 'https://raffy.xyz' },
       { key: 'com.github', value: 'adraffy' },
@@ -99,7 +98,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Coinbase',
     name: 'adraffy.cb.id',
-    extended: true,
     addresses: [
       {
         coinType: 0n,
@@ -118,7 +116,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Namestone',
     name: 'slobo.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -137,7 +134,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Namespace',
     name: 'thecap.gotbased.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -155,7 +151,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'ENSOffchainResolver',
     name: '1.offchainexample.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -174,7 +169,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Clave',
     name: 'getclave.clv.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -186,7 +180,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'BNB',
     name: 'cz.bnb.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -198,7 +191,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'Unruggable Gateway',
     name: 'raffy.teamnick.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -217,7 +209,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'EVMGateway',
     name: 'raffy.linea.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -229,7 +220,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'LineaNFTResolver',
     name: '1.efrogs.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -241,7 +231,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'NFTResolver',
     name: 'moo331.nft-owner.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -254,7 +243,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: '3DNS',
     name: 'josh.box',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -267,7 +255,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'OffchainDNS',
     name: 'taytems.xyz', // 'brantly.rocks'
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -279,7 +266,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'OffchainDNS',
     name: 'ezccip.raffy.xyz',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -298,7 +284,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
   {
     title: 'JustaName',
     name: 'yodl.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
@@ -310,7 +295,6 @@ export const KNOWN_RESOLUTIONS: KnownProfile[] = [
     // warning: this requires chainId = 1
     title: 'Uninames',
     name: 'raffy.uni.eth',
-    extended: true,
     addresses: [
       {
         coinType: COIN_TYPE_ETH,
