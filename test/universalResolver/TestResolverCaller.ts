@@ -36,11 +36,12 @@ describe('TestResolverCaller', () => {
     for (const offchain of [false, true]) {
       for (const extended of [false, true]) {
         for (const feature of [false, true]) {
-          it(`${offchain ? 'offchain' : 'onchain'} ${
+          let title = `${offchain ? 'offchain' : 'onchain'} ${
             extended ? 'extended' : 'immediate'
-          }${multi ? ' w/multicall' : ''}${
-            feature ? ' w/feature' : ''
-          }`, async () => {
+          }`
+          if (multi) title += ' w/multicall'
+          if (feature) title += ' w/feature'
+          it(title, async () => {
             const F = await loadFixture(fixture)
             const kp: KnownProfile = {
               name: 'test.eth',
