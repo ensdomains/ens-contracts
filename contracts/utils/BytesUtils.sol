@@ -321,4 +321,57 @@ library BytesUtils {
         }
         return type(uint256).max;
     }
+
+    /// @dev Determine if `v` is all zeros.
+    /// @param v The bytes to search.
+    /// @return `true` if all zeros.
+    function isZeros(bytes memory v) internal pure returns (bool) {
+        uint256 ptr;
+        assembly {
+            ptr := add(v, 32)
+        }
+        return unsafeIsZeros(ptr, v.length);
+    }
+
+    /// @dev Determine if `v[off:len]` is all zeros.
+    /// @param v The bytes to search.
+    /// @param off The offset to start searching.
+    /// @param len The number of bytes to search.
+    /// @return `true` if all zeros.
+    function isZeros(
+        bytes memory v,
+        uint256 off,
+        uint256 len
+    ) internal pure returns (bool) {
+        _checkBound(v, off + len);
+        uint256 ptr;
+        assembly {
+            ptr := add(v, 32)
+        }
+        return unsafeIsZeros(ptr + off, len);
+    }
+
+    /// @dev Determine if `mem[ptr:ptr+len]` is all zeros.
+    function unsafeIsZeros(
+        uint256 ptr,
+        uint256 len
+    ) internal pure returns (bool ret) {
+        assembly {
+            let end := add(ptr, len)
+            ret := 1 // assume null
+            // prettier-ignore
+            for {} lt(ptr, end) {} { // while (ptr < end)
+                let x := mload(ptr) // remember last
+                ptr := add(ptr, 32) // step by word
+                if x {
+                    ret := 0 // nonzero
+                    if gt(ptr, end) { 
+                        // overshot, so shift and recheck
+                        ret := iszero(shr(shl(3, sub(ptr, end)), x))
+                    }
+                    break
+                }
+            }
+        }
+    }
 }

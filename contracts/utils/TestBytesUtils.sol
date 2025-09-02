@@ -6,7 +6,7 @@ import {BytesUtils} from "../../contracts/utils/BytesUtils.sol";
 contract TestBytesUtils {
     using BytesUtils for *;
 
-    function test_keccak() public pure {
+    function test_keccak() external pure {
         require(
             "".keccak(0, 0) ==
                 bytes32(
@@ -30,7 +30,7 @@ contract TestBytesUtils {
         );
     }
 
-    function test_equals() public pure {
+    function test_equals() external pure {
         require("hello".equals("hello"), "String equality");
         require(!"hello".equals("goodbye"), "String inequality");
         require("hello".equals(1, "ello"), "Substring to string equality");
@@ -48,7 +48,7 @@ contract TestBytesUtils {
         );
     }
 
-    function test_compare_partial() public pure {
+    function test_compare_partial() external pure {
         require("xax".compare(1, 1, "xxbxx", 2, 1) < 0, "Compare same length");
         require(
             "xax".compare(1, 1, "xxabxx", 2, 2) < 0,
@@ -90,7 +90,7 @@ contract TestBytesUtils {
         );
     }
 
-    function test_compare() public pure {
+    function test_compare() external pure {
         require("a".compare("a") == 0, "a == a");
         require("a".compare("b") < 0, "a < b");
         require("b".compare("a") > 0, "b > a");
@@ -109,7 +109,7 @@ contract TestBytesUtils {
         );
     }
 
-    function test_copyBytes() public pure {
+    function test_copyBytes() external pure {
         bytes memory v = "0123456789abcdef0123456789abcdef";
         {
             bytes memory u = new bytes(5);
@@ -129,7 +129,7 @@ contract TestBytesUtils {
     }
 
     // this uses copyBytes() underneath
-    function test_substring() public pure {
+    function test_substring() external pure {
         bytes memory v = "abc";
         require(keccak256(v.substring(0, 0)) == keccak256(""), "[]abc");
         require(keccak256(v.substring(0, 2)) == keccak256("ab"), "[ab]c");
@@ -137,32 +137,32 @@ contract TestBytesUtils {
         require(keccak256(v.substring(0, 3)) == keccak256("abc"), "[abc]");
     }
 
-    function testFail_substring_overflow() public pure {
+    function testFail_substring_overflow() external pure {
         "".substring(0, 1);
     }
 
-    function test_readUint8() public pure {
+    function test_readUint8() external pure {
         bytes memory v = "abc";
         require(v.readUint8(0) == uint8(bytes1("a")), "0");
         require(v.readUint8(1) == uint8(bytes1("b")), "1");
         require(v.readUint8(2) == uint8(bytes1("c")), "2");
     }
 
-    function test_readUint16() public pure {
+    function test_readUint16() external pure {
         bytes memory v = "abcd";
         require(v.readUint16(0) == uint16(bytes2("ab")), "0");
         require(v.readUint16(1) == uint16(bytes2("bc")), "1");
         require(v.readUint16(2) == uint16(bytes2("cd")), "2");
     }
 
-    function test_readUint32() public pure {
+    function test_readUint32() external pure {
         bytes memory v = "0123456789abc";
         require(v.readUint32(0) == uint32(bytes4("0123")), "0");
         require(v.readUint32(4) == uint32(bytes4("4567")), "4");
         require(v.readUint32(8) == uint32(bytes4("89ab")), "8");
     }
 
-    function test_readBytes20() public pure {
+    function test_readBytes20() external pure {
         bytes memory v = "0123456789abcdef0123456789abcdef";
         bytes22 x = 0x30313233343536373839616263646566303132333435;
         require(v.readBytes20(0) == bytes20(x), "0");
@@ -170,7 +170,7 @@ contract TestBytesUtils {
         require(v.readBytes20(2) == bytes20(x << 16), "2");
     }
 
-    function test_readBytes32() public pure {
+    function test_readBytes32() external pure {
         bytes memory v = "0123456789abcdef0123456789abcdef\x00\x00";
         bytes32 x = 0x3031323334353637383961626364656630313233343536373839616263646566;
         require(v.readBytes32(0) == x, "0");
@@ -178,7 +178,7 @@ contract TestBytesUtils {
         require(v.readBytes32(2) == x << 16, "2");
     }
 
-    function test_readBytesN() public pure {
+    function test_readBytesN() external pure {
         bytes memory v = "0123456789abcdef0123456789abcdef";
         bytes32 x = 0x3031323334353637383961626364656630313233343536373839616263646566;
         require(v.readBytesN(0, 0) == 0, "0");
@@ -218,20 +218,31 @@ contract TestBytesUtils {
         require(v.readBytesN(31, 1) == bytes32(x) << 248, "31+1");
     }
 
-    function testFail_readBytesN_overflow() public pure {
+    function testFail_readBytesN_overflow() external pure {
         "".readBytesN(0, 1);
     }
 
-    function testFail_readBytesN_largeN() public pure {
+    function testFail_readBytesN_largeN() external pure {
         new bytes(64).readBytesN(0, 33);
     }
 
-    function test_find() public pure {
+    function test_find() external pure {
         bytes memory v = "0123456789abcdef0123456789abcdef";
         require(v.find(0, v.length, "0") == 0, "0");
         require(v.find(1, v.length, "0") == 16, "2nd 0");
         require(v.find(0, v.length, "z") == type(uint256).max, "z");
         require(v.find(0, v.length, "A") == type(uint256).max, "A");
         require(v.find(0, 10, "a") == type(uint256).max, "a");
+    }
+
+    function test_isZeros() external pure {
+        bytes memory v = new bytes(34);
+        v[33] = hex'01';
+        require(v.isZeros(0, 0), "0,0");
+        require(v.isZeros(0, 32), "0,32");
+        require(v.isZeros(1, 32), "1,32");
+        require(!v.isZeros(1, 33), "1,33");
+        require(!v.isZeros(), "all");
+        require("".isZeros(), "empty");
     }
 }
