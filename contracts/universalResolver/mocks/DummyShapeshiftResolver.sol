@@ -6,6 +6,7 @@ import {IERC7996} from "../../utils/IERC7996.sol";
 import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol";
 import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
+import {BytesUtils} from "../../utils/BytesUtils.sol";
 
 /// @dev This resolver can perform all resolver permutations.
 ///      When this contract triggers OffchainLookup(), it uses a data-url, so no server is required.
@@ -14,7 +15,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     // https://github.com/ensdomains/ensips/pull/18
     error UnsupportedResolverProfile(bytes4 call);
 
-    mapping(bytes => bytes) public responses;
+    mapping(bytes => bytes) _responses;
     mapping(bytes4 => bool) public features;
     uint256 public featureCount;
     bool public isERC165 = true; // default
@@ -22,9 +23,29 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     bool public isOffchain;
     bool public revertUnsupported;
     bool public revertEmpty;
+    bool public deriveMulticall;
+
+    function getResponse(bytes memory call) public view returns (bytes memory) {
+        if (deriveMulticall && bytes4(call) == IMulticallable.multicall.selector) {
+            bytes[] memory m = abi.decode(
+                BytesUtils.substring(call, 4, call.length - 4),
+                (bytes[])
+            );
+            for (uint256 i; i < m.length; i++) {
+                m[i] = _responses[m[i]];
+            }
+            return abi.encode(m);
+        } else {
+            return _responses[call];
+        }
+    }
 
     function setResponse(bytes memory req, bytes memory res) external {
-        responses[req] = res;
+        _responses[req] = res;
+    }
+
+    function setDeriveMulticall(bool x) external {
+        deriveMulticall = x;
     }
 
     function setFeature(bytes4 feature, bool on) external {
@@ -59,7 +80,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     fallback() external {
         if (msg.data.length < 4) return;
         if (isExtended) return;
-        bytes memory v = responses[msg.data];
+        bytes memory v = getResponse(msg.data);
         if (v.length == 0) {
             if (revertEmpty) {
                 assembly {
@@ -95,7 +116,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
         bytes memory,
         bytes memory call
     ) external view returns (bytes memory) {
-        bytes memory v = responses[call];
+        bytes memory v = getResponse(call);
         if (v.length == 0 && revertUnsupported) {
             revert UnsupportedResolverProfile(bytes4(call));
         }
@@ -134,15 +155,4 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
             }
         }
     }
-
-    // function enableMulticall(bytes[] memory calls) external {
-    //     bytes[] memory m = new bytes[](calls.length);
-    //     for (uint256 i; i < calls.length; i++) {
-    //         m[i] = responses[calls[i]];
-    //     }
-    //     setResponse(
-    //         abi.encodeCall(IResolveMulticall.multicall, (calls)),
-    //         abi.encode(m)
-    //     );
-    // }
 }

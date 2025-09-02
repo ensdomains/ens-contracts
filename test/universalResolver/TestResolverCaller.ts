@@ -55,6 +55,7 @@ describe('TestResolverCaller', () => {
             }
             await F.ssResolver.write.setExtended([extended])
             await F.ssResolver.write.setOffchain([offchain])
+            await F.ssResolver.write.setDeriveMulticall([multi])
             await F.ssResolver.write.setFeature([
               FEATURES.RESOLVER.RESOLVE_MULTICALL,
               feature,
@@ -62,12 +63,8 @@ describe('TestResolverCaller', () => {
             const bundle = bundleCalls(
               makeResolutions(kp).slice(0, multi ? Infinity : 1),
             )
-            if (!multi || (extended && feature)) {
-              await F.ssResolver.write.setResponse([bundle.call, bundle.answer])
-            } else {
-              for (const res of bundle.resolutions) {
-                await F.ssResolver.write.setResponse([res.call, res.answer])
-              }
+            for (const res of bundle.resolutions) {
+              await F.ssResolver.write.setResponse([res.call, res.answer])
             }
             const answer = await F.resolverCaller.read.callResolver([
               F.ssResolver.address,
