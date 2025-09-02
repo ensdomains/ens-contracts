@@ -63,6 +63,7 @@ contract FallbackResolver is
     ) public view override(ERC165) returns (bool) {
         return
             interfaceId == type(IExtendedResolver).interfaceId ||
+            interfaceId == type(IERC7996).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
