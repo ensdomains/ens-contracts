@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
-import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 import {GatewayFetchTarget, IGatewayVerifier} from "@unruggable/gateways/contracts/GatewayFetchTarget.sol";
 import {GatewayFetcher, GatewayRequest} from "@unruggable/gateways/contracts/GatewayFetcher.sol";
+
+import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
+import {IGatewayProvider, GatewayProvider} from "../ccipRead/GatewayProvider.sol";
+import {IVerifiableGateway} from "../ccipRead/IVerifiableGateway.sol";
 import {IStandaloneReverseRegistrar} from "../reverseRegistrar/IStandaloneReverseRegistrar.sol";
 import {INameReverser} from "./INameReverser.sol";
 
@@ -15,7 +17,8 @@ import {INameReverser} from "./INameReverser.sol";
 contract ChainReverseResolver is
     AbstractReverseResolver,
     GatewayFetchTarget,
-    Ownable
+    GatewayProvider,
+    IVerifiableGateway
 {
     using GatewayFetcher for GatewayRequest;
 
@@ -29,16 +32,10 @@ contract ChainReverseResolver is
     uint256 constant NAMES_SLOT = 0;
 
     /// @notice The verifier contract for the L2 chain.
-    IGatewayVerifier public gatewayVerifier;
-
-    /// @notice Gateway URLs for the verifier contract.
-    string[] public gatewayURLs;
+    IGatewayVerifier _gatewayVerifier;
 
     /// @notice Emitted when the gateway verifier is changed.
-    event GatewayVerifierChanged(address verifier);
-
-    /// @notice Emitted when the gateway URLs are changed.
-    event GatewayURLsChanged(string[] urls);
+    event GatewayVerifierChanged(IGatewayVerifier verifier);
 
     constructor(
         address _owner,
@@ -46,25 +43,35 @@ contract ChainReverseResolver is
         IStandaloneReverseRegistrar _defaultRegistrar,
         address _l2Registrar,
         IGatewayVerifier verifier,
-        string[] memory gateways
-    ) Ownable(_owner) AbstractReverseResolver(coinType, _l2Registrar) {
+        string[] memory _gateways
+    )
+        GatewayProvider(_owner, _gateways)
+        AbstractReverseResolver(coinType, _l2Registrar)
+    {
         defaultRegistrar = _defaultRegistrar;
         l2Registrar = _l2Registrar;
-        gatewayVerifier = verifier;
-        gatewayURLs = gateways;
+        _gatewayVerifier = verifier;
     }
 
-    /// @notice Set gateway URLs.
-    /// @param gateways The new gateway URLs.
-    function setGatewayURLs(string[] memory gateways) external onlyOwner {
-        gatewayURLs = gateways;
-        emit GatewayURLsChanged(gateways);
+    /// @inheritdoc AbstractReverseResolver
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(AbstractReverseResolver) returns (bool) {
+        return
+            interfaceId == type(IGatewayProvider).interfaceId ||
+            interfaceId == type(IVerifiableGateway).interfaceId ||
+            super.supportsInterface(interfaceId);
+    }
+
+    /// @inheritdoc IVerifiableGateway
+    function gatewayVerifier() external view returns (address) {
+        return address(_gatewayVerifier);
     }
 
     /// @notice Set the verifier contract.
     /// @param verifier The new verifier contract.
-    function setGatewayVerifier(address verifier) external onlyOwner {
-        gatewayVerifier = IGatewayVerifier(verifier);
+    function setGatewayVerifier(IGatewayVerifier verifier) external onlyOwner {
+        _gatewayVerifier = verifier;
         emit GatewayVerifierChanged(verifier);
     }
 
@@ -77,11 +84,11 @@ contract ChainReverseResolver is
         req.setSlot(NAMES_SLOT).push(addr).follow().readBytes(); // names[addr]
         req.setOutput(0);
         fetch(
-            gatewayVerifier,
+            _gatewayVerifier,
             req,
             this.resolveNameCallback.selector, // ==> step 2
             abi.encode(addr),
-            gatewayURLs
+            _urls
         );
     }
 
@@ -130,11 +137,11 @@ contract ChainReverseResolver is
             req.setOutput(uint8(i));
         }
         fetch(
-            gatewayVerifier,
+            _gatewayVerifier,
             req,
             this.resolveNamesCallback.selector, // ==> step 2
             abi.encode(addrs, names, start, perPage),
-            gatewayURLs
+            _urls
         );
     }
 
