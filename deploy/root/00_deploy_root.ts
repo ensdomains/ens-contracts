@@ -1,21 +1,26 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, execute } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default execute(
+  async ({ deploy, get, namedAccounts, network }) => {
+    const { deployer } = namedAccounts
 
-  if (!network.tags.use_root) {
-    return true
-  }
+    if (!network.tags?.use_root) {
+      return
+    }
 
-  const registry = await viem.getContract('ENSRegistry')
+    // Get dependencies
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
 
-  await viem.deploy('Root', [registry.address])
-
-  return true
-}
-
-func.id = 'Root:contract v1.0.0'
-func.tags = ['category:root', 'Root', 'Root:contract']
-func.dependencies = ['ENSRegistry']
-
-export default func
+    // Deploy Root
+    await deploy('Root', {
+      account: deployer,
+      artifact: artifacts.Root,
+      args: [registry.address],
+    })
+  },
+  {
+    id: 'Root:contract v1.0.0',
+    tags: ['category:root', 'Root', 'Root:contract'],
+    dependencies: ['ENSRegistry'],
+  },
+)

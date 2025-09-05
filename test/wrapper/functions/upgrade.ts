@@ -1,6 +1,5 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { getAddress, namehash, zeroAddress } from 'viem'
+
 import { dnsEncodeName } from '../../fixtures/dnsEncodeName.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -13,11 +12,11 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const upgradeTests = () =>
+export const upgradeTests = (loadFixture: LoadNameWrapperFixture) =>
   describe('upgrade()', () => {
     describe('.eth', () => {
       const label = 'wrapped2'
@@ -31,7 +30,7 @@ export const upgradeTests = () =>
           nameWrapperUpgraded,
           actions,
           accounts,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -53,17 +52,16 @@ export const upgradeTests = () =>
         ])
 
         // check the upgraded namewrapper is called with all parameters required
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            PARENT_CANNOT_CONTROL | IS_DOT_ETH,
-            expectedExpiry + GRACE_PERIOD,
-            zeroAddress,
-            '0x00',
-          )
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+            expiry: expectedExpiry + GRACE_PERIOD,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       it('Upgrades a .eth name if sender is authorised by the owner', async () => {
@@ -74,7 +72,7 @@ export const upgradeTests = () =>
           nameWrapperUpgraded,
           actions,
           accounts,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -97,38 +95,38 @@ export const upgradeTests = () =>
         await nameWrapper.write.setApprovalForAll([accounts[1].address, true])
 
         // check the upgraded namewrapper is called with all parameters required
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'], {
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(name), '0x'], {
             account: accounts[1],
-          })
+          }),
+        )
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            PARENT_CANNOT_CONTROL | IS_DOT_ETH,
-            expectedExpiry + GRACE_PERIOD,
-            zeroAddress,
-            '0x00',
-          )
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: PARENT_CANNOT_CONTROL | IS_DOT_ETH,
+            expiry: expectedExpiry + GRACE_PERIOD,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
-        const { nameWrapper, actions } = await loadFixture(fixture)
+        const { nameWrapper, actions } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
           fuses: CAN_DO_EVERYTHING,
         })
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
-          .toBeRevertedWithCustomError('CannotUpgrade')
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(name), '0x']),
+        ).toBeRevertedWithCustomError('CannotUpgrade')
       })
 
       it('Cannot upgrade a name if the upgradeContract has been set and then set back to the 0 address.', async () => {
-        const { nameWrapper, nameWrapperUpgraded, actions } = await loadFixture(
-          fixture,
-        )
+        const { nameWrapper, nameWrapperUpgraded, actions } =
+          await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -145,9 +143,9 @@ export const upgradeTests = () =>
 
         await nameWrapper.write.setUpgradeContract([zeroAddress])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
-          .toBeRevertedWithCustomError('CannotUpgrade')
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(name), '0x']),
+        ).toBeRevertedWithCustomError('CannotUpgrade')
       })
 
       it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
@@ -157,7 +155,7 @@ export const upgradeTests = () =>
           nameWrapperUpgraded,
           actions,
           accounts,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -174,20 +172,20 @@ export const upgradeTests = () =>
         ])
 
         // assert the fuses and expiry have been passed through to the new NameWrapper
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            PARENT_CANNOT_CONTROL |
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses:
+              PARENT_CANNOT_CONTROL |
               CANNOT_UNWRAP |
               CANNOT_SET_RESOLVER |
               IS_DOT_ETH,
-            expectedExpiry,
-            zeroAddress,
-            '0x00',
-          )
+            expiry: expectedExpiry,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       // TODO: this label seems wrong ??
@@ -198,7 +196,7 @@ export const upgradeTests = () =>
           nameWrapperUpgraded,
           actions,
           accounts,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -230,7 +228,7 @@ export const upgradeTests = () =>
 
       it('will revert if called twice by the original owner', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -245,10 +243,9 @@ export const upgradeTests = () =>
 
         await expectOwnerOf(name).on(nameWrapper).toBe(zeroAccount)
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toBeRevertedWithCustomError('Unauthorised')
-          .withArgs(namehash(name), getAddress(accounts[0].address))
+          .withArgs([namehash(name), getAddress(accounts[0].address)])
       })
 
       it('Will allow you to pass through extra data on upgrade', async () => {
@@ -258,7 +255,7 @@ export const upgradeTests = () =>
           nameWrapperUpgraded,
           actions,
           accounts,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -273,25 +270,25 @@ export const upgradeTests = () =>
           .nameExpires([toLabelId(label)])
           .then((e) => e + GRACE_PERIOD)
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x01'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x01']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            PARENT_CANNOT_CONTROL |
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses:
+              PARENT_CANNOT_CONTROL |
               CANNOT_UNWRAP |
               CANNOT_SET_RESOLVER |
               IS_DOT_ETH,
-            expectedExpiry,
-            zeroAddress,
-            '0x01',
-          )
+            expiry: expectedExpiry,
+            approved: zeroAddress,
+            extraData: '0x01',
+          })
       })
 
       it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label,
@@ -302,12 +299,13 @@ export const upgradeTests = () =>
           nameWrapperUpgraded.address,
         ])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'], {
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(name), '0x'], {
             account: accounts[1],
-          })
+          }),
+        )
           .toBeRevertedWithCustomError('Unauthorised')
-          .withArgs(namehash(name), getAddress(accounts[1].address))
+          .withArgs([namehash(name), getAddress(accounts[1].address)])
       })
     })
 
@@ -319,7 +317,7 @@ export const upgradeTests = () =>
 
       it('Allows owner to upgrade name', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label: parentLabel,
@@ -342,22 +340,21 @@ export const upgradeTests = () =>
           nameWrapperUpgraded.address,
         ])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            0,
-            0n,
-            zeroAddress,
-            '0x00',
-          )
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: 0,
+            expiry: 0n,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       it('upgrades a name if sender is authorized by the owner', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         const xyzName = `${label}.xyz`
 
@@ -384,23 +381,24 @@ export const upgradeTests = () =>
 
         await nameWrapper.write.setApprovalForAll([accounts[1].address, true])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(xyzName), '0x'], {
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(xyzName), '0x'], {
             account: accounts[1],
-          })
+          }),
+        )
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(xyzName),
-            accounts[0].address,
-            0,
-            0n,
-            zeroAddress,
-            '0x00',
-          )
+          .withArgs({
+            name: dnsEncodeName(xyzName),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: 0,
+            expiry: 0n,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
-        const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+        const { nameWrapper, actions, accounts } = await loadFixture()
 
         const xyzName = `${label}.xyz`
 
@@ -420,9 +418,9 @@ export const upgradeTests = () =>
 
         await expectOwnerOf(xyzName).on(nameWrapper).toBe(accounts[0])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(xyzName), '0x'])
-          .toBeRevertedWithCustomError('CannotUpgrade')
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(xyzName), '0x']),
+        ).toBeRevertedWithCustomError('CannotUpgrade')
       })
 
       it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
@@ -432,7 +430,7 @@ export const upgradeTests = () =>
           actions,
           accounts,
           baseRegistrar,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label: parentLabel,
@@ -462,17 +460,16 @@ export const upgradeTests = () =>
           .nameExpires([toLabelId(parentLabel)])
           .then((e) => e + GRACE_PERIOD)
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(name),
-            accounts[0].address,
-            expectedFuses,
-            expectedExpiry,
-            zeroAddress,
-            '0x00',
-          )
+          .withArgs({
+            name: dnsEncodeName(name),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: expectedFuses,
+            expiry: expectedExpiry,
+            approved: zeroAddress,
+            extraData: '0x',
+          })
       })
 
       it('Will burn the token of the name in the NameWrapper contract when upgraded, but keep expiry and fuses', async () => {
@@ -482,7 +479,7 @@ export const upgradeTests = () =>
           actions,
           accounts,
           baseRegistrar,
-        } = await loadFixture(fixture)
+        } = await loadFixture()
 
         const expectedFuses =
           PARENT_CANNOT_CONTROL | CANNOT_UNWRAP | CANNOT_TRANSFER
@@ -526,7 +523,7 @@ export const upgradeTests = () =>
 
       it('reverts if called twice by the original owner', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         await actions.registerSetupAndWrapName({
           label: parentLabel,
@@ -551,15 +548,14 @@ export const upgradeTests = () =>
 
         await nameWrapper.write.upgrade([dnsEncodeName(name), '0x'])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(name), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(name), '0x']))
           .toBeRevertedWithCustomError('Unauthorised')
-          .withArgs(namehash(name), getAddress(accounts[0].address))
+          .withArgs([namehash(name), getAddress(accounts[0].address)])
       })
 
       it('Keeps approval information on upgrade', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         const xyzName = `${label}.xyz`
 
@@ -596,22 +592,21 @@ export const upgradeTests = () =>
           nameWrapperUpgraded.address,
         ])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(xyzName), '0x'])
+        await expect(nameWrapper.write.upgrade([dnsEncodeName(xyzName), '0x']))
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(xyzName),
-            accounts[0].address,
-            0,
-            0n,
-            accounts[2].address,
-            '0x',
-          )
+          .withArgs({
+            name: dnsEncodeName(xyzName),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: 0,
+            expiry: 0n,
+            approved: getAddress(accounts[2].address),
+            extraData: '0x',
+          })
       })
 
       it('Will allow you to pass through extra data on upgrade', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         const xyzName = `${label}.xyz`
 
@@ -639,22 +634,23 @@ export const upgradeTests = () =>
           nameWrapperUpgraded.address,
         ])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(xyzName), '0x01'])
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(xyzName), '0x01']),
+        )
           .toEmitEventFrom(nameWrapperUpgraded, 'NameUpgraded')
-          .withArgs(
-            dnsEncodeName(xyzName),
-            accounts[0].address,
-            0,
-            0n,
-            zeroAddress,
-            '0x01',
-          )
+          .withArgs({
+            name: dnsEncodeName(xyzName),
+            wrappedOwner: getAddress(accounts[0].address),
+            fuses: 0,
+            expiry: 0n,
+            approved: zeroAddress,
+            extraData: '0x01',
+          })
       })
 
       it('Does not allow anyone else to upgrade a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
         const { nameWrapper, nameWrapperUpgraded, actions, accounts } =
-          await loadFixture(fixture)
+          await loadFixture()
 
         const xyzName = `${label}.xyz`
 
@@ -680,12 +676,13 @@ export const upgradeTests = () =>
           nameWrapperUpgraded.address,
         ])
 
-        await expect(nameWrapper)
-          .write('upgrade', [dnsEncodeName(xyzName), '0x'], {
+        await expect(
+          nameWrapper.write.upgrade([dnsEncodeName(xyzName), '0x'], {
             account: accounts[1],
-          })
+          }),
+        )
           .toBeRevertedWithCustomError('Unauthorised')
-          .withArgs(namehash(xyzName), getAddress(accounts[1].address))
+          .withArgs([namehash(xyzName), getAddress(accounts[1].address)])
       })
     })
   })

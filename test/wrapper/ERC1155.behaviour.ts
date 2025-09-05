@@ -1,23 +1,22 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { GetContractReturnType } from '@nomicfoundation/hardhat-viem/types.js'
-import { expect } from 'chai'
-import hre from 'hardhat'
-import type { ArtifactsMap } from 'hardhat/types/artifacts.js'
+import type { ContractReturnType } from '@ensdomains/hardhat-chai-matchers-viem'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
+import type { Fixture } from '@nomicfoundation/hardhat-network-helpers/types'
+import type { ArtifactMap } from 'hardhat/types/artifacts'
+import type { NetworkConnection } from 'hardhat/types/network'
 import {
+  getAddress,
   zeroAddress,
   type Abi,
   type Account,
   type Address,
-  type Hash,
   type Hex,
 } from 'viem'
-import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 
 const RECEIVER_SINGLE_MAGIC_VALUE = '0xf23a6e61'
 const RECEIVER_BATCH_MAGIC_VALUE = '0xbc197c81'
 
-type ERC1155Abi = ArtifactsMap['IERC1155']['abi']
-type ERC1155Contract = GetContractReturnType<ERC1155Abi>
+type ERC1155Abi = ArtifactMap['IERC1155']['abi']
+export type ERC1155Contract = ContractReturnType<ERC1155Abi>
 
 const getNamedAccounts = ([
   minter,
@@ -44,10 +43,12 @@ export const shouldBehaveLikeErc1155 = <
   },
   TContracts extends { contract: TContract; accounts: Account[] },
 >({
+  connection,
   contracts: contracts_,
   targetTokenIds: [firstTokenId, secondTokenId, unknownTokenId],
   mint: mint_,
 }: {
+  connection: NetworkConnection
   contracts: () => Promise<TContracts>
   targetTokenIds: [bigint, bigint, bigint] | readonly [bigint, bigint, bigint]
   mint: (
@@ -74,16 +75,19 @@ export const shouldBehaveLikeErc1155 = <
       contract: ERC1155Contract
     }
 
+  const loadFixture = async <T>(fixture: Fixture<T>): Promise<T> =>
+    connection.networkHelpers.loadFixture(fixture)
+
   describe('like an ERC1155', () => {
     describe('balanceOf', () => {
       it('reverts when queried about the zero address', async () => {
         const { contract } = await contracts()
-        await expect(contract)
-          .read('balanceOf', [zeroAddress, firstTokenId])
-          .toBeRevertedWithString('ERC1155: balance query for the zero address')
+        await expect(
+          contract.read.balanceOf([zeroAddress, firstTokenId]),
+        ).toBeRevertedWithString('ERC1155: balance query for the zero address')
       })
 
-      context("when accounts don't own tokens", () => {
+      describe("when accounts don't own tokens", () => {
         it('returns zero for given addresses', async () => {
           const { contract, firstTokenHolder, secondTokenHolder } =
             await contracts()
@@ -100,7 +104,7 @@ export const shouldBehaveLikeErc1155 = <
         })
       })
 
-      context('when accounts own some tokens', () => {
+      describe('when accounts own some tokens', () => {
         it('returns the amount of tokens owned by the given addresses', async () => {
           const { contract, mint, firstTokenHolder, secondTokenHolder } =
             await contracts()
@@ -125,8 +129,8 @@ export const shouldBehaveLikeErc1155 = <
         const { contract, firstTokenHolder, secondTokenHolder } =
           await contracts()
 
-        await expect(contract)
-          .read('balanceOfBatch', [
+        await expect(
+          contract.read.balanceOfBatch([
             [
               firstTokenHolder.address,
               secondTokenHolder.address,
@@ -134,30 +138,30 @@ export const shouldBehaveLikeErc1155 = <
               secondTokenHolder.address,
             ],
             [firstTokenId, secondTokenId, unknownTokenId],
-          ])
-          .toBeRevertedWithString('ERC1155: accounts and ids length mismatch')
+          ]),
+        ).toBeRevertedWithString('ERC1155: accounts and ids length mismatch')
 
-        await expect(contract)
-          .read('balanceOfBatch', [
+        await expect(
+          contract.read.balanceOfBatch([
             [firstTokenHolder.address, secondTokenHolder.address],
             [firstTokenId, secondTokenId, unknownTokenId],
-          ])
-          .toBeRevertedWithString('ERC1155: accounts and ids length mismatch')
+          ]),
+        ).toBeRevertedWithString('ERC1155: accounts and ids length mismatch')
       })
 
       it('reverts when one of the addresses is the zero address', async () => {
         const { contract, firstTokenHolder, secondTokenHolder } =
           await contracts()
 
-        await expect(contract)
-          .read('balanceOfBatch', [
+        await expect(
+          contract.read.balanceOfBatch([
             [firstTokenHolder.address, secondTokenHolder.address, zeroAddress],
             [firstTokenId, secondTokenId, unknownTokenId],
-          ])
-          .toBeRevertedWithString('ERC1155: balance query for the zero address')
+          ]),
+        ).toBeRevertedWithString('ERC1155: balance query for the zero address')
       })
 
-      context("when accounts don't own tokens", () => {
+      describe("when accounts don't own tokens", () => {
         it('returns zeros for each account', async () => {
           const { contract, firstTokenHolder, secondTokenHolder } =
             await contracts()
@@ -175,7 +179,7 @@ export const shouldBehaveLikeErc1155 = <
         })
       })
 
-      context('when accounts own some tokens', () => {
+      describe('when accounts own some tokens', () => {
         it('returns amounts owned by each account in order passed', async () => {
           const { contract, mint, firstTokenHolder, secondTokenHolder } =
             await contracts()
@@ -233,12 +237,17 @@ export const shouldBehaveLikeErc1155 = <
       it('emits an ApprovalForAll log', async () => {
         const { contract, multiTokenHolder, proxy } = await contracts()
 
-        await expect(contract)
-          .write('setApprovalForAll', [proxy.address, true], {
+        await expect(
+          contract.write.setApprovalForAll([proxy.address, true], {
             account: multiTokenHolder,
-          })
+          }),
+        )
           .toEmitEvent('ApprovalForAll')
-          .withArgs(multiTokenHolder.address, proxy.address, true)
+          .withArgs({
+            account: getAddress(multiTokenHolder.address),
+            operator: getAddress(proxy.address),
+            approved: true,
+          })
       })
 
       it('can unset approval for an operator', async () => {
@@ -262,11 +271,11 @@ export const shouldBehaveLikeErc1155 = <
       it('reverts if attempting to approve self as an operator', async () => {
         const { contract, multiTokenHolder } = await contracts()
 
-        await expect(contract)
-          .write('setApprovalForAll', [multiTokenHolder.address, true], {
+        await expect(
+          contract.write.setApprovalForAll([multiTokenHolder.address, true], {
             account: multiTokenHolder,
-          })
-          .toBeRevertedWithString('ERC1155: setting approval status for self')
+          }),
+        ).toBeRevertedWithString('ERC1155: setting approval status for self')
       })
     })
 
@@ -285,9 +294,8 @@ export const shouldBehaveLikeErc1155 = <
           mintedToMultiFixture,
         )
 
-        await expect(contract)
-          .write(
-            'safeTransferFrom',
+        await expect(
+          contract.write.safeTransferFrom(
             [
               multiTokenHolder.address,
               recipient.address,
@@ -296,8 +304,8 @@ export const shouldBehaveLikeErc1155 = <
               '0x',
             ],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: insufficient balance for transfer')
+          ),
+        ).toBeRevertedWithString('ERC1155: insufficient balance for transfer')
       })
 
       it('reverts when transferring to zero address', async () => {
@@ -305,13 +313,12 @@ export const shouldBehaveLikeErc1155 = <
           mintedToMultiFixture,
         )
 
-        await expect(contract)
-          .write(
-            'safeTransferFrom',
+        await expect(
+          contract.write.safeTransferFrom(
             [multiTokenHolder.address, zeroAddress, firstTokenId, 1n, '0x'],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: transfer to the zero address')
+          ),
+        ).toBeRevertedWithString('ERC1155: transfer to the zero address')
       })
 
       const transferWasSuccessful = (
@@ -322,7 +329,7 @@ export const shouldBehaveLikeErc1155 = <
             to: { address: Address }
             id: bigint
             value: bigint
-            tx: Hash
+            tx: ReturnType<ERC1155Contract['write']['safeTransferFrom']>
           }
         >,
       ) => {
@@ -343,17 +350,23 @@ export const shouldBehaveLikeErc1155 = <
         })
 
         it('emits a TransferSingle log', async () => {
-          const { contract, operator, from, to, tx, id, value } =
-            await loadFixture(fixture)
+          const { operator, from, to, tx, id, value } = await loadFixture(
+            fixture,
+          )
 
-          await expect(contract)
-            .transaction(tx)
+          await expect(tx)
             .toEmitEvent('TransferSingle')
-            .withArgs(operator.address, from.address, to.address, id, value)
+            .withArgs({
+              operator: getAddress(operator.address),
+              from: getAddress(from.address),
+              to: getAddress(to.address),
+              id,
+              value,
+            })
         })
       }
 
-      context('when called by the multiTokenHolder', () => {
+      describe('when called by the multiTokenHolder', () => {
         async function fixture() {
           const contractsObject = await loadFixture(mintedToMultiFixture)
           const { contract, multiTokenHolder, recipient } = contractsObject
@@ -363,10 +376,11 @@ export const shouldBehaveLikeErc1155 = <
           const id = firstTokenId
           const value = 1n
 
-          const tx = await contract.write.safeTransferFrom(
+          const tx = contract.write.safeTransferFrom(
             [from.address, to.address, id, value, '0x'],
             { account: operator },
           )
+          await tx
 
           return { ...contractsObject, operator, from, to, id, value, tx }
         }
@@ -387,75 +401,72 @@ export const shouldBehaveLikeErc1155 = <
         })
       })
 
-      context(
-        'when called by an operator on behalf of the multiTokenHolder',
-        () => {
-          context('when operator is not approved by multiTokenHolder', () => {
-            it('reverts', async () => {
-              const { contract, multiTokenHolder, recipient, proxy } =
-                await loadFixture(mintedToMultiFixture)
+      describe('when called by an operator on behalf of the multiTokenHolder', () => {
+        describe('when operator is not approved by multiTokenHolder', () => {
+          it('reverts', async () => {
+            const { contract, multiTokenHolder, recipient, proxy } =
+              await loadFixture(mintedToMultiFixture)
 
-              await expect(contract)
-                .write(
-                  'safeTransferFrom',
-                  [
-                    multiTokenHolder.address,
-                    recipient.address,
-                    firstTokenId,
-                    1n,
-                    '0x',
-                  ],
-                  { account: proxy },
-                )
-                .toBeRevertedWithString(
-                  'ERC1155: caller is not owner nor approved',
-                )
-            })
+            await expect(
+              contract.write.safeTransferFrom(
+                [
+                  multiTokenHolder.address,
+                  recipient.address,
+                  firstTokenId,
+                  1n,
+                  '0x',
+                ],
+                { account: proxy },
+              ),
+            ).toBeRevertedWithString(
+              'ERC1155: caller is not owner nor approved',
+            )
           })
+        })
 
-          context('when operator is approved by multiTokenHolder', () => {
-            async function fixture() {
-              const contractsObject = await loadFixture(mintedToMultiFixture)
-              const { contract, multiTokenHolder, proxy, recipient } =
-                contractsObject
-              const operator = proxy
-              const from = multiTokenHolder
-              const to = recipient
-              const id = firstTokenId
-              const value = 1n
+        describe('when operator is approved by multiTokenHolder', () => {
+          async function fixture() {
+            const contractsObject = await loadFixture(mintedToMultiFixture)
+            const { contract, multiTokenHolder, proxy, recipient } =
+              contractsObject
+            const operator = proxy
+            const from = multiTokenHolder
+            const to = recipient
+            const id = firstTokenId
+            const value = 1n
 
-              await contract.write.setApprovalForAll([operator.address, true], {
-                account: from,
-              })
-
-              const tx = await contract.write.safeTransferFrom(
-                [from.address, to.address, id, value, '0x'],
-                { account: operator },
-              )
-
-              return { ...contractsObject, operator, from, to, id, value, tx }
-            }
-
-            transferWasSuccessful(fixture)
-
-            it("preserves operator's balances not involved in the transfer", async () => {
-              const { contract, proxy } = await loadFixture(fixture)
-              await expect(
-                contract.read.balanceOf([proxy.address, firstTokenId]),
-              ).resolves.toEqual(0n)
-              await expect(
-                contract.read.balanceOf([proxy.address, secondTokenId]),
-              ).resolves.toEqual(0n)
+            await contract.write.setApprovalForAll([operator.address, true], {
+              account: from,
             })
-          })
-        },
-      )
 
-      context('when sending to a valid receiver', () => {
+            const tx = contract.write.safeTransferFrom(
+              [from.address, to.address, id, value, '0x'],
+              { account: operator },
+            )
+            await tx
+
+            return { ...contractsObject, operator, from, to, id, value, tx }
+          }
+
+          transferWasSuccessful(fixture)
+
+          it("preserves operator's balances not involved in the transfer", async () => {
+            const { contract, proxy } = await loadFixture(fixture)
+            await expect(
+              contract.read.balanceOf([proxy.address, firstTokenId]),
+            ).resolves.toEqual(0n)
+            await expect(
+              contract.read.balanceOf([proxy.address, secondTokenId]),
+            ).resolves.toEqual(0n)
+          })
+        })
+      })
+
+      describe('when sending to a valid receiver', () => {
         const createValidReceiverFixture = (data: Hex) =>
           async function contractsWithReceiver() {
             const contractsObject = await loadFixture(mintedToMultiFixture)
-            const receiver = await hre.viem.deployContract(
+            const receiver = await connection.viem.deployContract(
               'ERC1155ReceiverMock',
               [
                 RECEIVER_SINGLE_MAGIC_VALUE,
@@ -472,10 +483,11 @@ export const shouldBehaveLikeErc1155 = <
             const id = firstTokenId
             const value = 1n
 
-            const tx = await contract.write.safeTransferFrom(
+            const tx = contract.write.safeTransferFrom(
               [from.address, to.address, id, value, data],
               { account: operator },
             )
+            await tx
 
             return {
               ...contractsObject,
@@ -489,66 +501,65 @@ export const shouldBehaveLikeErc1155 = <
             }
           }
 
-        context('without data', () => {
+        describe('without data', () => {
           const fixture = createValidReceiverFixture('0x')
 
           transferWasSuccessful(fixture)
 
           it('calls onERC1155Received', async () => {
-            const { contract, receiver, multiTokenHolder, tx } =
-              await loadFixture(fixture)
+            const { receiver, multiTokenHolder, tx } = await loadFixture(
+              fixture,
+            )
 
-            await expect(contract)
-              .transaction(tx)
+            await expect(tx)
               .toEmitEventFrom(receiver, 'Received')
-              .withArgs(
-                multiTokenHolder.address,
-                multiTokenHolder.address,
-                firstTokenId,
-                1n,
-                '0x',
-              )
+              .withArgs({
+                operator: getAddress(multiTokenHolder.address),
+                from: getAddress(multiTokenHolder.address),
+                id: firstTokenId,
+                value: 1n,
+                data: '0x',
+              })
           })
         })
 
-        context('with data', () => {
+        describe('with data', () => {
           const data = '0xf00dd00d'
           const fixture = createValidReceiverFixture(data)
 
           transferWasSuccessful(fixture)
 
           it('calls onERC1155Received', async () => {
-            const { contract, receiver, multiTokenHolder, tx } =
-              await loadFixture(fixture)
+            const { receiver, multiTokenHolder, tx } = await loadFixture(
+              fixture,
+            )
 
-            await expect(contract)
-              .transaction(tx)
+            await expect(tx)
               .toEmitEventFrom(receiver, 'Received')
-              .withArgs(
-                multiTokenHolder.address,
-                multiTokenHolder.address,
-                firstTokenId,
-                1n,
+              .withArgs({
+                operator: getAddress(multiTokenHolder.address),
+                from: getAddress(multiTokenHolder.address),
+                id: firstTokenId,
+                value: 1n,
                 data,
-              )
+              })
           })
         })
       })
 
-      context('to a receiver contract returning unexpected value', () => {
+      describe('to a receiver contract returning unexpected value', () => {
         it('reverts', async () => {
           const { contract, multiTokenHolder } = await loadFixture(
             mintedToMultiFixture,
           )
 
-          const receiver = await hre.viem.deployContract(
+          const receiver = await connection.viem.deployContract(
             'ERC1155ReceiverMock',
             ['0x00c0ffee', false, RECEIVER_BATCH_MAGIC_VALUE, false],
           )
 
-          await expect(contract)
-            .write(
-              'safeTransferFrom',
+          await expect(
+            contract.write.safeTransferFrom(
               [
                 multiTokenHolder.address,
                 receiver.address,
@@ -557,18 +568,18 @@ export const shouldBehaveLikeErc1155 = <
                 '0x',
               ],
               { account: multiTokenHolder },
-            )
-            .toBeRevertedWithString('ERC1155: ERC1155Receiver rejected tokens')
+            ),
+          ).toBeRevertedWithString('ERC1155: ERC1155Receiver rejected tokens')
         })
       })
 
-      context('to a receiver that reverts', () => {
+      describe('to a receiver that reverts', () => {
         it('reverts', async () => {
           const { contract, multiTokenHolder } = await loadFixture(
             mintedToMultiFixture,
           )
 
-          const receiver = await hre.viem.deployContract(
+          const receiver = await connection.viem.deployContract(
             'ERC1155ReceiverMock',
             [
               RECEIVER_SINGLE_MAGIC_VALUE,
@@ -578,9 +589,8 @@ export const shouldBehaveLikeErc1155 = <
             ],
           )
 
-          await expect(contract)
-            .write(
-              'safeTransferFrom',
+          await expect(
+            contract.write.safeTransferFrom(
               [
                 multiTokenHolder.address,
                 receiver.address,
@@ -589,39 +599,35 @@ export const shouldBehaveLikeErc1155 = <
                 '0x',
               ],
               { account: multiTokenHolder },
-            )
-            .toBeRevertedWithString('ERC1155ReceiverMock: reverting on receive')
+            ),
+          ).toBeRevertedWithString('ERC1155ReceiverMock: reverting on receive')
         })
       })
 
-      context(
-        'to a contract that does not implement the required function',
-        () => {
-          it('reverts', async () => {
-            const { contract, multiTokenHolder } = await loadFixture(
-              mintedToMultiFixture,
-            )
+      describe('to a contract that does not implement the required function', () => {
+        it('reverts', async () => {
+          const { contract, multiTokenHolder } = await loadFixture(
+            mintedToMultiFixture,
+          )
 
-            const receiver = contract
+          const receiver = contract
 
-            await expect(contract)
-              .write(
-                'safeTransferFrom',
-                [
-                  multiTokenHolder.address,
-                  receiver.address,
-                  firstTokenId,
-                  1n,
-                  '0x',
-                ],
-                { account: multiTokenHolder },
-              )
-              .toBeRevertedWithString(
-                'ERC1155: transfer to non ERC1155Receiver implementer',
-              )
-          })
-        },
-      )
+          await expect(
+            contract.write.safeTransferFrom(
+              [
+                multiTokenHolder.address,
+                receiver.address,
+                firstTokenId,
+                1n,
+                '0x',
+              ],
+              { account: multiTokenHolder },
+            ),
+          ).toBeRevertedWithString(
+            'ERC1155: transfer to non ERC1155Receiver implementer',
+          )
+        })
+      })
     })
 
     describe('safeBatchTransferFrom', () => {
@@ -630,9 +636,8 @@ export const shouldBehaveLikeErc1155 = <
           mintedToMultiFixture,
         )
 
-        await expect(contract)
-          .write(
-            'safeBatchTransferFrom',
+        await expect(
+          contract.write.safeBatchTransferFrom(
             [
               multiTokenHolder.address,
               recipient.address,
@@ -641,8 +646,8 @@ export const shouldBehaveLikeErc1155 = <
               '0x',
             ],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: insufficient balance for transfer')
+          ),
+        ).toBeRevertedWithString('ERC1155: insufficient balance for transfer')
       })
 
       it("reverts when ids array length doesn't match amounts array length", async () => {
@@ -650,9 +655,8 @@ export const shouldBehaveLikeErc1155 = <
           mintedToMultiFixture,
         )
 
-        await expect(contract)
-          .write(
-            'safeBatchTransferFrom',
+        await expect(
+          contract.write.safeBatchTransferFrom(
             [
               multiTokenHolder.address,
               recipient.address,
@@ -661,12 +665,11 @@ export const shouldBehaveLikeErc1155 = <
               '0x',
             ],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: ids and amounts length mismatch')
+          ),
+        ).toBeRevertedWithString('ERC1155: ids and amounts length mismatch')
 
-        await expect(contract)
-          .write(
-            'safeBatchTransferFrom',
+        await expect(
+          contract.write.safeBatchTransferFrom(
             [
               multiTokenHolder.address,
               recipient.address,
@@ -675,8 +678,8 @@ export const shouldBehaveLikeErc1155 = <
               '0x',
             ],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: ids and amounts length mismatch')
+          ),
+        ).toBeRevertedWithString('ERC1155: ids and amounts length mismatch')
       })
 
       it('reverts when transferring to zero address', async () => {
@@ -684,9 +687,8 @@ export const shouldBehaveLikeErc1155 = <
           mintedToMultiFixture,
         )
 
-        await expect(contract)
-          .write(
-            'safeBatchTransferFrom',
+        await expect(
+          contract.write.safeBatchTransferFrom(
             [
               multiTokenHolder.address,
               zeroAddress,
@@ -695,8 +697,8 @@ export const shouldBehaveLikeErc1155 = <
               '0x',
             ],
             { account: multiTokenHolder },
-          )
-          .toBeRevertedWithString('ERC1155: transfer to the zero address')
+          ),
+        ).toBeRevertedWithString('ERC1155: transfer to the zero address')
       })
 
       const batchTransferWasSuccessful = (
@@ -707,7 +709,7 @@ export const shouldBehaveLikeErc1155 = <
             to: { address: Address }
             ids: bigint[]
             values: bigint[]
-            tx: Hash
+            tx: ReturnType<ERC1155Contract['write']['safeBatchTransferFrom']>
           }
         >,
       ) => {
@@ -734,17 +736,23 @@ export const shouldBehaveLikeErc1155 = <
         })
 
         it('emits a TransferSingle log', async () => {
-          const { contract, operator, from, to, tx, ids, values } =
-            await loadFixture(fixture)
+          const { operator, from, to, tx, ids, values } = await loadFixture(
+            fixture,
+          )
 
-          await expect(contract)
-            .transaction(tx)
+          await expect(tx)
             .toEmitEvent('TransferBatch')
-            .withArgs(operator.address, from.address, to.address, ids, values)
+            .withArgs({
+              operator: getAddress(operator.address),
+              from: getAddress(from.address),
+              to: getAddress(to.address),
+              ids,
+              values,
+            })
         })
       }
 
-      context('when called by the multiTokenHolder', () => {
+      describe('when called by the multiTokenHolder', () => {
         async function fixture() {
           const contractsObject = await loadFixture(mintedToMultiFixture)
           const { contract, multiTokenHolder, recipient } = contractsObject
@@ -754,10 +762,11 @@ export const shouldBehaveLikeErc1155 = <
           const ids = [firstTokenId, secondTokenId]
           const values = [1n, 1n]
 
-          const tx = await contract.write.safeBatchTransferFrom(
+          const tx = contract.write.safeBatchTransferFrom(
             [from.address, to.address, ids, values, '0x'],
             { account: operator },
           )
+          await tx
 
           return { ...contractsObject, operator, from, to, ids, values, tx }
         }
@@ -765,75 +774,72 @@ export const shouldBehaveLikeErc1155 = <
         batchTransferWasSuccessful(fixture)
       })
 
-      context(
-        'when called by an operator on behalf of the multiTokenHolder',
-        () => {
-          context('when operator is not approved by multiTokenHolder', () => {
-            it('reverts', async () => {
-              const { contract, multiTokenHolder, recipient, proxy } =
-                await loadFixture(mintedToMultiFixture)
+      describe('when called by an operator on behalf of the multiTokenHolder', () => {
+        describe('when operator is not approved by multiTokenHolder', () => {
+          it('reverts', async () => {
+            const { contract, multiTokenHolder, recipient, proxy } =
+              await loadFixture(mintedToMultiFixture)
 
-              await expect(contract)
-                .write(
-                  'safeBatchTransferFrom',
-                  [
-                    multiTokenHolder.address,
-                    recipient.address,
-                    [firstTokenId, secondTokenId],
-                    [1n, 1n],
-                    '0x',
-                  ],
-                  { account: proxy },
-                )
-                .toBeRevertedWithString(
-                  'ERC1155: transfer caller is not owner nor approved',
-                )
-            })
+            await expect(
+              contract.write.safeBatchTransferFrom(
+                [
+                  multiTokenHolder.address,
+                  recipient.address,
+                  [firstTokenId, secondTokenId],
+                  [1n, 1n],
+                  '0x',
+                ],
+                { account: proxy },
+              ),
+            ).toBeRevertedWithString(
+              'ERC1155: transfer caller is not owner nor approved',
+            )
           })
+        })
 
-          context('when operator is approved by multiTokenHolder', () => {
-            async function fixture() {
-              const contractsObject = await loadFixture(mintedToMultiFixture)
-              const { contract, multiTokenHolder, proxy, recipient } =
-                contractsObject
-              const operator = proxy
-              const from = multiTokenHolder
-              const to = recipient
-              const ids = [firstTokenId, secondTokenId]
-              const values = [1n, 1n]
+        describe('when operator is approved by multiTokenHolder', () => {
+          async function fixture() {
+            const contractsObject = await loadFixture(mintedToMultiFixture)
+            const { contract, multiTokenHolder, proxy, recipient } =
+              contractsObject
+            const operator = proxy
+            const from = multiTokenHolder
+            const to = recipient
+            const ids = [firstTokenId, secondTokenId]
+            const values = [1n, 1n]
 
-              await contract.write.setApprovalForAll([operator.address, true], {
-                account: from,
-              })
-
-              const tx = await contract.write.safeBatchTransferFrom(
-                [from.address, to.address, ids, values, '0x'],
-                { account: operator },
-              )
-
-              return { ...contractsObject, operator, from, to, ids, values, tx }
-            }
-
-            batchTransferWasSuccessful(fixture)
-
-            it("preserves operator's balances not involved in the transfer", async () => {
-              const { contract, proxy } = await loadFixture(fixture)
-              await expect(
-                contract.read.balanceOf([proxy.address, firstTokenId]),
-              ).resolves.toEqual(0n)
-              await expect(
-                contract.read.balanceOf([proxy.address, secondTokenId]),
-              ).resolves.toEqual(0n)
+            await contract.write.setApprovalForAll([operator.address, true], {
+              account: from,
             })
-          })
-        },
-      )
 
-      context('when sending to a valid receiver', () => {
+            const tx = contract.write.safeBatchTransferFrom(
+              [from.address, to.address, ids, values, '0x'],
+              { account: operator },
+            )
+            await tx
+
+            return { ...contractsObject, operator, from, to, ids, values, tx }
+          }
+
+          batchTransferWasSuccessful(fixture)
+
+          it("preserves operator's balances not involved in the transfer", async () => {
+            const { contract, proxy } = await loadFixture(fixture)
+            await expect(
+              contract.read.balanceOf([proxy.address, firstTokenId]),
+            ).resolves.toEqual(0n)
+            await expect(
+              contract.read.balanceOf([proxy.address, secondTokenId]),
+            ).resolves.toEqual(0n)
+          })
+        })
+      })
+
+      describe('when sending to a valid receiver', () => {
         const createValidReceiverFixture = (data: Hex) =>
           async function contractsWithReceiver() {
             const contractsObject = await loadFixture(mintedToMultiFixture)
-            const receiver = await hre.viem.deployContract(
+            const receiver = await connection.viem.deployContract(
               'ERC1155ReceiverMock',
               [
                 RECEIVER_SINGLE_MAGIC_VALUE,
@@ -850,10 +856,11 @@ export const shouldBehaveLikeErc1155 = <
             const ids = [firstTokenId, secondTokenId]
             const values = [1n, 1n]
 
-            const tx = await contract.write.safeBatchTransferFrom(
+            const tx = contract.write.safeBatchTransferFrom(
               [from.address, to.address, ids, values, data],
               { account: operator },
             )
+            await tx
 
             return {
               ...contractsObject,
@@ -867,59 +874,59 @@ export const shouldBehaveLikeErc1155 = <
             }
           }
 
-        context('without data', () => {
+        describe('without data', () => {
           const fixture = createValidReceiverFixture('0x')
 
           batchTransferWasSuccessful(fixture)
 
           it('calls onERC1155BatchReceived', async () => {
-            const { contract, receiver, multiTokenHolder, tx } =
-              await loadFixture(fixture)
+            const { receiver, multiTokenHolder, tx } = await loadFixture(
+              fixture,
+            )
 
-            await expect(contract)
-              .transaction(tx)
+            await expect(tx)
               .toEmitEventFrom(receiver, 'BatchReceived')
-              .withArgs(
-                multiTokenHolder.address,
-                multiTokenHolder.address,
-                [firstTokenId, secondTokenId],
-                [1n, 1n],
-                '0x',
-              )
+              .withArgs({
+                operator: getAddress(multiTokenHolder.address),
+                from: getAddress(multiTokenHolder.address),
+                ids: [firstTokenId, secondTokenId],
+                values: [1n, 1n],
+                data: '0x',
+              })
           })
         })
 
-        context('with data', () => {
+        describe('with data', () => {
           const data = '0xf00dd00d'
           const fixture = createValidReceiverFixture(data)
 
           batchTransferWasSuccessful(fixture)
 
           it('calls onERC1155BatchReceived', async () => {
-            const { contract, receiver, multiTokenHolder, tx } =
-              await loadFixture(fixture)
+            const { receiver, multiTokenHolder, tx } = await loadFixture(
+              fixture,
+            )
 
-            await expect(contract)
-              .transaction(tx)
+            await expect(tx)
               .toEmitEventFrom(receiver, 'BatchReceived')
-              .withArgs(
-                multiTokenHolder.address,
-                multiTokenHolder.address,
-                [firstTokenId, secondTokenId],
-                [1n, 1n],
+              .withArgs({
+                operator: getAddress(multiTokenHolder.address),
+                from: getAddress(multiTokenHolder.address),
+                ids: [firstTokenId, secondTokenId],
+                values: [1n, 1n],
                 data,
-              )
+              })
           })
         })
       })
 
-      context('to a receiver contract returning unexpected value', () => {
+      describe('to a receiver contract returning unexpected value', () => {
         it('reverts', async () => {
           const { contract, multiTokenHolder } = await loadFixture(
             mintedToMultiFixture,
           )
 
-          const receiver = await hre.viem.deployContract(
+          const receiver = await connection.viem.deployContract(
             'ERC1155ReceiverMock',
             [
               RECEIVER_SINGLE_MAGIC_VALUE,
@@ -929,9 +936,8 @@ export const shouldBehaveLikeErc1155 = <
             ],
           )
 
-          await expect(contract)
-            .write(
-              'safeBatchTransferFrom',
+          await expect(
+            contract.write.safeBatchTransferFrom(
               [
                 multiTokenHolder.address,
                 receiver.address,
@@ -940,18 +946,18 @@ export const shouldBehaveLikeErc1155 = <
                 '0x',
               ],
               { account: multiTokenHolder },
-            )
-            .toBeRevertedWithString('ERC1155: ERC1155Receiver rejected tokens')
+            ),
+          ).toBeRevertedWithString('ERC1155: ERC1155Receiver rejected tokens')
         })
       })
 
-      context('to a receiver contract that reverts', () => {
+      describe('to a receiver contract that reverts', () => {
         it('reverts', async () => {
           const { contract, multiTokenHolder } = await loadFixture(
             mintedToMultiFixture,
           )
 
-          const receiver = await hre.viem.deployContract(
+          const receiver = await connection.viem.deployContract(
             'ERC1155ReceiverMock',
             [
               RECEIVER_SINGLE_MAGIC_VALUE,
@@ -961,9 +967,8 @@ export const shouldBehaveLikeErc1155 = <
             ],
           )
 
-          await expect(contract)
-            .write(
-              'safeBatchTransferFrom',
+          await expect(
+            contract.write.safeBatchTransferFrom(
               [
                 multiTokenHolder.address,
                 receiver.address,
@@ -972,108 +977,97 @@ export const shouldBehaveLikeErc1155 = <
                 '0x',
               ],
               { account: multiTokenHolder },
-            )
-            .toBeRevertedWithString(
-              'ERC1155ReceiverMock: reverting on batch receive',
-            )
+            ),
+          ).toBeRevertedWithString(
+            'ERC1155ReceiverMock: reverting on batch receive',
+          )
         })
       })
 
-      context(
-        'to a receiver contract that reverts only on single transfers',
-        () => {
-          async function fixture() {
-            const contractsObject = await loadFixture(mintedToMultiFixture)
-            const receiver = await hre.viem.deployContract(
-              'ERC1155ReceiverMock',
-              [
-                RECEIVER_SINGLE_MAGIC_VALUE,
-                true,
-                RECEIVER_BATCH_MAGIC_VALUE,
-                false,
-              ],
-            )
+      describe('to a receiver contract that reverts only on single transfers', () => {
+        async function fixture() {
+          const contractsObject = await loadFixture(mintedToMultiFixture)
+          const receiver = await connection.viem.deployContract(
+            'ERC1155ReceiverMock',
+            [
+              RECEIVER_SINGLE_MAGIC_VALUE,
+              true,
+              RECEIVER_BATCH_MAGIC_VALUE,
+              false,
+            ],
+          )
 
-            const { contract, multiTokenHolder } = contractsObject
-            const operator = multiTokenHolder
-            const from = multiTokenHolder
-            const to = receiver
-            const ids = [firstTokenId, secondTokenId]
-            const values = [1n, 1n]
+          const { contract, multiTokenHolder } = contractsObject
+          const operator = multiTokenHolder
+          const from = multiTokenHolder
+          const to = receiver
+          const ids = [firstTokenId, secondTokenId]
+          const values = [1n, 1n]
 
-            const tx = await contract.write.safeBatchTransferFrom(
-              [from.address, to.address, ids, values, '0x'],
-              { account: operator },
-            )
+          const tx = contract.write.safeBatchTransferFrom(
+            [from.address, to.address, ids, values, '0x'],
+            { account: operator },
+          )
+          await tx
 
-            return {
-              ...contractsObject,
-              receiver,
-              operator,
-              from,
-              to,
-              ids,
-              values,
-              tx,
-            }
+          return {
+            ...contractsObject,
+            receiver,
+            operator,
+            from,
+            to,
+            ids,
+            values,
+            tx,
           }
+        }
 
-          batchTransferWasSuccessful(fixture)
+        batchTransferWasSuccessful(fixture)
 
-          it('calls onERC1155BatchReceived', async () => {
-            const { contract, receiver, multiTokenHolder, tx } =
-              await loadFixture(fixture)
+        it('calls onERC1155BatchReceived', async () => {
+          const { receiver, multiTokenHolder, tx } = await loadFixture(fixture)
 
-            await expect(contract)
-              .transaction(tx)
-              .toEmitEventFrom(receiver, 'BatchReceived')
-              .withArgs(
+          await expect(tx)
+            .toEmitEventFrom(receiver, 'BatchReceived')
+            .withArgs({
+              operator: getAddress(multiTokenHolder.address),
+              from: getAddress(multiTokenHolder.address),
+              ids: [firstTokenId, secondTokenId],
+              values: [1n, 1n],
+              data: '0x',
+            })
+        })
+      })
+
+      describe('to a contract that does not implement the required function', () => {
+        it('reverts', async () => {
+          const { contract, multiTokenHolder } = await loadFixture(
+            mintedToMultiFixture,
+          )
+
+          const receiver = contract
+
+          await expect(
+            contract.write.safeBatchTransferFrom(
+              [
                 multiTokenHolder.address,
-                multiTokenHolder.address,
+                receiver.address,
                 [firstTokenId, secondTokenId],
                 [1n, 1n],
                 '0x',
-              )
-          })
-        },
-      )
-
-      context(
-        'to a contract that does not implement the required function',
-        () => {
-          it('reverts', async () => {
-            const { contract, multiTokenHolder } = await loadFixture(
-              mintedToMultiFixture,
-            )
-
-            const receiver = contract
-
-            await expect(contract)
-              .write(
-                'safeBatchTransferFrom',
-                [
-                  multiTokenHolder.address,
-                  receiver.address,
-                  [firstTokenId, secondTokenId],
-                  [1n, 1n],
-                  '0x',
-                ],
-                { account: multiTokenHolder },
-              )
-              .toBeRevertedWithString(
-                'ERC1155: transfer to non ERC1155Receiver implementer',
-              )
-          })
-        },
-      )
+              ],
+              { account: multiTokenHolder },
+            ),
+          ).toBeRevertedWithString(
+            'ERC1155: transfer to non ERC1155Receiver implementer',
+          )
+        })
+      })
     })
 
     shouldSupportInterfaces({
       contract: () => contracts().then(({ contract }) => contract),
-      interfaces: [
-        '@openzeppelin/contracts/utils/introspection/IERC165.sol:IERC165',
-        'IERC1155',
-      ],
+      interfaces: ['IERC165', 'IERC1155'],
     })
   })
 }

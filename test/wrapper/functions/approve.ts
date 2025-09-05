@@ -1,6 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { toNameId } from '../../fixtures/utils.js'
 import {
@@ -11,18 +11,21 @@ import {
   GRACE_PERIOD,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const approveTests = () => {
+export const approveTests = (
+  connection: NetworkConnection,
+  loadNameWrapperFixture: LoadNameWrapperFixture,
+) => {
   describe('approve()', () => {
     const label = 'subdomain'
     const sublabel = 'sub'
     const name = `${label}.eth`
     const subname = `${sublabel}.${name}`
 
-    async function approveFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { nameWrapper, actions } = initial
 
       await actions.registerSetupAndWrapName({
@@ -35,9 +38,11 @@ export const approveTests = () => {
 
       return { ...initial, parentExpiry }
     }
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
 
     it('Sets an approval address if owner', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
@@ -47,7 +52,7 @@ export const approveTests = () => {
     })
 
     it('Sets an approval address if is an operator', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.setApprovalForAll([accounts[1].address, true])
       await nameWrapper.write.approve([accounts[2].address, toNameId(name)], {
@@ -60,44 +65,47 @@ export const approveTests = () => {
     })
 
     it('Reverts if called by an approved address', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write('approve', [accounts[2].address, toNameId(name)], {
+      await expect(
+        nameWrapper.write.approve([accounts[2].address, toNameId(name)], {
           account: accounts[1],
-        })
-        .toBeRevertedWithString(
-          'ERC721: approve caller is not token owner or approved for all',
-        )
+        }),
+      ).toBeRevertedWithString(
+        'ERC721: approve caller is not token owner or approved for all',
+      )
     })
 
     it('Reverts if called by non-owner or approved', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('approve', [accounts[1].address, toNameId(name)], {
+      await expect(
+        nameWrapper.write.approve([accounts[1].address, toNameId(name)], {
           account: accounts[2],
-        })
-        .toBeRevertedWithString(
-          'ERC721: approve caller is not token owner or approved for all',
-        )
+        }),
+      ).toBeRevertedWithString(
+        'ERC721: approve caller is not token owner or approved for all',
+      )
     })
 
     it('Emits Approval event', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('approve', [accounts[1].address, toNameId(name)])
+      await expect(
+        nameWrapper.write.approve([accounts[1].address, toNameId(name)]),
+      )
         .toEmitEvent('Approval')
-        .withArgs(accounts[0].address, accounts[1].address, toNameId(name))
+        .withArgs({
+          owner: getAddress(accounts[0].address),
+          approved: getAddress(accounts[1].address),
+          tokenId: toNameId(name),
+        })
     })
 
     it('Allows approved address to call extendExpiry()', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -120,9 +128,7 @@ export const approveTests = () => {
     })
 
     it('Does not allows approved address to call setSubnodeOwner()', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -135,20 +141,18 @@ export const approveTests = () => {
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[1])
 
-      await expect(nameWrapper)
-        .write(
-          'setSubnodeOwner',
+      await expect(
+        nameWrapper.write.setSubnodeOwner(
           [namehash(name), sublabel, accounts[2].address, 0, 1000n],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Allows approved address to call setSubnodeRecord()', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -161,9 +165,8 @@ export const approveTests = () => {
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[1])
 
-      await expect(nameWrapper)
-        .write(
-          'setSubnodeRecord',
+      await expect(
+        nameWrapper.write.setSubnodeRecord(
           [
             namehash(name),
             sublabel,
@@ -174,14 +177,15 @@ export const approveTests = () => {
             10000n,
           ],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Does not allow approved address to call setChildFuses()', async () => {
       const { nameWrapper, accounts, actions, parentExpiry } =
-        await loadFixture(approveFixture)
+        await loadFixture()
 
       await nameWrapper.write.setFuses([namehash(name), CANNOT_UNWRAP])
       await actions.setSubnodeOwner.onNameWrapper({
@@ -195,9 +199,8 @@ export const approveTests = () => {
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[1])
 
-      await expect(nameWrapper)
-        .write(
-          'setChildFuses',
+      await expect(
+        nameWrapper.write.setChildFuses(
           [
             namehash(name),
             labelhash(sublabel),
@@ -205,15 +208,14 @@ export const approveTests = () => {
             parentExpiry,
           ],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Does not allow approved accounts to extend expiry when expired', async () => {
-      const { nameWrapper, accounts, actions, testClient } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions, testClient } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -229,17 +231,21 @@ export const approveTests = () => {
       })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [namehash(name), labelhash(sublabel), 1000n], {
-          account: accounts[1],
-        })
+      await expect(
+        nameWrapper.write.extendExpiry(
+          [namehash(name), labelhash(sublabel), 1000n],
+          {
+            account: accounts[1],
+          },
+        ),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Approved address can be replaced and previous approved is removed', async () => {
       const { nameWrapper, accounts, actions, parentExpiry } =
-        await loadFixture(approveFixture)
+        await loadFixture()
 
       await nameWrapper.write.setFuses([namehash(name), CANNOT_UNWRAP])
       // Make sure there are no lingering approvals
@@ -261,21 +267,21 @@ export const approveTests = () => {
         { account: accounts[2] },
       )
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), parentExpiry],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(subname), getAddress(accounts[1].address))
+        .withArgs([namehash(subname), getAddress(accounts[1].address)])
 
       const [, , expiry] = await nameWrapper.read.getData([toNameId(subname)])
       expect(expiry).toEqual(parentExpiry - 500n)
     })
 
     it('Approved address cannot be removed/replaced when fuse is burnt', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
       await nameWrapper.write.setFuses([
@@ -283,89 +289,90 @@ export const approveTests = () => {
         CANNOT_UNWRAP | CANNOT_APPROVE,
       ])
 
-      await expect(nameWrapper)
-        .write('approve', [zeroAddress, toNameId(name)])
+      await expect(nameWrapper.write.approve([zeroAddress, toNameId(name)]))
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
 
-      await expect(nameWrapper)
-        .write('approve', [accounts[0].address, toNameId(name)])
+      await expect(
+        nameWrapper.write.approve([accounts[0].address, toNameId(name)]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Approved address cannot transfer the name', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write(
-          'safeTransferFrom',
+      await expect(
+        nameWrapper.write.safeTransferFrom(
           [accounts[0].address, accounts[1].address, toNameId(name), 1n, '0x'],
           { account: accounts[1] },
-        )
-        .toBeRevertedWithString('ERC1155: caller is not owner nor approved')
+        ),
+      ).toBeRevertedWithString('ERC1155: caller is not owner nor approved')
     })
 
     it('Approved address cannot transfer the name with setRecord()', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write(
-          'setRecord',
+      await expect(
+        nameWrapper.write.setRecord(
           [namehash(name), accounts[1].address, zeroAddress, 0n],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Approved address cannot call setResolver()', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write('setResolver', [namehash(name), accounts[1].address], {
+      await expect(
+        nameWrapper.write.setResolver([namehash(name), accounts[1].address], {
           account: accounts[1],
-        })
+        }),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Approved address cannot call setTTL()', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write('setTTL', [namehash(name), 100n], { account: accounts[1] })
+      await expect(
+        nameWrapper.write.setTTL([namehash(name), 100n], {
+          account: accounts[1],
+        }),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Approved address cannot unwrap .eth', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write(
-          'unwrapETH2LD',
+      await expect(
+        nameWrapper.write.unwrapETH2LD(
           [labelhash(label), accounts[1].address, accounts[1].address],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Approved address cannot unwrap non .eth', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -376,18 +383,18 @@ export const approveTests = () => {
       })
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await expect(nameWrapper)
-        .write(
-          'unwrap',
+      await expect(
+        nameWrapper.write.unwrap(
           [namehash(name), labelhash(sublabel), accounts[1].address],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(subname), getAddress(accounts[1].address))
+        .withArgs([namehash(subname), getAddress(accounts[1].address)])
     })
 
     it('Approval is cleared on transfer', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
@@ -405,9 +412,7 @@ export const approveTests = () => {
     })
 
     it('Approval is cleared on unwrapETH2LD()', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
@@ -446,9 +451,7 @@ export const approveTests = () => {
     })
 
     it('Approval is cleared on unwrap()', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -492,9 +495,7 @@ export const approveTests = () => {
     })
 
     it('Approval is cleared on re-registration and wrap of expired name', async () => {
-      const { nameWrapper, accounts, actions, testClient } = await loadFixture(
-        approveFixture,
-      )
+      const { nameWrapper, accounts, actions, testClient } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
       await nameWrapper.write.setFuses([
@@ -535,7 +536,7 @@ export const approveTests = () => {
     })
 
     it('Approval is not cleared on transfer if CANNOT_APPROVE is burnt', async () => {
-      const { nameWrapper, accounts } = await loadFixture(approveFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
       await nameWrapper.write.setFuses([

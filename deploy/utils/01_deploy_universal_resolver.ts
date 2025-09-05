@@ -1,25 +1,25 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, execute } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { owner } = await hre.viem.getNamedClients()
+export default execute(
+  async ({ deploy, get, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const registry = await hre.viem.getContract('ENSRegistry')
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const batchGatewayProvider = get<(typeof artifacts.GatewayProvider)['abi']>(
+      'BatchGatewayProvider',
+    )
 
-  const batchGatewayProvider = await hre.viem.getContract(
-    'BatchGatewayProvider' as 'GatewayProvider',
-  )
+    await deploy('UniversalResolver', {
+      account: deployer,
+      artifact: artifacts.UniversalResolver,
+      args: [owner, registry.address, batchGatewayProvider.address],
+    })
 
-  await hre.viem.deploy('UniversalResolver', [
-    owner.address,
-    registry.address,
-    batchGatewayProvider.address,
-  ])
-
-  return true
-}
-
-func.id = 'UniversalResolver v1.0.1'
-func.tags = ['category:utils', 'UniversalResolver']
-func.dependencies = ['ENSRegistry', 'BatchGatewayProvider']
-
-export default func
+    return true
+  },
+  {
+    id: 'UniversalResolver v1.0.1',
+    tags: ['category:utils', 'UniversalResolver'],
+    dependencies: ['ENSRegistry', 'BatchGatewayProvider'],
+  },
+)

@@ -1,28 +1,34 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, execute } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { deployments, viem } = hre
-  const { deploy } = deployments
+export default execute(
+  async ({ deploy, get, execute: write, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { deployer, owner } = await viem.getNamedClients()
+    const registrar = get<
+      (typeof artifacts.BaseRegistrarImplementation)['abi']
+    >('BaseRegistrarImplementation')
+    const wrapper = get<(typeof artifacts.NameWrapper)['abi']>('NameWrapper')
 
-  const registrar = await viem.getContract('BaseRegistrarImplementation')
-  const wrapper = await viem.getContract('NameWrapper')
+    const migrationHelper = await deploy('MigrationHelper', {
+      account: deployer,
+      artifact: artifacts.MigrationHelper,
+      args: [registrar.address, wrapper.address],
+    })
 
-  await viem.deploy('MigrationHelper', [registrar.address, wrapper.address])
+    if (owner && owner !== deployer) {
+      console.log(`  - Transferring ownership to ${owner}`)
+      await write(migrationHelper, {
+        account: deployer,
+        functionName: 'transferOwnership',
+        args: [owner],
+      })
+    }
 
-  if (owner !== undefined && owner.address !== deployer.address) {
-    const migrationHelper = await viem.getContract('MigrationHelper')
-    const hash = await migrationHelper.write.transferOwnership([owner.address])
-    console.log(`Transfer ownership to ${owner.address} (tx: ${hash})...`)
-    await viem.waitForTransactionSuccess(hash)
-  }
-
-  return true
-}
-
-func.id = 'MigrationHelper v1.0.0'
-func.tags = ['category:utils', 'MigrationHelper']
-func.dependencies = ['BaseRegistrarImplementation', 'NameWrapper']
-
-export default func
+    return true
+  },
+  {
+    id: 'MigrationHelper v1.0.0',
+    tags: ['category:utils', 'MigrationHelper'],
+    dependencies: ['BaseRegistrarImplementation', 'NameWrapper'],
+  },
+)

@@ -1,33 +1,24 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { execute, artifacts } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { deployer, owner } = await hre.viem.getNamedClients()
+export default execute(
+  async ({ deploy, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const batchGatewayURLs: string[] = JSON.parse(
-    process.env.BATCH_GATEWAY_URLS || '[]',
-  )
+    const batchGatewayURLs: string[] = JSON.parse(
+      process.env.BATCH_GATEWAY_URLS || '[]',
+    )
 
-  if (!batchGatewayURLs.length) {
-    throw new Error('BatchGatewayProvider: No batch gateway URLs provided')
-  }
-
-  const artifact = {
-    ...(await hre.deployments.getExtendedArtifact('GatewayProvider')),
-    ...(await hre.deployments.getArtifact('GatewayProvider')),
-  }
-
-  await hre.viem.deploy(
-    'BatchGatewayProvider',
-    [(owner ?? deployer).address, batchGatewayURLs],
-    {
-      artifact,
-    },
-  )
-
-  return true
-}
-
-func.id = 'BatchGatewayProvider v1.0.0'
-func.tags = ['category:utils', 'BatchGatewayProvider']
-
-export default func
+    if (!batchGatewayURLs.length) {
+      throw new Error('BatchGatewayProvider: No batch gateway URLs provided')
+    }
+    await deploy('BatchGatewayProvider', {
+      account: deployer,
+      artifact: artifacts.GatewayProvider,
+      args: [owner ?? deployer, batchGatewayURLs],
+    })
+  },
+  {
+    id: 'BatchGatewayProvider v1.0.0',
+    tags: ['category:utils', 'BatchGatewayProvider'],
+  },
+)

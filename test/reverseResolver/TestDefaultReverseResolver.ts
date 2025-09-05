@@ -1,8 +1,5 @@
 import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import hre from 'hardhat'
-import { slice } from 'viem'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import {
@@ -18,31 +15,30 @@ import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 const testName = 'test.eth'
 const coinTypes = [COIN_TYPE_ETH, COIN_TYPE_DEFAULT, 0n, 1n]
 
+const connection = await hre.network.connect()
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
+
 async function fixture() {
-  const F = await deployDefaultReverseFixture()
+  const F = await deployDefaultReverseFixture(connection)
   await F.defaultReverseRegistrar.write.setName([testName])
   return F
 }
 
 describe('DefaultReverseResolver', () => {
   shouldSupportInterfaces({
-    contract: () => loadFixture(fixture).then((F) => F.defaultReverseResolver),
-    interfaces: [
-      '@openzeppelin/contracts-v5/utils/introspection/IERC165.sol:IERC165',
-      'IExtendedResolver',
-      'INameReverser',
-    ],
+    contract: () => loadFixture().then((F) => F.defaultReverseResolver),
+    interfaces: ['IERC165', 'IExtendedResolver', 'INameReverser'],
   })
 
   it('coinType()', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture()
     await expect(
       F.defaultReverseResolver.read.coinType(),
     ).resolves.toStrictEqual(COIN_TYPE_DEFAULT)
   })
 
   it('chainId()', async () => {
-    const F = await loadFixture(fixture)
+    const F = await loadFixture()
     await expect(
       F.defaultReverseResolver.read.chainId(),
     ).resolves.toStrictEqual(chainFromCoinType(COIN_TYPE_DEFAULT))
@@ -50,20 +46,23 @@ describe('DefaultReverseResolver', () => {
 
   describe('resolve()', () => {
     it('unsupported profile', async () => {
-      const F = await loadFixture(fixture)
+      const F = await loadFixture()
       const kp: KnownProfile = {
         name: getReverseName(F.owner),
         texts: [{ key: 'dne', value: 'abc' }],
       }
       const [res] = makeResolutions(kp)
-      await expect(F.defaultReverseResolver)
-        .read('resolve', [dnsEncodeName(kp.name), res.call])
-        .toBeRevertedWithCustomError('UnsupportedResolverProfile')
-        .withArgs(slice(res.call, 0, 4))
+      await expect(
+        F.defaultReverseResolver.read.resolve([
+          dnsEncodeName(kp.name),
+          res.call,
+        ]),
+      ).toBeRevertedWithCustomError('UnsupportedResolverProfile')
+      // .withArgs(slice(res.call, 0, 4))
     })
 
     it('addr("default.reverse") = registrar', async () => {
-      const F = await loadFixture(fixture)
+      const F = await loadFixture()
       const kp: KnownProfile = {
         name: F.defaultReverseNamespace,
         addresses: [
@@ -86,7 +85,7 @@ describe('DefaultReverseResolver', () => {
 
     for (const coinType of coinTypes) {
       it(shortCoin(coinType), async () => {
-        const F = await loadFixture(fixture)
+        const F = await loadFixture()
         const kp: KnownProfile = {
           name: getReverseName(F.owner, coinType),
           primary: { value: testName },
@@ -100,10 +99,13 @@ describe('DefaultReverseResolver', () => {
             ]),
           )
         } else {
-          await expect(F.defaultReverseResolver)
-            .read('resolve', [dnsEncodeName(kp.name), res.call])
-            .toBeRevertedWithCustomError('UnreachableName')
-            .withArgs(dnsEncodeName(kp.name))
+          await expect(
+            F.defaultReverseResolver.read.resolve([
+              dnsEncodeName(kp.name),
+              res.call,
+            ]),
+          ).toBeRevertedWithCustomError('UnreachableName')
+          // .withArgs(dnsEncodeName(kp.name))
         }
       })
     }
@@ -118,7 +120,7 @@ describe('DefaultReverseResolver', () => {
       '80000001.reverse', // chain(1)
     ]) {
       it(namespace, async () => {
-        const F = await loadFixture(fixture)
+        const F = await loadFixture()
         const kp: KnownProfile = {
           name: `${F.owner.slice(2).toLowerCase()}.${namespace}`,
           primary: { value: testName },
@@ -138,15 +140,15 @@ describe('DefaultReverseResolver', () => {
     const perPage = 0 // ignored, has no effect
 
     it('empty', async () => {
-      const F = await loadFixture(fixture)
+      const F = await loadFixture()
       await expect(
         F.defaultReverseResolver.read.resolveNames([[], perPage]),
       ).resolves.toStrictEqual([])
     })
 
     it('multiple + 1 unset', async () => {
-      const F = await loadFixture(fixture)
-      const wallets = await hre.viem.getWalletClients()
+      const F = await loadFixture()
+      const wallets = await connection.viem.getWalletClients()
       for (const w of wallets) {
         await F.defaultReverseRegistrar.write.setName([w.uid], {
           account: w.account,

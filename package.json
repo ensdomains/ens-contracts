@@ -4,12 +4,11 @@
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
-    "hh": "NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' hardhat",
-    "compile": "bun run hh compile",
-    "test": "bun run hh test",
-    "test:remote": "FORKING_ENABLED=1 bun hh test ./test/**/Test*.remote.ts",
-    "test:parallel": "bun run hh test ./test/**/Test*.ts --parallel",
-    "test:local": "bun run hh --network localhost test",
+    "compile": "hardhat compile",
+    "test": "bun run compile && NODE_OPTIONS=\"--disable-warning=ExperimentalWarning\" vitest run",
+    "test:remote": "FORKING_ENABLED=1 bun run test ./test/**/Test*.remote.ts",
+    "test:parallel": "bun run test ./test/**/Test*.ts --sequence.concurrent",
+    "test:local": "bun run test --network localhost",
     "test:deploy": "bun ./scripts/deploy-test.ts",
     "l2:deploy": "bun run hh deploy --tags l2",
     "lint": "bun run hh check",
@@ -29,32 +28,35 @@
   "devDependencies": {
     "@ensdomains/address-encoder": "1.1.2",
     "@ensdomains/dnsprovejs": "^0.5.1",
-    "@ensdomains/hardhat-chai-matchers-viem": "^0.0.10",
-    "@ensdomains/hardhat-toolbox-viem-extended": "0.0.5",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.1.14",
     "@namestone/ezccip": "^0.1.0",
-    "@nomicfoundation/hardhat-toolbox-viem": "^3.0.0",
+    "@nomicfoundation/hardhat-keystore": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.0",
+    "@rocketh/deploy": "^0.14.0",
+    "@rocketh/read-execute": "^0.14.0",
+    "@rocketh/verifier": "^0.14.5",
+    "@rocketh/viem": "^0.14.0",
     "@safe-global/api-kit": "^2.5.6",
-    "@safe-global/protocol-kit": "^5.1.1",
+    "@safe-global/protocol-kit": "5.2.13",
     "@safe-global/safe-core-sdk-types": "^5.1.0",
     "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
-    "@vitest/expect": "^1.6.0",
-    "abitype": "^1.0.2",
+    "abitype": "^1.0.8",
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.14.0",
-    "hardhat": "^2.22.2",
-    "hardhat-abi-exporter": "^2.9.0",
-    "hardhat-contract-sizer": "^2.6.1",
-    "hardhat-deploy": "^0.12.4",
-    "hardhat-gas-reporter": "^1.0.4",
+    "hardhat": "3.0.1",
+    "hardhat-deploy": "^2.0.0-next.35",
     "husky": "^9.1.7",
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "rocketh": "0.14.5",
     "ts-node": "^10.9.2",
-    "typescript": "^5.4.5",
-    "viem": "2.12.0"
+    "typescript": "5.9.2",
+    "viem": "2.33.3",
+    "vitest": "^3.2.3"
   },
   "dependencies": {
     "@ensdomains/buffer": "^0.1.1",
@@ -64,7 +66,11 @@
     "@openzeppelin/contracts-v5": "npm:@openzeppelin/contracts@5.1.0",
     "@unruggable/gateways": "^1.2.2",
     "clones-with-immutable-args": "Arachnid/clones-with-immutable-args#feature/create2",
-    "dns-packet": "^5.3.0"
+    "dns-packet": "^5.3.0",
+    "glob": "^11.0.3"
+  },
+  "resolutions": {
+    "hardhat": "3.0.1"
   },
   "directories": {
     "test": "test"
@@ -79,8 +85,7 @@
     "url": "https://github.com/ensdomains/ens-contracts/issues"
   },
   "homepage": "https://github.com/ensdomains/ens-contracts#readme",
-  "patchedDependencies": {
-    "hardhat-deploy@0.12.4": "patches/hardhat-deploy@0.12.4.patch",
-    "@nomicfoundation/hardhat-viem@2.0.6": "patches/@nomicfoundation%2Fhardhat-viem@2.0.6.patch"
+  "volta": {
+    "node": "24.6.0"
   }
 }

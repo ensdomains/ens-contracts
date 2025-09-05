@@ -1,32 +1,29 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, execute } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default execute(
+  async ({ deploy, execute: write, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { owner } = await viem.getNamedClients()
+    const defaultReverseRegistrar = await deploy('DefaultReverseRegistrar', {
+      account: deployer,
+      artifact: artifacts.DefaultReverseRegistrar,
+    })
 
-  await viem.deploy('DefaultReverseRegistrar', [])
-  const defaultReverseRegistrar = await viem.getContract(
-    'DefaultReverseRegistrar',
-  )
-
-  const defaultReverseRegistrarOwner =
-    await defaultReverseRegistrar.read.owner()
-  if (defaultReverseRegistrarOwner !== owner.address) {
-    const hash = await defaultReverseRegistrar.write.transferOwnership([
-      owner.address,
-    ])
-    console.log(
-      `Transferring ownership of DefaultReverseRegistrar to ${owner.address} (tx: ${hash})...`,
-    )
-    await viem.waitForTransactionSuccess(hash)
-  }
-
-  return true
-}
-
-func.id = 'DefaultReverseRegistrar v1.0.0'
-func.tags = ['category:reverseregistrar', 'DefaultReverseRegistrar']
-func.dependencies = []
-
-export default func
+    // Transfer ownership to owner
+    if (owner !== deployer) {
+      console.log(
+        `  - Transferring ownership of DefaultReverseRegistrar to ${owner}`,
+      )
+      await write(defaultReverseRegistrar, {
+        functionName: 'transferOwnership',
+        args: [owner],
+        account: deployer,
+      })
+    }
+  },
+  {
+    id: 'DefaultReverseRegistrar v1.0.0',
+    tags: ['category:reverseregistrar', 'DefaultReverseRegistrar'],
+    dependencies: [],
+  },
+)

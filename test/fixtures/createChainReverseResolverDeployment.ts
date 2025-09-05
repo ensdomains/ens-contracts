@@ -1,5 +1,4 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import type { Address } from 'viem'
+import { execute, artifacts } from '@rocketh'
 import { mainnet, sepolia } from 'viem/chains'
 import { coinTypeFromChain } from './ensip19.js'
 
@@ -7,13 +6,6 @@ const owners = {
   [sepolia.id]: '0x343431e9CEb7C19cC8d3eA0EE231bfF82B584910',
   // dao address
   [mainnet.id]: '0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7',
-} as const
-
-type ResolverDeployment = {
-  chain: number
-  verifier: Address
-  registrar: Address
-  gateways: string[]
 }
 
 export function createChainReverseResolverDeployer({
@@ -21,52 +13,50 @@ export function createChainReverseResolverDeployer({
   targets,
 }: {
   chainName: string
-  targets: Record<number, ResolverDeployment>
+  targets: Record<number, any>
 }) {
-  const func: DeployFunction = async function (hre) {
-    const { deployer } = await hre.viem.getNamedClients()
-    const publicClient = await hre.viem.getPublicClient()
+  const func = execute(
+    async ({ deploy, get, namedAccounts, network }) => {
+      const { deployer } = namedAccounts
 
-    const defaultReverseRegistrar = await hre.viem
-      .getContract('DefaultReverseRegistrar')
-      .then((c) => c.address)
+      const defaultReverseRegistrar = await get('DefaultReverseRegistrar')
+      const chainId =
+        network.chain?.id || (network as any).config?.chainId || 31337
+      const target = targets[chainId]
 
-    const target = targets[publicClient.chain.id]
-    if (!target) {
-      console.log(`No target for chain ${publicClient.chain.id}`)
-      return
-    }
-    const { chain, registrar, verifier, gateways } = target
+      if (!target) {
+        console.log(`No target for chain ${chainId}`)
+        return
+      }
 
-    const owner = owners[publicClient.chain.id as keyof typeof owners]
-    // there should always be an owner specified when there are targets
-    if (!owner) throw new Error(`No owner for chain ${publicClient.chain.id}`)
+      const { chain, registrar, verifier, gateways } = target
+      const owner = owners[chainId as keyof typeof owners]
 
-    await hre.viem.deploy(
-      'ChainReverseResolver',
-      [
-        owner,
-        coinTypeFromChain(chain),
-        defaultReverseRegistrar,
-        registrar,
-        verifier,
-        gateways,
+      // there should always be an owner specified when there are targets
+      if (!owner) throw new Error(`No owner for chain ${chainId}`)
+
+      await deploy(`${chainName}ReverseResolver`, {
+        account: deployer,
+        artifact: artifacts.ChainReverseResolver,
+        args: [
+          owner as `0x${string}`,
+          coinTypeFromChain(chain),
+          defaultReverseRegistrar.address,
+          registrar,
+          verifier,
+          gateways,
+        ],
+      })
+    },
+    {
+      id: `ChainReverseResolver:${chainName} v1.0.0`,
+      tags: [
+        'category:reverseregistrar',
+        'ChainReverseResolver',
+        `ChainReverseResolver:${chainName}`,
       ],
-      {
-        alias: `${chainName}ReverseResolver`,
-        client: deployer,
-      },
-    )
-
-    return true
-  }
-  func.id = `ChainReverseResolver:${chainName} v1.0.0`
-  func.tags = [
-    'category:reverseregistrar',
-    'ChainReverseResolver',
-    `ChainReverseResolver:${chainName}`,
-  ]
-  func.dependencies = ['DefaultReverseRegistrar']
-
+      dependencies: ['DefaultReverseRegistrar'],
+    },
+  )
   return func
 }

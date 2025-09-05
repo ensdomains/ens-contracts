@@ -1,11 +1,11 @@
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash } from 'viem'
 
-export async function deployRegistryFixture() {
-  const [wallet] = await hre.viem.getWalletClients()
-  const owner = getAddress(wallet.account.address)
-  const ensRegistry = await hre.viem.deployContract('ENSRegistry')
-  return { owner, ensRegistry, takeControl }
+export async function deployRegistryFixture(connection: NetworkConnection) {
+  const [walletClient] = await connection.viem.getWalletClients()
+  const owner = getAddress(walletClient.account.address)
+  const ensRegistry = await connection.viem.deployContract('ENSRegistry')
+
   async function takeControl(name: string) {
     if (name) {
       const labels = name.split('.')
@@ -18,4 +18,6 @@ export async function deployRegistryFixture() {
       }
     }
   }
+
+  return { owner, walletClient, ensRegistry, takeControl }
 }

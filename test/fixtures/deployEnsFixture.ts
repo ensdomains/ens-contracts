@@ -1,31 +1,29 @@
-import type { GetContractReturnType } from '@nomicfoundation/hardhat-viem/types.js'
+import type {
+  AnyContract,
+  NamedContractReturnType,
+} from '@ensdomains/hardhat-chai-matchers-viem'
 import hre from 'hardhat'
-import type { ArtifactsMap } from 'hardhat/types'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { labelhash, namehash, type Address } from 'viem'
 import { createInterfaceId } from './createInterfaceId.js'
 
 export const ZERO_HASH =
   '0x0000000000000000000000000000000000000000000000000000000000000000' as const
 
-type Contracts = {
-  [A in keyof ArtifactsMap]: GetContractReturnType<ArtifactsMap[A]['abi']>
-}
-type AnyContract = Contracts[keyof ArtifactsMap]
-
 export type EnsStack = {
-  ensRegistry: Contracts['ENSRegistry']
-  root: Contracts['Root']
-  reverseRegistrar: Contracts['ReverseRegistrar']
-  baseRegistrarImplementation: Contracts['BaseRegistrarImplementation']
-  ethOwnedResolver: Contracts['OwnedResolver']
-  dummyOracle: Contracts['DummyOracle']
-  exponentialPremiumPriceOracle: Contracts['ExponentialPremiumPriceOracle']
-  staticMetadataService: Contracts['StaticMetadataService']
-  nameWrapper: Contracts['NameWrapper']
-  ethRegistrarController: Contracts['ETHRegistrarController']
-  staticBulkRenewal: Contracts['StaticBulkRenewal']
-  publicResolver: Contracts['PublicResolver']
-  universalResolver: Contracts['UniversalResolver']
+  ensRegistry: NamedContractReturnType<'ENSRegistry'>
+  root: NamedContractReturnType<'Root'>
+  reverseRegistrar: NamedContractReturnType<'ReverseRegistrar'>
+  baseRegistrarImplementation: NamedContractReturnType<'BaseRegistrarImplementation'>
+  ethOwnedResolver: NamedContractReturnType<'OwnedResolver'>
+  dummyOracle: NamedContractReturnType<'DummyOracle'>
+  exponentialPremiumPriceOracle: NamedContractReturnType<'ExponentialPremiumPriceOracle'>
+  staticMetadataService: NamedContractReturnType<'StaticMetadataService'>
+  nameWrapper: NamedContractReturnType<'NameWrapper'>
+  ethRegistrarController: NamedContractReturnType<'ETHRegistrarController'>
+  staticBulkRenewal: NamedContractReturnType<'StaticBulkRenewal'>
+  publicResolver: NamedContractReturnType<'PublicResolver'>
+  universalResolver: NamedContractReturnType<'UniversalResolver'>
 }
 
 const setRootNodeOwner = async ({
@@ -34,131 +32,159 @@ const setRootNodeOwner = async ({
 }: Pick<EnsStack, 'ensRegistry' | 'root'>) => {
   await ensRegistry.write.setOwner([ZERO_HASH, root.address])
 }
-const setRootSubnodeOwner = async ({
-  root,
-  label,
-  owner: subnodeOwner,
-}: Pick<EnsStack, 'root'> & { label: string; owner: { address: Address } }) => {
-  const { owner } = await hre.getNamedAccounts()
+const setRootSubnodeOwner = async (
+  connection: NetworkConnection,
+  {
+    root,
+    label,
+    owner: subnodeOwner,
+  }: Pick<EnsStack, 'root'> & { label: string; owner: { address: Address } },
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   return await root.write.setSubnodeOwner(
     [labelhash(label), subnodeOwner.address],
     {
-      account: owner as Address,
+      account: owner.account,
     },
   )
 }
-const setAddrReverseNodeOwner = async ({
-  ensRegistry,
-  reverseRegistrar,
-}: Pick<EnsStack, 'ensRegistry' | 'reverseRegistrar'>) => {
-  const { owner } = await hre.getNamedAccounts()
+const setAddrReverseNodeOwner = async (
+  connection: NetworkConnection,
+  {
+    ensRegistry,
+    reverseRegistrar,
+  }: Pick<EnsStack, 'ensRegistry' | 'reverseRegistrar'>,
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   return await ensRegistry.write.setSubnodeOwner(
     [namehash('reverse'), labelhash('addr'), reverseRegistrar.address],
     {
-      account: owner as Address,
+      account: owner.account,
     },
   )
 }
-const setBaseRegistrarResolver = async ({
-  baseRegistrarImplementation,
-  ethOwnedResolver,
-}: Pick<EnsStack, 'baseRegistrarImplementation' | 'ethOwnedResolver'>) => {
-  const { owner } = await hre.getNamedAccounts()
+const setBaseRegistrarResolver = async (
+  connection: NetworkConnection,
+  {
+    baseRegistrarImplementation,
+    ethOwnedResolver,
+  }: Pick<EnsStack, 'baseRegistrarImplementation' | 'ethOwnedResolver'>,
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   return await baseRegistrarImplementation.write.setResolver(
     [ethOwnedResolver.address],
     {
-      account: owner as Address,
+      account: owner.account,
     },
   )
 }
-const addBaseRegistrarController = async ({
-  baseRegistrarImplementation,
-  controller,
-}: Pick<EnsStack, 'baseRegistrarImplementation'> & {
-  controller: AnyContract
-}) => {
-  const { owner } = await hre.getNamedAccounts()
+const addBaseRegistrarController = async (
+  connection: NetworkConnection,
+  {
+    baseRegistrarImplementation,
+    controller,
+  }: Pick<EnsStack, 'baseRegistrarImplementation'> & {
+    controller: AnyContract
+  },
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   return await baseRegistrarImplementation.write.addController(
     [controller.address],
     {
-      account: owner as Address,
+      account: owner.account,
     },
   )
 }
-const setEthResolverInterface = async ({
-  ethOwnedResolver,
-  interfaceName,
-  contract,
-}: Pick<EnsStack, 'ethOwnedResolver'> & {
-  interfaceName: string
-  contract: AnyContract
-}) => {
-  const { owner } = await hre.getNamedAccounts()
+const setEthResolverInterface = async (
+  connection: NetworkConnection,
+  {
+    ethOwnedResolver,
+    interfaceName,
+    contract,
+  }: Pick<EnsStack, 'ethOwnedResolver'> & {
+    interfaceName: string
+    contract: AnyContract
+  },
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   const contractInterface = await hre.artifacts.readArtifact(interfaceName)
   const interfaceId = createInterfaceId(contractInterface.abi)
   return await ethOwnedResolver.write.setInterface(
     [namehash('eth'), interfaceId, contract.address],
     {
-      account: owner as Address,
+      account: owner.account,
     },
   )
 }
-const setReverseDefaultResolver = async ({
-  reverseRegistrar,
-  contract,
-}: Pick<EnsStack, 'reverseRegistrar'> & { contract: AnyContract }) => {
-  const { owner } = await hre.getNamedAccounts()
+const setReverseDefaultResolver = async (
+  connection: NetworkConnection,
+  {
+    reverseRegistrar,
+    contract,
+  }: Pick<EnsStack, 'reverseRegistrar'> & { contract: AnyContract },
+) => {
+  const [, owner] = await connection.viem.getWalletClients()
   return await reverseRegistrar.write.setDefaultResolver([contract.address], {
-    account: owner as Address,
+    account: owner.account,
   })
 }
 
-export async function deployEnsStack(): Promise<EnsStack> {
-  const ensRegistry = await hre.viem.deployContract('ENSRegistry', [])
-  const root = await hre.viem.deployContract('Root', [ensRegistry.address])
-  const walletClients = await hre.viem.getWalletClients()
+export async function deployEnsStack(
+  connection: NetworkConnection,
+): Promise<EnsStack> {
+  const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
+  const root = await connection.viem.deployContract('Root', [
+    ensRegistry.address,
+  ])
+  const walletClients = await connection.viem.getWalletClients()
 
   const owner = walletClients[1].account
   await setRootNodeOwner({ ensRegistry, root })
   await root.write.setController([owner.address, true])
   await root.write.transferOwnership([owner.address])
 
-  const reverseRegistrar = await hre.viem.deployContract('ReverseRegistrar', [
-    ensRegistry.address,
-  ])
+  const reverseRegistrar = await connection.viem.deployContract(
+    'ReverseRegistrar',
+    [ensRegistry.address],
+  )
 
   await reverseRegistrar.write.transferOwnership([owner.address])
-  await setRootSubnodeOwner({
+  await setRootSubnodeOwner(connection, {
     root,
     label: 'reverse',
     owner,
   })
-  await setAddrReverseNodeOwner({ ensRegistry, reverseRegistrar })
+  await setAddrReverseNodeOwner(connection, { ensRegistry, reverseRegistrar })
 
-  const baseRegistrarImplementation = await hre.viem.deployContract(
+  const baseRegistrarImplementation = await connection.viem.deployContract(
     'BaseRegistrarImplementation',
     [ensRegistry.address, namehash('eth')],
   )
 
   await baseRegistrarImplementation.write.transferOwnership([owner.address])
-  await setRootSubnodeOwner({
+  await setRootSubnodeOwner(connection, {
     root,
     label: 'eth',
     owner: baseRegistrarImplementation,
   })
 
-  const ethOwnedResolver = await hre.viem.deployContract('OwnedResolver', [])
-  await ethOwnedResolver.write.transferOwnership([owner.address])
+  const ethOwnedResolver = await connection.viem.deployContract(
+    'OwnedResolver',
+    [],
+  )
+  await ethOwnedResolver.write.transferOwnership([
+    walletClients[1].account.address,
+  ])
 
-  await setBaseRegistrarResolver({
+  await setBaseRegistrarResolver(connection, {
     baseRegistrarImplementation,
     ethOwnedResolver,
   })
 
-  const dummyOracle = await hre.viem.deployContract('DummyOracle', [
+  const dummyOracle = await connection.viem.deployContract('DummyOracle', [
     160000000000n,
   ])
-  const exponentialPremiumPriceOracle = await hre.viem.deployContract(
+  const exponentialPremiumPriceOracle = await connection.viem.deployContract(
     'ExponentialPremiumPriceOracle',
     [
       dummyOracle.address,
@@ -168,33 +194,28 @@ export async function deployEnsStack(): Promise<EnsStack> {
     ],
   )
 
-  const staticMetadataService = await hre.viem.deployContract(
+  const staticMetadataService = await connection.viem.deployContract(
     'StaticMetadataService',
     ['http://localhost:8080/name/0x{id}'],
   )
-  const nameWrapper = await hre.viem.deployContract('NameWrapper', [
+  const nameWrapper = await connection.viem.deployContract('NameWrapper', [
     ensRegistry.address,
     baseRegistrarImplementation.address,
     staticMetadataService.address,
   ])
 
   await nameWrapper.write.transferOwnership([owner.address])
-  await addBaseRegistrarController({
+  await addBaseRegistrarController(connection, {
     baseRegistrarImplementation,
     controller: nameWrapper,
   })
-  await setEthResolverInterface({
+  await setEthResolverInterface(connection, {
     ethOwnedResolver,
     interfaceName: 'INameWrapper',
     contract: nameWrapper,
   })
 
-  const defaultReverseRegistrar = await hre.viem.deployContract(
-    'DefaultReverseRegistrar',
-    [],
-  )
-
-  const ethRegistrarController = await hre.viem.deployContract(
+  const ethRegistrarController = await connection.viem.deployContract(
     'ETHRegistrarController',
     [
       baseRegistrarImplementation.address,
@@ -202,7 +223,7 @@ export async function deployEnsStack(): Promise<EnsStack> {
       60n,
       86400n,
       reverseRegistrar.address,
-      defaultReverseRegistrar.address,
+      nameWrapper.address,
       ensRegistry.address,
     ],
   )
@@ -220,44 +241,47 @@ export async function deployEnsStack(): Promise<EnsStack> {
       account: owner,
     },
   )
-  await setEthResolverInterface({
+  await setEthResolverInterface(connection, {
     ethOwnedResolver,
     interfaceName: 'IETHRegistrarController',
     contract: ethRegistrarController,
   })
 
-  const staticBulkRenewal = await hre.viem.deployContract('StaticBulkRenewal', [
-    ethRegistrarController.address,
-  ])
+  const staticBulkRenewal = await connection.viem.deployContract(
+    'StaticBulkRenewal',
+    [ethRegistrarController.address],
+  )
 
-  await setEthResolverInterface({
+  await setEthResolverInterface(connection, {
     ethOwnedResolver,
     interfaceName: 'IBulkRenewal',
     contract: staticBulkRenewal,
   })
 
-  const publicResolver = await hre.viem.deployContract('PublicResolver', [
-    ensRegistry.address,
-    nameWrapper.address,
-    ethRegistrarController.address,
-    reverseRegistrar.address,
-  ])
+  const publicResolver = await connection.viem.deployContract(
+    'PublicResolver',
+    [
+      ensRegistry.address,
+      nameWrapper.address,
+      ethRegistrarController.address,
+      reverseRegistrar.address,
+    ],
+  )
 
-  await setReverseDefaultResolver({
+  await setReverseDefaultResolver(connection, {
     reverseRegistrar,
     contract: publicResolver,
   })
 
-  const batchGatewayProvider = await hre.viem.deployContract(
+  const batchGatewayProvider = await connection.viem.deployContract(
     'GatewayProvider',
     [owner.address, ['http://universal-offchain-resolver.local/']],
   )
 
-  const universalResolver = await hre.viem.deployContract('UniversalResolver', [
-    owner.address,
-    ensRegistry.address,
-    batchGatewayProvider.address,
-  ])
+  const universalResolver = await connection.viem.deployContract(
+    'UniversalResolver',
+    [owner.address, ensRegistry.address, batchGatewayProvider.address],
+  )
 
   return {
     ensRegistry,

@@ -1,6 +1,5 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -10,17 +9,17 @@ import {
   IS_DOT_ETH,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const unwrapETH2LDTests = () =>
+export const unwrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
   describe('unwrapETH2LD()', () => {
     const label = 'unwrapped'
     const name = `${label}.eth`
 
     it('Allows the owner to unwrap a name.', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -42,9 +41,7 @@ export const unwrapETH2LDTests = () =>
     })
 
     it('Does not allows the previous owner to unwrap when the name has expired.', async () => {
-      const { nameWrapper, accounts, testClient, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, testClient, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -58,61 +55,67 @@ export const unwrapETH2LDTests = () =>
       })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('unwrapETH2LD', [
+      await expect(
+        nameWrapper.write.unwrapETH2LD([
           labelhash(label),
           accounts[0].address,
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[0].address))
+        .withArgs([namehash(name), getAddress(accounts[0].address)])
     })
 
     it('emits Unwrap event', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await expect(nameWrapper)
-        .write('unwrapETH2LD', [
+      await expect(
+        nameWrapper.write.unwrapETH2LD([
           labelhash(label),
           accounts[0].address,
           accounts[0].address,
-        ])
+        ]),
+      )
         .toEmitEvent('NameUnwrapped')
-        .withArgs(namehash(name), accounts[0].address)
+        .withArgs({
+          node: namehash(name),
+          owner: getAddress(accounts[0].address),
+        })
     })
 
     it('Emits TransferSingle event', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await expect(nameWrapper)
-        .write('unwrapETH2LD', [
+      await expect(
+        nameWrapper.write.unwrapETH2LD([
           labelhash(label),
           accounts[0].address,
           accounts[0].address,
-        ])
+        ]),
+      )
         .toEmitEvent('TransferSingle')
-        .withArgs(
-          accounts[0].address,
-          accounts[0].address,
-          zeroAddress,
-          toNameId(name),
-          1n,
-        )
+        .withArgs({
+          operator: getAddress(accounts[0].address),
+          from: getAddress(accounts[0].address),
+          to: zeroAddress,
+          id: toNameId(name),
+          value: 1n,
+        })
     })
 
     it('Does not allows an account authorised by the owner on the .eth registrar to unwrap a name', async () => {
       const { baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -122,22 +125,21 @@ export const unwrapETH2LDTests = () =>
       await actions.setBaseRegistrarApprovalForWrapper()
       await baseRegistrar.write.setApprovalForAll([accounts[1].address, true])
 
-      await expect(nameWrapper)
-        .write(
-          'unwrapETH2LD',
+      await expect(
+        nameWrapper.write.unwrapETH2LD(
           [labelhash(label), accounts[1].address, accounts[1].address],
           {
             account: accounts[1],
           },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Does not allow anyone else to unwrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -147,39 +149,40 @@ export const unwrapETH2LDTests = () =>
 
       await ensRegistry.write.setApprovalForAll([accounts[1].address, true])
 
-      await expect(nameWrapper)
-        .write(
-          'unwrapETH2LD',
+      await expect(
+        nameWrapper.write.unwrapETH2LD(
           [labelhash(label), accounts[1].address, accounts[1].address],
           {
             account: accounts[1],
           },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Does not allow a name to be unwrapped if CANNOT_UNWRAP fuse has been burned', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CANNOT_UNWRAP,
       })
 
-      await expect(nameWrapper)
-        .write('unwrapETH2LD', [
+      await expect(
+        nameWrapper.write.unwrapETH2LD([
           labelhash(label),
           accounts[0].address,
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Unwrapping a previously wrapped unexpired name retains PCC and expiry', async () => {
       const { baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       // register and wrap a name with PCC
       await actions.registerSetupAndWrapName({

@@ -1,9 +1,8 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import {
   encodeAbiParameters,
   encodeFunctionData,
+  getAddress,
   keccak256,
   labelhash,
   namehash,
@@ -11,6 +10,7 @@ import {
   type Address,
   type Hex,
 } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { dnsEncodeName } from '../../fixtures/dnsEncodeName.js'
 import { toLabelId, toNameId, toTokenId } from '../../fixtures/utils.js'
@@ -21,11 +21,14 @@ import {
   IS_DOT_ETH,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const onERC721ReceivedTests = () => {
+export const onERC721ReceivedTests = (
+  connection: NetworkConnection,
+  loadNameWrapperFixture: LoadNameWrapperFixture,
+) => {
   describe('onERC721Received', () => {
     const label = 'send2contract'
     const name = `${label}.eth`
@@ -51,8 +54,8 @@ export const onERC721ReceivedTests = () => {
         [label, owner, ownerControlledFuses, resolver],
       )
 
-    async function onERC721ReceivedFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { actions, accounts } = initial
 
       await actions.register({
@@ -63,11 +66,11 @@ export const onERC721ReceivedTests = () => {
 
       return initial
     }
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
 
     it('Wraps a name transferred to it and sets the owner to the provided address', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       await baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -86,12 +89,10 @@ export const onERC721ReceivedTests = () => {
     })
 
     it('Reverts if called by anything other than the ENS registrar address', async () => {
-      const { nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('onERC721Received', [
+      await expect(
+        nameWrapper.write.onERC721Received([
           accounts[0].address,
           accounts[0].address,
           toLabelId(label),
@@ -101,14 +102,12 @@ export const onERC721ReceivedTests = () => {
             ownerControlledFuses: 1,
             resolver: zeroAddress,
           }),
-        ])
-        .toBeRevertedWithCustomError('IncorrectTokenType')
+        ]),
+      ).toBeRevertedWithCustomError('IncorrectTokenType')
     })
 
     it('Accepts fuse values from the data field', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       await baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -132,7 +131,7 @@ export const onERC721ReceivedTests = () => {
 
     it('Allows specifiying resolver address', async () => {
       const { baseRegistrar, nameWrapper, ensRegistry, accounts } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -152,26 +151,22 @@ export const onERC721ReceivedTests = () => {
     })
 
     it('Reverts if transferred without data', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
-      await expect(baseRegistrar)
-        .write('safeTransferFrom', [
+      await expect(
+        baseRegistrar.write.safeTransferFrom([
           accounts[0].address,
           nameWrapper.address,
           toLabelId(label),
           '0x',
-        ])
-        .toBeRevertedWithString(
-          'ERC721: transfer to non ERC721Receiver implementer',
-        )
+        ]),
+      ).toBeRevertedWithString(
+        'ERC721: transfer to non ERC721Receiver implementer',
+      )
     })
 
     it('Rejects transfers where the data field label does not match the tokenId', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       const tx = baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -185,15 +180,14 @@ export const onERC721ReceivedTests = () => {
         }),
       ])
 
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toBeRevertedWithCustomError('LabelMismatch')
-        .withArgs(labelhash('incorrectlabel'), labelhash(label))
+      await expect(tx)
+        .toBeRevertedWithCustomErrorFrom(nameWrapper, 'LabelMismatch')
+        .withArgs([labelhash('incorrectlabel'), labelhash(label)])
     })
 
     it('Reverts if CANNOT_UNWRAP is not burned and attempts to burn other fuses', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await ensRegistry.write.setOwner([namehash(name), accounts[1].address])
 
@@ -209,18 +203,13 @@ export const onERC721ReceivedTests = () => {
         }),
       ])
 
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+      await expect(tx)
+        .toBeRevertedWithCustomErrorFrom(nameWrapper, 'OperationProhibited')
+        .withArgs([namehash(name)])
     })
 
     it('Reverts when manually changing fuse calldata to incorrect type', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
-
-      const [walletClient] = await hre.viem.getWalletClients()
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       let data = encodeFunctionData({
         abi: baseRegistrar.abi,
@@ -245,16 +234,19 @@ export const onERC721ReceivedTests = () => {
         data,
       }
 
-      await expect(baseRegistrar)
-        .transaction(walletClient.sendTransaction(tx))
-        .toBeRevertedWithString(
-          'ERC721: transfer to non ERC721Receiver implementer',
-        )
+      await expect(
+        baseRegistrar.arbitrary({
+          ...tx,
+          account: accounts[0],
+        }),
+      ).toBeRevertedWithString(
+        'ERC721: transfer to non ERC721Receiver implementer',
+      )
     })
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await ensRegistry.write.setOwner([namehash(name), accounts[1].address])
 
@@ -288,7 +280,7 @@ export const onERC721ReceivedTests = () => {
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt, but resets fuses if expired', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts, testClient } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await ensRegistry.write.setOwner([namehash(name), accounts[1].address])
 
@@ -326,7 +318,7 @@ export const onERC721ReceivedTests = () => {
 
     it('Sets the controller in the ENS registry to the wrapper contract', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -345,7 +337,7 @@ export const onERC721ReceivedTests = () => {
 
     it('Can wrap a name even if the controller address is different to the registrant address', async () => {
       const { baseRegistrar, ensRegistry, nameWrapper, accounts } =
-        await loadFixture(onERC721ReceivedFixture)
+        await loadFixture()
 
       await ensRegistry.write.setOwner([namehash(name), accounts[1].address])
 
@@ -366,9 +358,7 @@ export const onERC721ReceivedTests = () => {
     })
 
     it('emits NameWrapped Event', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       const expectedExpiry = await baseRegistrar.read.nameExpires([
         toLabelId(label),
@@ -386,22 +376,23 @@ export const onERC721ReceivedTests = () => {
         }),
       ])
 
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toEmitEvent('NameWrapped')
-        .withArgs(
-          namehash(name),
-          dnsEncodeName(name),
-          accounts[0].address,
-          CANNOT_UNWRAP | CANNOT_TRANSFER | PARENT_CANNOT_CONTROL | IS_DOT_ETH,
-          expectedExpiry + GRACE_PERIOD,
-        )
+      await expect(tx)
+        .toEmitEventFrom(nameWrapper, 'NameWrapped')
+        .withArgs({
+          node: namehash(name),
+          name: dnsEncodeName(name),
+          owner: getAddress(accounts[0].address),
+          fuses:
+            CANNOT_UNWRAP |
+            CANNOT_TRANSFER |
+            PARENT_CANNOT_CONTROL |
+            IS_DOT_ETH,
+          expiry: expectedExpiry + GRACE_PERIOD,
+        })
     })
 
     it('emits TransferSingle Event', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        onERC721ReceivedFixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } = await loadFixture()
 
       const tx = baseRegistrar.write.safeTransferFrom([
         accounts[0].address,
@@ -415,22 +406,20 @@ export const onERC721ReceivedTests = () => {
         }),
       ])
 
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toEmitEvent('TransferSingle')
-        .withArgs(
-          baseRegistrar.address,
-          zeroAddress,
-          accounts[0].address,
-          toNameId(name),
-          1n,
-        )
+      await expect(tx)
+        .toEmitEventFrom(nameWrapper, 'TransferSingle')
+        .withArgs({
+          operator: getAddress(baseRegistrar.address),
+          from: zeroAddress,
+          to: getAddress(accounts[0].address),
+          id: toNameId(name),
+          value: 1n,
+        })
     })
 
     it('will not wrap a name with an empty label', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        fixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } =
+        await loadNameWrapperFixture()
 
       const emptyLabelId = toTokenId(keccak256(new Uint8Array(0)))
 
@@ -452,9 +441,10 @@ export const onERC721ReceivedTests = () => {
         }),
       ])
 
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toBeRevertedWithCustomError('LabelTooShort')
+      await expect(tx).toBeRevertedWithCustomErrorFrom(
+        nameWrapper,
+        'LabelTooShort',
+      )
     })
   })
 }

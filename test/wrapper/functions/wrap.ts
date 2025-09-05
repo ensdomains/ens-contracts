@@ -1,7 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { getAddress, namehash, zeroAddress } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { dnsEncodeName } from '../../fixtures/dnsEncodeName.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
@@ -12,16 +11,17 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const wrapTests = () =>
+export const wrapTests = (
+  connection: NetworkConnection,
+  loadFixture: LoadNameWrapperFixture,
+) =>
   describe('wrap()', () => {
     it('Wraps a name if you are the owner', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'xyz'
 
@@ -38,9 +38,7 @@ export const wrapTests = () =>
     })
 
     it('Allows specifying resolver', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, accounts, actions } = await loadFixture()
 
       const label = 'xyz'
 
@@ -57,73 +55,94 @@ export const wrapTests = () =>
     })
 
     it('emits event for NameWrapped', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName('xyz'), accounts[0].address, zeroAddress])
-        .toEmitEvent('NameWrapped')
-        .withArgs(
-          namehash('xyz'),
+      await expect(
+        nameWrapper.write.wrap([
           dnsEncodeName('xyz'),
           accounts[0].address,
-          0,
-          0n,
-        )
+          zeroAddress,
+        ]),
+      )
+        .toEmitEvent('NameWrapped')
+        .withArgs({
+          node: namehash('xyz'),
+          name: dnsEncodeName('xyz'),
+          owner: getAddress(accounts[0].address),
+          fuses: 0,
+          expiry: 0n,
+        })
     })
 
     it('emits event for TransferSingle', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName('xyz'), accounts[0].address, zeroAddress])
-        .toEmitEvent('TransferSingle')
-        .withArgs(
+      await expect(
+        nameWrapper.write.wrap([
+          dnsEncodeName('xyz'),
           accounts[0].address,
           zeroAddress,
-          accounts[0].address,
-          toNameId('xyz'),
-          1n,
-        )
+        ]),
+      )
+        .toEmitEvent('TransferSingle')
+        .withArgs({
+          operator: getAddress(accounts[0].address),
+          from: zeroAddress,
+          to: getAddress(accounts[0].address),
+          id: toNameId('xyz'),
+          value: 1n,
+        })
     })
 
     it('Cannot wrap a name if the owner has not authorised the wrapper with the ENS registry', async () => {
-      const { nameWrapper, accounts } = await loadFixture(fixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName('xyz'), accounts[0].address, zeroAddress])
-        .toBeRevertedWithoutReason()
+      await expect(
+        nameWrapper.write.wrap([
+          dnsEncodeName('xyz'),
+          accounts[0].address,
+          zeroAddress,
+        ]),
+      ).toBeRevertedWithoutReason()
     })
 
     it('Will not allow wrapping with a target address of 0x0 or the wrapper contract address.', async () => {
-      const { nameWrapper, actions } = await loadFixture(fixture)
+      const { nameWrapper, actions } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName('xyz'), zeroAddress, zeroAddress])
-        .toBeRevertedWithString('ERC1155: mint to the zero address')
+      await expect(
+        nameWrapper.write.wrap([
+          dnsEncodeName('xyz'),
+          zeroAddress,
+          zeroAddress,
+        ]),
+      ).toBeRevertedWithString('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address.', async () => {
-      const { ensRegistry, nameWrapper, actions } = await loadFixture(fixture)
+      const { nameWrapper, actions } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName('xyz'), nameWrapper.address, zeroAddress])
-        .toBeRevertedWithString(
-          'ERC1155: newOwner cannot be the NameWrapper contract',
-        )
+      await expect(
+        nameWrapper.write.wrap([
+          dnsEncodeName('xyz'),
+          nameWrapper.address,
+          zeroAddress,
+        ]),
+      ).toBeRevertedWithString(
+        'ERC1155: newOwner cannot be the NameWrapper contract',
+      )
     })
 
     it('Allows an account approved by the owner on the ENS registry to wrap a name.', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const label = 'abc'
 
@@ -153,9 +172,8 @@ export const wrapTests = () =>
     })
 
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const label = 'abc'
 
@@ -173,15 +191,19 @@ export const wrapTests = () =>
       await expectOwnerOf(label).on(ensRegistry).toBe(accounts[1])
 
       // wrap using accounts[0]
-      await expect(nameWrapper)
-        .write('wrap', [dnsEncodeName(label), accounts[1].address, zeroAddress])
+      await expect(
+        nameWrapper.write.wrap([
+          dnsEncodeName(label),
+          accounts[1].address,
+          zeroAddress,
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(label), getAddress(accounts[0].address))
+        .withArgs([namehash(label), getAddress(accounts[0].address)])
     })
 
     it('Does not allow wrapping .eth 2LDs.', async () => {
-      const { ensRegistry, nameWrapper, baseRegistrar, accounts, actions } =
-        await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'wrapped'
 
@@ -192,19 +214,18 @@ export const wrapTests = () =>
       })
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [
+      await expect(
+        nameWrapper.write.wrap([
           dnsEncodeName(`${label}.eth`),
           accounts[1].address,
           zeroAddress,
-        ])
-        .toBeRevertedWithCustomError('IncompatibleParent')
+        ]),
+      ).toBeRevertedWithCustomError('IncompatibleParent')
     })
 
     it('Can re-wrap a name that was reassigned by an unwrapped parent', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const parentLabel = 'xyz'
       const childLabel = 'sub'
@@ -235,72 +256,64 @@ export const wrapTests = () =>
 
       await actions.setRegistryApprovalForWrapper({ account: 1 })
 
-      const tx = await actions.wrapName({
+      const tx = actions.wrapName({
         name: childName,
         owner: accounts[1].address,
         resolver: zeroAddress,
         account: 1,
       })
 
-      await expect(nameWrapper)
-        .transaction(tx)
+      await expect(tx)
         .toEmitEvent('NameUnwrapped')
-        .withArgs(namehash(childName), zeroAddress)
-      await expect(nameWrapper)
-        .transaction(tx)
+        .withArgs({ node: namehash(childName), owner: zeroAddress })
+      await expect(tx)
         .toEmitEvent('TransferSingle')
-        .withArgs(
-          accounts[1].address,
-          accounts[0].address,
-          zeroAddress,
-          toNameId(childName),
-          1n,
-        )
-      await expect(nameWrapper)
-        .transaction(tx)
+        .withArgs({
+          operator: getAddress(accounts[1].address),
+          from: getAddress(accounts[0].address),
+          to: zeroAddress,
+          id: toNameId(childName),
+          value: 1n,
+        })
+      await expect(tx)
         .toEmitEvent('NameWrapped')
-        .withArgs(
-          namehash(childName),
-          dnsEncodeName(childName),
-          accounts[1].address,
-          CAN_DO_EVERYTHING,
-          0n,
-        )
-      await expect(nameWrapper)
-        .transaction(tx)
+        .withArgs({
+          node: namehash(childName),
+          name: dnsEncodeName(childName),
+          owner: getAddress(accounts[1].address),
+          fuses: CAN_DO_EVERYTHING,
+          expiry: 0n,
+        })
+      await expect(tx)
         .toEmitEvent('TransferSingle')
-        .withArgs(
-          accounts[1].address,
-          zeroAddress,
-          accounts[1].address,
-          toNameId(childName),
-          1n,
-        )
+        .withArgs({
+          operator: getAddress(accounts[1].address),
+          from: zeroAddress,
+          to: getAddress(accounts[1].address),
+          id: toNameId(childName),
+          value: 1n,
+        })
 
       await expectOwnerOf(childName).on(nameWrapper).toBe(accounts[1])
       await expectOwnerOf(childName).on(ensRegistry).toBe(nameWrapper)
     })
 
     it('Will not wrap a name with junk at the end', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('wrap', [
+      await expect(
+        nameWrapper.write.wrap([
           `${dnsEncodeName('xyz')}123456`,
           accounts[0].address,
           zeroAddress,
-        ])
-        .toBeRevertedWithString('namehash: Junk at end of name')
+        ]),
+      ).toBeRevertedWithString('namehash: Junk at end of name')
     })
 
     it('Does not allow wrapping a name you do not own', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'xyz'
 
@@ -313,25 +326,24 @@ export const wrapTests = () =>
       })
 
       // Deploy the destroy-your-name contract
-      const nameGriefer = await hre.viem.deployContract('NameGriefer', [
+      const nameGriefer = await connection.viem.deployContract('NameGriefer', [
         nameWrapper.address,
       ])
 
       const tx = nameGriefer.write.destroy([dnsEncodeName(label)])
 
       // Try and burn the name
-      await expect(nameWrapper)
-        .transaction(tx)
-        .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(label), getAddress(nameGriefer.address))
+      await expect(tx)
+        .toBeRevertedWithCustomErrorFrom(nameWrapper, 'Unauthorised')
+        .withArgs([namehash(label), getAddress(nameGriefer.address)])
 
       // Make sure it didn't succeed
       await expectOwnerOf(label).on(nameWrapper).toBe(accounts[0])
     })
 
     it('Rewrapping a previously wrapped unexpired name retains PCC', async () => {
-      const { ensRegistry, baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+      const { baseRegistrar, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const label = 'test'
       const name = `${label}.eth`

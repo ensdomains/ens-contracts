@@ -1,77 +1,88 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { getAddress, namehash } from 'viem'
+import { artifacts, execute } from '@rocketh'
+import { getAddress, namehash, type Address } from 'viem'
 
-const func: DeployFunction = async function (hre) {
-  const { viem, network } = hre
+export default execute(
+  async ({ deploy, get, execute: write, read, namedAccounts, network }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { owner } = await viem.getNamedClients()
-
-  const registry = await viem.getContract('ENSRegistry', owner)
-  const nameWrapper = await viem.getContract('NameWrapper')
-  const controller = await viem.getContract('ETHRegistrarController')
-  const reverseRegistrar = await viem.getContract('ReverseRegistrar', owner)
-
-  const publicResolverDeployment = await viem.deploy('PublicResolver', [
-    registry.address,
-    nameWrapper.address,
-    controller.address,
-    reverseRegistrar.address,
-  ])
-
-  // Only attempt to make controller etc changes directly on testnets
-  if (network.name === 'mainnet' && !network.tags.tenderly) return
-
-  const isReverseRegistrarDefaultResolver = await reverseRegistrar.read
-    .defaultResolver()
-    .then((v) => getAddress(v) === getAddress(publicResolverDeployment.address))
-  if (!isReverseRegistrarDefaultResolver) {
-    const reverseRegistrarSetDefaultResolverHash =
-      await reverseRegistrar.write.setDefaultResolver([
-        publicResolverDeployment.address,
-      ])
-    console.log(
-      `Setting default resolver on ReverseRegistrar to PublicResolver (tx: ${reverseRegistrarSetDefaultResolverHash})...`,
+    // Get dependencies
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const nameWrapper =
+      get<(typeof artifacts.NameWrapper)['abi']>('NameWrapper')
+    const controller = get<(typeof artifacts.ETHRegistrarController)['abi']>(
+      'ETHRegistrarController',
     )
-    await viem.waitForTransactionSuccess(reverseRegistrarSetDefaultResolverHash)
-  }
+    const reverseRegistrar =
+      get<(typeof artifacts.ReverseRegistrar)['abi']>('ReverseRegistrar')
 
-  const resolverEthOwner = await registry.read.owner([namehash('resolver.eth')])
+    // Deploy PublicResolver
+    const publicResolver = await deploy('PublicResolver', {
+      account: deployer,
+      artifact: artifacts.PublicResolver,
+      args: [
+        registry.address,
+        nameWrapper.address,
+        controller.address,
+        reverseRegistrar.address,
+      ],
+    })
 
-  if (resolverEthOwner === owner.address) {
-    const publicResolver = await viem.getContract('PublicResolver', owner)
-    const setResolverHash = await registry.write.setResolver([
-      namehash('resolver.eth'),
-      publicResolver.address,
-    ])
-    console.log(
-      `Setting resolver for resolver.eth to PublicResolver (tx: ${setResolverHash})...`,
+    if (!publicResolver.newlyDeployed) return
+
+    // Only attempt to make controller etc changes directly on testnets
+    if (network.name === 'mainnet' && !network.tags?.tenderly) return
+
+    // Check if PublicResolver is already the default resolver on ReverseRegistrar
+    const isReverseRegistrarDefaultResolver = await read(reverseRegistrar, {
+      functionName: 'defaultResolver',
+      args: [],
+    }).then(
+      (v) => getAddress(v as Address) === getAddress(publicResolver.address),
     )
-    await viem.waitForTransactionSuccess(setResolverHash)
+    if (!isReverseRegistrarDefaultResolver) {
+      console.log(
+        `  - Setting PublicResolver as default resolver on ReverseRegistrar`,
+      )
+      await write(reverseRegistrar, {
+        functionName: 'setDefaultResolver',
+        args: [publicResolver.address],
+        account: owner,
+      })
+    }
 
-    const setAddrHash = await publicResolver.write.setAddr([
-      namehash('resolver.eth'),
-      publicResolver.address,
-    ])
-    console.log(
-      `Setting address for resolver.eth to PublicResolver (tx: ${setAddrHash})...`,
-    )
-    await viem.waitForTransactionSuccess(setAddrHash)
-  } else {
-    console.log(
-      'resolver.eth is not owned by the owner address, not setting resolver',
-    )
-  }
+    const resolverEthOwner = await read(registry, {
+      functionName: 'owner',
+      args: [namehash('resolver.eth')],
+    })
 
-  return true
-}
+    if (resolverEthOwner === owner) {
+      console.log(`  - Setting resolver for resolver.eth to PublicResolver`)
+      await write(registry, {
+        functionName: 'setResolver',
+        args: [namehash('resolver.eth'), publicResolver.address],
+        account: owner,
+      })
 
-func.id = 'PublicResolver v3.0.0'
-func.tags = ['category:resolvers', 'PublicResolver']
-func.dependencies = [
-  'ENSRegistry',
-  'NameWrapper',
-  'ETHRegistrarController',
-  'ReverseRegistrar',
-]
-
-export default func
+      console.log(`  - Setting addr for resolver.eth to PublicResolver`)
+      await write(publicResolver, {
+        functionName: 'setAddr',
+        args: [namehash('resolver.eth'), publicResolver.address],
+        account: owner,
+      })
+    } else {
+      console.warn(
+        `  - WARN: resolver.eth is not owned by the owner address, not setting resolver`,
+      )
+    }
+  },
+  {
+    id: 'PublicResolver v3.0.0',
+    tags: ['category:resolvers', 'PublicResolver'],
+    dependencies: [
+      'ENSRegistry',
+      'NameWrapper',
+      'ETHRegistrarController',
+      'ReverseRegistrar',
+    ],
+  },
+)

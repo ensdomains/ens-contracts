@@ -1,5 +1,3 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import {
   getAbiItem,
   labelhash,
@@ -8,9 +6,11 @@ import {
   zeroAddress,
   type Address,
 } from 'viem'
+
+import type { NetworkConnection } from 'hardhat/types/network'
 import { DAY, FUSES } from '../../fixtures/constants.js'
 import { dnsEncodeName } from '../../fixtures/dnsEncodeName.js'
-import { toLabelId, toNameId } from '../../fixtures/utils.js'
+import { getAccounts, toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
   deployNameWrapperFixture as baseFixture,
   type DeployNameWrapperFixtureResult as Fixture,
@@ -35,13 +35,17 @@ export const MAX_EXPIRY = 2n ** 64n - 1n
 export const GRACE_PERIOD = 90n * DAY
 export const DUMMY_ADDRESS = padHex('0x01', { size: 20 })
 
-export async function deployNameWrapperWithUtils() {
-  const initial = await loadFixture(baseFixture)
-  const { publicClient, ensRegistry, baseRegistrar, nameWrapper, accounts } =
-    initial
+export async function deployNameWrapperWithUtils(
+  connection: NetworkConnection,
+) {
+  const initial = await baseFixture(connection)
+  const accounts = await getAccounts(connection)
+  const publicClient = await connection.viem.getPublicClient()
+  const testClient = await connection.viem.getTestClient()
+  const { ensRegistry, baseRegistrar, nameWrapper } = initial
 
   const setSubnodeOwner = {
-    onEnsRegistry: async ({
+    onEnsRegistry: ({
       parentName,
       label,
       owner,
@@ -56,7 +60,7 @@ export async function deployNameWrapperWithUtils() {
         [namehash(parentName), labelhash(label), owner],
         { account: accounts[account] },
       ),
-    onNameWrapper: async ({
+    onNameWrapper: ({
       parentName,
       label,
       owner,
@@ -77,7 +81,7 @@ export async function deployNameWrapperWithUtils() {
       ),
   }
   const setSubnodeRecord = {
-    onEnsRegistry: async ({
+    onEnsRegistry: ({
       parentName,
       label,
       owner,
@@ -96,7 +100,7 @@ export async function deployNameWrapperWithUtils() {
         [namehash(parentName), labelhash(label), owner, resolver, ttl],
         { account: accounts[account] },
       ),
-    onNameWrapper: async ({
+    onNameWrapper: ({
       parentName,
       label,
       owner,
@@ -120,7 +124,7 @@ export async function deployNameWrapperWithUtils() {
         { account: accounts[account] },
       ),
   }
-  const register = async ({
+  const register = ({
     label,
     owner,
     duration,
@@ -134,7 +138,7 @@ export async function deployNameWrapperWithUtils() {
     baseRegistrar.write.register([toLabelId(label), owner, duration], {
       account: accounts[account],
     })
-  const wrapName = async ({
+  const wrapName = ({
     name,
     owner,
     resolver,
@@ -148,7 +152,7 @@ export async function deployNameWrapperWithUtils() {
     nameWrapper.write.wrap([dnsEncodeName(name), owner, resolver], {
       account: accounts[account],
     })
-  const wrapEth2ld = async ({
+  const wrapEth2ld = ({
     label,
     owner,
     fuses,
@@ -164,7 +168,7 @@ export async function deployNameWrapperWithUtils() {
     nameWrapper.write.wrapETH2LD([label, owner, fuses, resolver], {
       account: accounts[account],
     })
-  const unwrapName = async ({
+  const unwrapName = ({
     parentName,
     label,
     controller,
@@ -179,7 +183,7 @@ export async function deployNameWrapperWithUtils() {
       [namehash(parentName), labelhash(label), controller],
       { account: accounts[account] },
     )
-  const unwrapEth2ld = async ({
+  const unwrapEth2ld = ({
     label,
     registrant,
     controller,
@@ -193,13 +197,13 @@ export async function deployNameWrapperWithUtils() {
     nameWrapper.write.unwrapETH2LD([labelhash(label), registrant, controller], {
       account: accounts[account],
     })
-  const setRegistryApprovalForWrapper = async ({
+  const setRegistryApprovalForWrapper = ({
     account = 0,
   }: { account?: number } = {}) =>
     ensRegistry.write.setApprovalForAll([nameWrapper.address, true], {
       account: accounts[account],
     })
-  const setBaseRegistrarApprovalForWrapper = async ({
+  const setBaseRegistrarApprovalForWrapper = ({
     account = 0,
   }: { account?: number } = {}) =>
     baseRegistrar.write.setApprovalForAll([nameWrapper.address, true], {
@@ -250,8 +254,15 @@ export async function deployNameWrapperWithUtils() {
   return {
     ...initial,
     actions,
+    accounts,
+    testClient,
+    publicClient,
   }
 }
+export type NameWrapperWithUtilsFixture = Awaited<
+  ReturnType<typeof deployNameWrapperWithUtils>
+>
+export type LoadNameWrapperFixture = () => Promise<NameWrapperWithUtilsFixture>
 
 export const runForContract = ({
   contract,

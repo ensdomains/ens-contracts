@@ -1,6 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { labelhash, namehash, zeroHash } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -8,17 +8,20 @@ import {
   GRACE_PERIOD,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const isWrappedTests = () => {
+export const isWrappedTests = (
+  connection: NetworkConnection,
+  loadNameWrapperFixture: LoadNameWrapperFixture,
+) => {
   describe('isWrapped(bytes32 node)', () => {
     const label = 'something'
     const name = `${label}.eth`
 
-    async function isWrappedFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { nameWrapper, actions } = initial
 
       await actions.registerSetupAndWrapName({
@@ -32,9 +35,11 @@ export const isWrappedTests = () => {
 
       return { ...initial, parentExpiry }
     }
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
 
     it('identifies a wrapped .eth name', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([namehash(name)]) as Promise<boolean>,
@@ -42,7 +47,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an expired .eth name as unwrapped', async () => {
-      const { nameWrapper, testClient } = await loadFixture(isWrappedFixture)
+      const { nameWrapper, testClient } = await loadFixture()
 
       await testClient.increaseTime({ seconds: Number(1n * DAY + 1n) })
       await testClient.mine({ blocks: 1 })
@@ -53,9 +58,8 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an eth name registered on old controller as unwrapped', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        fixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } =
+        await loadNameWrapperFixture()
 
       await baseRegistrar.write.register([
         toLabelId(label),
@@ -70,7 +74,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an unregistered .eth name as unwrapped', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([
@@ -80,7 +84,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an unregistered tld as unwrapped', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([namehash('abc')]) as Promise<boolean>,
@@ -88,9 +92,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies a wrapped subname', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(
-        isWrappedFixture,
-      )
+      const { nameWrapper, actions, accounts } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -109,7 +111,7 @@ export const isWrappedTests = () => {
 
     it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
       const { nameWrapper, actions, accounts, testClient, parentExpiry } =
-        await loadFixture(isWrappedFixture)
+        await loadFixture()
 
       const subname = `sub.${name}`
 
@@ -141,8 +143,8 @@ export const isWrappedTests = () => {
     const sublabel = 'sub'
     const subname = `${sublabel}.${name}`
 
-    async function isWrappedFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { nameWrapper, actions } = initial
 
       await actions.registerSetupAndWrapName({
@@ -156,9 +158,11 @@ export const isWrappedTests = () => {
 
       return { ...initial, parentExpiry }
     }
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
 
     it('identifies a wrapped .eth name', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([
@@ -169,7 +173,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an expired .eth name as unwrapped', async () => {
-      const { nameWrapper, testClient } = await loadFixture(isWrappedFixture)
+      const { nameWrapper, testClient } = await loadFixture()
 
       await testClient.increaseTime({ seconds: Number(1n * DAY + 1n) })
       await testClient.mine({ blocks: 1 })
@@ -183,9 +187,8 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an eth name registered on old controller as unwrapped', async () => {
-      const { baseRegistrar, nameWrapper, accounts } = await loadFixture(
-        fixture,
-      )
+      const { baseRegistrar, nameWrapper, accounts } =
+        await loadNameWrapperFixture()
 
       await baseRegistrar.write.register([
         toLabelId(label),
@@ -203,7 +206,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an unregistered .eth name as unwrapped', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([
@@ -214,7 +217,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies an unregistered tld as unwrapped', async () => {
-      const { nameWrapper } = await loadFixture(isWrappedFixture)
+      const { nameWrapper } = await loadFixture()
 
       await expect(
         nameWrapper.read.isWrapped([
@@ -225,9 +228,7 @@ export const isWrappedTests = () => {
     })
 
     it('identifies a wrapped subname', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(
-        isWrappedFixture,
-      )
+      const { nameWrapper, actions, accounts } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -247,7 +248,7 @@ export const isWrappedTests = () => {
 
     it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
       const { nameWrapper, actions, accounts, testClient, parentExpiry } =
-        await loadFixture(isWrappedFixture)
+        await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,

@@ -1,25 +1,25 @@
 import { evmChainIdToCoinType } from '@ensdomains/address-encoder/utils'
-import type { ContractNetworkConfig } from '@safe-global/protocol-kit'
-import fs from 'fs'
-import type {
-  DeployFunction,
-  DeploymentSubmission,
-} from 'hardhat-deploy/types.js'
-import type { HardhatRuntimeEnvironment } from 'hardhat/types/runtime.js'
-import path from 'path'
+import { artifacts, execute, type Environment } from '@rocketh'
+import fs from 'node:fs'
+import path from 'node:path'
+import type { Abi, Deployment } from 'rocketh'
 import {
   concatHex,
   encodeDeployData,
   encodeFunctionData,
+  Hash,
+  Hex,
   keccak256,
   namehash,
   parseAbi,
   stringToHex,
-  type Hash,
-  type Hex,
-  type TransactionReceipt,
+  TransactionReceipt,
 } from 'viem'
 import { base, baseSepolia } from 'viem/chains'
+
+type Writeable<T> = {
+  -readonly [P in keyof T]: T[P]
+}
 
 export const safeConfig = {
   testnet: {
@@ -44,8 +44,12 @@ const oldReverseResolvers = {
   [baseSepolia.id]: '0x6533C94869D28fAA8dF77cc63f9e2b2D6Cf77eBA',
 } as const
 
+// Rocketh-compatible safeDeploy function
+// This function handles Safe multisig deployments using CREATE3 proxy patterns
+// It can be used as an alternative to the standard deploy() function for L2 chains
+// that require Safe multisig approval for deployments
 const safeDeploy = async (
-  hre: HardhatRuntimeEnvironment,
+  env: Pick<Environment, 'network' | 'viem' | 'save'>,
   {
     reverseNode,
     coinType,
@@ -54,13 +58,14 @@ const safeDeploy = async (
     coinType: bigint
   },
 ) => {
-  const networkType = hre.network.tags.testnet ? 'testnet' : 'mainnet'
+  const networkType = env.network.tags.testnet ? 'testnet' : 'mainnet'
   const { safeAddress, baseDeploymentSalt, expectedDeploymentAddress } =
     safeConfig[networkType]
+
   const deployConfig = (() => {
     if (
-      hre.network.config.chainId === base.id ||
-      hre.network.config.chainId === baseSepolia.id
+      env.network.chain.id === base.id ||
+      env.network.chain.id === baseSepolia.id
     )
       return {
         artifactName: 'L2ReverseRegistrarWithMigration',
@@ -68,7 +73,9 @@ const safeDeploy = async (
           coinType,
           safeAddress,
           reverseNode,
-          oldReverseResolvers[hre.network.config.chainId],
+          oldReverseResolvers[
+            env.network.chain.id as keyof typeof oldReverseResolvers
+          ],
         ] as [bigint, Hex, Hex, Hex],
       } as const
     return {
@@ -87,10 +94,11 @@ const safeDeploy = async (
     deployment,
     receipt,
   }: {
-    deployment: DeploymentSubmission
+    deployment: Deployment<Abi>
     receipt: TransactionReceipt
   }) => {
-    const currentBytecode = await provider.getBytecode({
+    const publicClient = env.viem.publicClient
+    const currentBytecode = await publicClient.getCode({
       address: expectedDeploymentAddress,
     })
     if (!currentBytecode) throw new Error('L2ReverseRegistrar not deployed')
@@ -98,32 +106,23 @@ const safeDeploy = async (
     console.log(
       `"L2ReverseRegistrar" deployed at: ${expectedDeploymentAddress} with ${receipt.gasUsed} gas`,
     )
-    deployment.receipt = {
-      from: receipt.from,
-      transactionHash: receipt.transactionHash,
-      blockHash: receipt.blockHash,
-      blockNumber: Number(receipt.blockNumber),
-      transactionIndex: receipt.transactionIndex,
-      cumulativeGasUsed: receipt.cumulativeGasUsed.toString(),
-      gasUsed: receipt.gasUsed.toString(),
-      contractAddress: receipt.contractAddress ?? undefined,
-      to: receipt.to ?? undefined,
-      logs: receipt.logs.map((log) => ({
-        blockNumber: Number(log.blockNumber),
-        blockHash: log.blockHash,
-        transactionHash: log.transactionHash,
-        transactionIndex: log.transactionIndex,
-        logIndex: log.logIndex,
-        removed: log.removed,
-        address: log.address,
-        topics: log.topics,
-        data: log.data,
-      })),
-      logsBloom: receipt.logsBloom,
-      status: receipt.status === 'success' ? 1 : 0,
+
+    const completeDeployment = {
+      ...deployment,
+      receipt: {
+        confirmations: 1,
+        blockHash: receipt.blockHash,
+        blockNumber: receipt.blockNumber,
+        transactionIndex: receipt.transactionIndex,
+      },
+      transaction: {
+        hash: receipt.transactionHash,
+        origin: receipt.from,
+        nonce: 0,
+      },
     }
 
-    await hre.deployments.save('L2ReverseRegistrar', deployment)
+    await env.save('L2ReverseRegistrar', completeDeployment)
   }
 
   const { default: SafeApiKit } = await import('@safe-global/api-kit').then(
@@ -133,13 +132,13 @@ const safeDeploy = async (
     (m) => m.default,
   )
 
-  const provider = await hre.viem.getPublicClient()
+  const publicClient = env.viem.publicClient
   const privateKey = process.env.SAFE_PROPOSER_KEY!
 
   if (networkType === 'mainnet') {
     const pendingSafeTransactionsFile = path.join(
-      hre.config.paths.deployments,
-      hre.network.name,
+      'deployments',
+      env.network.name,
       '.pendingSafeTransactions',
     )
     const pendingSafeTransactions = JSON.parse(
@@ -150,7 +149,7 @@ const safeDeploy = async (
     const existingTransaction = pendingSafeTransactions['L2ReverseRegistrar']
     if (existingTransaction) {
       const apiKit = new SafeApiKit({
-        chainId: BigInt(hre.network.config.chainId!),
+        chainId: BigInt(env.network.chain.id!),
       })
       const safeTransaction = await apiKit.getTransaction(
         existingTransaction.safeTransactionHash,
@@ -161,7 +160,7 @@ const safeDeploy = async (
       if (!safeTransaction.isSuccessful)
         throw new Error('Safe transaction failed')
 
-      const receipt = await provider.getTransactionReceipt({
+      const receipt = await publicClient.getTransactionReceipt({
         hash: safeTransaction.transactionHash as Hash,
       })
       if (receipt.status !== 'success') throw new Error('Transaction failed')
@@ -183,28 +182,31 @@ const safeDeploy = async (
   }
 
   const protocolKit = await Safe.init({
-    provider: provider.transport,
+    provider: env.network.provider,
     signer: privateKey,
     safeAddress,
     contractNetworks: {
-      [hre.network.config.chainId!]: {
+      [env.network.chain.id.toString()]: {
         createCallAddress: '0x9b35Af71d77eaf8d7e40252370304687390A1A52',
         fallbackHandlerAddress: '0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99',
         multiSendAddress: '0x38869bf66a61cF6bDB996A6aE40D5853Fd43B526',
         multiSendCallOnlyAddress: '0x9641d764fc13c8B624c04430C7356C1C7C8102e2',
         safeProxyFactoryAddress: '0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67',
         safeSingletonAddress: '0x29fcB43b46531BcA003ddC8FCB67FFE91900C762',
-      } as ContractNetworkConfig,
+      },
     },
   })
 
-  const { abi, ...extendedArtifact } =
-    await hre.deployments.getExtendedArtifact(deployConfig.artifactName)
+  // Get artifact from Rocketh artifacts
+  const artifact = artifacts[deployConfig.artifactName]
+  const { abi, bytecode, ...artifactData } = artifact
+
   const deployData = encodeDeployData({
     abi,
-    bytecode: extendedArtifact.bytecode as Hex,
+    bytecode: bytecode as Hex,
     args: deployConfig.deploymentArgs,
   })
+
   const create3Transaction = encodeFunctionData({
     abi: parseAbi([
       'function deployDeterministic(bytes initCode, bytes32 salt) returns (address)',
@@ -238,16 +240,16 @@ const safeDeploy = async (
   const deployment = {
     address: expectedDeploymentAddress,
     abi,
-    receipt: {},
-    args: deployConfig.deploymentArgs,
-    ...extendedArtifact,
-  } as unknown as DeploymentSubmission
+    argsData: deployConfig.deploymentArgs,
+    bytecode,
+    ...artifactData,
+  }
 
   if (networkType === 'testnet') {
     safeTransaction.addSignature(signature)
 
     const { hash } = await protocolKit.executeTransaction(safeTransaction)
-    const receipt = await provider.waitForTransactionReceipt({
+    const receipt = await publicClient.waitForTransactionReceipt({
       hash: hash as Hash,
     })
     if (receipt.status !== 'success') throw new Error('Transaction failed')
@@ -255,7 +257,7 @@ const safeDeploy = async (
     return true
   } else {
     const apiKit = new SafeApiKit({
-      chainId: BigInt(hre.network.config.chainId!),
+      chainId: BigInt(env.network.chain.id!),
     })
 
     await apiKit.proposeTransaction({
@@ -269,8 +271,8 @@ const safeDeploy = async (
     console.log('Transaction proposed:', safeTransactionHash)
 
     const pendingSafeTransactionsFile = path.join(
-      hre.config.paths.deployments,
-      hre.network.name,
+      'deployments',
+      env.network.name,
       '.pendingSafeTransactions',
     )
     const pendingSafeTransactions = JSON.parse(
@@ -293,36 +295,38 @@ const safeDeploy = async (
   }
 }
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default execute(
+  async ({ deploy, namedAccounts, network, save, viem, config }) => {
+    const { deployer } = namedAccounts
+    const chainId = network.chain.id
+    const coinType = evmChainIdToCoinType(chainId) as bigint
+    const coinTypeHex = coinType.toString(16)
 
-  const chainId = hre.network.config.chainId!
-  const coinType = evmChainIdToCoinType(chainId) as bigint
-  const coinTypeHex = coinType.toString(16)
+    const REVERSE_NAMESPACE = `${coinTypeHex}.reverse`
+    const REVERSENODE = namehash(REVERSE_NAMESPACE)
 
-  const REVERSE_NAMESPACE = `${coinTypeHex}.reverse`
-  const REVERSENODE = namehash(REVERSE_NAMESPACE)
+    if (process.env.SAFE_PROPOSER_KEY && config.saveDeployments) {
+      return await safeDeploy(
+        { network, save, viem },
+        {
+          reverseNode: REVERSENODE,
+          coinType,
+        },
+      )
+    } else {
+      console.log(`Deploying L2ReverseRegistrar on ${network.name} with:`)
+      console.log(`coinType: ${coinType}`)
 
-  if (process.env.SAFE_PROPOSER_KEY && hre.network.saveDeployments) {
-    return await safeDeploy(hre, {
-      reverseNode: REVERSENODE,
-      coinType,
-    })
-  } else {
-    console.log(`Deploying L2ReverseRegistrar on ${hre.network.name} with:`)
-    console.log(`coinType: ${coinType}`)
-
-    await viem.deploy('L2ReverseRegistrar', [coinType])
-  }
-}
-
-func.id = 'L2ReverseRegistrar v1.0.0'
-func.tags = ['category:reverseregistrar', 'L2ReverseRegistrar']
-func.dependencies = ['UniversalSigValidator']
-func.skip = async function (hre) {
-  if (hre.network.tags.l2) return false
-  if (hre.network.tags.local) return false
-  return true
-}
-
-export default func
+      await deploy('L2ReverseRegistrar', {
+        account: deployer,
+        artifact: artifacts.L2ReverseRegistrar,
+        args: [coinType],
+      })
+    }
+  },
+  {
+    id: 'L2ReverseRegistrar v1.0.0',
+    tags: ['category:l2', 'L2ReverseRegistrar'],
+    dependencies: ['UniversalSigValidator'],
+  },
+)

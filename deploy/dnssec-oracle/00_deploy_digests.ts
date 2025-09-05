@@ -1,24 +1,37 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { execute, artifacts } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default execute(
+  async ({ deploy, namedAccounts, network }) => {
+    const { deployer } = namedAccounts
 
-  await viem.deploy('SHA1Digest', [])
-  await viem.deploy('SHA256Digest', [])
+    await deploy('SHA1Digest', {
+      account: deployer,
+      artifact: artifacts.SHA1Digest,
+      args: [],
+    })
 
-  if (network.tags.test) await viem.deploy('DummyDigest', [])
+    await deploy('SHA256Digest', {
+      account: deployer,
+      artifact: artifacts.SHA256Digest,
+      args: [],
+    })
 
-  return true
-}
-
-func.id = 'dnssec-digests v1.0.0'
-func.tags = [
-  'category:dnssec-oracle',
-  'dnssec-digests',
-  'SHA1Digest',
-  'SHA256Digest',
-  'DummyDigest',
-]
-func.dependencies = []
-
-export default func
+    if (network.tags?.test) {
+      await deploy('DummyDigest', {
+        account: deployer,
+        artifact: artifacts.DummyDigest,
+        args: [],
+      })
+    }
+  },
+  {
+    id: 'dnssec-digests v1.0.0',
+    tags: [
+      'category:dnssec-oracle',
+      'dnssec-digests',
+      'SHA1Digest',
+      'SHA256Digest',
+      'DummyDigest',
+    ],
+  },
+)

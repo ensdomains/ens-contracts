@@ -1,13 +1,5 @@
-import hre from 'hardhat'
-import {
-  Address,
-  encodeAbiParameters,
-  Hex,
-  keccak256,
-  parseAbiParameters,
-  zeroAddress,
-  zeroHash,
-} from 'viem'
+import type { NetworkConnection } from 'hardhat/types/network'
+import { Address, getAddress, Hex, zeroAddress, zeroHash } from 'viem'
 import { EnsStack } from './deployEnsFixture.js'
 
 export type Mutable<T> = {
@@ -30,31 +22,33 @@ const ReverseRecord = {
   default: 2,
 }
 
-export const getDefaultRegistrationOptions = async ({
-  label,
-  ownerAddress,
-  duration,
-  secret,
-  resolverAddress,
-  data,
-  reverseRecord,
-  referrer,
-}: RegisterNameOptions) => ({
-  label,
-  ownerAddress: await (async () => {
-    if (ownerAddress) return ownerAddress
-    const [deployer] = await hre.viem.getWalletClients()
-    return deployer.account.address
-  })(),
-  duration: duration ?? BigInt(60 * 60 * 24 * 365),
-  secret:
-    secret ??
-    '0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF',
-  resolverAddress: resolverAddress ?? zeroAddress,
-  data: data ?? [],
-  reverseRecord: reverseRecord ?? [],
-  referrer: referrer ?? zeroHash,
-})
+export const getDefaultRegistrationOptionsWithConnection =
+  (connection: NetworkConnection) =>
+  async ({
+    label,
+    ownerAddress,
+    duration,
+    secret,
+    resolverAddress,
+    data,
+    reverseRecord,
+    referrer,
+  }: RegisterNameOptions) => ({
+    label,
+    ownerAddress: await (async () => {
+      if (ownerAddress) return getAddress(ownerAddress)
+      const [deployer] = await connection.viem.getWalletClients()
+      return getAddress(deployer.account.address)
+    })(),
+    duration: duration ?? BigInt(60 * 60 * 24 * 365),
+    secret:
+      secret ??
+      '0x0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF0123456789ABCDEF',
+    resolverAddress: resolverAddress ?? zeroAddress,
+    data: data ?? [],
+    reverseRecord: reverseRecord ?? [],
+    referrer: referrer ?? zeroHash,
+  })
 
 export const getRegisterNameParameters = ({
   label,
@@ -82,74 +76,72 @@ export const getRegisterNameParameters = ({
   return immutable as Mutable<typeof immutable>
 }
 
-export const createCommitmentHash = (
-  args: ReturnType<typeof getRegisterNameParameters>,
-) =>
-  keccak256(
-    encodeAbiParameters(
-      parseAbiParameters(
-        '(string label,address owner,uint256 duration,bytes32 secret,address resolver,bytes[] data,uint8 reverseRecord,bytes32 referrer)',
-      ),
-      [args],
-    ),
-  )
+export const commitNameWithConnection =
+  (connection: NetworkConnection) =>
+  async (
+    { ethRegistrarController }: Pick<EnsStack, 'ethRegistrarController'>,
+    params_: RegisterNameOptions,
+  ) => {
+    const params = await getDefaultRegistrationOptionsWithConnection(
+      connection,
+    )(params_)
+    const args = getRegisterNameParameters(params)
 
-export const commitName = async (
-  { ethRegistrarController }: Pick<EnsStack, 'ethRegistrarController'>,
-  {
-    createLocalCommitmentHash,
-    ...params_
-  }: RegisterNameOptions & { createLocalCommitmentHash?: boolean },
-) => {
-  const params = await getDefaultRegistrationOptions(params_)
-  const args = getRegisterNameParameters(params)
+    const testClient = await connection.viem.getTestClient()
+    const [deployer] = await connection.viem.getWalletClients()
 
-  const testClient = await hre.viem.getTestClient()
-  const [deployer] = await hre.viem.getWalletClients()
+    const commitmentHash = await ethRegistrarController.read.makeCommitment([
+      args,
+    ])
+    await ethRegistrarController.write.commit([commitmentHash], {
+      account: deployer.account,
+    })
+    const minCommitmentAge =
+      await ethRegistrarController.read.minCommitmentAge()
+    await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
+    await testClient.mine({ blocks: 1 })
 
-  const commitmentHash = createLocalCommitmentHash
-    ? createCommitmentHash(args)
-    : await ethRegistrarController.read.makeCommitment([args])
-  await ethRegistrarController.write.commit([commitmentHash], {
-    account: deployer.account,
-  })
-  const minCommitmentAge = await ethRegistrarController.read.minCommitmentAge()
-  await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
-  await testClient.mine({ blocks: 1 })
-
-  return {
-    params,
-    args,
-    hash: commitmentHash,
+    return {
+      params,
+      args,
+      hash: commitmentHash,
+    }
   }
-}
 
-export const registerName = async (
-  { ethRegistrarController }: Pick<EnsStack, 'ethRegistrarController'>,
-  params_: RegisterNameOptions,
-) => {
-  const params = await getDefaultRegistrationOptions(params_)
-  const args = getRegisterNameParameters(params)
-  const { label, duration } = params
+export const registerNameWithConnection =
+  (connection: NetworkConnection) =>
+  async (
+    { ethRegistrarController }: Pick<EnsStack, 'ethRegistrarController'>,
+    params_: RegisterNameOptions,
+  ) => {
+    const params = await getDefaultRegistrationOptionsWithConnection(
+      connection,
+    )(params_)
+    const args = getRegisterNameParameters(params)
+    const { label, duration } = params
 
-  const testClient = await hre.viem.getTestClient()
-  const [deployer] = await hre.viem.getWalletClients()
-  const commitmentHash = await ethRegistrarController.read.makeCommitment([
-    args,
-  ])
-  await ethRegistrarController.write.commit([commitmentHash], {
-    account: deployer.account,
-  })
-  const minCommitmentAge = await ethRegistrarController.read.minCommitmentAge()
-  await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
-  await testClient.mine({ blocks: 1 })
+    const testClient = await connection.viem.getTestClient()
+    const [deployer] = await connection.viem.getWalletClients()
+    const commitmentHash = await ethRegistrarController.read.makeCommitment([
+      args,
+    ])
+    await ethRegistrarController.write.commit([commitmentHash], {
+      account: deployer.account,
+    })
+    const minCommitmentAge =
+      await ethRegistrarController.read.minCommitmentAge()
+    await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
+    await testClient.mine({ blocks: 1 })
 
-  const value = await ethRegistrarController.read
-    .rentPrice([label, duration])
-    .then(({ base, premium }) => base + premium)
+    const price = (await ethRegistrarController.read.rentPrice([
+      label,
+      duration,
+    ])) as { base: bigint; premium: bigint }
 
-  await ethRegistrarController.write.register([args], {
-    value,
-    account: deployer.account,
-  })
-}
+    const value = price.base + price.premium
+
+    await ethRegistrarController.write.register([args], {
+      value,
+      account: deployer.account,
+    })
+  }

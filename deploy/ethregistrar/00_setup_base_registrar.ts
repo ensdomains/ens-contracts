@@ -1,48 +1,44 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { execute, type artifacts } from '@rocketh'
 import { labelhash } from 'viem'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default execute(
+  async ({
+    get,
+    execute: write,
+    namedAccounts: { deployer, owner },
+    network,
+  }) => {
+    if (!network.tags.use_root) return
 
-  const { deployer, owner } = await viem.getNamedClients()
-  const publicClient = await viem.getPublicClient()
+    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const registrar = get<
+      (typeof artifacts.BaseRegistrarImplementation)['abi']
+    >('BaseRegistrarImplementation')
 
-  if (!network.tags.use_root) {
-    return true
-  }
+    // 1. Transfer ownership of registrar to owner
+    console.log(`  - Transferring ownership of registrar to ${owner}`)
+    await write(registrar, {
+      functionName: 'transferOwnership',
+      args: [owner],
+      account: deployer,
+    })
 
-  const root = await viem.getContract('Root')
-  const registrar = await viem.getContract('BaseRegistrarImplementation')
-
-  console.log('Running base registrar setup')
-
-  const transferOwnershipHash = await registrar.write.transferOwnership(
-    [owner.address],
-    { account: deployer.account },
-  )
-  console.log(
-    `Transferring ownership of registrar to owner (tx: ${transferOwnershipHash})...`,
-  )
-  await viem.waitForTransactionSuccess(transferOwnershipHash)
-
-  const setSubnodeOwnerHash = await root.write.setSubnodeOwner(
-    [labelhash('eth'), registrar.address],
-    { account: owner.account },
-  )
-  console.log(
-    `Setting owner of eth node to registrar on root (tx: ${setSubnodeOwnerHash})...`,
-  )
-  await viem.waitForTransactionSuccess(setSubnodeOwnerHash)
-
-  return true
-}
-
-func.id = 'BaseRegistrarImplementation:setup v1.0.0'
-func.tags = [
-  'category:ethregistrar',
-  'BaseRegistrarImplementation',
-  'BaseRegistrarImplementation:setup',
-]
-func.dependencies = ['Root', 'BaseRegistrarImplementation:contract']
-
-export default func
+    // 2. Set owner of eth node to registrar on root
+    console.log(`  - Setting owner of eth node to registrar on root`)
+    await write(root, {
+      functionName: 'setSubnodeOwner',
+      args: [labelhash('eth'), registrar.address],
+      account: owner,
+    })
+  },
+  {
+    id: 'BaseRegistrarImplementation:setup v1.0.0',
+    tags: [
+      'category:ethregistrar',
+      'BaseRegistrarImplementation',
+      'BaseRegistrarImplementation:setup',
+    ],
+    // Runs after the root is setup
+    dependencies: ['Root', 'BaseRegistrarImplementation:contract'],
+  },
+)

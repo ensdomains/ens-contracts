@@ -185,7 +185,7 @@ Mainnet Safe address: `0x353530FE74098903728Ddb66Ecdb70f52e568eC1`
 
 When readying a new deployment of certain contracts, bump the deploy script version number to the appropriate new version. Doing this ensures that the new deployment script will run for each network.
 
-Deployment scripts can be run for any specified network found in the [config](hardhat.config.cts#L38), with the following:
+Deployment scripts can be run for any specified network found in the [config](hardhat.config.ts#L38), with the following:
 
 ```
 bun hh --network <network_name> deploy

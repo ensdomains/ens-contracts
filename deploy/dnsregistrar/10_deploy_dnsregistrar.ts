@@ -1,52 +1,64 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { zeroAddress } from 'viem'
+import { artifacts, execute } from '@rocketh'
+import { getAddress, zeroAddress, type Address } from 'viem'
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default execute(
+  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { owner } = await viem.getNamedClients()
-
-  const registry = await viem.getContract('ENSRegistry')
-  const dnssec = await viem.getContract('DNSSECImpl')
-  const resolver = await viem.getContract('OffchainDNSResolver')
-  const oldregistrar = await viem.getContractOrNull('DNSRegistrar')
-  const root = await viem.getContract('Root')
-
-  const publicSuffixList = await viem.getContract('SimplePublicSuffixList')
-
-  const deployment = await viem.deploy('DNSRegistrar', [
-    oldregistrar?.address || zeroAddress,
-    resolver.address,
-    dnssec.address,
-    publicSuffixList.address,
-    registry.address,
-  ])
-
-  const rootOwner = await root.read.owner()
-
-  if (owner !== undefined && rootOwner === owner.address) {
-    const hash = await root.write.setController([deployment.address, true], {
-      account: owner.account,
-    })
-    console.log(`Set DNSRegistrar as controller of Root (${hash})`)
-    await viem.waitForTransactionSuccess(hash)
-  } else {
-    console.log(
-      `${owner.address} is not the owner of the root; you will need to call setController('${deployment.address}', true) manually`,
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const dnssec = get<(typeof artifacts.DNSSECImpl)['abi']>('DNSSECImpl')
+    const resolver = get<(typeof artifacts.OffchainDNSResolver)['abi']>(
+      'OffchainDNSResolver',
     )
-  }
+    const oldregistrar = getOrNull('DNSRegistrar')
+    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const publicSuffixList = get<
+      (typeof artifacts.SimplePublicSuffixList)['abi']
+    >('SimplePublicSuffixList')
 
-  return true
-}
+    const dnsRegistrar = await deploy('DNSRegistrar', {
+      account: deployer,
+      artifact: artifacts.DNSRegistrar,
+      args: [
+        oldregistrar?.address || zeroAddress,
+        resolver.address,
+        dnssec.address,
+        publicSuffixList.address,
+        registry.address,
+      ],
+    })
 
-func.id = 'DNSRegistrar:contract v1.0.0'
-func.tags = ['category:dnsregistrar', 'DNSRegistrar', 'DNSRegistrar:contract']
-func.dependencies = [
-  'ENSRegistry',
-  'DNSSECImpl',
-  'OffchainDNSResolver',
-  'Root',
-  'SimplePublicSuffixList',
-]
+    if (!dnsRegistrar.newlyDeployed) {
+      return
+    }
 
-export default func
+    // Set DNSRegistrar as controller of Root
+    const rootOwner = await read(root, {
+      functionName: 'owner',
+    }).then((v) => getAddress(v as Address))
+
+    if (rootOwner === getAddress(owner)) {
+      console.log('  - Setting DNSRegistrar as controller of Root')
+      await write(root, {
+        functionName: 'setController',
+        args: [dnsRegistrar.address, true],
+        account: owner,
+      })
+    } else {
+      console.warn(
+        `  - WARN: ${owner} is not the owner of the root; you will need to call setController('${dnsRegistrar.address}', true) manually`,
+      )
+    }
+  },
+  {
+    id: 'DNSRegistrar:contract v1.0.0',
+    tags: ['category:dnsregistrar', 'DNSRegistrar', 'DNSRegistrar:contract'],
+    dependencies: [
+      'ENSRegistry',
+      'DNSSECImpl',
+      'OffchainDNSResolver',
+      'Root',
+      'SimplePublicSuffixList',
+    ],
+  },
+)

@@ -1,12 +1,13 @@
 import hre from 'hardhat'
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { readFileSync } from 'node:fs'
 import { FEATURES, makeFeature } from './features.js'
 
+const connection = await hre.network.connect()
+
 async function fixture() {
-  return hre.viem.deployContract('DummyShapeshiftResolver')
+  return connection.viem.deployContract('DummyShapeshiftResolver')
 }
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('ResolverFeatures', () => {
   const code = readFileSync(
@@ -22,7 +23,7 @@ describe('ResolverFeatures', () => {
       expect(feature, 'hash').toStrictEqual(
         FEATURES.RESOLVER[name as keyof typeof FEATURES.RESOLVER],
       )
-      const F = await loadFixture(fixture)
+      const F = await loadFixture()
       await F.write.setFeature([feature, true])
       await expect(
         F.read.supportsFeature([feature]),

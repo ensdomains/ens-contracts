@@ -1,28 +1,29 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, execute } from '@rocketh'
 import { namehash } from 'viem/ens'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default execute(
+  async ({ deploy, get, namedAccounts, network }) => {
+    const { deployer } = namedAccounts
 
-  if (!network.tags.use_root) {
-    return true
-  }
+    if (!network.tags?.use_root) {
+      return
+    }
 
-  const registry = await viem.getContract('ENSRegistry')
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
 
-  await viem.deploy('BaseRegistrarImplementation', [
-    registry.address,
-    namehash('eth'),
-  ])
-  return true
-}
-
-func.id = 'BaseRegistrarImplementation:contract v1.0.0'
-func.tags = [
-  'category:ethregistrar',
-  'BaseRegistrarImplementation',
-  'BaseRegistrarImplementation:contract',
-]
-func.dependencies = ['ENSRegistry']
-
-export default func
+    await deploy('BaseRegistrarImplementation', {
+      account: deployer,
+      artifact: artifacts.BaseRegistrarImplementation,
+      args: [registry.address, namehash('eth')],
+    })
+  },
+  {
+    id: 'BaseRegistrarImplementation:contract v1.0.0',
+    tags: [
+      'category:ethregistrar',
+      'BaseRegistrarImplementation',
+      'BaseRegistrarImplementation:contract',
+    ],
+    dependencies: ['ENSRegistry'],
+  },
+)
