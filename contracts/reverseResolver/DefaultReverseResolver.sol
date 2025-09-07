@@ -27,8 +27,7 @@ contract DefaultReverseResolver is AbstractReverseResolver {
 
     /// @inheritdoc INameReverser
     function resolveNames(
-        address[] memory addrs,
-        uint8 /*perPage*/
+        address[] memory addrs
     ) external view returns (string[] memory names) {
         names = new string[](addrs.length);
         for (uint256 i; i < addrs.length; i++) {

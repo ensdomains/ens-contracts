@@ -219,12 +219,10 @@ describe('ETHReverseResolver', () => {
   })
 
   describe('resolveNames()', () => {
-    const perPage = 0 // ignored, has no effect
-
     it('empty', async () => {
       const F = await loadFixture()
       await expect(
-        F.reverseResolver.read.resolveNames([[], perPage]),
+        F.reverseResolver.read.resolveNames([[]]),
       ).resolves.toStrictEqual([])
     })
 
@@ -240,7 +238,6 @@ describe('ETHReverseResolver', () => {
         await expect(
           F.reverseResolver.read.resolveNames([
             wallets.slice(0, setters.length + 1).map((x) => x.account.address),
-            perPage,
           ]),
         ).resolves.toStrictEqual([nthName(0), nthName(1), nthName(2), ''])
       },

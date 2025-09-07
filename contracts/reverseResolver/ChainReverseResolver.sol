@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
 import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
+
 import {GatewayFetchTarget, IGatewayVerifier} from "@unruggable/gateways/GatewayFetchTarget.sol";
-import {GatewayFetcher, GatewayRequest} from "@unruggable/gateways/GatewayFetcher.sol";
+import {GatewayFetcher, GatewayRequest, RequestOverflow} from "@unruggable/gateways/GatewayFetcher.sol";
+
+import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
 import {IStandaloneReverseRegistrar} from "../reverseRegistrar/IStandaloneReverseRegistrar.sol";
 import {INameReverser} from "./INameReverser.sol";
 
@@ -19,14 +21,14 @@ contract ChainReverseResolver is
 {
     using GatewayFetcher for GatewayRequest;
 
+    /// @notice Storage slot for the names mapping in `L2ReverseRegistrar`.
+    uint256 constant NAMES_SLOT = 0;
+
     /// @notice The reverse registrar contract for "default.reverse".
     IStandaloneReverseRegistrar public immutable defaultRegistrar;
 
     /// @notice The reverse registrar address on the L2 chain.
     address public immutable l2Registrar;
-
-    /// @notice Storage slot for the names mapping in `L2ReverseRegistrar`.
-    uint256 constant NAMES_SLOT = 0;
 
     /// @notice The verifier contract for the L2 chain.
     IGatewayVerifier public gatewayVerifier;
@@ -103,37 +105,29 @@ contract ChainReverseResolver is
     }
 
     /// @inheritdoc INameReverser
+    /// @dev Reverts with a variety of errors.
+    /// - reverts `RequestOverflow` if too many addresses.
+    /// - Gateway request may fail if too many proofs.
+    /// - Gateway response may run out of gas.
     function resolveNames(
-        address[] memory addrs,
-        uint8 perPage
-    ) external view returns (string[] memory names) {
-        names = new string[](addrs.length);
-        _resolveNames(addrs, names, 0, perPage);
-    }
-
-    /// @dev Resolve the next page of addresses to names.
-    ///      This function executes over multiple steps.
-    function _resolveNames(
-        address[] memory addrs,
-        string[] memory names,
-        uint256 start,
-        uint8 perPage
-    ) internal view {
-        uint256 end = start + perPage;
-        if (end > addrs.length) end = addrs.length;
-        uint8 count = uint8(end - start);
-        if (count == 0) return; // done
-        GatewayRequest memory req = GatewayFetcher.newRequest(count);
+        address[] memory addrs
+    ) external view returns (string[] memory) {
+        if (addrs.length > 255) {
+            revert RequestOverflow();
+        }
+        GatewayRequest memory req = GatewayFetcher.newRequest(
+            uint8(addrs.length)
+        );
         req.setTarget(l2Registrar); // target L2 registrar
-        for (uint256 i; i < count; i++) {
-            req.setSlot(NAMES_SLOT).push(addrs[start + i]).follow().readBytes(); // names[addr[i]]
+        for (uint256 i; i < addrs.length; i++) {
+            req.setSlot(NAMES_SLOT).push(addrs[i]).follow().readBytes(); // names[addr[i]]
             req.setOutput(uint8(i));
         }
         fetch(
             gatewayVerifier,
             req,
             this.resolveNamesCallback.selector, // ==> step 2
-            abi.encode(addrs, names, start, perPage),
+            abi.encode(addrs),
             gatewayURLs
         );
     }
@@ -148,20 +142,14 @@ contract ChainReverseResolver is
         uint8 /* exitCode */,
         bytes calldata extraData
     ) external view returns (string[] memory names) {
-        address[] memory addrs;
-        uint256 start;
-        uint8 perPage;
-        (addrs, names, start, perPage) = abi.decode(
-            extraData,
-            (address[], string[], uint256, uint8)
-        );
-        for (uint256 i; i < values.length; i++) {
+        address[] memory addrs = abi.decode(extraData, (address[]));
+        names = new string[](addrs.length);
+        for (uint256 i; i < addrs.length; i++) {
             string memory name = string(values[i]);
             if (bytes(name).length == 0) {
                 name = defaultRegistrar.nameForAddr(addrs[i]);
             }
-            names[start + i] = name;
+            names[i] = name;
         }
-        _resolveNames(addrs, names, start + values.length, perPage); // ==> goto step 1 again
     }
 }

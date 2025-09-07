@@ -3,7 +3,7 @@ import { serve } from '@namestone/ezccip/serve'
 import { Gateway, UncheckedRollup } from '@unruggable/gateways'
 import { BrowserProvider } from 'ethers/providers'
 import hre from 'hardhat'
-import { namehash } from 'viem'
+import { namehash, toHex } from 'viem'
 import { deployArtifact } from '../fixtures/deployArtifact.js'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -69,6 +69,7 @@ async function fixture() {
     reverseNamespace,
     reverseRegistrar,
     reverseResolver,
+    gateway,
   }
 }
 
@@ -177,28 +178,12 @@ describe('ChainReverseResolver', () => {
     it('empty', async () => {
       const F = await loadFixture()
       await expect(
-        F.reverseResolver.read.resolveNames([[], 255]),
+        F.reverseResolver.read.resolveNames([[]]),
       ).resolves.toStrictEqual([])
-    })
-
-    it('multiple pages', async () => {
-      const F = await loadFixture()
-      const connection = await hre.network.connect()
-      const wallets = await connection.viem.getWalletClients()
-      for (const w of wallets) {
-        await F.reverseRegistrar.write.setName([w.uid], { account: w.account })
-      }
-      await expect(
-        F.reverseResolver.read.resolveNames([
-          wallets.map((x) => x.account.address),
-          3,
-        ]),
-      ).resolves.toStrictEqual(wallets.map((x) => x.uid))
     })
 
     it('1 chain + 1 default + 1 unset', async () => {
       const F = await loadFixture()
-      const connection = await hre.network.connect()
       const wallets = await connection.viem.getWalletClients()
       await F.reverseRegistrar.write.setName(['A'], {
         account: wallets[0].account,
@@ -209,9 +194,30 @@ describe('ChainReverseResolver', () => {
       await expect(
         F.reverseResolver.read.resolveNames([
           wallets.slice(0, 3).map((x) => x.account.address),
-          255,
         ]),
       ).resolves.toStrictEqual(['A', 'B', ''])
+    })
+
+    it('too many proofs', async () => {
+      const F = await loadFixture()
+      const max = 10
+      try {
+        F.gateway.rollup.configure = (commit) => {
+          commit.prover.maxUniqueProofs = 1 + max
+        }
+        await expect(
+          F.reverseResolver.read.resolveNames([
+            Array.from({ length: max }, (_, i) => toHex(i, { size: 20 })),
+          ]),
+        ).resolves.toHaveLength(max)
+        await expect(
+          F.reverseResolver.read.resolveNames([
+            Array.from({ length: max + 1 }, (_, i) => toHex(i, { size: 20 })),
+          ]),
+        ).rejects.toThrow(/Status: 500/) // TODO: fix after Urg adds callback error propagation
+      } finally {
+        F.gateway.rollup.configure = undefined
+      }
     })
   })
 })

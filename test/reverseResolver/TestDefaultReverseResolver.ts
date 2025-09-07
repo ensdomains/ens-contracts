@@ -137,12 +137,10 @@ describe('DefaultReverseResolver', () => {
   })
 
   describe('resolveNames()', () => {
-    const perPage = 0 // ignored, has no effect
-
     it('empty', async () => {
       const F = await loadFixture()
       await expect(
-        F.defaultReverseResolver.read.resolveNames([[], perPage]),
+        F.defaultReverseResolver.read.resolveNames([[]]),
       ).resolves.toStrictEqual([])
     })
 
@@ -160,7 +158,6 @@ describe('DefaultReverseResolver', () => {
             ...wallets.map((x) => x.account.address),
             F.defaultReverseRegistrar.address,
           ],
-          perPage,
         ]),
       ).resolves.toStrictEqual([...wallets.map((x) => x.uid), ''])
     })

@@ -11,6 +11,7 @@
     "test:local": "bun run test --network localhost",
     "test:deploy": "bun ./scripts/deploy-test.ts",
     "l2:deploy": "bun run hh deploy --tags l2",
+    "interfaces": "bun run compile --quiet && bun ./scripts/interfaces.ts",
     "lint": "bun run hh check",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
     "format": "prettier --write .",
