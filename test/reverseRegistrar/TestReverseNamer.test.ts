@@ -64,7 +64,7 @@ describe('ReverseNamer', () => {
 
   it('NamedOnce', async () => {
     const F = await connection.networkHelpers.loadFixture(fixture)
-    const contract = await connection.viem.deployContract('MockNamedOnce', [
+    const contract = await connection.viem.deployContract('NamedOnce', [
       PRIMARY,
     ])
     await expect(

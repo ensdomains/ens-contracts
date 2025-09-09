@@ -11,8 +11,7 @@ contract MockReverseNamer {
     }
 }
 
-contract MockNamedOnce {
-    constructor(string memory primary) {
-        ReverseNamer.setName(primary);
-    }
-}
+// // PoC for compile-time error if Ownable
+// import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+// import {NamedOnce} from "../../reverseRegistrar/ReverseNamer.sol";
+// contract MockNamedOnce is Ownable, NamedOnce("") {}

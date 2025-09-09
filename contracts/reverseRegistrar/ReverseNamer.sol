@@ -61,7 +61,20 @@ library ReverseNamer {
     }
 }
 
-contract NameableBy {
+/// @dev Compile-time guard to prevent being Ownable.
+contract NotOwnable {
+    function owner() internal pure {}
+}
+
+/// @notice Mixin for naming a contract once.
+contract NamedOnce is NotOwnable {
+    constructor(string memory primary) {
+        ReverseNamer.setName(primary);
+    }
+}
+
+/// @notice Mixin for delegated contract naming.
+contract NameableBy is NotOwnable {
     address public nameOwner;
 
     constructor(address owner, string memory primary) {
@@ -71,11 +84,14 @@ contract NameableBy {
         }
     }
 
+    /// @notice Change the namer.
+    /// @dev Use `address(0)` to revoke.
     function setNameOwner(address owner) public {
         require(msg.sender == nameOwner);
         nameOwner = owner;
     }
 
+    /// @notice Set contract primary name.
     function setName(string memory primary) public {
         require(msg.sender == nameOwner);
         ReverseNamer.setName(primary);
