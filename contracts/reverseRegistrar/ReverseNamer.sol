@@ -7,21 +7,21 @@ interface IReverseRegistrarStub {
 
 /// @notice https://docs.ens.domains/ensip/19/
 library ReverseNamer {
-    address constant REVERSE_REGISTRAR_MAINNET = address(0); // TODO: ENSv2 addr.reverse registrar
-    address constant REVERSE_REGISTRAR_MAINNET_ROLLUP =
+    address constant MAINNET = address(0); // TODO: ENSv2 addr.reverse registrar
+    address constant MAINNET_ROLLUP =
         0x0000000000D8e504002cC26E3Ec46D81971C1664;
-    address constant REVERSE_REGISTRAR_TESTNET_ROLLUP =
+    address constant TESTNET_ROLLUP =
         0x00000BeEF055f7934784D6d81b6BC86665630dbA;
 
     function registrarFromChain(
         uint256 chainId
     ) internal pure returns (address) {
         if (isMainnet(chainId)) {
-            return REVERSE_REGISTRAR_MAINNET;
+            return MAINNET;
         } else if (isMainnetRollup(chainId)) {
-            return REVERSE_REGISTRAR_MAINNET_ROLLUP;
+            return MAINNET_ROLLUP;
         } else if (isTestnetRollup(chainId)) {
-            return REVERSE_REGISTRAR_TESTNET_ROLLUP;
+            return TESTNET_ROLLUP;
         } else {
             return address(0);
         }
@@ -84,8 +84,8 @@ contract NameableBy is NotOwnable {
         }
     }
 
-    /// @notice Change the namer.
-    /// @dev Use `address(0)` to revoke.
+    /// @notice Set the name owner.
+    /// @dev Use `address(0)` to revoke ownership.
     function setNameOwner(address owner) public {
         require(msg.sender == nameOwner);
         nameOwner = owner;

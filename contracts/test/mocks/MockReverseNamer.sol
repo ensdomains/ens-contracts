@@ -11,7 +11,6 @@ contract MockReverseNamer {
     }
 }
 
-// // PoC for compile-time error if Ownable
 // import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 // import {NamedOnce} from "../../reverseRegistrar/ReverseNamer.sol";
-// contract MockNamedOnce is Ownable, NamedOnce("") {}
+// contract MockNamedOnce is Ownable, NamedOnce("") {} // compile-time error if Ownable

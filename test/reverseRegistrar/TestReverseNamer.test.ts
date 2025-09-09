@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import { type Address, getAddress, zeroAddress } from 'viem'
-import { readdirSync, readFileSync } from 'fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { coinTypeFromChain } from '../fixtures/ensip19.js'
 
 const REVERSE_REGISTRAR_MAINNET_ROLLUP =
