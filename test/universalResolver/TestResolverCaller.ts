@@ -1,4 +1,5 @@
 import hre from 'hardhat'
+import { describe, afterAll, it } from 'vitest'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
@@ -33,7 +34,7 @@ async function fixture() {
   }
 }
 
-describe('TestResolverCaller', () => {
+describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
       for (const extended of [false, true]) {
