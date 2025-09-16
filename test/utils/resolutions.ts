@@ -67,11 +67,10 @@ export type KnownProfile = {
 }
 
 export type KnownReverse = {
-  title: string
-  expectError?: boolean
+  title?: string
   address: Hex
   coinType: bigint
-  expectPrimary?: boolean
+  primary?: string;
 }
 
 type Expected = {

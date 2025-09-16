@@ -2,7 +2,6 @@ import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/
 import hre from 'hardhat'
 import {
   encodeErrorResult,
-  HttpRequestError,
   keccak256,
   namehash,
   parseAbi,
@@ -11,10 +10,10 @@ import {
   toHex,
   zeroAddress,
 } from 'viem'
+import { createServer } from 'node:http'
 
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { expectVar } from '../fixtures/expectVar.js'
-import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { ownedEnsFixture } from './ownedEnsFixture.js'
 import {
   bundleCalls,
@@ -27,21 +26,14 @@ import {
   getReverseName,
 } from '../fixtures/ensip19.js'
 
-// Define EVM_BIT constant
-const EVM_BIT = COIN_TYPE_DEFAULT
-
 const connection = await hre.network.connect()
 
 async function fixture() {
   const ens = await ownedEnsFixture(connection)
-  const bg = await serveBatchGateway()
-  afterAll(bg.shutdown)
-
   const batchGatewayProvider = await connection.viem.deployContract(
     'GatewayProvider',
-    [ens.owner, [bg.localBatchGatewayUrl]],
+    [ens.owner, ['x-batch-gateway:true']],
   )
-
   const UniversalResolver = await connection.viem.deployContract(
     'UniversalResolver',
     [ens.owner, ens.ENSRegistry.address, batchGatewayProvider.address],
@@ -248,29 +240,36 @@ describe('UniversalResolver', () => {
         .withArgs([dummyCalldata])
     })
 
-    it('batch gateway revert', async () => {
-      const F = await loadFixture()
-      const bg = await serveBatchGateway(() => {
-        throw new HttpRequestError({ status: 400, url: '' })
+    for (const statusCode of [400, 500]) {
+      it(`batch gateway http error: ${statusCode}`, async () => {
+        const http = createServer((_, res) => res.writeHead(statusCode).end())
+        try {
+          await new Promise<void>((ful) => http.listen(undefined, ful))
+          const F = await loadFixture()
+          await F.takeControl(testName)
+          await F.ENSRegistry.write.setResolver([
+            namehash(testName),
+            F.Shapeshift1.address,
+          ])
+          await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
+          await F.Shapeshift1.write.setOffchain([true])
+          await F.Shapeshift1.write.setRevertURL([
+            `http://localhost:${http.address()?.port}`,
+          ])
+          await expect(
+            F.UniversalResolver.read.resolveWithGateways([
+              dnsEncodeName(testName),
+              dummyCalldata,
+              ['x-batch-gateway:true'],
+            ]),
+          )
+            .toBeRevertedWithCustomError('HttpError')
+            .withArgs([statusCode, 'HTTP request failed.'])
+        } finally {
+          http.close()
+        }
       })
-      afterAll(bg.shutdown)
-      await F.takeControl(testName)
-      await F.ENSRegistry.write.setResolver([
-        namehash(testName),
-        F.Shapeshift1.address,
-      ])
-      await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
-      await F.Shapeshift1.write.setOffchain([true])
-      await expect(
-        F.UniversalResolver.read.resolveWithGateways([
-          dnsEncodeName(testName),
-          dummyCalldata,
-          [bg.localBatchGatewayUrl],
-        ]),
-      )
-        .toBeRevertedWithCustomError('HttpError')
-        .withArgs([400, 'HTTP request failed.'])
-    })
+    }
 
     it('unsupported revert', async () => {
       const F = await loadFixture()

@@ -1,6 +1,5 @@
 import hre from 'hardhat'
-import { describe, afterAll, it } from 'vitest'
-import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
+import { describe, it } from 'vitest'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 import { FEATURES } from '../utils/features.js'
@@ -13,8 +12,6 @@ import {
 const connection = await hre.network.connect()
 
 async function fixture() {
-  const bg = await serveBatchGateway()
-  afterAll(bg.shutdown)
   const resolverCaller = await connection.viem.deployContract(
     'MockResolverCaller',
     [],
@@ -28,7 +25,6 @@ async function fixture() {
     'DummyShapeshiftResolver',
   )
   return {
-    bg,
     resolverCaller,
     ssResolver,
   }
@@ -73,7 +69,7 @@ describe('ResolverCaller', () => {
               F.ssResolver.address,
               dnsEncodeName(kp.name),
               bundle.call,
-              [F.bg.localBatchGatewayUrl],
+              ['x-batch-gateway:true'],
             ])
             bundle.expect(answer)
           })

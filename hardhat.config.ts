@@ -25,11 +25,15 @@ const config = {
     hardhat: {
       type: 'edr-simulated',
       allowUnlimitedContractSize: false,
-      forking: process.env.FORKING_ENABLED
-        ? {
-            url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-          }
-        : undefined,
+    },
+    mainnetFork: {
+      type: 'edr-simulated',
+      allowUnlimitedContractSize: false,
+      chainId: 1,
+      forking: {
+        enabled: true,
+        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      },
     },
     localhost: {
       type: 'http',
