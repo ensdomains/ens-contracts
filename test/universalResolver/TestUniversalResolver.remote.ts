@@ -42,18 +42,22 @@ describe('UniversalResolver @ mainnet', () => {
     }
   })
   for (const coinType of new Set(KNOWN_PRIMARIES.map((x) => x.coinType))) {
-    describe.only(`reverse(${getReverseNamespace(coinType)})`, () => {
+    describe(`reverse(${getReverseNamespace(coinType)})`, () => {
       for (const x of KNOWN_PRIMARIES.filter((x) => x.coinType === coinType)) {
-        it(`${x.title || x.primary || '<empty>'} ${x.address}`, async () => {
-          const F = await connection.networkHelpers.loadFixture(fixture)
-          const promise = F.read.reverse([x.address, x.coinType])
-          if (typeof x.primary === 'string') {
-            const [primary] = await promise
-            expect(primary).toStrictEqual(x.primary)
-          } else {
-            await expect(promise).rejects.toThrow()
-          }
-        })
+        it(
+          `${x.address} ${x.title || x.primary || '<empty>'}`,
+          { timeout: 10000 },
+          async () => {
+            const F = await connection.networkHelpers.loadFixture(fixture)
+            const promise = F.read.reverse([x.address, x.coinType])
+            if (typeof x.primary === 'string') {
+              const [primary] = await promise
+              expect(primary).toStrictEqual(x.primary)
+            } else {
+              await expect(promise).rejects.toThrow()
+            }
+          },
+        )
       }
     })
   }
