@@ -254,7 +254,7 @@ describe('UniversalResolver', () => {
           await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
           await F.Shapeshift1.write.setOffchain([true])
           await F.Shapeshift1.write.setRevertURL([
-            `http://localhost:${http.address()?.port}`,
+            `http://localhost:${(http.address() as any).port}`,
           ])
           await expect(
             F.UniversalResolver.read.resolveWithGateways([
