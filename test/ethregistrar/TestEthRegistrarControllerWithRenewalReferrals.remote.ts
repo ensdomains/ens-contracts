@@ -52,7 +52,7 @@ const registerName = registerNameWithConnection(connection)
 
 async function fixture() {
   const wrappedEthRegistrarController = await connection.viem.getContractAt(
-    'contracts/ethregistrar/WrappedEthRegistrarControllerWithRenewalReferrals.sol:IWrappedEthRegistrarController',
+    'contracts/ethregistrar/EthRegistrarControllerWithRenewalReferrals.sol:IWrappedEthRegistrarController',
     MAINNET_CONTRACTS.wrappedEthRegistrarController,
   )
 
@@ -71,21 +71,22 @@ async function fixture() {
     MAINNET_CONTRACTS.nameWrapper,
   )
 
-  // deploy WrappedEthRegistrarControllerWithRenewalReferrals
-  const wrappedControllerWithReferrals = await connection.viem.deployContract(
-    'WrappedEthRegistrarControllerWithRenewalReferrals',
-    [
-      wrappedEthRegistrarController.address,
-      unwrappedEthRegistrarController.address,
-    ],
-  )
+  // deploy EthRegistrarControllerWithRenewalReferrals
+  const ethRegistrarControllerWithReferrals =
+    await connection.viem.deployContract(
+      'EthRegistrarControllerWithRenewalReferrals',
+      [
+        wrappedEthRegistrarController.address,
+        unwrappedEthRegistrarController.address,
+      ],
+    )
 
   return {
     wrappedEthRegistrarController,
     unwrappedEthRegistrarController,
     baseRegistrar,
     nameWrapper,
-    wrappedControllerWithReferrals,
+    ethRegistrarControllerWithReferrals,
   }
 }
 
@@ -124,7 +125,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
         baseRegistrar,
         nameWrapper,
         unwrappedEthRegistrarController,
-        wrappedControllerWithReferrals,
+        ethRegistrarControllerWithReferrals,
       } = await loadFixture()
 
       const expiresBefore = await baseRegistrar.read.nameExpires([
@@ -143,7 +144,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       )
 
       // Perform renewal through our wrapped controller
-      await wrappedControllerWithReferrals.write.renew(
+      await ethRegistrarControllerWithReferrals.write.renew(
         [TEST_LABEL, RENEWAL_DURATION, REFERRER],
         { value: price, account: renewerAccount },
       )
@@ -169,13 +170,13 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       const {
         baseRegistrar,
         unwrappedEthRegistrarController,
-        wrappedControllerWithReferrals,
+        ethRegistrarControllerWithReferrals,
       } = await loadFixture()
 
       // Check wrapper contract balance before (should be 0)
       await expect(
         publicClient.getBalance({
-          address: wrappedControllerWithReferrals.address,
+          address: ethRegistrarControllerWithReferrals.address,
         }),
       ).resolves.toEqual(0n)
 
@@ -201,7 +202,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       expect(renewerBalanceBefore).toBeGreaterThan(payment)
 
       // Perform renewal with overpayment
-      const txHash = await wrappedControllerWithReferrals.write.renew(
+      const txHash = await ethRegistrarControllerWithReferrals.write.renew(
         [TEST_LABEL, RENEWAL_DURATION, REFERRER],
         { value: payment, account: renewerAccount },
       )
@@ -221,7 +222,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       // Check wrapper contract balance after (should still be 0 due to refund)
       await expect(
         publicClient.getBalance({
-          address: wrappedControllerWithReferrals.address,
+          address: ethRegistrarControllerWithReferrals.address,
         }),
       ).resolves.toEqual(0n)
 
@@ -238,7 +239,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
     it('should handle underpayment correctly', async () => {
       const {
         unwrappedEthRegistrarController,
-        wrappedControllerWithReferrals,
+        ethRegistrarControllerWithReferrals,
       } = await loadFixture()
 
       // Calculate exact renewal price
@@ -250,7 +251,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
 
       // Attempt renewal with underpayment - should revert with InsufficientValue()
       await expect(
-        wrappedControllerWithReferrals.write.renew(
+        ethRegistrarControllerWithReferrals.write.renew(
           [TEST_LABEL, RENEWAL_DURATION, REFERRER],
           { value: price - 1n, account: renewerAccount },
         ),
@@ -275,7 +276,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       const {
         baseRegistrar,
         unwrappedEthRegistrarController,
-        wrappedControllerWithReferrals,
+        ethRegistrarControllerWithReferrals,
       } = await loadFixture()
 
       const initialExpiry = await baseRegistrar.read.nameExpires([
@@ -291,7 +292,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
 
       // Renew the unwrapped domain via our wrapper contract
       // TODO: Error: Transaction reverted without a reason string
-      await wrappedControllerWithReferrals.write.renew(
+      await ethRegistrarControllerWithReferrals.write.renew(
         [TEST_UNWRAPPED_LABEL, RENEWAL_DURATION, REFERRER],
         { value: price, account: renewerAccount },
       )

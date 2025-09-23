@@ -3,12 +3,13 @@ pragma solidity ~0.8.17;
 
 import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 import {IETHRegistrarController} from "./IETHRegistrarController.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
 
 interface IWrappedEthRegistrarController {
     function renew(string calldata name, uint256 duration) external payable;
 }
 
-interface IWrappedEthRegistrarControllerWithRenewalReferrals {
+interface IEthRegistrarControllerWithRenewalReferrals {
     function renew(
         string calldata label,
         uint256 duration,
@@ -16,8 +17,8 @@ interface IWrappedEthRegistrarControllerWithRenewalReferrals {
     ) external payable;
 }
 
-contract WrappedEthRegistrarControllerWithRenewalReferrals is
-    IWrappedEthRegistrarControllerWithRenewalReferrals,
+contract EthRegistrarControllerWithRenewalReferrals is
+    IEthRegistrarControllerWithRenewalReferrals,
     Ownable
 {
     IWrappedEthRegistrarController immutable wrappedEthRegistrarController;
