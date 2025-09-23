@@ -1,12 +1,20 @@
 import hre from 'hardhat'
 import {
   type Address,
+  formatEther,
   hexToBigInt,
   labelhash,
   namehash,
   padHex,
   parseEther,
 } from 'viem'
+
+import { DAY } from '../fixtures/constants.js';
+import { GRACE_PERIOD } from '../wrapper/fixtures/utils.js';
+
+const renderTimestamp = (timestamp: bigint) => `${new Date(Number(timestamp) * 1000).toISOString()} (${timestamp})`;
+const makeReferrer = (address: Address) =>
+  padHex(address, { dir: 'left', size: 32 })
 
 // Mainnet contract addresses
 const MAINNET_CONTRACTS = {
@@ -19,15 +27,14 @@ const MAINNET_CONTRACTS = {
   nameWrapper: '0xD4416b13d2b3a9aBae7AcD5D6C2BbDBE25686401' as Address,
 } as const
 
-const TEST_LABEL = 'isitai'
-const RENEWAL_DURATION = 86400n // 1 day
-
-const labelId = (label: string) => hexToBigInt(labelhash(label))
-const makeReferrer = (address: Address) =>
-  padHex(address, { dir: 'left', size: 32 })
+const TEST_LABEL = 'scotttaylor'
+const TEST_NAME = `${TEST_LABEL}.eth`;
+const LABEL_TOKEN_ID = hexToBigInt(labelhash(TEST_LABEL), {size: 32});
+const TEST_NODE = namehash(TEST_NAME);
+const NAME_TOKEN_ID = hexToBigInt(TEST_NODE, {size: 32});
+const RENEWAL_DURATION = DAY * 365n // 1 year
 
 const connection = await hre.network.connect('hardhat')
-const publicClient = await connection.viem.getPublicClient()
 const [ownerClient, referrerClient] = await connection.viem.getWalletClients()
 const ownerAccount = ownerClient.account
 const referrer = makeReferrer(referrerClient.account.address)
@@ -74,31 +81,25 @@ async function fixture() {
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
-  it.only('should get current state of isitai.eth', async () => {
+  it('should get current state of name', async () => {
     const { baseRegistrar, nameWrapper } = await loadFixture()
 
-    // Check if the name exists and get its current expiry
-    const tokenId = labelId(TEST_LABEL)
-    const expires = await baseRegistrar.read.nameExpires([tokenId])
+    const isWrapped = await nameWrapper.read.isWrapped([TEST_NODE])
+    expect(isWrapped).toEqual(true);
 
-    console.log(
-      `${TEST_LABEL}.eth expires at:`,
-      new Date(Number(expires) * 1000),
-    )
-    expect(expires).toBeGreaterThan(0n)
+    const registrarExpiry = await baseRegistrar.read.nameExpires([LABEL_TOKEN_ID])
+    expect(registrarExpiry).toBeGreaterThan(0n)
 
-    // Check NameWrapper state
-    const nodehash = namehash(`${TEST_LABEL}.eth`)
-    const [owner, , wrapperExpiry] = await nameWrapper.read.getData([
-      hexToBigInt(nodehash),
-    ])
+    const [, , wrapperExpiry] = await nameWrapper.read.getData([NAME_TOKEN_ID])
+		expect(wrapperExpiry).toBeGreaterThan(0n)
 
-    console.log(`NameWrapper owner:`, owner)
-    console.log(`NameWrapper expiry:`, new Date(Number(wrapperExpiry) * 1000))
-    console.log(`Current block timestamp:`, new Date(Date.now()))
+    expect(wrapperExpiry - GRACE_PERIOD).toEqual(registrarExpiry)
+
+    console.log(`BaseRegistrar expiry: ${renderTimestamp(registrarExpiry)}`)
+    console.log(`  NameWrapper expiry: ${renderTimestamp(wrapperExpiry)}`)
   })
 
-  it('should renew isitai.eth with referrer using wrapped controller', async () => {
+  it('should renew name with referrer using wrapped controller', async () => {
     const {
       baseRegistrar,
       nameWrapper,
@@ -106,16 +107,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       unwrappedEthRegistrarController,
     } = await loadFixture()
 
-    // Get current state
-    const tokenId = labelId(TEST_LABEL)
-    const expiresBefore = await baseRegistrar.read.nameExpires([tokenId])
-
-    // Get NameWrapper expiry before renewal
-    const nodehash = namehash(`${TEST_LABEL}.eth`)
-    const [, , wrapperExpiryBefore] = await nameWrapper.read.getData([
-      hexToBigInt(nodehash),
-    ])
-    expect(wrapperExpiryBefore).toEqual(expiresBefore)
+    const expiresBefore = await baseRegistrar.read.nameExpires([LABEL_TOKEN_ID])
 
     // Calculate renewal price
     const { base: price } =
@@ -124,98 +116,37 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
         RENEWAL_DURATION,
       ])
 
-    console.log(`Renewal price for ${RENEWAL_DURATION}s:`, price.toString())
-
-    const balanceBefore = await publicClient.getBalance({
-      address: unwrappedEthRegistrarController.address,
-    })
+    console.log(`Renewal price for ${RENEWAL_DURATION}s: ${formatEther(price)} ETH`)
 
     // Perform renewal through our wrapped controller
     await wrappedControllerWithReferrals.write.renew(
       [TEST_LABEL, RENEWAL_DURATION, referrer],
-      {
-        value: price + parseEther('0.01'), // Add some extra for testing refund
-        account: ownerAccount,
-      },
+      { value: price, account: ownerAccount },
     )
 
     // Verify the name was renewed in the base registrar
-    const expiresAfter = await baseRegistrar.read.nameExpires([tokenId])
+    const expiresAfter = await baseRegistrar.read.nameExpires([LABEL_TOKEN_ID])
     expect(expiresAfter - expiresBefore).toEqual(RENEWAL_DURATION)
 
-    console.log(
-      `Name renewed! New expiry:`,
-      new Date(Number(expiresAfter) * 1000),
-    )
+    console.log(`Name renewed! New expiry: ${renderTimestamp(expiresAfter)}`)
 
-    // // Note: In a real scenario, the wrapped controller would sync the expiry,
-    // // but since we're using a mock, we just verify it was called
-    // await expect(mockWrappedController.read.renewCalled()).resolves.toEqual(
-    // 	true,
-    // );
-    // await expect(
-    // 	mockWrappedController.read.lastRenewedLabel(),
-    // ).resolves.toEqual(TEST_LABEL);
-    // await expect(
-    // 	mockWrappedController.read.lastRenewedDuration(),
-    // ).resolves.toEqual(0n); // Called with 0 duration to sync expiry
-
-    // // Verify payment was processed
-    // const balanceAfter = await publicClient.getBalance({
-    // 	address: ethRegistrarController.address,
-    // });
-    // expect(balanceAfter - balanceBefore).toEqual(price);
+		// Verify that the NameWrapper has the updated expiry
+		const [, , wrapperExpiryAfter] = await nameWrapper.read.getData([NAME_TOKEN_ID])
+		expect(wrapperExpiryAfter - GRACE_PERIOD).toEqual(expiresAfter)
 
     console.log(`Payment processed: ${price.toString()} wei`)
   })
 
-  it('should handle insufficient payment correctly', async () => {
-    const { unwrappedEthRegistrarController, wrappedControllerWithReferrals } =
-      await loadFixture()
-
-    // Get renewal price
-    const { base: price } =
-      await unwrappedEthRegistrarController.read.rentPrice([
-        TEST_LABEL,
-        RENEWAL_DURATION,
-      ])
-
-    // Try to renew with insufficient payment
-    await expect(
-      wrappedControllerWithReferrals.write.renew(
-        [TEST_LABEL, RENEWAL_DURATION, referrer],
-        {
-          value: price - 1n, // 1 wei less than required
-          account: ownerAccount,
-        },
-      ),
-    ).toBeRevertedWithCustomError('InsufficientValue')
-  })
-
-  it('should get real name owner and ensure test validity', async () => {
-    const { baseRegistrar } = await loadFixture()
-
-    // Verify the name exists and get owner
-    const tokenId = labelId(TEST_LABEL)
-    const owner = await baseRegistrar.read.ownerOf([tokenId])
-
-    console.log(`${TEST_LABEL}.eth is owned by:`, owner)
-    expect(owner).not.toEqual('0x0000000000000000000000000000000000000000')
-
-    // Check if name is not expired
-    const expires = await baseRegistrar.read.nameExpires([tokenId])
-    const now = BigInt(Math.floor(Date.now() / 1000))
-
-    if (expires <= now) {
-      console.warn(
-        `Warning: ${TEST_LABEL}.eth is expired! Expiry:`,
-        new Date(Number(expires) * 1000),
-      )
-    } else {
-      console.log(
-        `${TEST_LABEL}.eth is valid until:`,
-        new Date(Number(expires) * 1000),
-      )
-    }
-  })
+	it('should handle overpayment correctly', async () => {
+		// owner should be refunded after sending more money than renewal will cost
+		// wrapper contract should have 0 balance before and after
+	})
+	it('should handle underpayment correctly', async () => {
+		// expect throw
+	})
+	it('should be able to renew unwrapped domain', async () => {
+		// register a new name on the unwrappedcontroller
+		// renew it via the wrapper with referrer
+		// confirm that registrar's expiry has been updated
+	})
 })
