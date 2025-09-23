@@ -8,7 +8,7 @@ import { ENS_REGISTRY, KNOWN_PRIMARIES, KNOWN_RESOLUTIONS } from './mainnet.js'
 
 // $ bun run test:remote
 
-const connection = await hre.network.connect('hardhat')
+const connection = await hre.network.connect('mainnet-fork')
 
 async function fixture() {
   const bg = await serveBatchGateway()

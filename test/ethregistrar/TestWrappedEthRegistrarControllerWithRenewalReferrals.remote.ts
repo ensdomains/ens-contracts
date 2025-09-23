@@ -11,6 +11,7 @@ import {
 
 import { DAY } from '../fixtures/constants.js'
 import { GRACE_PERIOD } from '../wrapper/fixtures/utils.js'
+import { registerNameWithConnection } from '../fixtures/registerName.js'
 
 const renderTimestamp = (timestamp: bigint) =>
   `${new Date(Number(timestamp) * 1000).toISOString()} (${timestamp})`
@@ -19,7 +20,6 @@ const makeReferrer = (address: Address) =>
 
 // Mainnet contract addresses
 const MAINNET_CONTRACTS = {
-  ensRegistry: '0x00000000000C2E074eC69A0dFb2997BA6C7d2e1e' as Address,
   unwrappedEthRegistrarController:
     '0x59E16fcCd424Cc24e280Be16E11Bcd56fb0CE547' as Address,
   wrappedEthRegistrarController:
@@ -35,12 +35,20 @@ const TEST_NODE = namehash(TEST_NAME)
 const NAME_TOKEN_ID = hexToBigInt(TEST_NODE, { size: 32 })
 const RENEWAL_DURATION = DAY * 365n // 1 year
 
-const connection = await hre.network.connect('hardhat')
+const TEST_UNWRAPPED_LABEL = 'testnewunwrapped-blahblah'
+const TEST_UNWRAPPED_LABEL_TOKEN_ID = hexToBigInt(
+  labelhash(TEST_UNWRAPPED_LABEL),
+  { size: 32 },
+)
+
+const connection = await hre.network.connect('mainnet-fork')
 const publicClient = await connection.viem.getPublicClient()
 
 const [renewerClient, referrerClient] = await connection.viem.getWalletClients()
 const renewerAccount = renewerClient.account
-const referrer = makeReferrer(referrerClient.account.address)
+const REFERRER = makeReferrer(referrerClient.account.address)
+
+const registerName = registerNameWithConnection(connection)
 
 async function fixture() {
   const wrappedEthRegistrarController = await connection.viem.getContractAt(
@@ -85,7 +93,7 @@ const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
   describe('wrapped name', () => {
-    it('should get current state of name', async () => {
+    beforeEach(async () => {
       const { baseRegistrar, nameWrapper } = await loadFixture()
 
       const isWrapped = await nameWrapper.read.isWrapped([TEST_NODE])
@@ -104,15 +112,19 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
       expect(wrapperExpiry - GRACE_PERIOD).toEqual(registrarExpiry)
 
       console.log(`BaseRegistrar expiry: ${renderTimestamp(registrarExpiry)}`)
-      console.log(`  NameWrapper expiry: ${renderTimestamp(wrapperExpiry)}`)
+      console.log(
+        `  NameWrapper expiry: ${renderTimestamp(
+          wrapperExpiry - GRACE_PERIOD,
+        )}`,
+      )
     })
 
     it('should renew name with referrer using wrapped controller', async () => {
       const {
         baseRegistrar,
         nameWrapper,
-        wrappedControllerWithReferrals,
         unwrappedEthRegistrarController,
+        wrappedControllerWithReferrals,
       } = await loadFixture()
 
       const expiresBefore = await baseRegistrar.read.nameExpires([
@@ -132,7 +144,7 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
 
       // Perform renewal through our wrapped controller
       await wrappedControllerWithReferrals.write.renew(
-        [TEST_LABEL, RENEWAL_DURATION, referrer],
+        [TEST_LABEL, RENEWAL_DURATION, REFERRER],
         { value: price, account: renewerAccount },
       )
 
@@ -156,8 +168,8 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
     it('should handle overpayment correctly', async () => {
       const {
         baseRegistrar,
-        wrappedControllerWithReferrals,
         unwrappedEthRegistrarController,
+        wrappedControllerWithReferrals,
       } = await loadFixture()
 
       // Check wrapper contract balance before (should be 0)
@@ -167,13 +179,13 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
         }),
       ).resolves.toEqual(0n)
 
-      // Get owner's balance before
-      const ownerBalanceBefore = await publicClient.getBalance({
+      // Get renewer's balance before
+      const renewerBalanceBefore = await publicClient.getBalance({
         address: renewerAccount.address,
       })
 
       // Calculate exact renewal price
-      const { base: exactPrice } =
+      const { base: price } =
         await unwrappedEthRegistrarController.read.rentPrice([
           TEST_LABEL,
           RENEWAL_DURATION,
@@ -183,14 +195,21 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
         LABEL_TOKEN_ID,
       ])
 
+      // TODO: setting payment > price causes:
+      // Transaction reverted: function selector was not recognized and there's no fallback nor receive function
+      const payment = price + 1n
+      expect(renewerBalanceBefore).toBeGreaterThan(payment)
+
       // Perform renewal with overpayment
       const txHash = await wrappedControllerWithReferrals.write.renew(
-        [TEST_LABEL, RENEWAL_DURATION, referrer],
-        { value: exactPrice + parseEther('0.1'), account: renewerAccount },
+        [TEST_LABEL, RENEWAL_DURATION, REFERRER],
+        { value: payment, account: renewerAccount },
       )
 
       // Get transaction receipt to calculate gas costs
-      const receipt = await publicClient.getTransactionReceipt({ hash: txHash })
+      const receipt = await publicClient.getTransactionReceipt({
+        hash: txHash,
+      })
       const gasCost = receipt.gasUsed * receipt.effectiveGasPrice
 
       // Verify the name was renewed
@@ -206,134 +225,82 @@ describe('WrappedEthRegistrarControllerWithRenewalReferrals @ mainnet', () => {
         }),
       ).resolves.toEqual(0n)
 
-      // Check owner's balance - should have been refunded the overpayment
-      const ownerBalanceAfter = await publicClient.getBalance({
+      // Check renewer's balance - should have been refunded the overpayment
+      const renewerBalanceAfter = await publicClient.getBalance({
         address: renewerAccount.address,
       })
 
       // Owner should have paid only the exact price + gas, not the overpayment
-      const expectedBalance = ownerBalanceBefore - exactPrice - gasCost
-      expect(ownerBalanceAfter).toEqual(expectedBalance)
+      const expectedBalance = renewerBalanceBefore - price - gasCost
+      expect(renewerBalanceAfter).toEqual(expectedBalance)
     })
 
     it('should handle underpayment correctly', async () => {
       const {
-        wrappedControllerWithReferrals,
         unwrappedEthRegistrarController,
+        wrappedControllerWithReferrals,
       } = await loadFixture()
 
       // Calculate exact renewal price
-      const { base: exactPrice } =
+      const { base: price } =
         await unwrappedEthRegistrarController.read.rentPrice([
           TEST_LABEL,
           RENEWAL_DURATION,
         ])
 
-      // Attempt renewal with underpayment - should revert
+      // Attempt renewal with underpayment - should revert with InsufficientValue()
       await expect(
         wrappedControllerWithReferrals.write.renew(
-          [TEST_LABEL, RENEWAL_DURATION, referrer],
-          { value: exactPrice - 1n, account: renewerAccount },
+          [TEST_LABEL, RENEWAL_DURATION, REFERRER],
+          { value: price - 1n, account: renewerAccount },
         ),
-      ).rejects.toThrow()
+      ).toBeRevertedWithCustomErrorFrom(
+        unwrappedEthRegistrarController,
+        'InsufficientValue',
+      )
     })
   })
 
   describe('unwrapped name', () => {
+    beforeEach(async () => {
+      const { unwrappedEthRegistrarController } = await loadFixture()
+
+      await registerName(
+        { ethRegistrarController: unwrappedEthRegistrarController },
+        { label: TEST_UNWRAPPED_LABEL },
+      )
+    })
+
     it('should renew name with referrer using wrapped controller', async () => {
       const {
         baseRegistrar,
-        wrappedControllerWithReferrals,
         unwrappedEthRegistrarController,
+        wrappedControllerWithReferrals,
       } = await loadFixture()
 
-      const testUnwrappedLabel = 'testnewunwrapped'
-      const testUnwrappedTokenId = hexToBigInt(labelhash(testUnwrappedLabel), {
-        size: 32,
-      })
-
-      // Check if the name is available for registration
-      const isAvailable = await unwrappedEthRegistrarController.read.available([
-        testUnwrappedLabel,
-      ])
-
-      if (!isAvailable) {
-        console.log(
-          `Name ${testUnwrappedLabel}.eth is not available, skipping unwrapped domain test`,
-        )
-        return
-      }
-
-      // Calculate registration price for 1 year
-      const registrationDuration = DAY * 365n
-      const { base: registrationPrice } =
-        await unwrappedEthRegistrarController.read.rentPrice([
-          testUnwrappedLabel,
-          registrationDuration,
-        ])
-
-      // Prepare registration data
-      const secret = padHex('0x1234', { size: 32 })
-      const registration = {
-        label: testUnwrappedLabel,
-        owner: renewerAccount.address,
-        duration: registrationDuration,
-        secret,
-        resolver: '0x0000000000000000000000000000000000000000' as Address,
-        data: [],
-        reverseRecord: 0,
-        referrer: padHex('0x0', { size: 32 }),
-      }
-
-      // Make commitment
-      const commitment =
-        await unwrappedEthRegistrarController.read.makeCommitment([
-          registration,
-        ])
-
-      // Commit
-      await unwrappedEthRegistrarController.write.commit([commitment], {
-        account: renewerAccount,
-      })
-
-      // Wait for commitment age (hardhat doesn't require waiting in tests)
-      // Register the name
-      await unwrappedEthRegistrarController.write.register([registration], {
-        value: registrationPrice,
-        account: renewerAccount,
-      })
-
-      // Verify the name was registered
       const initialExpiry = await baseRegistrar.read.nameExpires([
-        testUnwrappedTokenId,
+        TEST_UNWRAPPED_LABEL_TOKEN_ID,
       ])
-      expect(initialExpiry).toBeGreaterThan(0n)
 
       // Now test renewal via our wrapper
-      const renewalDuration = DAY * 90n // 3 months
-      const { base: renewalPrice } =
+      const { base: price } =
         await unwrappedEthRegistrarController.read.rentPrice([
-          testUnwrappedLabel,
-          renewalDuration,
+          TEST_UNWRAPPED_LABEL,
+          RENEWAL_DURATION,
         ])
 
       // Renew the unwrapped domain via our wrapper contract
+      // TODO: Error: Transaction reverted without a reason string
       await wrappedControllerWithReferrals.write.renew(
-        [testUnwrappedLabel, renewalDuration, referrer],
-        { value: renewalPrice, account: renewerAccount },
+        [TEST_UNWRAPPED_LABEL, RENEWAL_DURATION, REFERRER],
+        { value: price, account: renewerAccount },
       )
 
       // Verify the domain was renewed
       const finalExpiry = await baseRegistrar.read.nameExpires([
-        testUnwrappedTokenId,
+        TEST_UNWRAPPED_LABEL_TOKEN_ID,
       ])
-      expect(finalExpiry - initialExpiry).toEqual(renewalDuration)
-
-      console.log(
-        `Unwrapped domain ${testUnwrappedLabel}.eth renewed successfully. Initial expiry: ${renderTimestamp(
-          initialExpiry,
-        )}, Final expiry: ${renderTimestamp(finalExpiry)}`,
-      )
+      expect(finalExpiry - initialExpiry).toEqual(RENEWAL_DURATION)
     })
   })
 })

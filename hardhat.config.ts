@@ -25,11 +25,6 @@ const config = {
     hardhat: {
       type: 'edr-simulated',
       allowUnlimitedContractSize: false,
-      forking: process.env.FORKING_ENABLED
-        ? {
-            url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
-          }
-        : undefined,
     },
     localhost: {
       type: 'http',
@@ -65,6 +60,15 @@ const config = {
       url: arbitrum.rpcUrls.default.http[0],
       chainId: arbitrum.id,
       accounts: realAccounts,
+    },
+    'mainnet-fork': {
+      type: 'edr-simulated',
+      forking: {
+        url:
+          process.env.MAINNET_FORK_URL ||
+          `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        enabled: true,
+      },
     },
   },
   solidity: {

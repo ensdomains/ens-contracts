@@ -7,9 +7,6 @@ export default defineConfig({
     environment: 'node',
     globals: true,
     setupFiles: ['./test/setup.ts'],
-    env: {
-      FORKING_ENABLED: '1',
-    },
   },
   esbuild: {
     target: 'node22',

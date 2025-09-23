@@ -46,7 +46,7 @@ contract WrappedEthRegistrarControllerWithRenewalReferrals is
         // 2. bump the WrappedEthRegistrarController so NameWrapper gets the new expiry
         wrappedEthRegistrarController.renew(label, 0);
 
-        // 3. refund msg.sender any leftover payment
+        // 3. refund msg.sender any leftover balance
         if (address(this).balance > 0) {
             payable(msg.sender).transfer(address(this).balance);
         }
