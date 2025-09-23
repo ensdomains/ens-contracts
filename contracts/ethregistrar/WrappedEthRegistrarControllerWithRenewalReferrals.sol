@@ -24,11 +24,11 @@ contract WrappedEthRegistrarControllerWithRenewalReferrals is
     IETHRegistrarController immutable unwrappedEthRegistrarController;
 
     constructor(
-        IETHRegistrarController _registrar,
-        IWrappedEthRegistrarController _wrappedController
+        IWrappedEthRegistrarController _wrappedEthRegistrarController,
+        IETHRegistrarController _unwrappedEthRegistrarController
     ) Ownable(msg.sender) {
-        unwrappedEthRegistrarController = _registrar;
-        wrappedEthRegistrarController = _wrappedController;
+        wrappedEthRegistrarController = _wrappedEthRegistrarController;
+        unwrappedEthRegistrarController = _unwrappedEthRegistrarController;
     }
 
     function renew(
