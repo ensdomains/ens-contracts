@@ -26,9 +26,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     bool public deriveMulticall;
 
     function getResponse(bytes memory call) public view returns (bytes memory) {
-        if (
-            deriveMulticall && bytes4(call) == IMulticallable.multicall.selector
-        ) {
+        if (deriveMulticall && bytes4(call) == IMulticallable.multicall.selector) {
             bytes[] memory m = abi.decode(
                 BytesUtils.substring(call, 4, call.length - 4),
                 (bytes[])
