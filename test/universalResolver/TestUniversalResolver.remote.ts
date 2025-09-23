@@ -2,14 +2,13 @@ import hre from 'hardhat'
 
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { shortCoin } from '../fixtures/ensip19.js'
-import { isHardhatFork } from '../fixtures/forked.js'
 import { serveBatchGateway } from '../fixtures/localBatchGateway.js'
 import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
 import { ENS_REGISTRY, KNOWN_PRIMARIES, KNOWN_RESOLUTIONS } from './mainnet.js'
 
 // $ bun run test:remote
 
-const connection = await hre.network.connect()
+const connection = await hre.network.connect('hardhat')
 
 async function fixture() {
   const bg = await serveBatchGateway()

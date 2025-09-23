@@ -26,7 +26,7 @@ const labelId = (label: string) => hexToBigInt(labelhash(label))
 const makeReferrer = (address: Address) =>
   padHex(address, { dir: 'left', size: 32 })
 
-const connection = await hre.network.connect()
+const connection = await hre.network.connect('hardhat')
 const publicClient = await connection.viem.getPublicClient()
 const [ownerClient, referrerClient] = await connection.viem.getWalletClients()
 const ownerAccount = ownerClient.account
