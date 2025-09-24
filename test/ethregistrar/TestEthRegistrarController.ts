@@ -560,6 +560,94 @@ describe('ETHRegistrarController', () => {
       )
   })
 
+  it('should allow anyone to renew a name', async () => {
+    const {
+      baseRegistrar,
+      ethRegistrarController,
+      publicClient,
+      registrantAccount,
+    } = await loadFixture(fixture)
+    await registerName(
+      { ethRegistrarController },
+      {
+        label: 'newname',
+        duration: REGISTRATION_TIME,
+        ownerAddress: registrantAccount.address,
+      },
+    )
+
+    const expires = await baseRegistrar.read.nameExpires([labelId('newname')])
+    const balanceBefore = await publicClient.getBalance({
+      address: ethRegistrarController.address,
+    })
+
+    const duration = 86400n
+    const { base: price } = await ethRegistrarController.read.rentPrice([
+      'newname',
+      duration,
+    ])
+
+    await ethRegistrarController.write.renew(['newname', duration, zeroHash], {
+      value: price,
+    })
+
+    const newExpires = await baseRegistrar.read.nameExpires([
+      labelId('newname'),
+    ])
+
+    expect(newExpires - expires).toEqual(duration)
+
+    await expect(
+      publicClient.getBalance({ address: ethRegistrarController.address }),
+    ).resolves.toEqual(balanceBefore + price)
+  })
+
+  it('should allow a commitment to be reused after it has expired', async () => {
+    const { ethRegistrarController, registrantAccount, otherAccount } =
+      await loadFixture(fixture)
+    const testClient = await hre.viem.getTestClient()
+
+    const { args, hash } = await commitName(
+      { ethRegistrarController },
+      {
+        label: 'newname',
+        duration: REGISTRATION_TIME,
+        ownerAddress: registrantAccount.address,
+      },
+    )
+
+    const maxCommitmentAge =
+      await ethRegistrarController.read.maxCommitmentAge()
+
+    await testClient.increaseTime({
+      seconds: Number(maxCommitmentAge),
+    })
+
+    // This should fail because the commitment has expired
+    await expect(ethRegistrarController)
+      .write('register', [args], {
+        value: BUFFERED_REGISTRATION_COST,
+      })
+      .toBeRevertedWithCustomError('CommitmentTooOld')
+
+    // Now, let's make a new commitment with the same parameters
+    const { args: args2 } = await commitName(
+      { ethRegistrarController },
+      {
+        label: 'newname',
+        duration: REGISTRATION_TIME,
+        ownerAddress: registrantAccount.address,
+      },
+    )
+
+    // And this registration should work
+    await expect(ethRegistrarController)
+      .write('register', [args2], {
+        value: BUFFERED_REGISTRATION_COST,
+      })
+      .toEmitEvent('NameRegistered')
+  })
+
   it('should allow token owners to renew a name', async () => {
     const {
       baseRegistrar,

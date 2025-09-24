@@ -273,6 +273,9 @@ contract ETHRegistrarController is
         // If the commitment is too old, or the name is registered, stop
         if (commitmentTimestamp + maxCommitmentAge <= block.timestamp) {
             if (commitmentTimestamp == 0) revert CommitmentNotFound(commitment);
+
+            // An expired commitment can be replaced by a new one, so we delete it here.
+            delete (commitments[commitment]);
             revert CommitmentTooOld(
                 commitment,
                 commitmentTimestamp + maxCommitmentAge,
