@@ -107,6 +107,41 @@ describe('NameCoder', () => {
     })
   })
 
+  describe('readLabelString()', () => {
+    for (const [name] of [['', 'a.bb.ccc.dddd.eeeee']]) {
+      it(fmt(name), async () => {
+        const F = await loadFixture()
+        const dns = dnsEncodeName(name)
+        let offset = 0n
+        let label: string
+        if (name) {
+          for (const x of name.split('.')) {
+            ;[label, offset] = await F.read.readLabelString([dns, offset])
+            expect(label).toStrictEqual(x)
+          }
+        }
+        await expect(
+          F.read.readLabelString([dns, offset]),
+        ).resolves.toStrictEqual(['', BigInt(size(dns))])
+      })
+    }
+
+    it('permits malicious labels', async () => {
+      const F = await loadFixture()
+      await expect(
+        F.read.readLabelString([toHex('\x03a.b\x00'), 0n]),
+      ).resolves.toStrictEqual(['a.b', 4n])
+    })
+
+    it('permits hashed labels', async () => {
+      const F = await loadFixture()
+      const hashed = forceHashedLabel('abc')
+      await expect(
+        F.read.readLabelString([dnsEncodeName(hashed), 0n]),
+      ).resolves.toStrictEqual([hashed, 67n])
+    })
+  })
+
   it('null hashed label', async () => {
     const F = await loadFixture()
     await expect(

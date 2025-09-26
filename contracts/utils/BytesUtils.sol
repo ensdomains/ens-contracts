@@ -1,6 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
+import {LibCopy} from "./LibCopy.sol";
+
 library BytesUtils {
     /// @dev `offset` was beyond `length`.
     ///       Error selector: `0x8a3c1cfb`
@@ -240,30 +242,6 @@ library BytesUtils {
         }
     }
 
-    /// @dev Copy `mem[src:src+len]` to `mem[dst:dst+len]`.
-    /// @param src The source memory offset.
-    /// @param dst The destination memory offset.
-    /// @param len The number of bytes to copy.
-    function unsafeMemcpy(uint256 dst, uint256 src, uint256 len) internal pure {
-        assembly {
-            // Copy word-length chunks while offsible
-            // prettier-ignore
-            for {} gt(len, 31) {} {
-                mstore(dst, mload(src))
-                dst := add(dst, 32)
-                src := add(src, 32)
-                len := sub(len, 32)
-            }
-            // Copy remaining bytes
-            if len {
-                let mask := sub(shl(shl(3, sub(32, len)), 1), 1) // see above
-                let wSrc := and(mload(src), not(mask))
-                let wDst := and(mload(dst), mask)
-                mstore(dst, or(wSrc, wDst))
-            }
-        }
-    }
-
     /// @dev Copy `vSrc[offSrc:offSrc+len]` to `vDst[offDst:offDst:len]`.
     /// @param vSrc The source bytes.
     /// @param offSrc The offset into the source to begin the copy.
@@ -285,7 +263,7 @@ library BytesUtils {
             src := add(add(vSrc, 32), offSrc)
             dst := add(add(vDst, 32), offDst)
         }
-        unsafeMemcpy(dst, src, len);
+        LibCopy.unsafeCopy(dst, src, len);
     }
 
     /// @dev Copies a substring into a new byte string.

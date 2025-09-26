@@ -39,6 +39,13 @@ contract TestNameCoder {
         );
     }
 
+    function readLabelString(
+        bytes memory name,
+        uint256 offset
+    ) external pure returns (string memory label, uint256 nextOffset) {
+        (label, nextOffset) = NameCoder.readLabelString(name, offset);
+    }
+
     function namehash(
         bytes memory name,
         uint256 offset

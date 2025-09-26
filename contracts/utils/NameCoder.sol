@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {HexUtils} from "../utils/HexUtils.sol";
+import {HexUtils} from "./HexUtils.sol";
+import {LibCopy} from "./LibCopy.sol";
 
 /// @dev Library for encoding/decoding names.
 ///
@@ -127,6 +128,27 @@ library NameCoder {
         uint256 offset
     ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
         (labelHash, nextOffset, , ) = readLabel(name, offset, true);
+    }
+
+    /// @dev Read label at offset from a DNS-encoded name.
+    ///      eg. `readLabel("\x03abc\x00", 0) = "abc"`.
+    /// @param name The DNS-encoded name.
+    /// @param offset The offset into `name`.
+    /// @return label The label.
+    function readLabelString(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (string memory label, uint256 nextOffset) {
+        uint8 size;
+        (size, nextOffset) = nextLabel(name, offset);
+        label = new string(size);
+        uint256 src;
+        uint256 dst;
+        assembly {
+            src := add(add(name, 33), offset)
+            dst := add(label, 32)
+        }
+        LibCopy.unsafeCopy(dst, src, size);
     }
 
     /// @dev Compute the ENS namehash of `name[:offset]`.
