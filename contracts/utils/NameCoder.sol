@@ -131,10 +131,11 @@ library NameCoder {
     }
 
     /// @dev Read label at offset from a DNS-encoded name.
-    ///      eg. `readLabel("\x03abc\x00", 0) = "abc"`.
+    ///      eg. `readLabel("\x03abc\x00", 0) = ("abc", 4)`.
     /// @param name The DNS-encoded name.
-    /// @param offset The offset into `name`.
-    /// @return label The label.
+    /// @param offset The offset into `name` to start reading.
+    /// @return label The label corresponding to `offset`.
+    /// @return nextOffset The offset into `name` of the next label.
     function readLabelString(
         bytes memory name,
         uint256 offset
