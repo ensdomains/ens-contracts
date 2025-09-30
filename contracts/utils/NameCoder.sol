@@ -81,11 +81,11 @@ library NameCoder {
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
-    /// @param parseHashed If true, supports hashed labels.
+    /// @param parseHashed If `true`, supports hashed labels.
     /// @return labelHash The resulting labelhash.
     /// @return nextOffset The offset into `name` of the next label.
     /// @return size The size of the label in bytes.
-    /// @return wasHashed If true, the label was interpreted as a hashed label.
+    /// @return wasHashed `true` if the label was interpreted as a hashed label.
     function readLabel(
         bytes memory name,
         uint256 offset,
@@ -112,10 +112,11 @@ library NameCoder {
                 offset + 2,
                 nextOffset - 1
             ); // will not revert
-            if (!wasHashed || labelHash == bytes32(0)) {
-                revert DNSDecodingFailed(name); // "readLabel: malformed" or null literal
+            if (wasHashed && labelHash == bytes32(0)) {
+                revert DNSDecodingFailed(name); // null literal
             }
-        } else if (size > 0) {
+        }
+        if (size > 0 && !wasHashed) {
             assembly {
                 labelHash := keccak256(add(add(name, offset), 33), size)
             }
@@ -215,6 +216,55 @@ library NameCoder {
         }
     }
 
+    /// @dev Prepare exactly one label for encoding.
+    /// @param label The label to prepare, eg. `abc`.
+    /// @param allowHashed If `true`, allows hashed labels.
+    /// @return preparedLabel The literal or hashed label, or empty if invalid.
+    /// @return labelHash The labelhash of `preparedLabel`.
+    /// @return isHashed `true` if `preparedLabel` is hashed.
+    function prepareLabel(
+        string memory label,
+        bool allowHashed
+    )
+        internal
+        pure
+        returns (string memory preparedLabel, bytes32 labelHash, bool isHashed)
+    {
+        bytes memory v = bytes(label);
+        uint256 n = v.length;
+        if (n == 66 && v[0] == "[" && v[65] == "]") {
+            (labelHash, isHashed) = HexUtils.hexStringToBytes32(v, 1, 65);
+            if (isHashed) {
+                return (
+                    allowHashed && labelHash != bytes32(0) ? label : "",
+                    labelHash, // label already hashed
+                    true
+                );
+            }
+        }
+        for (uint256 i; i < n; ++i) {
+            if (v[i] == ".") {
+                return ("", bytes32(0), false); // multiple labels
+            }
+        }
+        labelHash = keccak256(v);
+        if (n > 255) {
+            isHashed = true;
+            if (allowHashed) {
+                preparedLabel = new string(66);
+                uint256 ptr;
+                assembly {
+                    ptr := add(preparedLabel, 32)
+                }
+                _unsafeWriteHashedLabel(ptr, labelHash);
+            } else {
+                preparedLabel = "";
+            }
+        } else {
+            preparedLabel = label;
+        }
+    }
+
     /// @dev Convert ENS name to DNS-encoded name.
     ///      Hashes labels longer than 255 bytes.
     ///      Reverts `DNSEncodingFailed`.
@@ -235,7 +285,7 @@ library NameCoder {
             for (uint256 i; i < n; i++) {
                 bytes1 x = bytes(ens)[i]; // read byte
                 if (x == ".") {
-                    start = _createHashedLabel(start, end);
+                    start = _unsafeWriteEncodedLabel(start, end);
                     if (start == 0) revert DNSEncodingFailed(ens);
                     end = start; // jump to next position
                 } else {
@@ -245,7 +295,7 @@ library NameCoder {
                     }
                 }
             }
-            start = _createHashedLabel(start, end);
+            start = _unsafeWriteEncodedLabel(start, end);
             if (start == 0) revert DNSEncodingFailed(ens);
             assembly {
                 mstore8(start, 0) // terminal byte
@@ -254,26 +304,23 @@ library NameCoder {
         }
     }
 
-    /// @dev Write the label length.
-    ///      If longer than 255, writes a hashed label instead.
+    /// @dev Write encoded label.
+    ///      If longer than 255, write a hashed label instead.
     /// @param start The memory offset of the length-prefixed label.
     /// @param end The memory offset at the end of the label.
     /// @return next The memory offset for the next label.
     ///              Returns 0 if label is empty (handled by caller).
-    function _createHashedLabel(
+    function _unsafeWriteEncodedLabel(
         uint256 start,
         uint256 end
     ) internal pure returns (uint256 next) {
         uint256 size = end - start; // length of label
         if (size > 255) {
+            bytes32 labelHash;
             assembly {
-                mstore(0, keccak256(add(start, 1), size)) // compute hash of label
+                labelHash := keccak256(add(start, 1), size) // compute hash of label
             }
-            HexUtils.unsafeHex(0, start + 2, 64); // override label with hex(hash)
-            assembly {
-                mstore8(add(start, 1), 0x5B) // "["
-                mstore8(add(start, 66), 0x5D) // "]"
-            }
+            _unsafeWriteHashedLabel(start + 1, labelHash);
             size = 66;
         }
         if (size > 0) {
@@ -281,6 +328,21 @@ library NameCoder {
                 mstore8(start, size) // update length
             }
             next = start + 1 + size; // advance
+        }
+    }
+
+    /// @dev Write encoded label at `mem[ptr:ptr+66]`.
+    function _unsafeWriteHashedLabel(
+        uint256 ptr,
+        bytes32 labelHash
+    ) internal pure {
+        assembly {
+            mstore(0, labelHash) // compute hash of label
+        }
+        HexUtils.unsafeHex(0, ptr + 1, 64);
+        assembly {
+            mstore8(ptr, 0x5B) // "["
+            mstore8(add(ptr, 65), 0x5D) // "]"
         }
     }
 

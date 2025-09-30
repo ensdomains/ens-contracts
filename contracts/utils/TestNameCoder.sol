@@ -53,6 +53,20 @@ contract TestNameCoder {
         return NameCoder.namehash(name, offset);
     }
 
+    function prepareLabel(
+        string memory label,
+        bool allowHashed
+    )
+        external
+        pure
+        returns (string memory preparedLabel, bytes32 labelHash, bool isHashed)
+    {
+        (preparedLabel, labelHash, isHashed) = NameCoder.prepareLabel(
+            label,
+            allowHashed
+        );
+    }
+
     function encode(
         string memory ens
     ) external pure returns (bytes memory dns) {
