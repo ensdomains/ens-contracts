@@ -33,6 +33,10 @@ library NameCoder {
     ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
+    /// @dev The DNS-encoded name contains a hashed label.
+    ///      Error selector: `0xd21be9bc`
+    error NameContainsHashedLabel(bytes dns);
+
     /// @dev Read the `size` of the label at `offset`.
     ///      If `size = 0`, it must be the end of `name` (no junk at end).
     ///      Reverts `DNSDecodingFailed`.
@@ -123,7 +127,7 @@ library NameCoder {
         }
     }
 
-    /// @dev Same as `BytesUtils.namehash()` but supports hashed labels.
+    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
     function readLabel(
         bytes memory name,
         uint256 offset
@@ -166,6 +170,26 @@ library NameCoder {
         (hash, offset) = readLabel(name, offset);
         if (hash != bytes32(0)) {
             hash = namehash(namehash(name, offset), hash);
+        }
+    }
+
+    /// @dev Compute the ENS namehash of `name[:offset]`.
+    ///      Reverts `NameContainsHashedLabel` if any label are hashed.
+    ///      Reverts `DNSDecodingFailed`.
+    /// @param name The DNS-encoded name.
+    /// @param offset The offset into name start hashing.
+    /// @return hash The namehash of `name[:offset]`.
+    function unhashedNamehash(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (bytes32 hash) {
+        bool wasHashed;
+        (hash, offset, , wasHashed) = readLabel(name, offset, true);
+        if (wasHashed) {
+            revert NameContainsHashedLabel(name);
+        }
+        if (hash != bytes32(0)) {
+            hash = namehash(unhashedNamehash(name, offset), hash);
         }
     }
 

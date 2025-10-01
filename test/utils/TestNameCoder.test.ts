@@ -38,14 +38,16 @@ const NULL_HASHED_LABEL = `[${'0'.repeat(64)}]`
 
 describe('NameCoder', () => {
   describe('valid', () => {
-    for (const ens of [
-      '',
-      'a.bb.ccc.dddd.eeeee',
-      '1'.repeat(255),
-      '1'.repeat(300),
-      forceHashedLabel('eth'),
-      `${'1'.repeat(300)}.${forceHashedLabel('test')}.eth`,
-    ]) {
+    for (const [ens, hashed] of [
+      ['', false],
+      ['abc', false],
+      ['a.bb.ccc.dddd.eeeee', false],
+      [`[${'z'.repeat(64)}]`, false],
+      ['1'.repeat(255), false],
+      ['1'.repeat(300), true],
+      [forceHashedLabel('eth'), true],
+      [`${'1'.repeat(300)}.${forceHashedLabel('test')}.eth`, true],
+    ] as const) {
       it(fmt(ens), async () => {
         const F = await loadFixture()
         const dns = dnsEncodeName(ens)
@@ -57,6 +59,15 @@ describe('NameCoder', () => {
           F.read.namehash([dns, 0n]),
           'namehash',
         ).resolves.toStrictEqual(namehash(ens))
+        if (hashed) {
+          await expect(F.read.unhashedNamehash([dns, 0n]))
+            .toBeRevertedWithCustomError('NameContainsHashedLabel')
+            .withArgs([dns])
+        } else {
+          await expect(
+            F.read.unhashedNamehash([dns, 0n]),
+          ).resolves.toStrictEqual(namehash(ens))
+        }
         for (let offset = 0n; offset < size(dns); ) {
           ;[, offset] = await F.read.nextLabel([dns, offset])
         }

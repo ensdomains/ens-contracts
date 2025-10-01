@@ -53,6 +53,13 @@ contract TestNameCoder {
         return NameCoder.namehash(name, offset);
     }
 
+    function unhashedNamehash(
+        bytes memory name,
+        uint256 offset
+    ) external pure returns (bytes32 nameHash) {
+        return NameCoder.unhashedNamehash(name, offset);
+    }
+
     function prepareLabel(
         string memory label,
         bool allowHashed
