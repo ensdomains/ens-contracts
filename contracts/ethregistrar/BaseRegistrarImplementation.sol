@@ -1,9 +1,10 @@
+//SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "../registry/ENS.sol";
-import "./IBaseRegistrar.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import {ENS} from "../registry/ENS.sol";
+import {IBaseRegistrar} from "./IBaseRegistrar.sol";
+import {ERC721, IERC721, IERC165} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     // A map of expiry times
@@ -176,7 +177,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
 
     function supportsInterface(
         bytes4 interfaceID
-    ) public view override(ERC721, IERC165) returns (bool) {
+    ) public pure override(ERC721, IERC165) returns (bool) {
         return
             interfaceID == INTERFACE_META_ID ||
             interfaceID == ERC721_ID ||
