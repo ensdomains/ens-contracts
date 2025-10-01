@@ -26,10 +26,13 @@ function isHashedLabel(label: string) {
   return /^\[[0-9a-f]{64}\]$/i.test(label)
 }
 
-function fmt(name: string) {
-  if (name.length > 70) {
-    const n = 32
-    name = `${name.slice(0, n)}…${name.slice(-n)}<${name.length}>`
+function fmt(name: string, short = false) {
+  const max = short ? 36 : 72
+  if (name.length > max) {
+    const half = max >> 1
+    name = `${name.slice(0, half)}…${name.slice(-half)}<${name
+      .split('.')
+      .map((x) => x.length)}>`
   }
   return name || '<root>'
 }
@@ -45,7 +48,7 @@ describe('NameCoder', () => {
       [`[${'z'.repeat(64)}]`, false],
       ['1'.repeat(255), false],
       ['1'.repeat(300), true],
-      [forceHashedLabel('eth'), true],
+      [forceHashedLabel('abc'), true],
       [`${'1'.repeat(300)}.${forceHashedLabel('test')}.eth`, true],
     ] as const) {
       it(fmt(ens), async () => {
@@ -182,14 +185,16 @@ describe('NameCoder', () => {
         it(`${fmt(label)} fails encoding`, async () => {
           const F = await loadFixture()
           const [prepared] = await F.read.prepareLabel([label, hashed])
-          expect(prepared).toEqual('')
+          expect(prepared).toStrictEqual('')
         })
       }
     })
   })
 
   describe('readLabelString()', () => {
-    for (const [name] of [['', 'a.bb.ccc.dddd.eeeee']]) {
+    for (const [name] of [
+      ['', 'a.bb.ccc.dddd.eeeee', forceHashedLabel('abc')],
+    ]) {
       it(fmt(name), async () => {
         const F = await loadFixture()
         const dns = dnsEncodeName(name)
@@ -257,7 +262,7 @@ describe('NameCoder', () => {
 
   describe('matchSuffix()', () => {
     function testNoMatch(name: string, suffix: string) {
-      it(`no match: ${fmt(name)} / ${fmt(suffix)}`, async () => {
+      it(`no match: ${fmt(name, true)} / ${fmt(suffix, true)}`, async () => {
         const F = await loadFixture()
         await expect(
           F.read.matchSuffix([dnsEncodeName(name), 0n, namehash(suffix)]),
@@ -265,13 +270,8 @@ describe('NameCoder', () => {
       })
     }
 
-    function testMatch(
-      name: string,
-      suffix = name,
-      nameTitle = name,
-      suffixTitle = suffix,
-    ) {
-      it(`match: ${fmt(nameTitle)} / ${fmt(suffixTitle)}`, async () => {
+    function testMatch(name: string, suffix = name) {
+      it(`match: ${fmt(name, true)} / ${fmt(suffix, true)}`, async () => {
         const F = await loadFixture()
         const nodeSuffix = namehash(suffix)
         let prev = name
