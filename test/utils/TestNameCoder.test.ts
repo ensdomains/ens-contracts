@@ -310,8 +310,8 @@ describe('NameCoder', () => {
     testMatch('a.b.c.d', 'd')
     testMatch('a.b.c.d', '')
 
-    testMatch('1'.repeat(300), undefined, '1^300', '1^300')
-    testMatch('2'.repeat(300), forceHashedLabel('2'.repeat(300)), '2^300')
+    testMatch('1'.repeat(300), undefined)
+    testMatch('2'.repeat(300), forceHashedLabel('2'.repeat(300)))
     testMatch('3.eth', forceHashedLabel('eth'))
     testMatch(`4.${forceHashedLabel('eth')}`, 'eth')
     testMatch(`5.${forceHashedLabel('test')}.eth`, 'test.eth')
