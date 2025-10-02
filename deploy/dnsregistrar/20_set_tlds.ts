@@ -110,7 +110,7 @@ export default deployScript(
       params: [multicallAddress, 'latest'],
     })
 
-    if (!multicallExistingBytecode && !config.saveDeployments) {
+    if (!multicallExistingBytecode || multicallExistingBytecode === '0x') {
       console.log('  - Deploying Multicall')
       await tx({
         to: '0x05f32B3cC3888453ff71B01135B34FF8e41263F2',
