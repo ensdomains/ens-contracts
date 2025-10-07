@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import {LibCopy} from "./LibCopy.sol";
+import {UnsafeCopyLib} from "./UnsafeCopyLib/UnsafeCopyLib.sol";
 
 library BytesUtils {
     /// @dev `offset` was beyond `length`.
@@ -255,15 +255,15 @@ library BytesUtils {
         uint256 offDst,
         uint256 len
     ) internal pure {
-        _checkBound(vSrc, offSrc + len);
-        _checkBound(vDst, offDst + len);
-        uint256 src;
-        uint256 dst;
-        assembly {
-            src := add(add(vSrc, 32), offSrc)
-            dst := add(add(vDst, 32), offDst)
+        unchecked {
+            _checkBound(vSrc, offSrc + len);
+            _checkBound(vDst, offDst + len);
+            UnsafeCopyLib.copy(
+                UnsafeCopyLib.ptr(vDst) + offDst,
+                UnsafeCopyLib.ptr(vSrc) + offSrc,
+                len
+            );
         }
-        LibCopy.unsafeCopy(dst, src, len);
     }
 
     /// @dev Copies a substring into a new byte string.

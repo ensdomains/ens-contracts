@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
-import {HexUtils} from "./HexUtils.sol";
-import {LibCopy} from "./LibCopy.sol";
+import {UnsafeCopyLib} from "./UnsafeCopyLib/UnsafeCopyLib.sol";
 
 /// @dev Library for encoding/decoding names.
 ///
@@ -13,18 +12,23 @@ import {LibCopy} from "./LibCopy.sol";
 /// - maximum label length is 255 bytes.
 /// - length = 0 is reserved for the terminator (root).
 ///
-/// To encode a label larger than 255 bytes, use a hashed label.
-/// A label of any length can be converted to a hashed label.
+/// Only supports labels up to 255 bytes.
 ///
-/// A hashed label is encoded as "[" + toHex(keccak256(label)) + "]".
-/// eg. [af2caa1c2ca1d027f1ac823b529d0a67cd144264b2789fa2ea4d63a67c7103cc] = "vitalik".
-/// - always 66 bytes.
-/// - matches: `/^\[[0-9a-f]{64}\]$/`.
-///
-/// w/o hashed labels: `dns.length == 2 + ens.length` and the mapping is injective.
-///  w/ hashed labels: `dns.length == 2 + ens.split('.').map(x => x.utf8Length).sum(n => n > 255 ? 66 : n)`.
+/// Length: `dns.length == 2 + ens.length` and the mapping is injective.
 ///
 library NameCoder {
+    /// @dev The namehash of "eth".
+    bytes32 public constant ETH_NODE =
+        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+
+    /// @dev The label was empty.
+    ///      Error selector: `0xbf9a2740`
+    error LabelIsEmpty();
+
+    /// @dev The label was more than 255 bytes.
+    ///      Error selector: `0xdab6c73c`
+    error LabelIsTooLong(string label);
+
     /// @dev The DNS-encoded name is malformed.
     ///      Error selector: `0xba4adc23`
     error DNSDecodingFailed(bytes dns);
@@ -33,27 +37,35 @@ library NameCoder {
     ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
-    /// @dev The DNS-encoded name contains a hashed label.
-    ///      Error selector: `0xd21be9bc`
-    error NameContainsHashedLabel(bytes dns);
+    /// @dev The `name` did not end with `suffix`.
+    ///
+    /// @param name The DNS-encoded name.
+    /// @param suffix THe DNS-encoded suffix.
+    error NoSuffixMatch(bytes name, bytes suffix);
 
     /// @dev Read the `size` of the label at `offset`.
     ///      If `size = 0`, it must be the end of `name` (no junk at end).
     ///      Reverts `DNSDecodingFailed`.
+    ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
+    ///
     /// @return size The size of the label in bytes.
     /// @return nextOffset The offset into `name` of the next label.
     function nextLabel(
         bytes memory name,
         uint256 offset
     ) internal pure returns (uint8 size, uint256 nextOffset) {
-        assembly {
-            size := byte(0, mload(add(add(name, 32), offset))) // uint8(name[offset])
-            nextOffset := add(offset, add(1, size)) // offset + 1 + size
-        }
-        if (size > 0 ? nextOffset >= name.length : nextOffset != name.length) {
-            revert DNSDecodingFailed(name);
+        unchecked {
+            if (offset >= name.length) {
+                revert DNSDecodingFailed(name);
+            }
+            size = uint8(name[offset]);
+            ++offset;
+            if ((size == 0) != (offset == name.length)) {
+                revert DNSDecodingFailed(name);
+            }
+            nextOffset = offset + size;
         }
     }
 
@@ -63,8 +75,10 @@ library NameCoder {
     ///      * `prevOffset(name, name.length) = name.length - 1`.
     ///      * `prevOffset(name, name.length - 1) = <tld>`.
     ///      Reverts `DNSDecodingFailed`.
+    ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading backwards.
+    ///
     /// @return prevOffset The offset into `name` of the previous label.
     function prevLabel(
         bytes memory name,
@@ -81,126 +95,82 @@ library NameCoder {
     }
 
     /// @dev Compute the ENS labelhash of the label at `offset` and the offset for the next label.
-    ///      Disallows hashed label of zero (eg. `[0..0]`) to prevent confusion with terminator.
     ///      Reverts `DNSDecodingFailed`.
+    ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
-    /// @param parseHashed If `true`, supports hashed labels.
+    ///
     /// @return labelHash The resulting labelhash.
     /// @return nextOffset The offset into `name` of the next label.
-    /// @return size The size of the label in bytes.
-    /// @return wasHashed `true` if the label was interpreted as a hashed label.
     function readLabel(
         bytes memory name,
-        uint256 offset,
-        bool parseHashed
-    )
-        internal
-        pure
-        returns (
-            bytes32 labelHash,
-            uint256 nextOffset,
-            uint8 size,
-            bool wasHashed
-        )
-    {
+        uint256 offset
+    ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
+        uint8 size;
         (size, nextOffset) = nextLabel(name, offset);
-        if (
-            parseHashed &&
-            size == 66 &&
-            name[offset + 1] == "[" &&
-            name[nextOffset - 1] == "]"
-        ) {
-            (labelHash, wasHashed) = HexUtils.hexStringToBytes32(
-                name,
-                offset + 2,
-                nextOffset - 1
-            ); // will not revert
-            if (wasHashed && labelHash == bytes32(0)) {
-                revert DNSDecodingFailed(name); // null literal
-            }
-        }
-        if (size > 0 && !wasHashed) {
+        if (size > 0) {
             assembly {
                 labelHash := keccak256(add(add(name, offset), 33), size)
             }
         }
     }
 
-    /// @dev Same as `BytesUtils.readLabel()` but supports hashed labels.
-    function readLabel(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 labelHash, uint256 nextOffset) {
-        (labelHash, nextOffset, , ) = readLabel(name, offset, true);
-    }
-
     /// @dev Read label at offset from a DNS-encoded name.
     ///      eg. `readLabel("\x03abc\x00", 0) = ("abc", 4)`.
+    ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
+    ///
     /// @return label The label corresponding to `offset`.
     /// @return nextOffset The offset into `name` of the next label.
-    function readLabelString(
+    function extractLabel(
         bytes memory name,
         uint256 offset
     ) internal pure returns (string memory label, uint256 nextOffset) {
         uint8 size;
         (size, nextOffset) = nextLabel(name, offset);
-        label = new string(size);
-        uint256 src;
-        uint256 dst;
-        assembly {
-            src := add(add(name, 33), offset)
-            dst := add(label, 32)
+        bytes memory v = new bytes(size);
+        unchecked {
+            UnsafeCopyLib.copy(UnsafeCopyLib.ptr(v), UnsafeCopyLib.ptr(name) + offset + 1, size);
         }
-        LibCopy.unsafeCopy(dst, src, size);
+        label = string(v);
+    }
+
+    /// @dev Reads first label from a DNS-encoded name.
+    ///
+    /// @param name The DNS-encoded name to extract from.
+    ///
+    /// @return The first label.
+    function firstLabel(bytes memory name) internal pure returns (string memory) {
+        (string memory label, ) = extractLabel(name, 0);
+        if (bytes(label).length == 0) {
+            revert LabelIsEmpty();
+        }
+        return label;
     }
 
     /// @dev Compute the ENS namehash of `name[:offset]`.
     ///      Supports hashed labels.
     ///      Reverts `DNSDecodingFailed`.
+    ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into name start hashing.
+    ///
     /// @return hash The namehash of `name[:offset]`.
-    function namehash(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 hash) {
+    function namehash(bytes memory name, uint256 offset) internal pure returns (bytes32 hash) {
         (hash, offset) = readLabel(name, offset);
         if (hash != bytes32(0)) {
             hash = namehash(namehash(name, offset), hash);
         }
     }
 
-    /// @dev Compute the ENS namehash of `name[:offset]`.
-    ///      Reverts `NameContainsHashedLabel` if any label are hashed.
-    ///      Reverts `DNSDecodingFailed`.
-    /// @param name The DNS-encoded name.
-    /// @param offset The offset into name start hashing.
-    /// @return hash The namehash of `name[:offset]`.
-    function unhashedNamehash(
-        bytes memory name,
-        uint256 offset
-    ) internal pure returns (bytes32 hash) {
-        bool wasHashed;
-        (hash, offset, , wasHashed) = readLabel(name, offset, true);
-        if (wasHashed) {
-            revert NameContainsHashedLabel(name);
-        }
-        if (hash != bytes32(0)) {
-            hash = namehash(unhashedNamehash(name, offset), hash);
-        }
-    }
-
     /// @dev Compute a child namehash from a parent namehash.
+    ///
     /// @param parentNode The namehash of the parent.
     /// @param labelHash The labelhash of the child.
+    ///
     /// @return node The namehash of the child.
-    function namehash(
-        bytes32 parentNode,
-        bytes32 labelHash
-    ) internal pure returns (bytes32 node) {
+    function namehash(bytes32 parentNode, bytes32 labelHash) internal pure returns (bytes32 node) {
         // ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
         assembly {
             mstore(0, parentNode)
@@ -211,11 +181,11 @@ library NameCoder {
 
     /// @dev Convert DNS-encoded name to ENS name.
     ///      Reverts `DNSDecodingFailed`.
+    ///
     /// @param dns The DNS-encoded name to convert, eg. `\x03aaa\x02bb\x01c\x00`.
+    ///
     /// @return ens The equivalent ENS name, eg. `aaa.bb.c`.
-    function decode(
-        bytes memory dns
-    ) internal pure returns (string memory ens) {
+    function decode(bytes memory dns) internal pure returns (string memory ens) {
         unchecked {
             uint256 n = dns.length;
             if (n == 1 && dns[0] == 0) return ""; // only valid answer is root
@@ -240,139 +210,43 @@ library NameCoder {
         }
     }
 
-    /// @dev Prepare exactly one label for encoding.
-    /// @param label The label to prepare, eg. `abc`.
-    /// @param allowHashed If `true`, allows hashed labels.
-    /// @return preparedLabel The literal or hashed label, or empty if invalid.
-    /// @return labelHash The labelhash of `preparedLabel`.
-    /// @return isHashed `true` if `preparedLabel` is hashed.
-    function prepareLabel(
-        string memory label,
-        bool allowHashed
-    )
-        internal
-        pure
-        returns (string memory preparedLabel, bytes32 labelHash, bool isHashed)
-    {
-        bytes memory v = bytes(label);
-        uint256 n = v.length;
-        if (n == 66 && v[0] == "[" && v[65] == "]") {
-            (labelHash, isHashed) = HexUtils.hexStringToBytes32(v, 1, 65);
-            if (isHashed) {
-                return (
-                    allowHashed && labelHash != bytes32(0) ? label : "",
-                    labelHash, // label already hashed
-                    true
-                );
-            }
-        }
-        for (uint256 i; i < n; ++i) {
-            if (v[i] == ".") {
-                return ("", bytes32(0), false); // multiple labels
-            }
-        }
-        labelHash = keccak256(v);
-        if (n > 255) {
-            isHashed = true;
-            if (allowHashed) {
-                preparedLabel = new string(66);
-                uint256 ptr;
-                assembly {
-                    ptr := add(preparedLabel, 32)
-                }
-                _unsafeWriteHashedLabel(ptr, labelHash);
-            } else {
-                preparedLabel = "";
-            }
-        } else {
-            preparedLabel = label;
-        }
-    }
-
     /// @dev Convert ENS name to DNS-encoded name.
-    ///      Hashes labels longer than 255 bytes.
     ///      Reverts `DNSEncodingFailed`.
+    ///
     /// @param ens The ENS name to convert, eg. `aaa.bb.c`.
+    ///
     /// @return dns The corresponding DNS-encoded name, eg. `\x03aaa\x02bb\x01c\x00`.
-    function encode(
-        string memory ens
-    ) internal pure returns (bytes memory dns) {
+    function encode(string memory ens) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
             if (n == 0) return hex"00"; // root
             dns = new bytes(n + 2);
-            uint256 start;
-            assembly {
-                start := add(dns, 32) // first byte of output
-            }
-            uint256 end = start; // remember position to write length
-            for (uint256 i; i < n; i++) {
-                bytes1 x = bytes(ens)[i]; // read byte
-                if (x == ".") {
-                    start = _unsafeWriteEncodedLabel(start, end);
-                    if (start == 0) revert DNSEncodingFailed(ens);
-                    end = start; // jump to next position
-                } else {
-                    assembly {
-                        end := add(end, 1) // increase length
-                        mstore(end, x) // write byte
+            UnsafeCopyLib.copy(UnsafeCopyLib.ptr(dns) + 1, UnsafeCopyLib.ptr(bytes(ens)), n);
+            uint256 start; // remember position to write length
+            uint256 size;
+            for (uint256 i; i < n; ++i) {
+                if (bytes(ens)[i] == ".") {
+                    size = i - start;
+                    if (size == 0 || size > 255) {
+                        revert DNSEncodingFailed(ens);
                     }
+                    dns[start] = bytes1(uint8(size));
+                    start = i + 1;
                 }
             }
-            start = _unsafeWriteEncodedLabel(start, end);
-            if (start == 0) revert DNSEncodingFailed(ens);
-            assembly {
-                mstore8(start, 0) // terminal byte
-                mstore(dns, sub(start, add(dns, 31))) // truncate length
+            size = n - start;
+            if (size == 0 || size > 255) {
+                revert DNSEncodingFailed(ens);
             }
-        }
-    }
-
-    /// @dev Write encoded label.
-    ///      If longer than 255, write a hashed label instead.
-    /// @param start The memory offset of the length-prefixed label.
-    /// @param end The memory offset at the end of the label.
-    /// @return next The memory offset for the next label.
-    ///              Returns 0 if label is empty (handled by caller).
-    function _unsafeWriteEncodedLabel(
-        uint256 start,
-        uint256 end
-    ) internal pure returns (uint256 next) {
-        uint256 size = end - start; // length of label
-        if (size > 255) {
-            bytes32 labelHash;
-            assembly {
-                labelHash := keccak256(add(start, 1), size) // compute hash of label
-            }
-            _unsafeWriteHashedLabel(start + 1, labelHash);
-            size = 66;
-        }
-        if (size > 0) {
-            assembly {
-                mstore8(start, size) // update length
-            }
-            next = start + 1 + size; // advance
-        }
-    }
-
-    /// @dev Write encoded label at `mem[ptr:ptr+66]`.
-    function _unsafeWriteHashedLabel(
-        uint256 ptr,
-        bytes32 labelHash
-    ) internal pure {
-        assembly {
-            mstore(0, labelHash) // compute hash of label
-        }
-        HexUtils.unsafeHex(0, ptr + 1, 64);
-        assembly {
-            mstore8(ptr, 0x5B) // "["
-            mstore8(add(ptr, 65), 0x5D) // "]"
+            dns[start] = bytes1(uint8(size));
         }
     }
 
     /// @dev Find the offset of `name` that namehashes to `nodeSuffix`.
+    ///
     /// @param name The name to search.
     /// @param nodeSuffix The node to match.
+    ///
     /// @return matched True if `name` ends with the suffix.
     /// @return node The namehash of `name[offset:]`.
     /// @return prevOffset The offset into `name` of the label before the suffix, or `matchOffset` if no match or prior label.
@@ -381,23 +255,10 @@ library NameCoder {
         bytes memory name,
         uint256 offset,
         bytes32 nodeSuffix
-    )
-        internal
-        pure
-        returns (
-            bool matched,
-            bytes32 node,
-            uint256 prevOffset,
-            uint256 matchOffset
-        )
-    {
+    ) internal pure returns (bool matched, bytes32 node, uint256 prevOffset, uint256 matchOffset) {
         (bytes32 labelHash, uint256 next) = readLabel(name, offset);
         if (labelHash != bytes32(0)) {
-            (matched, node, prevOffset, matchOffset) = matchSuffix(
-                name,
-                next,
-                nodeSuffix
-            );
+            (matched, node, prevOffset, matchOffset) = matchSuffix(name, next, nodeSuffix);
             if (node == nodeSuffix) {
                 matched = true;
                 prevOffset = offset;
@@ -409,5 +270,41 @@ library NameCoder {
             matched = true;
             prevOffset = matchOffset = offset;
         }
+    }
+
+    /// @dev Assert `label` is encodable.
+    ///
+    /// @param label The label to check.
+    ///
+    /// @return The size of the label.
+    function assertLabelSize(string memory label) internal pure returns (uint8) {
+        uint256 n = bytes(label).length;
+        if (n == 0) revert LabelIsEmpty();
+        if (n > 255) revert LabelIsTooLong(label);
+        return uint8(n);
+    }
+
+    /// @dev Append `label` onto DNS-encoded `name`.
+    ///      Assumes `name` is properly encoded.
+    ///      Reverts if `label` is not encodable.
+    ///
+    /// @param name The DNS-encoded parent name, eg. `\x03eth\x00`.
+    /// @param label The child label to append, eg. `test`.
+    ///
+    /// @return The DNS-encoded name, eg. `\x04test\x03eth\x00`.
+    function appendLabel(
+        bytes memory name,
+        string memory label
+    ) internal pure returns (bytes memory) {
+        return abi.encodePacked(assertLabelSize(label), label, name);
+    }
+
+    /// @dev Transform `label` to DNS-encoded `{label}.eth`.
+    ///
+    /// @param label The label to encode, eg. "test".
+    ///
+    /// @return The DNS-encoded .eth name, eg. `\x04test\x03eth\x00`.
+    function ethName(string memory label) internal pure returns (bytes memory) {
+        return appendLabel("\x03eth\x00", label);
     }
 }

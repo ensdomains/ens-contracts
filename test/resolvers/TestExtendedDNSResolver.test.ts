@@ -15,7 +15,7 @@ import {
   stringToHex,
 } from 'viem'
 
-import { packetToBytes } from '../fixtures/dnsEncodeName.js'
+import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 
 type GetNodeFunctions<
   publicResolverAbi extends Abi,
@@ -70,7 +70,7 @@ async function fixture() {
     })
 
     return resolver.read.resolve([
-      bytesToHex(packetToBytes(name)),
+      dnsEncodeName(name),
       callData,
       stringToHex(context),
     ])

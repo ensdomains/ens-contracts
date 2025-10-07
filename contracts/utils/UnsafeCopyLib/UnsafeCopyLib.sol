@@ -1,13 +1,13 @@
 //SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.13;
 
-library LibCopy {
+library UnsafeCopyLib {
     /// @dev Copy `mem[src:src+len]` to `mem[dst:dst+len]`.
     ///      Equivalent to `mcopy()`.
     /// @param src The source memory offset.
     /// @param dst The destination memory offset.
     /// @param len The number of bytes to copy.
-    function unsafeCopy(uint256 dst, uint256 src, uint256 len) internal pure {
+    function copy(uint256 dst, uint256 src, uint256 len) internal pure {
         assembly {
             // Copy word-length chunks while offsible
             // prettier-ignore
@@ -24,6 +24,15 @@ library LibCopy {
                 let wDst := and(mload(dst), mask)
                 mstore(dst, or(wSrc, wDst))
             }
+        }
+    }
+
+    /// @dev Convert bytes to a memory offset.
+    /// @param v The bytes to convert.
+    /// @return ret The corresponding memory offset.
+    function ptr(bytes memory v) internal pure returns (uint256 ret) {
+        assembly {
+            ret := add(v, 32)
         }
     }
 }

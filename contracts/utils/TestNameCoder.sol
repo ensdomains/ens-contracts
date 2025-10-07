@@ -20,30 +20,16 @@ contract TestNameCoder {
 
     function readLabel(
         bytes memory name,
-        uint256 offset,
-        bool parseHashed
-    )
-        external
-        pure
-        returns (
-            bytes32 labelHash,
-            uint256 nextOffset,
-            uint8 size,
-            bool wasHashed
-        )
-    {
-        (labelHash, nextOffset, size, wasHashed) = NameCoder.readLabel(
-            name,
-            offset,
-            parseHashed
-        );
+        uint256 offset
+    ) external pure returns (bytes32 labelHash, uint256 nextOffset) {
+        return NameCoder.readLabel(name, offset);
     }
 
-    function readLabelString(
+    function extractLabel(
         bytes memory name,
         uint256 offset
     ) external pure returns (string memory label, uint256 nextOffset) {
-        (label, nextOffset) = NameCoder.readLabelString(name, offset);
+        (label, nextOffset) = NameCoder.extractLabel(name, offset);
     }
 
     function namehash(
@@ -51,27 +37,6 @@ contract TestNameCoder {
         uint256 offset
     ) external pure returns (bytes32 nameHash) {
         return NameCoder.namehash(name, offset);
-    }
-
-    function unhashedNamehash(
-        bytes memory name,
-        uint256 offset
-    ) external pure returns (bytes32 nameHash) {
-        return NameCoder.unhashedNamehash(name, offset);
-    }
-
-    function prepareLabel(
-        string memory label,
-        bool allowHashed
-    )
-        external
-        pure
-        returns (string memory preparedLabel, bytes32 labelHash, bool isHashed)
-    {
-        (preparedLabel, labelHash, isHashed) = NameCoder.prepareLabel(
-            label,
-            allowHashed
-        );
     }
 
     function encode(
@@ -101,5 +66,13 @@ contract TestNameCoder {
         )
     {
         return NameCoder.matchSuffix(name, offset, nodeSuffix);
+    }
+
+    function ethName(string memory label) external pure returns (bytes memory) {
+        return NameCoder.ethName(label);
+    }
+
+    function appendLabel(bytes memory name, string memory label) external pure returns (bytes memory) {
+        return NameCoder.appendLabel(name, label);
     }
 }

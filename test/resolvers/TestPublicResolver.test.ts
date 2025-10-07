@@ -928,7 +928,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('a.eth.')),
+            keccak256(dnsEncodeName('a.eth')),
             1,
           ]),
         ).resolves.toEqual(`0x${arec}`)
@@ -936,7 +936,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('b.eth.')),
+            keccak256(dnsEncodeName('b.eth')),
             1,
           ]),
         ).resolves.toEqual(`0x${b1rec}${b2rec}`)
@@ -944,7 +944,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('eth.')),
+            keccak256(dnsEncodeName('eth')),
             6,
           ]),
         ).resolves.toEqual(`0x${soarec}`)
@@ -965,14 +965,14 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('a.eth.')),
+            keccak256(dnsEncodeName('a.eth')),
             1,
           ]),
         ).resolves.toEqual(`0x${arec}`)
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('eth.')),
+            keccak256(dnsEncodeName('eth')),
             6,
           ]),
         ).resolves.toEqual(`0x${soarec}`)
@@ -991,13 +991,13 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.hasDNSRecords([
             targetNode,
-            keccak256(dnsEncodeName('c.eth.')),
+            keccak256(dnsEncodeName('c.eth')),
           ]),
         ).resolves.toEqual(true)
         await expect(
           publicResolver.read.hasDNSRecords([
             targetNode,
-            keccak256(dnsEncodeName('d.eth.')),
+            keccak256(dnsEncodeName('d.eth')),
           ]),
         ).resolves.toEqual(false)
 
@@ -1006,7 +1006,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.hasDNSRecords([
             targetNode,
-            keccak256(dnsEncodeName('c.eth.')),
+            keccak256(dnsEncodeName('c.eth')),
           ]),
         ).resolves.toEqual(true)
 
@@ -1020,7 +1020,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.hasDNSRecords([
             targetNode,
-            keccak256(dnsEncodeName('c.eth.')),
+            keccak256(dnsEncodeName('c.eth')),
           ]),
         ).resolves.toEqual(false)
       })
@@ -1037,7 +1037,7 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('e.eth.')),
+            keccak256(dnsEncodeName('e.eth')),
             1,
           ]),
         ).resolves.toEqual(`0x${erec}`)
@@ -1065,21 +1065,21 @@ describe('PublicResolver', () => {
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('a.eth.')),
+            keccak256(dnsEncodeName('a.eth')),
             1,
           ]),
         ).resolves.toEqual('0x')
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('b.eth.')),
+            keccak256(dnsEncodeName('b.eth')),
             1,
           ]),
         ).resolves.toEqual('0x')
         await expect(
           publicResolver.read.dnsRecord([
             targetNode,
-            keccak256(dnsEncodeName('eth.')),
+            keccak256(dnsEncodeName('eth')),
             6,
           ]),
         ).resolves.toEqual('0x')

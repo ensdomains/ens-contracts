@@ -1,4 +1,5 @@
 import hre from 'hardhat'
+import { stringToHex } from 'viem'
 
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import {
@@ -91,7 +92,6 @@ describe('ENSIP19', () => {
       'zzz', // only invalid address
       'reverse', // only tld
       'zzz.addr.reverse', // invalid address
-      '.default.reverse', // empty address
       'abc.reverse', // no address
       '1234.addr', // no tld
       '1234.addr.eth', // invalid tld
@@ -104,6 +104,22 @@ describe('ENSIP19', () => {
         ).resolves.toStrictEqual(['0x', 0n])
       })
     }
+
+    it('.default.reverse', async () => {
+      const F = await loadFixture()
+      const dns = stringToHex('\x00\x07default\x07reverse\x00')
+      await expect(F.read.parse([dns]))
+        .toBeRevertedWithCustomError('DNSDecodingFailed')
+        .withArgs([dns])
+    })
+
+    it('.reverse', async () => {
+      const F = await loadFixture()
+      const dns = stringToHex('\x00\x07reverse\x00')
+      await expect(F.read.parse([dns]))
+        .toBeRevertedWithCustomError('DNSDecodingFailed')
+        .withArgs([dns])
+    })
   })
 
   describe('chainFromCoinType()', () => {
