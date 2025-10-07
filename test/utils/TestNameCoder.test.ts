@@ -26,6 +26,10 @@ function fmt(name: string, short = false) {
   return name || '<root>'
 }
 
+function splitName(name: string): string[] {
+  return name ? name.split('.') : []
+}
+
 const MIN_LABEL = '1'
 const MAX_LABEL = '2'.repeat(255)
 const LONG_LABEL = '3'.repeat(256)
@@ -34,6 +38,7 @@ describe('NameCoder', () => {
   describe('valid', () => {
     for (const ens of [
       '',
+      'test.eth',
       MIN_LABEL,
       MAX_LABEL,
       `${MAX_LABEL}.${MAX_LABEL}`,
@@ -50,6 +55,10 @@ describe('NameCoder', () => {
           F.read.namehash([dns, 0n]),
           'namehash',
         ).resolves.toStrictEqual(namehash(ens))
+        await expect(
+          F.read.countLabels([dns, 0n]),
+          'count',
+        ).resolves.toStrictEqual(BigInt(splitName(ens).length))
         await expect(F.read.namehash([dns, 0n])).resolves.toStrictEqual(
           namehash(ens),
         )
@@ -120,46 +129,9 @@ describe('NameCoder', () => {
     })
   })
 
-  describe('extractLabel()', () => {
-    for (const [name] of [
-      ['', 'a.bb.ccc.dddd.eeeee', forceHashedLabel('abc')],
-    ]) {
-      it(fmt(name), async () => {
-        const F = await loadFixture()
-        const dns = dnsEncodeName(name)
-        let offset = 0n
-        if (name) {
-          for (const x of name.split('.')) {
-            const [label, next] = await F.read.extractLabel([dns, offset])
-            expect(label).toStrictEqual(x)
-            offset = next
-          }
-        }
-        await expect(F.read.extractLabel([dns, offset])).resolves.toStrictEqual(
-          ['', BigInt(size(dns))],
-        )
-      })
-    }
-
-    it('permits malicious labels', async () => {
-      const F = await loadFixture()
-      await expect(
-        F.read.extractLabel([toHex('\x03a.b\x00'), 0n]),
-      ).resolves.toStrictEqual(['a.b', 4n])
-    })
-
-    it('permits hashed labels', async () => {
-      const F = await loadFixture()
-      const hashed = forceHashedLabel('abc')
-      await expect(
-        F.read.extractLabel([dnsEncodeName(hashed), 0n]),
-      ).resolves.toStrictEqual([hashed, 67n])
-    })
-  })
-
   describe('encode() failure', () => {
-    for (const ens of ['.', '..', '.a', 'a.', 'a..b']) {
-      it(ens, async () => {
+    for (const ens of ['.', '..', '.a', 'a.', 'a..b', LONG_LABEL]) {
+      it(fmt(ens), async () => {
         const F = await loadFixture()
         await expect(F.read.encode([ens])).toBeRevertedWithCustomError(
           'DNSEncodingFailed',
@@ -186,6 +158,75 @@ describe('NameCoder', () => {
       await expect(
         F.read.decode([toHex('\x03a.b\x00')]),
       ).toBeRevertedWithCustomError('DNSDecodingFailed')
+    })
+  })
+
+  describe('nextLabel() failure', async () => {
+    for (const dns of ['0x', '0x02', '0x0000'] as const) {
+      it(dns, async () => {
+        const F = await loadFixture()
+        await expect(F.read.nextLabel([dns, 0n])).toBeRevertedWithCustomError(
+          'DNSDecodingFailed',
+        )
+      })
+    }
+  })
+
+  describe('extractLabel()', () => {
+    for (const [name] of [
+      ['', 'test.eth', 'a.bb.ccc.dddd.eeeee', forceHashedLabel('abc')],
+    ]) {
+      it(fmt(name), async () => {
+        const F = await loadFixture()
+        const dns = dnsEncodeName(name)
+        let offset = 0n
+        for (const x of splitName(name)) {
+          const [label, next] = await F.read.extractLabel([dns, offset])
+          expect(label).toStrictEqual(x)
+          offset = next
+        }
+        await expect(F.read.extractLabel([dns, offset])).resolves.toStrictEqual(
+          ['', BigInt(size(dns))],
+        )
+      })
+    }
+
+    it('permits malicious labels', async () => {
+      const F = await loadFixture()
+      await expect(
+        F.read.extractLabel([toHex('\x03a.b\x00'), 0n]),
+      ).resolves.toStrictEqual(['a.b', 4n])
+    })
+
+    it('permits hashed labels', async () => {
+      const F = await loadFixture()
+      const hashed = forceHashedLabel('abc')
+      await expect(
+        F.read.extractLabel([dnsEncodeName(hashed), 0n]),
+      ).resolves.toStrictEqual([hashed, 67n])
+    })
+  })
+
+  describe('firstLabel()', () => {
+    for (const label of [MIN_LABEL, MAX_LABEL]) {
+      it(fmt(label), async () => {
+        const F = await loadFixture()
+        await expect(
+          F.read.firstLabel([dnsEncodeName(`${label}.eth`)]),
+        ).resolves.toStrictEqual(label)
+      })
+    }
+
+    it(`${fmt('')} reverts`, async () => {
+      const F = await loadFixture()
+      await expect(
+        F.read.firstLabel([dnsEncodeName('')]),
+      ).toBeRevertedWithCustomError('LabelIsEmpty')
+    })
+
+    it(`invalid encoding does not revert`, async () => {
+      const F = await loadFixture()
+      await expect(F.read.firstLabel(['0x0161'])).resolves.toEqual('a')
     })
   })
 
@@ -263,31 +304,31 @@ describe('NameCoder', () => {
     })
   })
 
-  describe('appendLabel()', () => {
+  describe('addLabel()', () => {
     it('min label', async () => {
       const F = await loadFixture()
       await expect(
-        F.read.appendLabel([dnsEncodeName('eth'), MIN_LABEL]),
+        F.read.addLabel([dnsEncodeName('eth'), MIN_LABEL]),
       ).resolves.toStrictEqual(dnsEncodeName(`${MIN_LABEL}.eth`))
     })
 
     it('max label', async () => {
       const F = await loadFixture()
       await expect(
-        F.read.appendLabel([dnsEncodeName('eth'), MAX_LABEL]),
+        F.read.addLabel([dnsEncodeName('eth'), MAX_LABEL]),
       ).resolves.toStrictEqual(dnsEncodeName(`${MAX_LABEL}.eth`))
     })
 
     it('empty label reverts', async () => {
       const F = await loadFixture()
       await expect(
-        F.read.appendLabel([dnsEncodeName('eth'), '']),
+        F.read.addLabel([dnsEncodeName('eth'), '']),
       ).toBeRevertedWithCustomError('LabelIsEmpty')
     })
 
     it('long label reverts', async () => {
       const F = await loadFixture()
-      await expect(F.read.appendLabel([dnsEncodeName('eth'), LONG_LABEL]))
+      await expect(F.read.addLabel([dnsEncodeName('eth'), LONG_LABEL]))
         .toBeRevertedWithCustomError('LabelIsTooLong')
         .withArgs([LONG_LABEL])
     })

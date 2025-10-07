@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {UnsafeCopyLib} from "./UnsafeCopyLib/UnsafeCopyLib.sol";
+import {LibMem} from "./LibMem/LibMem.sol";
+import {BytesUtils} from "./BytesUtils.sol";
 
 /// @dev Library for encoding/decoding names.
 ///
@@ -9,12 +10,10 @@ import {UnsafeCopyLib} from "./UnsafeCopyLib/UnsafeCopyLib.sol";
 ///
 /// A DNS-encoded name is composed of byte length-prefixed labels with a terminator byte.
 /// eg. "\x03aaa\x02bb\x01c\x00".
-/// - maximum label length is 255 bytes.
-/// - length = 0 is reserved for the terminator (root).
 ///
-/// Only supports labels up to 255 bytes.
-///
-/// Length: `dns.length == 2 + ens.length` and the mapping is injective.
+/// * maximum label length is 255 bytes.
+/// * length = 0 is reserved for the terminator (root).
+/// * `dns.length == 2 + ens.length` and the mapping is injective.
 ///
 library NameCoder {
     /// @dev The namehash of "eth".
@@ -40,7 +39,7 @@ library NameCoder {
     /// @dev The `name` did not end with `suffix`.
     ///
     /// @param name The DNS-encoded name.
-    /// @param suffix THe DNS-encoded suffix.
+    /// @param suffix The DNS-encoded suffix.
     error NoSuffixMatch(bytes name, bytes suffix);
 
     /// @dev Read the `size` of the label at `offset`.
@@ -70,10 +69,10 @@ library NameCoder {
     }
 
     /// @dev Find the offset of the label before `offset` in `name`.
-    ///      * `prevOffset(name, 0)` reverts.
-    ///      * `prevOffset(name, name.length + 1)` reverts.
-    ///      * `prevOffset(name, name.length) = name.length - 1`.
-    ///      * `prevOffset(name, name.length - 1) = <tld>`.
+    ///      * `prevOffset(name, 0)` reverts
+    ///      * `prevOffset(name, name.length + 1)` reverts
+    ///      * `prevOffset(name, name.length) = name.length - 1`
+    ///      * `prevOffset(name, name.length - 1) = <tld>`
     ///      Reverts `DNSDecodingFailed`.
     ///
     /// @param name The DNS-encoded name.
@@ -91,6 +90,27 @@ library NameCoder {
                 revert DNSDecodingFailed(name);
             }
             prevOffset = nextOffset;
+        }
+    }
+
+    /// @dev Count number of labels in `name`.
+    ///      * `countLabels("\x03eth\x00") = 1`
+    ///      * `countLabels("\x00") = 0`
+    ///      Reverts like `nextLabel()`.
+    ///
+    /// @param name The DNS-encoded parent name.
+    /// @param offset The offset into `name` to start hashing.
+    ///
+    /// @return count The number of labels.
+    function countLabels(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (uint256 count) {
+        uint8 size;
+        while (true) {
+            (size, offset) = nextLabel(name, offset);
+            if (size == 0) break;
+            ++count;
         }
     }
 
@@ -116,8 +136,8 @@ library NameCoder {
     }
 
     /// @dev Read label at offset from a DNS-encoded name and the offset for the next label.
-    ///      * `readLabel("\x03abc\x00", 0) = ("abc", 4)`.
-    ///      * `readLabel("\x00", 0) = ("", 1)`.
+    ///      * `readLabel("\x03abc\x00", 0) = ("abc", 4)`
+    ///      * `readLabel("\x00", 0) = ("", 1)`
     ///      Reverts `DNSDecodingFailed`.
     ///
     /// @param name The DNS-encoded name.
@@ -133,7 +153,7 @@ library NameCoder {
         (size, nextOffset) = nextLabel(name, offset);
         bytes memory v = new bytes(size);
         unchecked {
-            UnsafeCopyLib.copy(UnsafeCopyLib.ptr(v), UnsafeCopyLib.ptr(name) + offset + 1, size);
+            LibMem.copy(LibMem.ptr(v), LibMem.ptr(name) + offset + 1, size);
         }
         label = string(v);
     }
@@ -145,7 +165,9 @@ library NameCoder {
     /// @param name The DNS-encoded name.
     ///
     /// @return The first label.
-    function firstLabel(bytes memory name) internal pure returns (string memory) {
+    function firstLabel(
+        bytes memory name
+    ) internal pure returns (string memory) {
         (string memory label, ) = extractLabel(name, 0);
         if (bytes(label).length == 0) {
             revert LabelIsEmpty();
@@ -153,27 +175,33 @@ library NameCoder {
         return label;
     }
 
-    /// @dev Compute the ENS namehash of `name[:offset]`.
+    /// @dev Compute the namehash of `name[:offset]`.
     ///      Reverts `DNSDecodingFailed`.
     ///
     /// @param name The DNS-encoded name.
-    /// @param offset The offset into name start hashing.
+    /// @param offset The offset into `name` to start hashing.
     ///
     /// @return hash The namehash of `name[:offset]`.
-    function namehash(bytes memory name, uint256 offset) internal pure returns (bytes32 hash) {
+    function namehash(
+        bytes memory name,
+        uint256 offset
+    ) internal pure returns (bytes32 hash) {
         (hash, offset) = readLabel(name, offset);
         if (hash != bytes32(0)) {
             hash = namehash(namehash(name, offset), hash);
         }
     }
 
-    /// @dev Compute a child namehash from a parent namehash.
+    /// @dev Compute a child namehash from a parent namehash and child labelhash.
     ///
     /// @param parentNode The namehash of the parent.
     /// @param labelHash The labelhash of the child.
     ///
     /// @return node The namehash of the child.
-    function namehash(bytes32 parentNode, bytes32 labelHash) internal pure returns (bytes32 node) {
+    function namehash(
+        bytes32 parentNode,
+        bytes32 labelHash
+    ) internal pure returns (bytes32 node) {
         // ~100 gas less than: keccak256(abi.encode(parentNode, labelHash))
         assembly {
             mstore(0, parentNode)
@@ -183,48 +211,57 @@ library NameCoder {
     }
 
     /// @dev Convert DNS-encoded name to ENS name.
-    ///      Reverts `DNSDecodingFailed`.
+    ///      * `decode("\x00") = ""`
+    ///      * `decode("\x03eth\x00") = "eth"`
+    ///      * `decode("\x03aaa\x02bb\x01c\x00") = "aa.bb.c"`
+    ///      * `decode("\x03a.b\x00")` reverts
+    ///      Reverts like `nextLabel()`.
     ///
-    /// @param dns The DNS-encoded name to convert, eg. `\x03aaa\x02bb\x01c\x00`.
+    /// @param dns The DNS-encoded name to convert.
     ///
-    /// @return ens The equivalent ENS name, eg. `aaa.bb.c`.
-    function decode(bytes memory dns) internal pure returns (string memory ens) {
+    /// @return ens The equivalent ENS name.
+    function decode(
+        bytes memory dns
+    ) internal pure returns (string memory ens) {
         unchecked {
             uint256 n = dns.length;
             if (n == 1 && dns[0] == 0) return ""; // only valid answer is root
             if (n < 3) revert DNSDecodingFailed(dns);
             bytes memory v = new bytes(n - 2); // always 2-shorter
-            uint256 src;
-            uint256 dst;
-            while (src < n) {
-                uint8 len = uint8(dns[src++]);
-                if (len == 0) break;
-                uint256 end = src + len;
-                if (end > dns.length) revert DNSDecodingFailed(dns); // overflow
-                if (dst > 0) v[dst++] = "."; // skip first stop
-                while (src < end) {
-                    bytes1 x = dns[src++]; // read byte
-                    if (x == ".") revert DNSDecodingFailed(dns); // malicious label
-                    v[dst++] = x; // write byte
+            LibMem.copy(LibMem.ptr(v), LibMem.ptr(dns) + 1, n - 2); // shift by -1 byte
+            uint256 offset;
+            while (true) {
+                (uint8 size, uint256 nextOffset) = nextLabel(dns, offset);
+                if (size == 0) break;
+                if (BytesUtils.includes(v, offset + 1, size, ".")) {
+                    revert DNSDecodingFailed(dns); // malicious label
                 }
+                if (offset > 0) {
+                    v[offset - 1] = ".";
+                }
+                offset = nextOffset;
             }
-            if (src != dns.length) revert DNSDecodingFailed(dns); // junk at end
             return string(v);
         }
     }
 
     /// @dev Convert ENS name to DNS-encoded name.
+    ///      * `encode("aaa.bb.c") = "\x03aaa\x02bb\x01c\x00"`
+    ///      * `encode("eth") = "\x03eth\x00"`
+    ///      * `encode("") = "\x00"`
     ///      Reverts `DNSEncodingFailed`.
     ///
-    /// @param ens The ENS name to convert, eg. `aaa.bb.c`.
+    /// @param ens The ENS name to convert.
     ///
     /// @return dns The corresponding DNS-encoded name, eg. `\x03aaa\x02bb\x01c\x00`.
-    function encode(string memory ens) internal pure returns (bytes memory dns) {
+    function encode(
+        string memory ens
+    ) internal pure returns (bytes memory dns) {
         unchecked {
             uint256 n = bytes(ens).length;
             if (n == 0) return hex"00"; // root
-            dns = new bytes(n + 2);
-            UnsafeCopyLib.copy(UnsafeCopyLib.ptr(dns) + 1, UnsafeCopyLib.ptr(bytes(ens)), n);
+            dns = new bytes(n + 2); // always 2-longer
+            LibMem.copy(LibMem.ptr(dns) + 1, LibMem.ptr(bytes(ens)), n); // shift by +1 byte
             uint256 start; // remember position to write length
             uint256 size;
             for (uint256 i; i < n; ++i) {
@@ -245,23 +282,36 @@ library NameCoder {
         }
     }
 
-    /// @dev Find the offset of `name` that namehashes to `nodeSuffix`.
+    /// @dev Find the offset into `name` that namehashes to `nodeSuffix`.
     ///
-    /// @param name The name to search.
-    /// @param nodeSuffix The node to match.
+    /// @param name The DNS-encoded name to search.
+    /// @param nodeSuffix The namehash to match.
     ///
-    /// @return matched True if `name` ends with the suffix.
+    /// @return matched True if `name` ends with `nodeSuffix`.
     /// @return node The namehash of `name[offset:]`.
-    /// @return prevOffset The offset into `name` of the label before the suffix, or `matchOffset` if no match or prior label.
+    /// @return prevOffset The offset into `name` of the label before `nodeSuffix`, or `matchOffset` if no match or no prior label.
     /// @return matchOffset The offset into `name` that namehashes to the `nodeSuffix`, or 0 if no match.
     function matchSuffix(
         bytes memory name,
         uint256 offset,
         bytes32 nodeSuffix
-    ) internal pure returns (bool matched, bytes32 node, uint256 prevOffset, uint256 matchOffset) {
+    )
+        internal
+        pure
+        returns (
+            bool matched,
+            bytes32 node,
+            uint256 prevOffset,
+            uint256 matchOffset
+        )
+    {
         (bytes32 labelHash, uint256 next) = readLabel(name, offset);
         if (labelHash != bytes32(0)) {
-            (matched, node, prevOffset, matchOffset) = matchSuffix(name, next, nodeSuffix);
+            (matched, node, prevOffset, matchOffset) = matchSuffix(
+                name,
+                next,
+                nodeSuffix
+            );
             if (node == nodeSuffix) {
                 matched = true;
                 prevOffset = offset;
@@ -275,27 +325,33 @@ library NameCoder {
         }
     }
 
-    /// @dev Assert `label` is encodable.
+    /// @dev Assert `label` is an encodable size.
     ///
     /// @param label The label to check.
     ///
     /// @return The size of the label.
-    function assertLabelSize(string memory label) internal pure returns (uint8) {
+    function assertLabelSize(
+        string memory label
+    ) internal pure returns (uint8) {
         uint256 n = bytes(label).length;
         if (n == 0) revert LabelIsEmpty();
         if (n > 255) revert LabelIsTooLong(label);
         return uint8(n);
     }
 
-    /// @dev Append `label` onto DNS-encoded `name`.
+    /// @dev Prepend `label` to DNS-encoded `name`.
+    ///      * `addLabel("\x03eth\x00", "test") = "\x04test\x03eth\x00"`
+    ///      * `addLabel("\x00", "eth") = "\x03eth\x00"`
+    ///      * `addLabel("", "abc") = "\x03abc"` invalid
+    ///      * `addLabel("", "")` reverts
     ///      Assumes `name` is properly encoded.
-    ///      Reverts if `label` is not encodable.
+    ///      Reverts like `assertLabelSize()`.
     ///
-    /// @param name The DNS-encoded parent name, eg. `\x03eth\x00`.
-    /// @param label The child label to append, eg. `test`.
+    /// @param name The DNS-encoded parent name.
+    /// @param label The child label to prepend.
     ///
-    /// @return The DNS-encoded name, eg. `\x04test\x03eth\x00`.
-    function appendLabel(
+    /// @return The DNS-encoded child name.
+    function addLabel(
         bytes memory name,
         string memory label
     ) internal pure returns (bytes memory) {
@@ -303,13 +359,13 @@ library NameCoder {
     }
 
     /// @dev Transform `label` to DNS-encoded `{label}.eth`.
-    ///      Assumes `name` is properly encoded.
-    ///      Reverts if `label` is not encodable.
+    ///      * `ethName("eth") = "\x04test\x03eth\x00"`
+    ///      Behaves like `addLabel()`.
     ///
-    /// @param label The label to encode, eg. "test".
+    /// @param label The label to encode.
     ///
-    /// @return The DNS-encoded .eth name, eg. `\x04test\x03eth\x00`.
+    /// @return The DNS-encoded name.
     function ethName(string memory label) internal pure returns (bytes memory) {
-        return appendLabel("\x03eth\x00", label);
+        return addLabel("\x03eth\x00", label);
     }
 }
