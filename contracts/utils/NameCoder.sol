@@ -115,8 +115,10 @@ library NameCoder {
         }
     }
 
-    /// @dev Read label at offset from a DNS-encoded name.
-    ///      eg. `readLabel("\x03abc\x00", 0) = ("abc", 4)`.
+    /// @dev Read label at offset from a DNS-encoded name and the offset for the next label.
+    ///      * `readLabel("\x03abc\x00", 0) = ("abc", 4)`.
+    ///      * `readLabel("\x00", 0) = ("", 1)`.
+    ///      Reverts `DNSDecodingFailed`.
     ///
     /// @param name The DNS-encoded name.
     /// @param offset The offset into `name` to start reading.
@@ -137,8 +139,10 @@ library NameCoder {
     }
 
     /// @dev Reads first label from a DNS-encoded name.
+    ///      Reverts `DNSDecodingFailed`.
+    ///      Reverts `LabelIsEmpty` if the label was empty.
     ///
-    /// @param name The DNS-encoded name to extract from.
+    /// @param name The DNS-encoded name.
     ///
     /// @return The first label.
     function firstLabel(bytes memory name) internal pure returns (string memory) {
@@ -150,7 +154,6 @@ library NameCoder {
     }
 
     /// @dev Compute the ENS namehash of `name[:offset]`.
-    ///      Supports hashed labels.
     ///      Reverts `DNSDecodingFailed`.
     ///
     /// @param name The DNS-encoded name.
@@ -300,6 +303,8 @@ library NameCoder {
     }
 
     /// @dev Transform `label` to DNS-encoded `{label}.eth`.
+    ///      Assumes `name` is properly encoded.
+    ///      Reverts if `label` is not encodable.
     ///
     /// @param label The label to encode, eg. "test".
     ///
