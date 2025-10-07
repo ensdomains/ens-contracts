@@ -85,6 +85,7 @@ export default deployScript(
       'StaticMetadataService',
       'ENSRegistry',
       'BaseRegistrarImplementation',
+      'ReverseRegistrar', // due to ReverseClaimer
       'OwnedResolver',
     ],
   },

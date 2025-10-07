@@ -105,10 +105,12 @@ export default deployScript(
     console.log(`  - Processing ${suffixes.length} public suffixes`)
 
     // Check if multicall exists, deploy if needed
-    const multicallExistingBytecode = await network.provider.request({
-      method: 'eth_getCode',
-      params: [multicallAddress, 'latest'],
-    })
+    const multicallExistingBytecode = await network.provider
+      .request({
+        method: 'eth_getCode',
+        params: [multicallAddress, 'latest'],
+      })
+      .then((bytecode: Hex) => bytecode !== '0x')
 
     if (!multicallExistingBytecode && !config.saveDeployments) {
       console.log('  - Deploying Multicall')

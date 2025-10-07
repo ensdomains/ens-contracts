@@ -17,6 +17,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
 
     mapping(bytes => bytes) _responses;
     mapping(bytes4 => bool) public features;
+    string public revertURL = 'data:application/json,{"data":"0x"}';
     uint256 public featureCount;
     bool public isERC165 = true; // default
     bool public isExtended;
@@ -26,7 +27,9 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     bool public deriveMulticall;
 
     function getResponse(bytes memory call) public view returns (bytes memory) {
-        if (deriveMulticall && bytes4(call) == IMulticallable.multicall.selector) {
+        if (
+            deriveMulticall && bytes4(call) == IMulticallable.multicall.selector
+        ) {
             bytes[] memory m = abi.decode(
                 BytesUtils.substring(call, 4, call.length - 4),
                 (bytes[])
@@ -46,6 +49,10 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
 
     function setDeriveMulticall(bool x) external {
         deriveMulticall = x;
+    }
+
+    function setRevertURL(string memory url) external {
+        revertURL = url;
     }
 
     function setFeature(bytes4 feature, bool on) external {
@@ -127,7 +134,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
 
     function _revertOffchain(bytes memory v) internal view {
         string[] memory urls = new string[](1);
-        urls[0] = 'data:application/json,{"data":"0x"}';
+        urls[0] = revertURL;
         revert OffchainLookup(
             address(this),
             urls,
