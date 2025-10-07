@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {BytesUtils} from "../../contracts/utils/BytesUtils.sol";
+import {BytesUtils} from "./BytesUtils.sol";
 
 contract TestBytesUtils {
     using BytesUtils for *;
@@ -233,5 +233,44 @@ contract TestBytesUtils {
         require(v.find(0, v.length, "z") == type(uint256).max, "z");
         require(v.find(0, v.length, "A") == type(uint256).max, "A");
         require(v.find(0, 10, "a") == type(uint256).max, "a");
+    }
+
+    function test_includes() public pure {
+        bytes memory v = new bytes(256);
+        for (uint256 i = 1; i < 256; i++) {
+            bytes1 x = bytes1(uint8(i));
+            require(!"".includes(0, 0, x), "empty");
+            v[i] = x;
+            require(!v.includes(0, i, x), "before");
+            require(!v.includes(i + 1, 255 - i, x), "after");
+            require(v.includes(i, 1, x), "at");
+            require(v.includes(0, i + 1, x), "before+1");
+            require(v.includes(i, 256 - i, x), "after+1");
+            v[0] = x;
+            require(!v.includes(1, i - 1, x), "skip");
+            require(!v.includes(i, 0, x), "i+empty");
+        }
+    }
+
+    function testFail_includes_overflow() public pure {
+        "".includes(0, 1, 0);
+    }
+
+    function testFail_includes_overflow2() public pure {
+        "".includes(1, 0, 0);
+    }
+
+    function test_hasZeroByte() public pure {
+        require(0.hasZeroByte());
+        for (uint256 i; i < 32; ++i) {
+            uint256 x = ~uint256(0);
+            x ^= 255 << (i << 3);
+            require(x.hasZeroByte());
+            x |= 1 << (i << 3);
+            require(!x.hasZeroByte());
+        }
+        for (uint256 i = 1; i < 256; i++) {
+            require(!(~(1 << i)).hasZeroByte());
+        }
     }
 }

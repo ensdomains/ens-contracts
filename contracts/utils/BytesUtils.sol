@@ -58,9 +58,9 @@ library BytesUtils {
         uint256 offB,
         uint256 lenB
     ) internal pure returns (int256) {
+        _checkBound(vA, offA + lenA);
+        _checkBound(vB, offB + lenB);
         unchecked {
-            _checkBound(vA, offA + lenA);
-            _checkBound(vB, offB + lenB);
             uint256 ptrA = LibMem.ptr(vA) + offA;
             uint256 ptrB = LibMem.ptr(vB) + offB;
             uint256 shortest = lenA < lenB ? lenA : lenB;
@@ -116,9 +116,11 @@ library BytesUtils {
     ) internal pure returns (bool) {
         _checkBound(vA, offA);
         _checkBound(vB, offB);
-        return
-            keccak(vA, offA, vA.length - offA) ==
-            keccak(vB, offB, vB.length - offB);
+        unchecked {
+            return
+                keccak(vA, offA, vA.length - offA) ==
+                keccak(vB, offB, vB.length - offB);
+        }
     }
 
     /// @dev Determine if `a[offA:] == b`.
@@ -249,9 +251,9 @@ library BytesUtils {
         uint256 offDst,
         uint256 len
     ) internal pure {
+        _checkBound(vSrc, offSrc + len);
+        _checkBound(vDst, offDst + len);
         unchecked {
-            _checkBound(vSrc, offSrc + len);
-            _checkBound(vDst, offDst + len);
             LibMem.copy(
                 LibMem.ptr(vDst) + offDst,
                 LibMem.ptr(vSrc) + offSrc,
@@ -306,7 +308,7 @@ library BytesUtils {
         }
     }
 
-    /// @dev Determine if `v[off:off+len]` contains `needle` byte.
+    /// @dev Efficiently check if `v[off:off+len]` contains `needle` byte.
     /// @param v The source bytes.
     /// @param off The offset into the source.
     /// @param len The number of bytes to search.
@@ -318,6 +320,7 @@ library BytesUtils {
         uint256 len,
         bytes1 needle
     ) internal pure returns (bool found) {
+        _checkBound(v, off + len);
         unchecked {
             uint256 wide = uint8(needle);
             wide |= wide << 8;

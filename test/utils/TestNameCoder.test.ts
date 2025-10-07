@@ -1,5 +1,5 @@
 import hre from 'hardhat'
-import { namehash, toHex, size, keccak256, stringToBytes } from 'viem'
+import { namehash, stringToHex, size, keccak256, stringToBytes } from 'viem'
 import { dnsDecodeName } from '../fixtures/dnsDecodeName.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { getParentName } from '../utils/resolutions.js'
@@ -156,7 +156,7 @@ describe('NameCoder', () => {
     it('malicious label', async () => {
       const F = await loadFixture()
       await expect(
-        F.read.decode([toHex('\x03a.b\x00')]),
+        F.read.decode([stringToHex('\x03a.b\x00')]),
       ).toBeRevertedWithCustomError('DNSDecodingFailed')
     })
   })
@@ -194,7 +194,7 @@ describe('NameCoder', () => {
     it('permits malicious labels', async () => {
       const F = await loadFixture()
       await expect(
-        F.read.extractLabel([toHex('\x03a.b\x00'), 0n]),
+        F.read.extractLabel([stringToHex('\x03a.b\x00'), 0n]),
       ).resolves.toStrictEqual(['a.b', 4n])
     })
 

@@ -10,7 +10,7 @@ library LibMem {
     /// @param len The number of bytes to copy.
     function copy(uint256 dst, uint256 src, uint256 len) internal pure {
         assembly ("memory-safe") {
-            // Copy word-length chunks while offsible
+            // Copy word-length chunks while possible
             // prettier-ignore
             for {} gt(len, 31) {} {
                 mstore(dst, mload(src))
@@ -20,7 +20,7 @@ library LibMem {
             }
             // Copy remaining bytes
             if len {
-                let mask := sub(shl(shl(3, sub(32, len)), 1), 1) // see above
+                let mask := sub(shl(shl(3, sub(32, len)), 1), 1)
                 let wSrc := and(mload(src), not(mask))
                 let wDst := and(mload(dst), mask)
                 mstore(dst, or(wSrc, wDst))

@@ -233,7 +233,7 @@ library NameCoder {
             while (true) {
                 (uint8 size, uint256 nextOffset) = nextLabel(dns, offset);
                 if (size == 0) break;
-                if (BytesUtils.includes(v, offset + 1, size, ".")) {
+                if (BytesUtils.includes(v, offset, size, ".")) {
                     revert DNSDecodingFailed(dns); // malicious label
                 }
                 if (offset > 0) {
