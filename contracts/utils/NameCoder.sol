@@ -60,11 +60,10 @@ library NameCoder {
                 revert DNSDecodingFailed(name);
             }
             size = uint8(name[offset]);
-            ++offset;
-            if ((size == 0) != (offset == name.length)) {
+            nextOffset = offset + 1 + size;
+            if (size > 0 ? nextOffset >= name.length : nextOffset != name.length) {
                 revert DNSDecodingFailed(name);
             }
-            nextOffset = offset + size;
         }
     }
 

@@ -141,13 +141,26 @@ describe('NameCoder', () => {
   })
 
   describe('decode() failure', () => {
-    for (const dns of ['0x', '0x02', '0x0000', '0x0100'] as const) {
+    for (const dns of [
+      '0x',
+      '0x0000',
+      '0x0100',
+      '0x02',
+      '0x0200',
+      '0x020000',
+    ] as const) {
       it(dns, async () => {
         const F = await loadFixture()
         await expect(F.read.decode([dns])).toBeRevertedWithCustomError(
           'DNSDecodingFailed',
         )
         await expect(F.read.namehash([dns, 0n])).toBeRevertedWithCustomError(
+          'DNSDecodingFailed',
+        )
+        await expect(F.read.nextLabel([dns, 0n])).toBeRevertedWithCustomError(
+          'DNSDecodingFailed',
+        )
+        await expect(F.read.firstLabel([dns])).toBeRevertedWithCustomError(
           'DNSDecodingFailed',
         )
       })
@@ -222,11 +235,6 @@ describe('NameCoder', () => {
       await expect(
         F.read.firstLabel([dnsEncodeName('')]),
       ).toBeRevertedWithCustomError('LabelIsEmpty')
-    })
-
-    it(`invalid encoding does not revert`, async () => {
-      const F = await loadFixture()
-      await expect(F.read.firstLabel(['0x0161'])).resolves.toEqual('a')
     })
   })
 
