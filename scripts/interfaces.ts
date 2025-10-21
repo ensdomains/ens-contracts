@@ -1,5 +1,10 @@
-import { type Abi, isHex, toFunctionSelector, toHex } from 'viem'
-import artifacts from '../generated/artifacts.js'
+import { type Hex, isHex } from 'viem'
+import {
+  createInterfaceId,
+  getSolidityReferenceInterfaceAbi,
+} from '@ensdomains/hardhat-chai-matchers-viem/utils'
+import hre from 'hardhat'
+import type { ArtifactMap } from 'hardhat/types/artifacts'
 
 // $ bun interfaces                  # all
 // $ bun interfaces Ens              # by name (ignores case)
@@ -7,14 +12,27 @@ import artifacts from '../generated/artifacts.js'
 // $ bun interfaces Ens 0x9061b923   # mixture of names/selectors
 // $ bun interfaces ... --json       # export as JSON
 
-const ifaces = Object.values(artifacts)
-  .filter((x) => x.bytecode === '0x')
-  .map((x) => ({
-    interfaceId: getInterfaceId(x.abi),
-    name: x.contractName,
-    file: x.sourceName,
-  }))
-  .sort((a, b) => a.file.localeCompare(b.file))
+const ifaces: {
+  interfaceId: Hex
+  name: string
+  file: string
+}[] = []
+
+for (const name of await hre.artifacts.getAllFullyQualifiedNames()) {
+  try {
+    const abi = await getSolidityReferenceInterfaceAbi(
+      name as keyof ArtifactMap,
+    )
+    const artifact = await hre.artifacts.readArtifact(name)
+    ifaces.push({
+      interfaceId: createInterfaceId(abi),
+      name: artifact.contractName,
+      file: artifact.sourceName,
+    })
+  } catch (err) {}
+}
+
+ifaces.sort((a, b) => a.file.localeCompare(b.file))
 
 const UNKNOWN = '???'
 
@@ -55,13 +73,4 @@ if (qs.length) {
 
 function same(a: string, b: string) {
   return !a.localeCompare(b, undefined, { sensitivity: 'base' })
-}
-
-function getInterfaceId(abi: Abi) {
-  return toHex(
-    abi
-      .filter((item) => item.type === 'function')
-      .reduce((a, x) => a ^ BigInt(toFunctionSelector(x)), 0n),
-    { size: 4 },
-  )
 }
