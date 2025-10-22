@@ -11,9 +11,11 @@ import {HexUtils} from "../utils/HexUtils.sol";
 
 /// @title Ethereum Reverse Resolver
 /// @notice Reverses an EVM address using the first non-null response from the following sources:
-///         1. `IStandaloneReverseRegistrar` for "addr.reverse"
-///         2. `name()` from "{addr}.addr.reverse" in V1 Registry
-///         3. `IStandaloneReverseRegistrar` for "default.reverse"
+///
+/// 1. `IStandaloneReverseRegistrar` for "addr.reverse"
+/// 2. `name()` from "{addr}.addr.reverse" in V1 Registry
+/// 3. `IStandaloneReverseRegistrar` for "default.reverse"
+///
 contract ETHReverseResolver is AbstractReverseResolver {
     /// @dev Namehash of "addr.reverse"
     bytes32 constant ADDR_REVERSE_NODE =
@@ -22,19 +24,15 @@ contract ETHReverseResolver is AbstractReverseResolver {
     /// @notice The registry contract.
     ENS public immutable registry;
 
-    /// @notice The reverse registrar contract for "addr.reverse".
-    IStandaloneReverseRegistrar public immutable addrRegistrar;
-
     /// @notice The reverse registrar contract for "default.reverse".
     IStandaloneReverseRegistrar public immutable defaultRegistrar;
 
     constructor(
         ENS ens,
-        IStandaloneReverseRegistrar _addrRegistrar,
+        IStandaloneReverseRegistrar addrRegistrar,
         IStandaloneReverseRegistrar _defaultRegistrar
-    ) AbstractReverseResolver(COIN_TYPE_ETH, address(_addrRegistrar)) {
+    ) AbstractReverseResolver(COIN_TYPE_ETH, address(addrRegistrar)) {
         registry = ens;
-        addrRegistrar = _addrRegistrar;
         defaultRegistrar = _defaultRegistrar;
     }
 
@@ -42,7 +40,7 @@ contract ETHReverseResolver is AbstractReverseResolver {
     function _resolveName(
         address addr
     ) internal view override returns (string memory name) {
-        name = addrRegistrar.nameForAddr(addr);
+        name = IStandaloneReverseRegistrar(chainRegistrar).nameForAddr(addr);
         if (bytes(name).length == 0) {
             bytes32 node = keccak256(
                 abi.encode(
@@ -68,7 +66,7 @@ contract ETHReverseResolver is AbstractReverseResolver {
         address[] memory addrs
     ) external view returns (string[] memory names) {
         names = new string[](addrs.length);
-        for (uint256 i; i < addrs.length; i++) {
+        for (uint256 i; i < addrs.length; ++i) {
             names[i] = _resolveName(addrs[i]);
         }
     }

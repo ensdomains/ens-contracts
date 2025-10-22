@@ -14,11 +14,11 @@ abstract contract AbstractReverseResolver is
     INameReverser,
     ERC165
 {
-    /// @notice The coin type for the resolver.
+    /// @inheritdoc INameReverser
     uint256 public immutable coinType;
 
-    /// @notice The address returned by `addr(coinType)` for the resolver.
-    address private immutable registrar;
+	/// @inheritdoc INameReverser
+    address public immutable chainRegistrar;
 
     /// @notice `resolve()` was called with a profile other than `name()` or `addr(*)`.
     /// @dev Error selector: `0x7b1c461b`
@@ -28,22 +28,22 @@ abstract contract AbstractReverseResolver is
     /// @dev Error selector: `0x5fe9a5df`
     error UnreachableName(bytes name);
 
-    constructor(uint256 _coinType, address _registrar) {
+    constructor(uint256 _coinType, address registrar) {
         coinType = _coinType;
-        registrar = _registrar;
+        chainRegistrar = registrar;
     }
 
     /// @inheritdoc ERC165
     function supportsInterface(
         bytes4 interfaceId
-    ) public view override returns (bool) {
+    ) public view virtual override returns (bool) {
         return
             interfaceId == type(IExtendedResolver).interfaceId ||
             interfaceId == type(INameReverser).interfaceId ||
             super.supportsInterface(interfaceId);
     }
 
-    /// @notice The EVM Chain ID corresponding to the `coinType`.
+    /// @notice The EVM Chain ID derived from `coinType()`.
     function chainId() external view returns (uint32) {
         return ENSIP19.chainFromCoinType(coinType);
     }
@@ -86,14 +86,14 @@ abstract contract AbstractReverseResolver is
             (bool valid, ) = ENSIP19.parseNamespace(name, 0);
             if (!valid) revert UnreachableName(name);
             return
-                abi.encode(coinType == COIN_TYPE_ETH ? registrar : address(0));
+                abi.encode(coinType == COIN_TYPE_ETH ? chainRegistrar : address(0));
         } else if (selector == IAddressResolver.addr.selector) {
             (bool valid, ) = ENSIP19.parseNamespace(name, 0);
             if (!valid) revert UnreachableName(name);
             (, uint256 ct) = abi.decode(data[4:], (bytes32, uint256));
             return
                 abi.encode(
-                    coinType == ct ? abi.encodePacked(registrar) : new bytes(0)
+                    coinType == ct ? abi.encodePacked(chainRegistrar) : new bytes(0)
                 );
         } else {
             revert UnsupportedResolverProfile(selector);

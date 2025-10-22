@@ -3,7 +3,7 @@ import { serve } from '@namestone/ezccip/serve'
 import { Gateway, UncheckedRollup } from '@unruggable/gateways'
 import { BrowserProvider } from 'ethers/providers'
 import hre from 'hardhat'
-import { namehash, toHex } from 'viem'
+import { namehash, toHex, zeroAddress } from 'viem'
 import { deployArtifact } from '../fixtures/deployArtifact.js'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -33,9 +33,13 @@ async function fixture() {
   const GatewayVM = await deployArtifact(F.walletClient, {
     file: urgArtifact('GatewayVM'),
   })
+  const hooksAddress = await deployArtifact(F.walletClient, {
+    file: urgArtifact('UncheckedVerifierHooks'),
+  })
+  const verifierGateways = [ccip.endpoint]
   const verifierAddress = await deployArtifact(F.walletClient, {
     file: urgArtifact('UncheckedVerifier'),
-    args: [[ccip.endpoint]],
+    args: [verifierGateways, 0, hooksAddress],
     libs: { GatewayVM },
   })
   const reverseRegistrar = await connection.viem.deployContract(
@@ -70,13 +74,20 @@ async function fixture() {
     reverseRegistrar,
     reverseResolver,
     gateway,
+    verifierAddress,
+    verifierGateways,
   }
 }
 
 describe('ChainReverseResolver', () => {
   shouldSupportInterfaces({
     contract: () => loadFixture().then((F) => F.reverseResolver),
-    interfaces: ['IERC165', 'IExtendedResolver', 'INameReverser'],
+    interfaces: [
+      'IERC165',
+      'IExtendedResolver',
+      'INameReverser',
+      'IVerifiableResolver',
+    ],
   })
 
   it('coinType()', async () => {
@@ -93,6 +104,33 @@ describe('ChainReverseResolver', () => {
     )
   })
 
+  describe('verifierMetadata()', async () => {
+    it('valid', async () => {
+      const F = await loadFixture()
+      await expect(
+        F.reverseResolver.read.verifierMetadata([
+          dnsEncodeName(getReverseName(zeroAddress, l2CoinType)),
+        ]),
+      ).resolves.toStrictEqual([F.verifierAddress, F.verifierGateways])
+    })
+    it('invalid coinType', async () => {
+      const F = await loadFixture()
+      await expect(
+        F.reverseResolver.read.verifierMetadata([
+          dnsEncodeName(getReverseName(zeroAddress, ~l2CoinType)),
+        ]),
+      ).resolves.toStrictEqual([zeroAddress, []])
+    })
+    it('invalid address', async () => {
+      const F = await loadFixture()
+      await expect(
+        F.reverseResolver.read.verifierMetadata([
+          dnsEncodeName(getReverseName('0x00', l2CoinType)),
+        ]),
+      ).resolves.toStrictEqual([zeroAddress, []])
+    })
+  })
+
   describe('resolve()', () => {
     it('unsupported profile', async () => {
       const F = await loadFixture()
@@ -104,7 +142,6 @@ describe('ChainReverseResolver', () => {
       await expect(
         F.reverseResolver.read.resolve([dnsEncodeName(kp.name), res.call]),
       ).toBeRevertedWithCustomError('UnsupportedResolverProfile')
-      // .withArgs(slice(res.call, 0, 4))
     })
 
     it('addr("{coinType}.reverse") = registrar', async () => {
@@ -203,7 +240,7 @@ describe('ChainReverseResolver', () => {
       const max = 10
       try {
         F.gateway.rollup.configure = (commit) => {
-          commit.prover.maxUniqueProofs = 1 + max
+          commit.prover.maxUniqueProofs = 1 + max // +1 for account proof
         }
         await expect(
           F.reverseResolver.read.resolveNames([
@@ -214,9 +251,39 @@ describe('ChainReverseResolver', () => {
           F.reverseResolver.read.resolveNames([
             Array.from({ length: max + 1 }, (_, i) => toHex(i, { size: 20 })),
           ]),
-        ).rejects.toThrow(/Status: 500/) // TODO: fix after Urg adds callback error propagation
+        ).toBeRevertedWithCustomError('TooManyProofs')
       } finally {
         F.gateway.rollup.configure = undefined
+      }
+    })
+
+    describe('fuzz', () => {
+      for (let i = 0; i < 20; i++) {
+        it(`${i}`, async () => {
+          const F = await loadFixture()
+          const wallets = await connection.viem.getWalletClients()
+          wallets.sort(() => Math.random())
+          const names = wallets.map((_, i) => 'x'.repeat(i))
+          const exists = wallets.map(() => Math.random() < 0.5)
+          for (let i = 0; i < wallets.length; i++) {
+            if (exists[i]) {
+              if (Math.random() < 0.5) {
+                await F.reverseRegistrar.write.setName([names[i]], {
+                  account: wallets[i].account,
+                })
+              } else {
+                await F.defaultReverseRegistrar.write.setName([names[i]], {
+                  account: wallets[i].account,
+                })
+              }
+            }
+          }
+          await expect(
+            F.reverseResolver.read.resolveNames([
+              wallets.map((x) => x.account.address),
+            ]),
+          ).resolves.toStrictEqual(names.map((x, i) => (exists[i] ? x : '')))
+        })
       }
     })
   })
