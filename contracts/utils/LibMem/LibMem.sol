@@ -9,7 +9,7 @@ library LibMem {
     /// @param dst The destination memory offset.
     /// @param len The number of bytes to copy.
     function copy(uint256 dst, uint256 src, uint256 len) internal pure {
-        assembly ("memory-safe") {
+        assembly {
             // Copy word-length chunks while possible
             // prettier-ignore
             for {} gt(len, 31) {} {
@@ -34,7 +34,7 @@ library LibMem {
     ///
     /// @return ret The corresponding memory offset.
     function ptr(bytes memory v) internal pure returns (uint256 ret) {
-        assembly ("memory-safe") {
+        assembly {
             ret := add(v, 32)
         }
     }
@@ -45,7 +45,7 @@ library LibMem {
     ///
     /// @return ret The read word.
     function load(uint256 src) internal pure returns (uint256 ret) {
-        assembly ("memory-safe") {
+        assembly {
             ret := mload(src)
         }
     }

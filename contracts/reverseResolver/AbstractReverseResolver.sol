@@ -43,7 +43,7 @@ abstract contract AbstractReverseResolver is
             super.supportsInterface(interfaceId);
     }
 
-    /// @notice The EVM Chain ID derived from `coinType()`.
+    /// @inheritdoc INameReverser
     function chainId() external view returns (uint32) {
         return ENSIP19.chainFromCoinType(coinType);
     }

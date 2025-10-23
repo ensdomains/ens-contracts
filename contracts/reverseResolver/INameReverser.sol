@@ -16,7 +16,7 @@ interface INameReverser {
     /// @notice The coin type for the resolver.
     function coinType() external view returns (uint256);
 
-    /// @notice The EVM Chain ID corresponding to the `coinType`.
+    /// @notice The EVM Chain ID derived from `coinType()`.
     function chainId() external view returns (uint32);
 
     /// @notice The reverse registrar address on the corresponding chain.

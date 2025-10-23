@@ -262,8 +262,8 @@ describe('ChainReverseResolver', () => {
         it(`${i}`, async () => {
           const F = await loadFixture()
           const wallets = await connection.viem.getWalletClients()
-          wallets.sort(() => Math.random())
-          const names = wallets.map((_, i) => 'x'.repeat(i))
+          wallets.sort(() => Math.random() - 0.5)
+          const names = wallets.map((_, i) => 'x'.repeat(i + 1))
           const exists = wallets.map(() => Math.random() < 0.5)
           for (let i = 0; i < wallets.length; i++) {
             if (exists[i]) {

@@ -100,11 +100,11 @@ const sources = {
       await F.claimV1(account.address)
     },
     unset: async () => {},
-    revert: async (F, _, account) => {
+    revertX: async (F, _, account) => {
       await F.shapeshift.write.setRevertEmpty([true])
       await F.claimV1(account.address)
     },
-    noCode: async (F, _, account) => {
+    noCodeX: async (F, _, account) => {
       await F.claimV1(
         account.address,
         `0x000000000000000000000000000000000000dEaD`,
@@ -125,6 +125,7 @@ const permutations: {
   setter: string
   fn: SetterFn
   name: string
+  stop: boolean
 }[][] = [[]]
 Object.entries(sources).forEach(([source, setters], i) => {
   permutations.push(
@@ -135,7 +136,8 @@ Object.entries(sources).forEach(([source, setters], i) => {
           source,
           setter,
           fn,
-          name: setter.startsWith('set') ? nthName(i) : '', // convention
+          name: setter.startsWith('set') ? nthName(i) : '',
+          stop: setter.endsWith('X'),
         },
       ]),
     ),
@@ -173,7 +175,6 @@ describe('ETHReverseResolver', () => {
       await expect(
         F.reverseResolver.read.resolve([dnsEncodeName(kp.name), res.call]),
       ).toBeRevertedWithCustomError('UnsupportedResolverProfile')
-      // .withArgs(slice(res.call, 0, 4))
     })
 
     it('addr("addr.reverse") = registrar', async () => {
@@ -196,7 +197,7 @@ describe('ETHReverseResolver', () => {
     })
 
     for (const setters of permutations.sort((a, b) => a.length - b.length)) {
-      const name = setters.find((x) => x.name)?.name ?? ''
+      const name = setters.find((x) => x.name || x.stop)?.name ?? ''
       const desc = setters
         .map((x) => `${x.source}(${x.setter}${x.name ? `:"${name}"` : ''})`)
         .join(' + ')
