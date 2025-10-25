@@ -3,11 +3,14 @@ pragma solidity >=0.8.4;
 
 import {IExtendedResolver} from "./IExtendedResolver.sol";
 
-/// @notice A resolver that is composed of multiple resolvers.
+/// @notice A resolver that calls other resolvers.
 /// @dev Interface selector: `0xf686ea10`
-interface ICompositeExtendedResolver is IExtendedResolver {
+interface ICompositeResolver is IExtendedResolver {
     /// @notice Fetch the underlying resolver for `name`.
     ///         Callers should enable EIP-3668.
+	///
+	/// * If `offchain`, additional information is necessary to locate `resolver`.
+	/// * If `resolver` is null, `offchain` is irrelevant.
     ///
     /// @param name The DNS-encoded name.
     ///
