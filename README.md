@@ -270,3 +270,4 @@ Certain changes can be released in isolation via cherry-picking, although ideall
 - Code on `staging` and `main` will always be a subset of what is deployed, as smart contracts cannot be undeployed.
 - Release candidates, `staging` and `main` branch are subject to our bug bounty
 - Releases follow semantic versioning and releases should contain a description of changes with developers being the intended audience
+"### Note from contributor\nImproved documentation for new contributors." 
