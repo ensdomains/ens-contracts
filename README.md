@@ -135,6 +135,7 @@ PublicResolver includes the following profiles that implements different EIPs.
 - ABIResolver = EIP 205 - ABI support (`ABI()`).
 - AddrResolver = EIP 137 - Contract address interface. EIP 2304 - Multicoin support (`addr()`).
 - ContentHashResolver = EIP 1577 - Content hash support (`contenthash()`).
+- DataResolver =  ENSIP-24 - Arbitrary Data Resolution (`data()`).
 - InterfaceResolver = EIP 165 - Interface Detection (`supportsInterface()`).
 - NameResolver = EIP 181 - Reverse resolution (`name()`).
 - PubkeyResolver = EIP 619 - SECP256k1 public keys (`pubkey()`).

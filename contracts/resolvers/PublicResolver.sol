@@ -5,6 +5,7 @@ import "../registry/ENS.sol";
 import "./profiles/ABIResolver.sol";
 import "./profiles/AddrResolver.sol";
 import "./profiles/ContentHashResolver.sol";
+import "./profiles/DataResolver.sol";
 import "./profiles/DNSResolver.sol";
 import "./profiles/InterfaceResolver.sol";
 import "./profiles/NameResolver.sol";
@@ -21,6 +22,7 @@ contract PublicResolver is
     ABIResolver,
     AddrResolver,
     ContentHashResolver,
+    DataResolver,
     DNSResolver,
     InterfaceResolver,
     NameResolver,
@@ -136,6 +138,7 @@ contract PublicResolver is
             ABIResolver,
             AddrResolver,
             ContentHashResolver,
+            DataResolver,
             DNSResolver,
             InterfaceResolver,
             NameResolver,
