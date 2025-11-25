@@ -7,6 +7,7 @@ import {
   decodeFunctionResult,
   encodeFunctionData,
   getAddress,
+  hexToBytes,
   keccak256,
   labelhash,
   namehash,
@@ -724,7 +725,7 @@ describe('PublicResolver', () => {
     })
   })
 
-  describe('test', () => {
+  describe('text', () => {
     const url1 = 'https://ethereum.org'
     const url2 = 'https://github.com/ethereum'
 
@@ -823,6 +824,46 @@ describe('PublicResolver', () => {
       ).resolves.toEqual('')
     })
   })
+
+  describe('data', () => {
+    const dataKey = 'my-data-key';
+    const data1 = '0x746f6d207761732068657265'
+
+    it('permits setting data by owner', async () => {
+      const { publicResolver } = await loadFixture()
+
+      await expect(
+        publicResolver.read.supportedDataKeys([targetNode]),
+      ).resolves.toEqual([])
+
+      await expect(publicResolver.write.setData([targetNode, dataKey, data1]))
+        .toEmitEvent('DataChanged')
+        .withArgs({
+          node: targetNode,
+          indexedKey: keccak256(stringToHex(dataKey)),
+          key: dataKey,
+          indexedData: keccak256(hexToBytes(data1)),
+        })
+
+      await expect(
+        publicResolver.read.data([targetNode, dataKey]),
+      ).resolves.toEqual(data1)
+
+      await expect(
+        publicResolver.read.supportedDataKeys([targetNode]),
+      ).resolves.toEqual([dataKey])
+    })  
+
+    it('forbids setting data if not owner', async () => {
+      const { publicResolver } = await loadFixture()
+
+      await expect(
+        publicResolver.write.setData([targetNode, dataKey, data1], {
+          account: accounts[1],
+        }),
+      ).toBeRevertedWithoutReason()
+    })
+  });
 
   describe('contenthash', () => {
     const contenthash1 = padHex('0x01', { dir: 'left', size: 32 })
