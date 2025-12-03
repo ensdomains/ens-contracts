@@ -4,7 +4,7 @@ pragma solidity >=0.8.4;
 import {IExtendedResolver} from "./IExtendedResolver.sol";
 
 /// @notice A resolver that calls other resolvers.
-/// @dev Interface selector: `0xf686ea10`
+/// @dev Interface selector: `0xc7e45d73`
 interface ICompositeResolver is IExtendedResolver {
     /// @notice Fetch the underlying resolver for `name`.
     ///         Callers should enable EIP-3668.
