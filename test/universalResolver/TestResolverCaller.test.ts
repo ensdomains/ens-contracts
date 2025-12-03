@@ -35,7 +35,7 @@ describe('ResolverCaller', () => {
     for (const offchain of [false, true]) {
       for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
         for (const feature of [false, true]) {
-          if (type === 'old' && (multi || offchain || feature)) continue;
+          if (type === 'old' && (offchain || feature)) continue;
           let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
