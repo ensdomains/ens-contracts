@@ -1,7 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {
+    ERC165Checker
+} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
@@ -10,6 +12,9 @@ import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 // resolver profiles
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
+import {
+    IExtendedDNSResolver
+} from "../resolvers/profiles/IExtendedDNSResolver.sol";
 import {IMulticallable} from "../resolvers/IMulticallable.sol";
 
 abstract contract ResolverCaller is CCIPBatcher {
@@ -20,38 +25,46 @@ abstract contract ResolverCaller is CCIPBatcher {
 
     /// @notice Perform forward resolution.
     ///
-    /// If ENSIP-22 is supported, performs a direct call.
     /// Call this function with `ccipRead()` to intercept the response.
+    /// Supports extended (`IExtendedDNSResolver` and `IExtendedResolver`) and immediate resolvers.
     ///
-    /// 1. if `IExtendedResolver`, `resolver.resolve(name, calldata)`.
-    /// 2. otherwise, `resolver.staticall(calldata)`.
-    ///
-    /// - If (1), the calldata is not `multicall()`, and the resolver supports features,
+    /// - If extended, the calldata is not `multicall()`, and the resolver supports ENSIP-22 features,
     ///   the call is performed directly without the batch gateway.
-    /// - If (1), the calldata is `multicall()`, and the resolver supports `RESOLVE_MULTICALL` feature,
+    /// - If extended, the calldata is `multicall()`, and the resolver supports `eth.ens.resolver.extended.multicall` feature,
     ///   the call is performed directly without the batch gateway.
     /// - Otherwise, the call is performed with the batch gateway.
-    ///   If the calldata is `multicall()`, it is disassembled, called separately, and reassembled.
+    ///   The batch gateway is only invoked if any call reverts `OffchainLookup`.
+    ///   If the calldata is `multicall()` it is disassembled, called separately, and reassembled.
     ///
     /// @dev Reverts `UnreachableName` if resolver is not a contract.
     /// @param resolver The resolver to call.
     /// @param name The DNS-encoded ENS name.
     /// @param data The calldata for the resolution.
+    /// @param hasContext True if `IExtendedDNSResolver` should be considered.
+    /// @param context The context for `IExtendedDNSResolver`.
     /// @param batchGateways The batch gateway URLs.
     function callResolver(
         address resolver,
         bytes memory name,
         bytes memory data,
+        bool hasContext,
+        bytes memory context,
         string[] memory batchGateways
     ) public view returns (bytes memory) {
         if (resolver.code.length == 0) {
             revert UnreachableName(name);
         }
         bool multi = bytes4(data) == IMulticallable.multicall.selector;
-        bool extended = ERC165Checker.supportsERC165InterfaceUnchecked(
-            resolver,
-            type(IExtendedResolver).interfaceId
-        );
+        bool extendedDNS = hasContext &&
+            ERC165Checker.supportsERC165InterfaceUnchecked(
+                resolver,
+                type(IExtendedDNSResolver).interfaceId
+            );
+        bool extended = extendedDNS ||
+            ERC165Checker.supportsERC165InterfaceUnchecked(
+                resolver,
+                type(IExtendedResolver).interfaceId
+            );
         if (
             ERC165Checker.supportsERC165InterfaceUnchecked(
                 resolver,
@@ -67,7 +80,7 @@ abstract contract ResolverCaller is CCIPBatcher {
                 // resolve() has the same return signature as callResolver()
                 ccipRead(
                     resolver,
-                    abi.encodeCall(IExtendedResolver.resolve, (name, data))
+                    _makeExtendedCall(extendedDNS, name, data, context)
                 );
             } else {
                 ccipRead(
@@ -91,9 +104,11 @@ abstract contract ResolverCaller is CCIPBatcher {
         }
         if (extended) {
             for (uint256 i; i < calls.length; ++i) {
-                calls[i] = abi.encodeCall(
-                    IExtendedResolver.resolve,
-                    (name, calls[i])
+                calls[i] = _makeExtendedCall(
+                    extendedDNS,
+                    name,
+                    calls[i],
+                    context
                 );
             }
         }
@@ -151,5 +166,21 @@ abstract contract ResolverCaller is CCIPBatcher {
             }
             return v;
         }
+    }
+
+    /// @dev Create extended resolver calldata.
+    function _makeExtendedCall(
+        bool extendedDNS,
+        bytes memory name,
+        bytes memory call,
+        bytes memory context
+    ) internal pure returns (bytes memory) {
+        return
+            extendedDNS
+                ? abi.encodeCall(
+                    IExtendedDNSResolver.resolve,
+                    (name, call, context)
+                )
+                : abi.encodeCall(IExtendedResolver.resolve, (name, call));
     }
 }
