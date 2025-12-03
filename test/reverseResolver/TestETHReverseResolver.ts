@@ -87,7 +87,7 @@ const sources = {
         name: getReverseName(account.address),
         primary: { value: name },
       })
-      await F.shapeshift.write.setOld()
+      await F.shapeshift.write.setOld([true])
       await F.shapeshift.write.setResponse([res.call, res.answer])
       await F.claimV1(account.address)
     },

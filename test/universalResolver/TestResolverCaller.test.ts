@@ -33,8 +33,9 @@ async function fixture() {
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
-      for (const type of ['extended', 'extendedDNS', 'immediate'] as const) {
+      for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
         for (const feature of [false, true]) {
+          if (type === 'old' && (multi || offchain || feature)) continue;
           let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
@@ -50,6 +51,7 @@ describe('ResolverCaller', () => {
               ],
               texts: [{ key: 'url', value: 'https://ens.domains' }],
             }
+            await F.ssResolver.write.setOld([type === 'old'])
             await F.ssResolver.write.setExtended([type === 'extended'])
             await F.ssResolver.write.setExtendedDNS([type === 'extendedDNS'])
             await F.ssResolver.write.setOffchain([offchain])
@@ -69,7 +71,7 @@ describe('ResolverCaller', () => {
               dnsEncodeName(kp.name),
               bundle.call,
               type === 'extendedDNS',
-              '0x1234',
+              '0x1234', // context
               ['x-batch-gateway:true'],
             ])
             bundle.expect(answer)

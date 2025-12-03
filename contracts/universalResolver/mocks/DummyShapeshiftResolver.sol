@@ -73,10 +73,12 @@ contract DummyShapeshiftResolver is
         }
     }
 
-    function setOld() external {
-        isERC165 = false;
-        isExtended = false;
-        isExtendedDNS = false;
+    function setOld(bool x) external {
+        isERC165 = !x;
+        if (x) {
+            isExtended = false;
+            isExtendedDNS = false;
+        }
     }
 
     function setExtended(bool x) external {
@@ -140,7 +142,7 @@ contract DummyShapeshiftResolver is
     function resolve(
         bytes memory,
         bytes memory call
-    ) public view returns (bytes memory) {
+    ) external view returns (bytes memory) {
         if (!isExtended) {
             assembly {
                 return(0, 0)
