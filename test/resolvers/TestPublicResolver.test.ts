@@ -832,10 +832,6 @@ describe('PublicResolver', () => {
     it('permits setting data by owner', async () => {
       const { publicResolver } = await loadFixture()
 
-      await expect(
-        publicResolver.read.supportedDataKeys([targetNode]),
-      ).resolves.toEqual([])
-
       await expect(publicResolver.write.setData([targetNode, dataKey, data1]))
         .toEmitEvent('DataChanged')
         .withArgs({
@@ -848,10 +844,6 @@ describe('PublicResolver', () => {
       await expect(
         publicResolver.read.data([targetNode, dataKey]),
       ).resolves.toEqual(data1)
-
-      await expect(
-        publicResolver.read.supportedDataKeys([targetNode]),
-      ).resolves.toEqual([dataKey])
     })  
 
     it('forbids setting data if not owner', async () => {

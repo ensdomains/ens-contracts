@@ -3,17 +3,13 @@ pragma solidity >=0.8.4;
 
 import "../ResolverBase.sol";
 import "./IDataResolver.sol";
-import "./ISupportedDataKeys.sol";
 
 abstract contract DataResolver is
     IDataResolver,
-    ISupportedDataKeys,
     ResolverBase
 {
-    mapping(bytes32 node => mapping(string key => bytes data))
-        private dataStore;
-    mapping(bytes32 node => string[] keys) private supportedDataKeysStore;
-    mapping(bytes32 node => mapping(string key => bool)) private keyExists;
+    mapping(uint64 => mapping(bytes32 node => mapping(string key => bytes data)))
+        private versionable_dataStore;
 
     /// @notice Sets the data associated with the key, `key` for a specific `node`.
     /// May only be called by the owner of that node in the ENS registry.
@@ -25,15 +21,17 @@ abstract contract DataResolver is
         string calldata key,
         bytes calldata value
     ) external virtual authorised(node) {
-        dataStore[node][key] = value;
-
-        if (!keyExists[node][key]) {
-            supportedDataKeysStore[node].push(key);
-            keyExists[node][key] = true;
-        }
-
+        versionable_dataStore[recordVersions[node]][node][key] = value;
+        _afterSetData(node, key, value);
         emit DataChanged(node, key, key, value);
     }
+
+    /// @dev Hook called after data is set. Override to add custom behavior.
+    function _afterSetData(
+        bytes32 node,
+        string memory key,
+        bytes memory value
+    ) internal virtual {}
 
     /// @notice For a specific `node`, get the data associated with the key, `key`.
     /// @param node The node (namehash) for which data is being fetched.
@@ -43,16 +41,7 @@ abstract contract DataResolver is
         bytes32 node,
         string calldata key
     ) external view returns (bytes memory) {
-        return dataStore[node][key];
-    }
-
-    /// @notice For a specific `node`, get an array of supported data keys.
-    /// @param node The node (namehash).
-    /// @return The keys for which we have associated data.
-    function supportedDataKeys(
-        bytes32 node
-    ) external view returns (string[] memory) {
-        return supportedDataKeysStore[node];
+        return versionable_dataStore[recordVersions[node]][node][key];
     }
 
     function supportsInterface(
@@ -60,7 +49,6 @@ abstract contract DataResolver is
     ) public view virtual override returns (bool) {
         return
             interfaceID == type(IDataResolver).interfaceId ||
-            interfaceID == type(ISupportedDataKeys).interfaceId ||
             super.supportsInterface(interfaceID);
     }
 }
