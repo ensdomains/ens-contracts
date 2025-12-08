@@ -4,7 +4,7 @@
     "": {
       "name": "@ensdomains/ens-contracts",
       "dependencies": {
-        "@ensdomains/buffer": "^0.1.1",
+        "@ensdomains/buffer": "^0.1.3",
         "@ensdomains/solsha1": "0.0.3",
         "@nomicfoundation/hardhat-verify": "^2.0.4",
         "@openzeppelin/contracts": "4.9.3",
@@ -59,7 +59,7 @@
 
     "@ensdomains/address-encoder": ["@ensdomains/address-encoder@1.1.2", "", { "dependencies": { "@noble/curves": "^1.2.0", "@noble/hashes": "^1.3.2", "@scure/base": "^1.1.5" } }, "sha512-x+uUZbtvtWDh23dLH/U//re0s9v341tFB6SJeUElkQ31O3jkoUh3jvgnx+NxiohWW6JWW6QrXS4kigxuvwbi2A=="],
 
-    "@ensdomains/buffer": ["@ensdomains/buffer@0.1.1", "", {}, "sha512-92SfSiNS8XorgU7OUBHo/i1ZU7JV7iz/6bKuLPNVsMxV79/eI7fJR6jfJJc40zAHjs3ha+Xo965Idomlq3rqnw=="],
+    "@ensdomains/buffer": ["@ensdomains/buffer@0.1.3", "", {}, "sha512-L/GoCkQFePjSn4DeVnBNfkGdm2CI8UxTxwgQztcZ1L9aHaFefRD+mTUXxtikk946KwwMHRQJDn38wo1IWtEpSg=="],
 
     "@ensdomains/dnsprovejs": ["@ensdomains/dnsprovejs@0.5.1", "", { "dependencies": { "@noble/hashes": "^1.3.2", "dns-packet": "^5.6.1", "typescript-logging": "^1.0.1" } }, "sha512-nfm4ggpK5YBVwVwLZKF9WPjRGRTL9aUxX2O4pqv/AnQCz3WeGHsW7VhVFLj2s4EoWSzCXwR1E6nuqgUwnH692w=="],
 

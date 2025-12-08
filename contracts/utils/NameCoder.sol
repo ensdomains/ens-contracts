@@ -61,7 +61,9 @@ library NameCoder {
             }
             size = uint8(name[offset]);
             nextOffset = offset + 1 + size;
-            if (size > 0 ? nextOffset >= name.length : nextOffset != name.length) {
+            if (
+                size > 0 ? nextOffset >= name.length : nextOffset != name.length
+            ) {
                 revert DNSDecodingFailed(name);
             }
         }

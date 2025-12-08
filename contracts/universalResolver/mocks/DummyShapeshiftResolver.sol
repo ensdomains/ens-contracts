@@ -3,7 +3,12 @@ pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC7996} from "../../utils/IERC7996.sol";
-import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol";
+import {
+    IExtendedResolver
+} from "../../resolvers/profiles/IExtendedResolver.sol";
+import {
+    IExtendedDNSResolver
+} from "../../resolvers/profiles/IExtendedDNSResolver.sol";
 import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 import {BytesUtils} from "../../utils/BytesUtils.sol";
@@ -11,7 +16,12 @@ import {BytesUtils} from "../../utils/BytesUtils.sol";
 /// @dev This resolver can perform all resolver permutations.
 ///      When this contract triggers OffchainLookup(), it uses a data-url, so no server is required.
 ///      The actual response is set using `setResponse()`.
-contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
+contract DummyShapeshiftResolver is
+    IExtendedResolver,
+    IExtendedDNSResolver,
+    IERC165,
+    IERC7996
+{
     // https://github.com/ensdomains/ensips/pull/18
     error UnsupportedResolverProfile(bytes4 call);
 
@@ -21,6 +31,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
     uint256 public featureCount;
     bool public isERC165 = true; // default
     bool public isExtended;
+    bool public isExtendedDNS;
     bool public isOffchain;
     bool public revertUnsupported;
     bool public revertEmpty;
@@ -62,14 +73,22 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
         }
     }
 
-    function setOld() external {
-        isERC165 = false;
-        isExtended = false;
+    function setOld(bool x) external {
+        isERC165 = !x;
+        if (x) {
+            isExtended = false;
+            isExtendedDNS = false;
+        }
     }
 
     function setExtended(bool x) external {
-        isERC165 = true;
         isExtended = x;
+        if (x) isERC165 = true;
+    }
+
+    function setExtendedDNS(bool x) external {
+        isExtendedDNS = x;
+        if (x) isERC165 = true;
     }
 
     function setOffchain(bool x) external {
@@ -86,7 +105,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
 
     fallback() external {
         if (msg.data.length < 4) return;
-        if (isExtended) return;
+        if (isExtended || isExtendedDNS) return;
         bytes memory v = getResponse(msg.data);
         if (v.length == 0) {
             if (revertEmpty) {
@@ -111,7 +130,8 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
         }
         return
             type(IERC165).interfaceId == x ||
-            (type(IExtendedResolver).interfaceId == x && isExtended) ||
+            (isExtended && type(IExtendedResolver).interfaceId == x) ||
+            (isExtendedDNS && type(IExtendedDNSResolver).interfaceId == x) ||
             (type(IERC7996).interfaceId == x && featureCount > 0);
     }
 
@@ -123,6 +143,30 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
         bytes memory,
         bytes memory call
     ) external view returns (bytes memory) {
+        if (!isExtended) {
+            assembly {
+                return(0, 0)
+            }
+        }
+        bytes memory v = getResponse(call);
+        if (v.length == 0 && revertUnsupported) {
+            revert UnsupportedResolverProfile(bytes4(call));
+        }
+        if (isOffchain) _revertOffchain(v);
+        _revertIfError(v);
+        return v;
+    }
+
+    function resolve(
+        bytes memory,
+        bytes memory call,
+        bytes memory
+    ) external view returns (bytes memory) {
+        if (!isExtendedDNS) {
+            assembly {
+                return(0, 0)
+            }
+        }
         bytes memory v = getResponse(call);
         if (v.length == 0 && revertUnsupported) {
             revert UnsupportedResolverProfile(bytes4(call));
@@ -149,7 +193,7 @@ contract DummyShapeshiftResolver is IExtendedResolver, IERC165, IERC7996 {
         bytes memory v
     ) external view returns (bytes memory) {
         _revertIfError(v);
-        if (isExtended) return v;
+        if (isExtended || isExtendedDNS) return v;
         assembly {
             return(add(v, 32), mload(v))
         }

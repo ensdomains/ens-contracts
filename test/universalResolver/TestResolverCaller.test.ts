@@ -33,11 +33,10 @@ async function fixture() {
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
-      for (const extended of [false, true]) {
+      for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
         for (const feature of [false, true]) {
-          let title = `${offchain ? 'offchain' : 'onchain'} ${
-            extended ? 'extended' : 'immediate'
-          }`
+          if (type === 'old' && (offchain || feature)) continue;
+          let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
           it(title, async () => {
@@ -52,7 +51,9 @@ describe('ResolverCaller', () => {
               ],
               texts: [{ key: 'url', value: 'https://ens.domains' }],
             }
-            await F.ssResolver.write.setExtended([extended])
+            await F.ssResolver.write.setOld([type === 'old'])
+            await F.ssResolver.write.setExtended([type === 'extended'])
+            await F.ssResolver.write.setExtendedDNS([type === 'extendedDNS'])
             await F.ssResolver.write.setOffchain([offchain])
             await F.ssResolver.write.setDeriveMulticall([multi])
             await F.ssResolver.write.setFeature([
@@ -69,6 +70,8 @@ describe('ResolverCaller', () => {
               F.ssResolver.address,
               dnsEncodeName(kp.name),
               bundle.call,
+              type === 'extendedDNS',
+              '0x1234', // context
               ['x-batch-gateway:true'],
             ])
             bundle.expect(answer)

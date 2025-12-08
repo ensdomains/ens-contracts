@@ -38,7 +38,7 @@ library LibMem {
             ret := add(v, 32)
         }
     }
-    
+
     /// @dev Read word at memory offset.
     ///
     /// @param src The memory offset.

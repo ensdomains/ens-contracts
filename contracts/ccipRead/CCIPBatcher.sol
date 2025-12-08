@@ -60,6 +60,9 @@ abstract contract CCIPBatcher is CCIPReader {
     ) external view returns (Batch memory) {
         for (uint256 i; i < batch.lookups.length; ++i) {
             Lookup memory lu = batch.lookups[i];
+            if ((lu.flags & FLAG_DONE) != 0) {
+                continue; // don't call a lookup that's already done
+            }
             if ((lu.flags & FLAGS_ANY_EIP140) == 0) {
                 uint256 flags = detectEIP140(lu.target)
                     ? FLAG_EIP140_AFTER
