@@ -1,23 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ERC165} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
+import {
+    ERC165
+} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";
 import {INameResolver} from "../resolvers/profiles/INameResolver.sol";
 import {INameReverser} from "./INameReverser.sol";
+import {IERC7996} from "../utils/IERC7996.sol";
 import {ENSIP19, COIN_TYPE_DEFAULT, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
 
 abstract contract AbstractReverseResolver is
     IExtendedResolver,
     INameReverser,
+    IERC7996,
     ERC165
 {
     /// @inheritdoc INameReverser
     uint256 public immutable coinType;
 
-	/// @inheritdoc INameReverser
+    /// @inheritdoc INameReverser
     address public immutable chainRegistrar;
 
     /// @notice `resolve()` was called with a profile other than `name()` or `addr(*)`.
@@ -40,7 +44,13 @@ abstract contract AbstractReverseResolver is
         return
             interfaceId == type(IExtendedResolver).interfaceId ||
             interfaceId == type(INameReverser).interfaceId ||
+            interfaceId == type(IERC7996).interfaceId ||
             super.supportsInterface(interfaceId);
+    }
+
+    /// @inheritdoc IERC7996
+    function supportsFeature(bytes4) external pure returns (bool) {
+        return false;
     }
 
     /// @inheritdoc INameReverser
@@ -86,14 +96,18 @@ abstract contract AbstractReverseResolver is
             (bool valid, ) = ENSIP19.parseNamespace(name, 0);
             if (!valid) revert UnreachableName(name);
             return
-                abi.encode(coinType == COIN_TYPE_ETH ? chainRegistrar : address(0));
+                abi.encode(
+                    coinType == COIN_TYPE_ETH ? chainRegistrar : address(0)
+                );
         } else if (selector == IAddressResolver.addr.selector) {
             (bool valid, ) = ENSIP19.parseNamespace(name, 0);
             if (!valid) revert UnreachableName(name);
             (, uint256 ct) = abi.decode(data[4:], (bytes32, uint256));
             return
                 abi.encode(
-                    coinType == ct ? abi.encodePacked(chainRegistrar) : new bytes(0)
+                    coinType == ct
+                        ? abi.encodePacked(chainRegistrar)
+                        : new bytes(0)
                 );
         } else {
             revert UnsupportedResolverProfile(selector);

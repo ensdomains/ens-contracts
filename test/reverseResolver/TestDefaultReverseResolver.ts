@@ -27,7 +27,7 @@ async function fixture() {
 describe('DefaultReverseResolver', () => {
   shouldSupportInterfaces({
     contract: () => loadFixture().then((F) => F.defaultReverseResolver),
-    interfaces: ['IERC165', 'IExtendedResolver', 'INameReverser'],
+    interfaces: ['IERC165', 'IExtendedResolver', 'INameReverser', 'IERC7996'],
   })
 
   it('coinType()', async () => {
