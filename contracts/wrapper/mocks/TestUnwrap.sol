@@ -28,9 +28,9 @@ contract TestUnwrap is Ownable {
     function wrapETH2LD(
         string calldata label,
         address wrappedOwner,
-        uint32 fuses,
-        uint64 expiry,
-        address resolver
+        uint32 /*fuses*/,
+        uint64 /*expiry*/,
+        address /*resolver*/
     ) public {
         _unwrapETH2LD(keccak256(bytes(label)), wrappedOwner, msg.sender);
     }
@@ -39,10 +39,10 @@ contract TestUnwrap is Ownable {
         bytes32 parentNode,
         string memory label,
         address newOwner,
-        address resolver,
-        uint64 ttl,
-        uint32 fuses,
-        uint64 expiry
+        address /*resolver*/,
+        uint64 /*ttl*/,
+        uint32 /*fuses*/,
+        uint64 /*expiry*/
     ) public {
         bytes32 node = _makeNode(parentNode, keccak256(bytes(label)));
         _unwrapSubnode(node, newOwner, msg.sender);
@@ -51,10 +51,10 @@ contract TestUnwrap is Ownable {
     function wrapFromUpgrade(
         bytes calldata name,
         address wrappedOwner,
-        uint32 fuses,
-        uint64 expiry,
-        address approved,
-        bytes calldata extraData
+        uint32 /*fuses*/,
+        uint64 /*expiry*/,
+        address /*approved*/,
+        bytes calldata /*extraData*/
     ) public {
         (bytes32 labelhash, uint256 offset) = NameCoder.readLabel(name, 0);
         bytes32 parentNode = NameCoder.namehash(name, offset);

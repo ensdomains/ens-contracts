@@ -26,7 +26,7 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
     }
 
     function _premium(
-        string memory name,
+        string memory /*name*/,
         uint256 expires,
         uint256 /*duration*/
     ) internal view override returns (uint256) {
