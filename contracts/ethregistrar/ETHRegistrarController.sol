@@ -37,7 +37,7 @@ contract ETHRegistrarController is
         0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
 
     /// @notice The maximum expiry time for a registration.
-    uint64 private constant MAX_EXPIRY = type(uint64).max;
+    uint64 private constant MAX_EXPIRY = type(uint64).max; // slippy-disable-line
 
     /// @notice The ENS registry.
     ENS public immutable ens;

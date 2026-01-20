@@ -67,7 +67,7 @@ contract ExtendedDNSResolver is IExtendedDNSResolver, IERC165 {
     using BytesUtils for *;
     using Strings for *;
 
-    uint256 private constant COIN_TYPE_ETH = 60;
+    uint256 private constant COIN_TYPE_ETH = 60; // slippy-disable-line
 
     error NotImplemented();
     error InvalidAddressFormat(bytes addr);
