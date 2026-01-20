@@ -1,13 +1,12 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {ERC1155Fuse, IERC165, IERC1155MetadataURI} from "./ERC1155Fuse.sol";
+import {ERC1155Fuse, IERC1155MetadataURI} from "./ERC1155Fuse.sol";
 import {Controllable} from "./Controllable.sol";
-import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, CANNOT_APPROVE, PARENT_CANNOT_CONTROL, CAN_DO_EVERYTHING, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
+import {INameWrapper, CANNOT_UNWRAP, CANNOT_BURN_FUSES, CANNOT_TRANSFER, CANNOT_SET_RESOLVER, CANNOT_SET_TTL, CANNOT_CREATE_SUBDOMAIN, CANNOT_APPROVE, PARENT_CANNOT_CONTROL, IS_DOT_ETH, CAN_EXTEND_EXPIRY, PARENT_CONTROLLED_FUSES, USER_SETTABLE_FUSES} from "./INameWrapper.sol";
 import {INameWrapperUpgrade} from "./INameWrapperUpgrade.sol";
 import {IMetadataService} from "./IMetadataService.sol";
 import {ENS} from "../registry/ENS.sol";
-import {IReverseRegistrar} from "../reverseRegistrar/IReverseRegistrar.sol";
 import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";

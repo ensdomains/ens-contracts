@@ -9,7 +9,7 @@ import {CCIPBatcher, CCIPReader} from "../ccipRead/CCIPBatcher.sol";
 import {IGatewayProvider} from "../ccipRead/IGatewayProvider.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
-import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
+import {ENSIP19, COIN_TYPE_ETH} from "../utils/ENSIP19.sol";
 import {IERC7996} from "../utils/IERC7996.sol";
 import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 

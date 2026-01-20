@@ -1,7 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.17 <0.9.0;
 // import signatureVerifier by openzepellin
-import {SignatureChecker} from "@openzeppelin/contracts-v5/utils/cryptography/SignatureChecker.sol";
 import {MockSmartContractWallet} from "./MockSmartContractWallet.sol";
 
 contract MockERC6492WalletFactory {

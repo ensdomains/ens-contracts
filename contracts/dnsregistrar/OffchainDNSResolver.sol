@@ -2,7 +2,7 @@
 pragma solidity ^0.8.4;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 
 import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";

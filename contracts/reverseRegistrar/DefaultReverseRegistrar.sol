@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.4;
 
-import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts-v5/utils/cryptography/MessageHashUtils.sol";
 import {ERC165} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 
