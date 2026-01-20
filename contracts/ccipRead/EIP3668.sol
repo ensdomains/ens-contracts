@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 /// @dev https://eips.ethereum.org/EIPS/eip-3668
 /// Error selector: `0x556f1830`
