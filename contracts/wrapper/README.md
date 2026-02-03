@@ -329,7 +329,7 @@ The expiry can only be extended, not reduced. And the max expiry is automaticall
 **Start State**: Wrapped
 **End State**: Emancipated | Locked
 
-`setChildFuses()` can only be called the parent owner of a name. It can burn both user-controlled and parent-controlled fuses.
+`setChildFuses()` can only be called by the parent owner of a name. It can burn both user-controlled and parent-controlled fuses.
 
 If the name is Emancipated or Locked, this function may be called to extend the expiry, but cannot burn any further fuses.
 
