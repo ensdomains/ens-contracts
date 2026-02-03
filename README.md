@@ -50,9 +50,9 @@ import '@ensdomains/ens-contracts/contracts/resolvers/PublicResolver.sol';
 import '@ensdomains/ens-contracts/contracts/resolvers/Resolver.sol';
 ```
 
-## Accessing to binary file.
+## Accessing binary files
 
-If your environment does not have compiler, you can access to the raw hardhat artifacts files at `node_modules/@ensdomains/ens-contracts/artifacts/contracts/${modName}/${contractName}.sol/${contractName}.json`
+If your environment does not have a compiler, you can access the raw hardhat artifacts files at `node_modules/@ensdomains/ens-contracts/artifacts/contracts/${modName}/${contractName}.sol/${contractName}.json`
 
 ## Contracts
 
@@ -139,7 +139,7 @@ PublicResolver includes the following profiles that implements different EIPs.
 - NameResolver = EIP 181 - Reverse resolution (`name()`).
 - PubkeyResolver = EIP 619 - SECP256k1 public keys (`pubkey()`).
 - TextResolver = EIP 634 - Text records (`text()`).
-- DNSResolver = Experimental support is available for hosting DNS domains on the Ethereum blockchain via ENS. [The more detail](https://veox-ens.readthedocs.io/en/latest/dns.html) is on the old ENS doc.
+- DNSResolver = Experimental support is available for hosting DNS domains on the Ethereum blockchain via ENS. [More details](https://veox-ens.readthedocs.io/en/latest/dns.html) are available in the old ENS documentation.
 
 ## Developer guide
 
