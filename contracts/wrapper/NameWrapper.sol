@@ -196,7 +196,7 @@ contract NameWrapper is
     }
 
     /**
-     * @notice Set the address of the upgradeContract of the contract. only admin can do this
+     * @notice Set the address of the upgradeContract. Only admin can do this.
      * @dev The default value of upgradeContract is the 0 address. Use the 0 address at any time
      * to make the contract not upgradable.
      * @param _upgradeAddress address of an upgraded contract
