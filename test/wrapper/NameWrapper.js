@@ -553,7 +553,7 @@ describe('Name Wrapper', () => {
 
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(label, account, 0, EMPTY_ADDRESS)
@@ -742,7 +742,7 @@ describe('Name Wrapper', () => {
     it('wraps a name if sender is owner', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       expect(await NameWrapper.ownerOf(nameHash)).to.equal(EMPTY_ADDRESS)
@@ -1224,7 +1224,7 @@ describe('Name Wrapper', () => {
     it('Allows the owner to unwrap a name.', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(
@@ -1248,7 +1248,7 @@ describe('Name Wrapper', () => {
     it('Does not allows the previous owner to unwrap when the name has expired.', async () => {
       await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-      //allow the restricted name wrappper to transfer the name to itself and reclaim it
+      //allow the restricted name wrapper to transfer the name to itself and reclaim it
       await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
       await NameWrapper.wrapETH2LD(
@@ -2082,7 +2082,7 @@ describe('Name Wrapper', () => {
       it('Cannot upgrade a name if the upgradeContract has not been set.', async () => {
         await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-        //allow the restricted name wrappper to transfer the name to itself and reclaim it
+        //allow the restricted name wrapper to transfer the name to itself and reclaim it
         await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
         await NameWrapper.wrapETH2LD(
@@ -2121,7 +2121,7 @@ describe('Name Wrapper', () => {
       it('Will pass fuses and expiry to the upgradedContract without any changes.', async () => {
         await BaseRegistrar.register(labelHash, account, 1 * DAY)
 
-        //allow the restricted name wrappper to transfer the name to itself and reclaim it
+        //allow the restricted name wrapper to transfer the name to itself and reclaim it
         await BaseRegistrar.setApprovalForAll(NameWrapper.address, true)
 
         await NameWrapper.wrapETH2LD(
