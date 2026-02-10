@@ -115,6 +115,12 @@ const config = {
       '@openzeppelin/contracts/token/ERC1155/IERC1155.sol',
     ],
   },
+  generateTypedArtifacts: {
+    destinations: {
+      js: ['./generated/artifacts.js'],
+      ts: ['./generated/artifacts.ts'],
+    },
+  },
   paths: {
     sources: {
       solidity: ['./contracts'],
@@ -136,21 +142,6 @@ const config = {
       .build(),
     task('create-l2-safe', 'Creates an L2 Safe')
       .setAction(() => import('./tasks/create_l2_safe.js'))
-      .build(),
-    task('multichain-verify', 'Verify contracts using etherscan v2 api')
-      .addPositionalArgument({
-        name: 'contractName',
-        description: 'The contract name to verify',
-      })
-      .addPositionalArgument({
-        name: 'address',
-        description: 'The contract address to verify',
-      })
-      .addVariadicArgument({
-        name: 'deployArgs',
-        description: 'Constructor arguments',
-      })
-      .setAction(() => import('./tasks/etherscan-multichain.js'))
       .build(),
     task('save', 'Saves a specified contract as a deployed contract')
       .addPositionalArgument({
