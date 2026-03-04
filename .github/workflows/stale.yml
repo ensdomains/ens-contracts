@@ -1,7 +1,6 @@
 name: Close stale PRs
 
 on:
-  push: # TEMPORARY: remove after testing
   schedule:
     - cron: '0 0 * * *' # daily at midnight UTC
   workflow_dispatch: # allow manual trigger
