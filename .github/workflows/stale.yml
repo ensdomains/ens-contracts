@@ -30,3 +30,4 @@ jobs:
           only-pr: true
           days-before-issue-stale: -1
           days-before-issue-close: -1
+          operations-per-run: 200
