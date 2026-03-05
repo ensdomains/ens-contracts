@@ -692,7 +692,7 @@ contract NameWrapper is
     }
 
     /// @notice Check whether a name can call setSubnodeOwner/setSubnodeRecord
-    /// @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether not they have been burnt
+    /// @dev Checks both CANNOT_CREATE_SUBDOMAIN and PARENT_CANNOT_CONTROL and whether they have been burnt
     ///      and checks whether the owner of the subdomain is 0x0 for creating or already exists for
     ///      replacing a subdomain. If either conditions are true, then it is possible to call
     ///      setSubnodeOwner

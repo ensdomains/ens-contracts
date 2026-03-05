@@ -28,7 +28,7 @@ abstract contract Multicallable is IMulticallable, ERC165 {
     }
 
     // This function provides an extra security check when called
-    // from priviledged contracts (such as EthRegistrarController)
+    // from privileged contracts (such as EthRegistrarController)
     // that can set records on behalf of the node owners
     function multicallWithNodeCheck(
         bytes32 nodehash,
