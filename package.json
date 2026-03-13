@@ -1,6 +1,6 @@
 {
   "name": "@ensdomains/ens-contracts",
-  "version": "1.6.2",
+  "version": "1.7.0",
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
