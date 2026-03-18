@@ -1,4 +1,6 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_SimplePublicSuffixList } from "generated/artifacts/SimplePublicSuffixList.js"
+import type { Hex } from 'viem'
 import { dnsEncodeName } from '../../test/fixtures/dnsEncodeName.js'
 
 export async function fetchPublicSuffixes() {
@@ -18,21 +20,18 @@ export default deployScript(
     deploy,
     execute: write,
     namedAccounts: { deployer, owner },
-    network,
-    config,
+    tags,
+    context,
+    viem,
   }) => {
     const psl = await deploy('SimplePublicSuffixList', {
       account: deployer,
-      artifact: artifacts.SimplePublicSuffixList,
+      artifact: Artifact_SimplePublicSuffixList,
       args: [],
     })
 
-    if (!psl.newlyDeployed) {
-      return
-    }
-
     // Transfer ownership to owner if different from deployer
-    if (owner !== deployer) {
+    if (owner !== deployer && psl.newlyDeployed) {
       console.log('  - Transferring ownership to owner account')
       await write(psl, {
         functionName: 'transferOwnership',
@@ -44,8 +43,8 @@ export default deployScript(
     // Fetch and set public suffix list
     const fetchedSuffixes = await fetchPublicSuffixes()
     const allowUnsafe =
-      network.tags?.allow_unsafe ||
-      (network.tags?.test && !config.saveDeployments)
+      tags?.allow_unsafe ||
+      (tags?.test && !context.saveDeployments)
 
     // Right now we're only going to support top-level, non-idna suffixes
     const suffixes = fetchedSuffixes.filter((suffix) =>
@@ -56,7 +55,33 @@ export default deployScript(
     console.log(`Starting suffix transactions for ${suffixes.length} suffixes`)
     const totalBatches = Math.ceil(suffixes.length / batchAmount)
 
-    // Send transactions sequentially to avoid nonce conflicts
+    const pendingBatches: Promise<unknown>[] = []
+    let nonce = await viem.publicClient.getTransactionCount({
+      address: owner,
+    })
+
+    const processBatch = async (batch: readonly Hex[]) => {
+      // for fresh deploys only
+      if (tags?.test && tags?.fresh) {
+        pendingBatches.push(write(psl, {
+          functionName: 'addPublicSuffixes',
+          args: [batch],
+          account: owner,
+          nonce: nonce++,
+        }))
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        return
+      }
+
+      // Send transactions sequentially to avoid nonce conflicts
+      // For real/live deploys, we don't need to attempt to save time
+      await write(psl, {
+        functionName: 'addPublicSuffixes',
+        args: [batch],
+        account: owner,
+      })
+    }
+
     for (let i = 0; i < suffixes.length; i += batchAmount) {
       const batch = suffixes
         .slice(i, i + batchAmount)
@@ -67,12 +92,9 @@ export default deployScript(
         `  - Sending suffixes batch ${batchIndex}/${totalBatches} (${batch.length} suffixes)`,
       )
 
-      await write(psl, {
-        functionName: 'addPublicSuffixes',
-        args: [batch],
-        account: owner,
-      })
+      await processBatch(batch)
     }
+    await Promise.all(pendingBatches)
 
     console.log(`Public suffix list configuration completed.`)
   },

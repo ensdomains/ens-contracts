@@ -34,10 +34,10 @@
     "@nomicfoundation/hardhat-keystore": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
     "@nomicfoundation/hardhat-viem": "^3.0.0",
-    "@rocketh/deploy": "0.14.0",
-    "@rocketh/read-execute": "0.14.0",
-    "@rocketh/verifier": "0.14.5",
-    "@rocketh/viem": "0.14.0",
+    "@rocketh/deploy": "0.19.1",
+    "@rocketh/read-execute": "0.19.0",
+    "@rocketh/verifier": "0.19.3",
+    "@rocketh/viem": "0.19.0",
     "@safe-global/api-kit": "^2.5.6",
     "@safe-global/protocol-kit": "5.2.13",
     "@safe-global/safe-core-sdk-types": "^5.1.0",
@@ -48,12 +48,12 @@
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.15.0",
-    "hardhat": "3.1.4",
-    "hardhat-deploy": "^2.0.0-next.35",
+    "hardhat": "3.1.12",
+    "hardhat-deploy": "^2.0.1",
     "husky": "^9.1.7",
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
-    "rocketh": "0.14.5",
+    "rocketh": "0.19.3",
     "ts-node": "^10.9.2",
     "typescript": "5.9.2",
     "viem": "2.33.3",
@@ -70,7 +70,7 @@
     "glob": "^11.0.3"
   },
   "resolutions": {
-    "hardhat": "3.1.4"
+    "hardhat": "3.1.12"
   },
   "directories": {
     "test": "test"

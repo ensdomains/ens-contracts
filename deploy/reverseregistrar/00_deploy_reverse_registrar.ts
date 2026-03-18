@@ -1,17 +1,20 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import type { Abi_Root } from 'generated/abis/Root.js'
+import { Artifact_ReverseRegistrar } from 'generated/artifacts/ReverseRegistrar.js'
 import { labelhash, namehash } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, execute: write, namedAccounts, network, tags }) => {
     const { deployer, owner } = namedAccounts
 
     // Get dependencies
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
 
     // Deploy ReverseRegistrar
     const reverseRegistrar = await deploy('ReverseRegistrar', {
       account: deployer,
-      artifact: artifacts.ReverseRegistrar,
+      artifact: Artifact_ReverseRegistrar,
       args: [registry.address],
     })
 
@@ -28,9 +31,9 @@ export default deployScript(
     }
 
     // Only attempt to make controller etc changes directly on testnets
-    if (network.name === 'mainnet' && !network.tags?.tenderly) return
+    if (network.chain.id === 1 && !tags?.tenderly) return
 
-    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const root = get<Abi_Root>('Root')
     console.log(`  - Setting owner of .reverse to owner on root`)
     await write(root, {
       functionName: 'setSubnodeOwner',

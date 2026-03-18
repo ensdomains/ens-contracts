@@ -1,0 +1,76 @@
+{
+  "address": "0x6f6585e6a0b709a37927b1c0d9a5e75dcd4a8ac1",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "name": "verify",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    }
+  ],
+  "contractName": "DummyDigest",
+  "sourceName": "contracts/dnssec-oracle/digests/DummyDigest.sol",
+  "bytecode": "0x6080604052348015600f57600080fd5b5061014c8061001f6000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f7e83aee14610030575b600080fd5b61004861003e3660046100a5565b6001949350505050565b604051901515815260200160405180910390f35b60008083601f84011261006e57600080fd5b50813567ffffffffffffffff81111561008657600080fd5b60208301915083602082850101111561009e57600080fd5b9250929050565b600080600080604085870312156100bb57600080fd5b843567ffffffffffffffff8111156100d257600080fd5b6100de8782880161005c565b909550935050602085013567ffffffffffffffff8111156100fe57600080fd5b61010a8782880161005c565b9598949750955050505056fea264697066735822122008133ca41afe005f9f218ec69e4bccdcfdb57f602b8a18831507b8a7850f9d6964736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c8063f7e83aee14610030575b600080fd5b61004861003e3660046100a5565b6001949350505050565b604051901515815260200160405180910390f35b60008083601f84011261006e57600080fd5b50813567ffffffffffffffff81111561008657600080fd5b60208301915083602082850101111561009e57600080fd5b9250929050565b600080600080604085870312156100bb57600080fd5b843567ffffffffffffffff8111156100d257600080fd5b6100de8782880161005c565b909550935050602085013567ffffffffffffffff8111156100fe57600080fd5b61010a8782880161005c565b9598949750955050505056fea264697066735822122008133ca41afe005f9f218ec69e4bccdcfdb57f602b8a18831507b8a7850f9d6964736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/dnssec-oracle/digests/DummyDigest.sol",
+  "devdoc": {
+    "details": "Implements a dummy DNSSEC digest that approves all hashes, for testing.",
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "66400",
+        "executionCost": "117",
+        "totalCost": "66517"
+      },
+      "external": {
+        "verify(bytes,bytes)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"verify\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"pure\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements a dummy DNSSEC digest that approves all hashes, for testing.\",\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/dnssec-oracle/digests/DummyDigest.sol\":\"DummyDigest\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"project/contracts/dnssec-oracle/digests/Digest.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\n/// @dev An interface for contracts implementing a DNSSEC digest.\\ninterface Digest {\\n    /// @dev Verifies a cryptographic hash.\\n    /// @param data The data to hash.\\n    /// @param hash The hash to compare to.\\n    /// @return True iff the hashed data matches the provided hash value.\\n    function verify(\\n        bytes calldata data,\\n        bytes calldata hash\\n    ) external pure virtual returns (bool);\\n}\\n\",\"keccak256\":\"0x5681a22475fbc84fd7f572983b2f7f943f78f856ac3719661fa5d2f0a6911868\"},\"project/contracts/dnssec-oracle/digests/DummyDigest.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nimport \\\"./Digest.sol\\\";\\n\\n/// @dev Implements a dummy DNSSEC digest that approves all hashes, for testing.\\ncontract DummyDigest is Digest {\\n    function verify(\\n        bytes calldata,\\n        bytes calldata\\n    ) external pure override returns (bool) {\\n        return true;\\n    }\\n}\\n\",\"keccak256\":\"0x0d9a3472fca51b17f7936afb25b42bdfa8bad59ebe174efde420ce9b451e3701\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x",
+  "transaction": {
+    "hash": "0x333a1d8b6f4acb4f0b2eccad6bc25e44644ebad74b6892828a6588c07544e8d2",
+    "nonce": "0x171f",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0x936156d251756a53ccc8ff17f45d5ed8e9778d65a9476d524b7b37ef16f6b0cf",
+    "blockNumber": "0x9fa414",
+    "transactionIndex": "0x58"
+  }
+}

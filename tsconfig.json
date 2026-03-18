@@ -12,7 +12,8 @@
     "resolveJsonModule": true,
     "types": ["vitest/globals"],
     "paths": {
-      "@rocketh": ["./rocketh.ts"]
+      "@rocketh": ["./rocketh/deploy.ts"],
+      "generated/*": ["./generated/*"]
     }
   },
   "include": [

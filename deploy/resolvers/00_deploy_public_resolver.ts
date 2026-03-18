@@ -1,24 +1,28 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import type { Abi_ETHRegistrarController } from 'generated/abis/ETHRegistrarController.js'
+import type { Abi_NameWrapper } from 'generated/abis/NameWrapper.js'
+import type { Abi_ReverseRegistrar } from 'generated/abis/ReverseRegistrar.js'
+import { Artifact_PublicResolver } from 'generated/artifacts/PublicResolver.js'
 import { getAddress, namehash, type Address } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, execute: write, read, namedAccounts, network }) => {
+  async ({ deploy, get, execute: write, read, namedAccounts, network, tags }) => {
     const { deployer, owner } = namedAccounts
 
     // Get dependencies
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
-    const nameWrapper =
-      get<(typeof artifacts.NameWrapper)['abi']>('NameWrapper')
-    const controller = get<(typeof artifacts.ETHRegistrarController)['abi']>(
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
+    const nameWrapper = get<Abi_NameWrapper>('NameWrapper')
+    const controller = get<Abi_ETHRegistrarController>(
       'ETHRegistrarController',
     )
     const reverseRegistrar =
-      get<(typeof artifacts.ReverseRegistrar)['abi']>('ReverseRegistrar')
+      get<Abi_ReverseRegistrar>('ReverseRegistrar')
 
     // Deploy PublicResolver
     const publicResolver = await deploy('PublicResolver', {
       account: deployer,
-      artifact: artifacts.PublicResolver,
+      artifact: Artifact_PublicResolver,
       args: [
         registry.address,
         nameWrapper.address,
@@ -30,7 +34,7 @@ export default deployScript(
     if (!publicResolver.newlyDeployed) return
 
     // Only attempt to make controller etc changes directly on testnets
-    if (network.name === 'mainnet' && !network.tags?.tenderly) return
+    if (network.chain.id === 1 && !tags?.tenderly) return
 
     // Check if PublicResolver is already the default resolver on ReverseRegistrar
     const isReverseRegistrarDefaultResolver = await read(reverseRegistrar, {
@@ -74,6 +78,8 @@ export default deployScript(
         `  - WARN: resolver.eth is not owned by the owner address, not setting resolver`,
       )
     }
+
+    return true;
   },
   {
     id: 'PublicResolver v3.0.0',

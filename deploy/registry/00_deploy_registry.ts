@@ -1,4 +1,7 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import { Artifact_ENSRegistry } from 'generated/artifacts/ENSRegistry.js'
+import { Artifact_ENSRegistryWithFallback } from 'generated/artifacts/ENSRegistryWithFallback.js'
 import { zeroAddress, zeroHash } from 'viem'
 
 export default deployScript(
@@ -8,14 +11,14 @@ export default deployScript(
     namedAccounts: { deployer, owner },
     execute: write,
     read,
-    network,
+    tags,
     createLegacyRegistryNames,
   }) => {
-    if (network.tags.legacy) {
+    if (tags.legacy) {
       console.log('Deploying Legacy ENS Registry...')
       const legacyRegistry = await deploy('LegacyENSRegistry', {
         account: deployer,
-        artifact: artifacts.ENSRegistry,
+        artifact: Artifact_ENSRegistry,
       })
 
       if (createLegacyRegistryNames) {
@@ -41,19 +44,19 @@ export default deployScript(
       console.log('Deploying ENS Registry with Fallback...')
       await deploy('ENSRegistry', {
         account: deployer,
-        artifact: artifacts.ENSRegistryWithFallback,
+        artifact: Artifact_ENSRegistryWithFallback,
         args: [legacyRegistry.address],
       })
     } else {
       console.log('Deploying standard ENS Registry...')
       await deploy('ENSRegistry', {
         account: deployer,
-        artifact: artifacts.ENSRegistry,
+        artifact: Artifact_ENSRegistry,
       })
     }
 
-    if (!network.tags.use_root) {
-      const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    if (!tags.use_root) {
+      const registry = get<Abi_ENSRegistry>('ENSRegistry')
       const rootOwner = await read(registry, {
         functionName: 'owner',
         args: [zeroHash],
@@ -71,6 +74,8 @@ export default deployScript(
         )
       }
     }
+
+    return true;
   },
   {
     id: 'ENSRegistry v1.0.0',

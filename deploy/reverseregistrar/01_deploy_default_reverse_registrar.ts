@@ -1,4 +1,5 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_DefaultReverseRegistrar } from 'generated/artifacts/DefaultReverseRegistrar.js'
 
 export default deployScript(
   async ({ deploy, execute: write, namedAccounts }) => {
@@ -6,7 +7,7 @@ export default deployScript(
 
     const defaultReverseRegistrar = await deploy('DefaultReverseRegistrar', {
       account: deployer,
-      artifact: artifacts.DefaultReverseRegistrar,
+      artifact: Artifact_DefaultReverseRegistrar,
     })
 
     // Transfer ownership to owner
@@ -20,6 +21,8 @@ export default deployScript(
         account: deployer,
       })
     }
+
+    return true;
   },
   {
     id: 'DefaultReverseRegistrar v1.0.0',

@@ -1,4 +1,5 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_ChainReverseResolver } from 'generated/artifacts/ChainReverseResolver.js'
 import { mainnet, sepolia } from 'viem/chains'
 import { coinTypeFromChain } from './ensip19.js'
 
@@ -37,7 +38,7 @@ export function createChainReverseResolverDeployer({
 
       await deploy(`${chainName}ReverseResolver`, {
         account: deployer,
-        artifact: artifacts.ChainReverseResolver,
+        artifact: Artifact_ChainReverseResolver,
         args: [
           owner as `0x${string}`,
           coinTypeFromChain(chain),

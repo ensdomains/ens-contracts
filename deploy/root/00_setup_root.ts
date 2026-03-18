@@ -1,21 +1,24 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
 import { getAddress, zeroHash, type Address } from 'viem'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import type { Abi_Root } from 'generated/abis/Root.js'
+import type { Abi_RootSecurityController } from 'generated/abis/RootSecurityController.js'
 
 export default deployScript(
-  async ({ get, read, execute: write, namedAccounts, network }) => {
+  async ({ get, read, execute: write, namedAccounts, tags }) => {
     const { deployer, owner } = namedAccounts
 
-    if (!network.tags.use_root) {
+    if (!tags.use_root) {
       console.warn('  - WARN: Skipping root setup (use_root not enabled)')
       return
     }
 
     console.log('  - Running root setup')
 
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
-    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
+    const root = get<Abi_Root>('Root')
     const rootSecurityController = get<
-      (typeof artifacts.RootSecurityController)['abi']
+      Abi_RootSecurityController
     >('RootSecurityController')
 
     console.log(`  - Setting owner of root node to root contract`)

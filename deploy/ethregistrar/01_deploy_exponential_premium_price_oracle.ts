@@ -1,4 +1,6 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_DummyOracle } from 'generated/artifacts/DummyOracle.js'
+import { Artifact_ExponentialPremiumPriceOracle } from 'generated/artifacts/ExponentialPremiumPriceOracle.js'
 import type { Address } from 'viem'
 
 export default deployScript(
@@ -6,10 +8,10 @@ export default deployScript(
     const { deployer } = namedAccounts
 
     let oracleAddress: Address = '0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419'
-    if (network.name !== 'mainnet') {
+    if (network.chain.id !== 1) {
       const dummyOracle = await deploy('DummyOracle', {
         account: deployer,
-        artifact: artifacts.DummyOracle,
+        artifact: Artifact_DummyOracle,
         args: [160000000000n],
       })
       oracleAddress = dummyOracle.address
@@ -17,7 +19,7 @@ export default deployScript(
 
     await deploy('ExponentialPremiumPriceOracle', {
       account: deployer,
-      artifact: artifacts.ExponentialPremiumPriceOracle,
+      artifact: Artifact_ExponentialPremiumPriceOracle,
       args: [
         oracleAddress,
         [0n, 0n, 20294266869609n, 5073566717402n, 158548959919n],
@@ -25,6 +27,8 @@ export default deployScript(
         21n,
       ],
     })
+
+    return true;
   },
   {
     id: 'ExponentialPremiumPriceOracle v1.0.0',

@@ -1,17 +1,18 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_MigrationHelper } from 'generated/artifacts/MigrationHelper.js'
+import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
+import type { Abi_NameWrapper } from 'generated/abis/NameWrapper.js'
 
 export default deployScript(
   async ({ deploy, get, execute: write, namedAccounts }) => {
     const { deployer, owner } = namedAccounts
 
-    const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
-    >('BaseRegistrarImplementation')
-    const wrapper = get<(typeof artifacts.NameWrapper)['abi']>('NameWrapper')
+    const registrar = get<Abi_BaseRegistrarImplementation>('BaseRegistrarImplementation')
+    const wrapper = get<Abi_NameWrapper>('NameWrapper')
 
     const migrationHelper = await deploy('MigrationHelper', {
       account: deployer,
-      artifact: artifacts.MigrationHelper,
+      artifact: Artifact_MigrationHelper,
       args: [registrar.address, wrapper.address],
     })
 

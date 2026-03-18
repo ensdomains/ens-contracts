@@ -1,28 +1,33 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_DummyDigest } from 'generated/artifacts/DummyDigest.js'
+import { Artifact_SHA1Digest } from 'generated/artifacts/SHA1Digest.js'
+import { Artifact_SHA256Digest } from 'generated/artifacts/SHA256Digest.js'
 
 export default deployScript(
-  async ({ deploy, namedAccounts, network }) => {
+  async ({ deploy, namedAccounts, tags }) => {
     const { deployer } = namedAccounts
 
     await deploy('SHA1Digest', {
       account: deployer,
-      artifact: artifacts.SHA1Digest,
+      artifact: Artifact_SHA1Digest,
       args: [],
     })
 
     await deploy('SHA256Digest', {
       account: deployer,
-      artifact: artifacts.SHA256Digest,
+      artifact: Artifact_SHA256Digest,
       args: [],
     })
 
-    if (network.tags?.test) {
+    if (tags?.test) {
       await deploy('DummyDigest', {
         account: deployer,
-        artifact: artifacts.DummyDigest,
+        artifact: Artifact_DummyDigest,
         args: [],
       })
     }
+
+    return true;
   },
   {
     id: 'dnssec-digests v1.0.0',

@@ -1,0 +1,204 @@
+{
+  "address": "0xab1915060112895aba9771a07e23fdd18190b775",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "bytes",
+          "name": "suffix",
+          "type": "bytes"
+        }
+      ],
+      "name": "SuffixAdded",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes[]",
+          "name": "names",
+          "type": "bytes[]"
+        }
+      ],
+      "name": "addPublicSuffixes",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "isOwner",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "name",
+          "type": "bytes"
+        }
+      ],
+      "name": "isPublicSuffix",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "contractName": "SimplePublicSuffixList",
+  "sourceName": "contracts/dnsregistrar/SimplePublicSuffixList.sol",
+  "bytecode": "0x6080604052348015600f57600080fd5b50600080546001600160a01b0319163317905561066f806100316000396000f3fe608060405234801561001057600080fd5b50600436106100675760003560e01c80636329cdfc116100505780636329cdfc146100c35780638da5cb5b146100d8578063f2fde38b1461011d57600080fd5b80632f54bf6e1461006c5780634f89059e146100b0575b600080fd5b61009b61007a3660046102eb565b60005473ffffffffffffffffffffffffffffffffffffffff90811691161490565b60405190151581526020015b60405180910390f35b61009b6100be366004610328565b610130565b6100d66100d136600461041a565b61015f565b005b6000546100f89073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020016100a7565b6100d661012b3660046102eb565b61023a565b600060018383604051610144929190610569565b9081526040519081900360200190205460ff16905092915050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461018357600080fd5b60005b8151811015610236576001808383815181106101a4576101a4610579565b60200260200101516040516101b991906105cc565b908152602001604051809103902060006101000a81548160ff0219169083151502179055507f7cad7c0907646b87ae240d676052692501082856f06ba8e2589e239a77453b0982828151811061021157610211610579565b602002602001015160405161022691906105e8565b60405180910390a1600101610186565b5050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461025e57600080fd5b6000805460405173ffffffffffffffffffffffffffffffffffffffff808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b6000602082840312156102fd57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461032157600080fd5b9392505050565b6000806020838503121561033b57600080fd5b823567ffffffffffffffff81111561035257600080fd5b8301601f8101851361036357600080fd5b803567ffffffffffffffff81111561037a57600080fd5b85602082840101111561038c57600080fd5b6020919091019590945092505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016810167ffffffffffffffff811182821017156104125761041261039c565b604052919050565b60006020828403121561042c57600080fd5b813567ffffffffffffffff81111561044357600080fd5b8201601f8101841361045457600080fd5b803567ffffffffffffffff81111561046e5761046e61039c565b8060051b61047e602082016103cb565b9182526020818401810192908101908784111561049a57600080fd5b6020850192505b8383101561055e57823567ffffffffffffffff8111156104c057600080fd5b8501603f810189136104d157600080fd5b602081013567ffffffffffffffff8111156104ee576104ee61039c565b61051f60207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f840116016103cb565b8181526040838301018b101561053457600080fd5b816040840160208301376000602083830101528085525050506020820191506020830192506104a1565b979650505050505050565b8183823760009101908152919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b60005b838110156105c35781810151838201526020016105ab565b50506000910152565b600082516105de8184602087016105a8565b9190910192915050565b60208152600082518060208401526106078160408501602087016105a8565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016919091016040019291505056fea26469706673582212201233a692f88efd957ba043f215ffc4f1cff57a59c119d4c2f1a646d8fafbaa6664736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100675760003560e01c80636329cdfc116100505780636329cdfc146100c35780638da5cb5b146100d8578063f2fde38b1461011d57600080fd5b80632f54bf6e1461006c5780634f89059e146100b0575b600080fd5b61009b61007a3660046102eb565b60005473ffffffffffffffffffffffffffffffffffffffff90811691161490565b60405190151581526020015b60405180910390f35b61009b6100be366004610328565b610130565b6100d66100d136600461041a565b61015f565b005b6000546100f89073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020016100a7565b6100d661012b3660046102eb565b61023a565b600060018383604051610144929190610569565b9081526040519081900360200190205460ff16905092915050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461018357600080fd5b60005b8151811015610236576001808383815181106101a4576101a4610579565b60200260200101516040516101b991906105cc565b908152602001604051809103902060006101000a81548160ff0219169083151502179055507f7cad7c0907646b87ae240d676052692501082856f06ba8e2589e239a77453b0982828151811061021157610211610579565b602002602001015160405161022691906105e8565b60405180910390a1600101610186565b5050565b60005473ffffffffffffffffffffffffffffffffffffffff16331461025e57600080fd5b6000805460405173ffffffffffffffffffffffffffffffffffffffff808516939216917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e091a3600080547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff92909216919091179055565b6000602082840312156102fd57600080fd5b813573ffffffffffffffffffffffffffffffffffffffff8116811461032157600080fd5b9392505050565b6000806020838503121561033b57600080fd5b823567ffffffffffffffff81111561035257600080fd5b8301601f8101851361036357600080fd5b803567ffffffffffffffff81111561037a57600080fd5b85602082840101111561038c57600080fd5b6020919091019590945092505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b604051601f82017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016810167ffffffffffffffff811182821017156104125761041261039c565b604052919050565b60006020828403121561042c57600080fd5b813567ffffffffffffffff81111561044357600080fd5b8201601f8101841361045457600080fd5b803567ffffffffffffffff81111561046e5761046e61039c565b8060051b61047e602082016103cb565b9182526020818401810192908101908784111561049a57600080fd5b6020850192505b8383101561055e57823567ffffffffffffffff8111156104c057600080fd5b8501603f810189136104d157600080fd5b602081013567ffffffffffffffff8111156104ee576104ee61039c565b61051f60207fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f840116016103cb565b8181526040838301018b101561053457600080fd5b816040840160208301376000602083830101528085525050506020820191506020830192506104a1565b979650505050505050565b8183823760009101908152919050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052603260045260246000fd5b60005b838110156105c35781810151838201526020016105ab565b50506000910152565b600082516105de8184602087016105a8565b9190910192915050565b60208152600082518060208401526106078160408501602087016105a8565b601f017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe016919091016040019291505056fea26469706673582212201233a692f88efd957ba043f215ffc4f1cff57a59c119d4c2f1a646d8fafbaa6664736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/dnsregistrar/SimplePublicSuffixList.sol",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "329400",
+        "executionCost": "24603",
+        "totalCost": "354003"
+      },
+      "external": {
+        "addPublicSuffixes(bytes[])": "infinite",
+        "isOwner(address)": "2423",
+        "isPublicSuffix(bytes)": "infinite",
+        "owner()": "2335",
+        "transferOwnership(address)": "30311"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"suffix\",\"type\":\"bytes\"}],\"name\":\"SuffixAdded\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes[]\",\"name\":\"names\",\"type\":\"bytes[]\"}],\"name\":\"addPublicSuffixes\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"isOwner\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"name\",\"type\":\"bytes\"}],\"name\":\"isPublicSuffix\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/dnsregistrar/SimplePublicSuffixList.sol\":\"SimplePublicSuffixList\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"project/contracts/dnsregistrar/PublicSuffixList.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\ninterface PublicSuffixList {\\n    function isPublicSuffix(bytes calldata name) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x12158ba8838ee2b1ebb0178a52d2f4d54dcc68282d569226e62afc2b0dccbbac\"},\"project/contracts/dnsregistrar/SimplePublicSuffixList.sol\":{\"content\":\"pragma solidity ^0.8.4;\\npragma experimental ABIEncoderV2;\\n\\nimport \\\"../root/Ownable.sol\\\";\\nimport \\\"./PublicSuffixList.sol\\\";\\n\\ncontract SimplePublicSuffixList is PublicSuffixList, Ownable {\\n    mapping(bytes => bool) suffixes;\\n\\n    event SuffixAdded(bytes suffix);\\n\\n    function addPublicSuffixes(bytes[] memory names) public onlyOwner {\\n        for (uint256 i = 0; i < names.length; i++) {\\n            suffixes[names[i]] = true;\\n            emit SuffixAdded(names[i]);\\n        }\\n    }\\n\\n    function isPublicSuffix(\\n        bytes calldata name\\n    ) external view override returns (bool) {\\n        return suffixes[name];\\n    }\\n}\\n\",\"keccak256\":\"0x0cafa3192dc3731329cf74678829cc1bf578c3db2492a829417c0301fd09f3a2\"},\"project/contracts/root/Ownable.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\ncontract Ownable {\\n    address public owner;\\n\\n    event OwnershipTransferred(\\n        address indexed previousOwner,\\n        address indexed newOwner\\n    );\\n\\n    modifier onlyOwner() {\\n        require(isOwner(msg.sender));\\n        _;\\n    }\\n\\n    constructor() public {\\n        owner = msg.sender;\\n    }\\n\\n    function transferOwnership(address newOwner) public onlyOwner {\\n        emit OwnershipTransferred(owner, newOwner);\\n        owner = newOwner;\\n    }\\n\\n    function isOwner(address addr) public view returns (bool) {\\n        return owner == addr;\\n    }\\n}\\n\",\"keccak256\":\"0xd06845ede20815e1a6d5b36fec21d7b90ea24390f24a9b31e4220c90b2ff3252\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 28012,
+        "contract": "project/contracts/dnsregistrar/SimplePublicSuffixList.sol:SimplePublicSuffixList",
+        "label": "owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 14445,
+        "contract": "project/contracts/dnsregistrar/SimplePublicSuffixList.sol:SimplePublicSuffixList",
+        "label": "suffixes",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_bytes_memory_ptr,t_bool)"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_bytes_memory_ptr": {
+        "encoding": "bytes",
+        "label": "bytes",
+        "numberOfBytes": "32"
+      },
+      "t_mapping(t_bytes_memory_ptr,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_bytes_memory_ptr",
+        "label": "mapping(bytes => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      }
+    }
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x",
+  "transaction": {
+    "hash": "0xd8d21ebd61a44cce1cc277207fb7f140ea7fe53027ab4beb02b6145bc2d30bb8",
+    "nonce": "0x172b",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0xa51068897d23f642fb3545f8fe943f382372b5a188b19924076ea5253b6e7b66",
+    "blockNumber": "0x9fa420",
+    "transactionIndex": "0x6d"
+  }
+}

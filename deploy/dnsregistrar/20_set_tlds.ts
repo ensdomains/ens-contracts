@@ -1,12 +1,15 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_DNSRegistrar } from "generated/abis/DNSRegistrar.js"
+import type { Abi_ENSRegistry } from "generated/abis/ENSRegistry.js"
+import type { Abi_SimplePublicSuffixList } from "generated/abis/SimplePublicSuffixList.js"
 import {
   encodeFunctionData,
   namehash,
-  parseAbi,
   type Address,
-  type Hex,
+  type Hex
 } from 'viem'
 import { dnsEncodeName } from '../../test/fixtures/dnsEncodeName.js'
+import type { Abi_Multicall3 } from '../utils/shared/00_deploy_multicall.js'
 import { fetchPublicSuffixes } from './05_deploy_public_suffix_list.js'
 
 // using the Multicall3 contract, which is deployed on pretty much every live chain in existence at 0xcA11bde05977b3631167028862bE2a173976CA11
@@ -15,35 +18,25 @@ import { fetchPublicSuffixes } from './05_deploy_public_suffix_list.js'
 // for live network deployments, this is useful to save total gas used
 // for devnet network deployments, this is useful to save a lot of time (many minutes)
 
-const multicallAddress = '0xcA11bde05977b3631167028862bE2a173976CA11'
-
-const multicallAbi = parseAbi([
-  'struct Call { address target; bytes callData; }',
-  'struct Result { bool success; bytes returnData; }',
-  'function aggregate(Call[] calldata calls) public payable returns (uint256 blockNumber, bytes[] memory returnData)',
-])
-
 export default deployScript(
   async ({
     get,
     read,
-    tx,
+    execute: write,
     namedAccounts: { deployer },
-    network,
-    config,
-    savePendingExecution,
+    tags,
+    context,
+    viem,
   }) => {
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
-    const publicSuffixList = get<
-      (typeof artifacts.SimplePublicSuffixList)['abi']
-    >('SimplePublicSuffixList')
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
+    const publicSuffixList = get<Abi_SimplePublicSuffixList>('SimplePublicSuffixList')
     const dnsRegistrar =
-      get<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')
+      get<Abi_DNSRegistrar>('DNSRegistrar')
 
     const fetchedSuffixes = await fetchPublicSuffixes()
     const allowUnsafe =
-      network.tags?.allow_unsafe ||
-      (network.tags?.test && !config.saveDeployments)
+      tags?.allow_unsafe ||
+      (tags?.test && !context.saveDeployments)
 
     let suffixes = await Promise.all(
       fetchedSuffixes.map(async (suffix) => {
@@ -102,22 +95,46 @@ export default deployScript(
 
     const batchAmount = allowUnsafe ? 1000 : 25
 
+    const pendingBatches: Promise<unknown>[] = []
+    let nonce = await viem.publicClient.getTransactionCount({
+      address: deployer,
+    })
+
+    const multicall = get<Abi_Multicall3>('Multicall3')
+
+    const processBatch = async (batch: readonly { target: Address; callData: Hex }[]) => {
+      // for fresh deploys only
+      if (tags?.test && tags?.fresh) {
+        pendingBatches.push(write(multicall, {
+          functionName: 'aggregate',
+          args: [batch],
+          account: deployer,
+          gas: allowUnsafe ? 28000000n : undefined,
+          nonce: nonce++,
+        }))
+        await new Promise((resolve) => setTimeout(resolve, 1000))
+        return
+      }
+
+      // Send transactions sequentially to avoid nonce conflicts
+      // For real/live deploys, we don't need to attempt to save time
+      await write(multicall, {
+        functionName: 'aggregate',
+        args: [batch],
+        account: deployer,
+        gas: allowUnsafe ? 28000000n : undefined,
+      })
+    }
+
     // Send all transactions in batches
     for (let i = 0; i < suffixes.length; i += batchAmount) {
       const batch = suffixes.slice(i, i + batchAmount)
 
       console.log(`  - Enabling ${batch.length} suffixes`)
-      await tx({
-        to: multicallAddress,
-        data: encodeFunctionData({
-          abi: multicallAbi,
-          functionName: 'aggregate',
-          args: [batch],
-        }),
-        gas: allowUnsafe ? 28000000n : undefined,
-        account: deployer,
-      })
+      await processBatch(batch)
     }
+
+    await Promise.all(pendingBatches)
 
     console.log(`  - Enabled ${suffixes.length} suffixes`)
   },

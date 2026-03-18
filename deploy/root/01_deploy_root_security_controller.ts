@@ -1,18 +1,20 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_Root } from 'generated/abis/Root.js'
+import { Artifact_RootSecurityController } from 'generated/artifacts/RootSecurityController.js'
 
 export default deployScript(
-  async ({ deploy, get, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, execute: write, namedAccounts, tags }) => {
     const { deployer, owner } = namedAccounts
 
-    if (!network.tags?.use_root) {
+    if (!tags?.use_root) {
       return
     }
 
-    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const root = get<Abi_Root>('Root')
 
     const securityController = await deploy('RootSecurityController', {
       account: deployer,
-      artifact: artifacts.RootSecurityController,
+      artifact: Artifact_RootSecurityController,
       args: [root.address],
     })
 

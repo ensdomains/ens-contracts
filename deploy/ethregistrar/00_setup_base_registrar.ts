@@ -1,4 +1,7 @@
-import { type artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
+import type { Abi_RegistrarSecurityController } from 'generated/abis/RegistrarSecurityController.js'
+import type { Abi_Root } from 'generated/abis/Root.js'
 import { labelhash } from 'viem'
 
 export default deployScript(
@@ -6,17 +9,13 @@ export default deployScript(
     get,
     execute: write,
     namedAccounts: { deployer, owner },
-    network,
+    tags,
   }) => {
-    if (!network.tags.use_root) return
+    if (!tags.use_root) return
 
-    const root = get<(typeof artifacts.Root)['abi']>('Root')
-    const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
-    >('BaseRegistrarImplementation')
-    const registrarSecurityController = get<
-      (typeof artifacts.RegistrarSecurityController)['abi']
-    >('RegistrarSecurityController')
+    const root = get<Abi_Root>('Root')
+    const registrar = get<Abi_BaseRegistrarImplementation>('BaseRegistrarImplementation')
+    const registrarSecurityController = get<Abi_RegistrarSecurityController>('RegistrarSecurityController')
 
     // 1. Transfer ownership of registrar to RegistrarSecurityController
     console.log(
@@ -35,6 +34,8 @@ export default deployScript(
       args: [labelhash('eth'), registrar.address],
       account: owner,
     })
+
+    return true;
   },
   {
     id: 'BaseRegistrarImplementation:setup v1.0.0',

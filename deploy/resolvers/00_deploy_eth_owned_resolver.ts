@@ -1,4 +1,6 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_RegistrarSecurityController } from 'generated/abis/RegistrarSecurityController.js'
+import { Artifact_OwnedResolver } from 'generated/artifacts/OwnedResolver.js'
 
 export default deployScript(
   async ({ deploy, get, execute: write, namedAccounts }) => {
@@ -7,7 +9,7 @@ export default deployScript(
     // Deploy OwnedResolver
     const ethOwnedResolver = await deploy('OwnedResolver', {
       account: deployer,
-      artifact: artifacts.OwnedResolver,
+      artifact: Artifact_OwnedResolver,
       args: [],
     })
 
@@ -22,16 +24,16 @@ export default deployScript(
       })
     }
 
-    const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
-    >('BaseRegistrarImplementation')
+    const registrarSecurityController = get<Abi_RegistrarSecurityController>('RegistrarSecurityController')
 
     console.log(`  - Setting resolver for .eth to ${ethOwnedResolver.address}`)
-    await write(registrar, {
-      functionName: 'setResolver',
+    await write(registrarSecurityController, {
+      functionName: 'setRegistrarResolver',
       args: [ethOwnedResolver.address],
       account: owner,
     })
+
+    return true;
   },
   {
     id: 'EthOwnedResolver v1.0.0',

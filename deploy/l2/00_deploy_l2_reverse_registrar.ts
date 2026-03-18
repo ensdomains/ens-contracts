@@ -1,8 +1,11 @@
 import { evmChainIdToCoinType } from '@ensdomains/address-encoder/utils'
-import { artifacts, deployScript, type Environment } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_L2ReverseRegistrar } from 'generated/artifacts/L2ReverseRegistrar.js'
+import { Artifact_L2ReverseRegistrarWithMigration } from 'generated/artifacts/L2ReverseRegistrarWithMigration.js'
 import fs from 'node:fs'
 import path from 'node:path'
-import type { Abi, Deployment } from 'rocketh'
+import type { Deployment } from 'rocketh/types'
+import type { Abi } from 'viem'
 import {
   concatHex,
   encodeDeployData,
@@ -16,6 +19,7 @@ import {
   TransactionReceipt,
 } from 'viem'
 import { base, baseSepolia } from 'viem/chains'
+import type { Environment } from '../../rocketh/environment.js'
 
 type Writeable<T> = {
   -readonly [P in keyof T]: T[P]
@@ -49,7 +53,7 @@ const oldReverseResolvers = {
 // It can be used as an alternative to the standard deploy() function for L2 chains
 // that require Safe multisig approval for deployments
 const safeDeploy = async (
-  env: Pick<Environment, 'network' | 'viem' | 'save'>,
+  env: Pick<Environment, 'network' | 'viem' | 'save' | 'tags' | 'name'>,
   {
     reverseNode,
     coinType,
@@ -58,7 +62,7 @@ const safeDeploy = async (
     coinType: bigint
   },
 ) => {
-  const networkType = env.network.tags.testnet ? 'testnet' : 'mainnet'
+  const networkType = env.tags.testnet ? 'testnet' : 'mainnet'
   const { safeAddress, baseDeploymentSalt, expectedDeploymentAddress } =
     safeConfig[networkType]
 
@@ -138,7 +142,7 @@ const safeDeploy = async (
   if (networkType === 'mainnet') {
     const pendingSafeTransactionsFile = path.join(
       'deployments',
-      env.network.name,
+      env.name,
       '.pendingSafeTransactions',
     )
     const pendingSafeTransactions = JSON.parse(
@@ -197,8 +201,8 @@ const safeDeploy = async (
     },
   })
 
-  // Get artifact from Rocketh artifacts
-  const artifact = artifacts[deployConfig.artifactName]
+  // Get artifact from directly imported artifacts
+  const artifact = deployConfig.artifactName === 'L2ReverseRegistrarWithMigration' ? Artifact_L2ReverseRegistrarWithMigration : Artifact_L2ReverseRegistrar
   const { abi, bytecode, ...artifactData } = artifact
 
   const deployData = encodeDeployData({
@@ -272,7 +276,7 @@ const safeDeploy = async (
 
     const pendingSafeTransactionsFile = path.join(
       'deployments',
-      env.network.name,
+      env.name,
       '.pendingSafeTransactions',
     )
     const pendingSafeTransactions = JSON.parse(
@@ -296,7 +300,7 @@ const safeDeploy = async (
 }
 
 export default deployScript(
-  async ({ deploy, namedAccounts, network, save, viem, config }) => {
+  async ({ deploy, namedAccounts, network, save, viem, context, tags, name }) => {
     const { deployer } = namedAccounts
     const chainId = network.chain.id
     const coinType = evmChainIdToCoinType(chainId) as bigint
@@ -305,21 +309,21 @@ export default deployScript(
     const REVERSE_NAMESPACE = `${coinTypeHex}.reverse`
     const REVERSENODE = namehash(REVERSE_NAMESPACE)
 
-    if (process.env.SAFE_PROPOSER_KEY && config.saveDeployments) {
+    if (process.env.SAFE_PROPOSER_KEY && context.saveDeployments) {
       return await safeDeploy(
-        { network, save, viem },
+        { network, save, viem, tags, name },
         {
           reverseNode: REVERSENODE,
           coinType,
         },
       )
     } else {
-      console.log(`Deploying L2ReverseRegistrar on ${network.name} with:`)
+      console.log(`Deploying L2ReverseRegistrar on ${name} with:`)
       console.log(`coinType: ${coinType}`)
 
       await deploy('L2ReverseRegistrar', {
         account: deployer,
-        artifact: artifacts.L2ReverseRegistrar,
+        artifact: Artifact_L2ReverseRegistrar,
         args: [coinType],
       })
     }
