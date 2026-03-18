@@ -13,7 +13,8 @@
     "types": ["vitest/globals"],
     "paths": {
       "@rocketh": ["./rocketh/deploy.ts"],
-      "generated/*": ["./generated/*"]
+      "generated/*": ["./generated/*"],
+      "tsx": ["./scripts/tsx.ts"]
     }
   },
   "include": [

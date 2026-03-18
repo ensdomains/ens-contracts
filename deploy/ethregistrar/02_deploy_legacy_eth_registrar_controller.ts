@@ -2,6 +2,7 @@ import { deployScript } from '@rocketh'
 import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
 import type { Abi_ExponentialPremiumPriceOracle } from 'generated/abis/ExponentialPremiumPriceOracle.js'
 import type { Abi_RegistrarSecurityController } from 'generated/abis/RegistrarSecurityController.js'
+import type { Artifact } from 'rocketh/types'
 import type { Abi } from 'viem'
 import legacyArtifactRaw from '../../deployments/archive/ETHRegistrarController_mainnet_9380471.sol/ETHRegistrarController_mainnet_9380471.json'
 
@@ -9,7 +10,7 @@ const legacyArtifact = {
   ...legacyArtifactRaw,
   metadata: '{}',
   abi: legacyArtifactRaw.abi as Abi,
-}
+} as Artifact<Abi>
 
 export default deployScript(
   async ({

@@ -1,5 +1,6 @@
 import { evmChainIdToCoinType } from '@ensdomains/address-encoder/utils'
 import { deployScript } from '@rocketh'
+import type { Eip1193Provider } from '@safe-global/protocol-kit'
 import { Artifact_L2ReverseRegistrar } from 'generated/artifacts/L2ReverseRegistrar.js'
 import { Artifact_L2ReverseRegistrarWithMigration } from 'generated/artifacts/L2ReverseRegistrarWithMigration.js'
 import fs from 'node:fs'
@@ -16,6 +17,7 @@ import {
   namehash,
   parseAbi,
   stringToHex,
+  toHex,
   TransactionReceipt,
 } from 'viem'
 import { base, baseSepolia } from 'viem/chains'
@@ -114,17 +116,16 @@ const safeDeploy = async (
     const completeDeployment = {
       ...deployment,
       receipt: {
-        confirmations: 1,
         blockHash: receipt.blockHash,
-        blockNumber: receipt.blockNumber,
-        transactionIndex: receipt.transactionIndex,
+        blockNumber: toHex(receipt.blockNumber),
+        transactionIndex: toHex(receipt.transactionIndex),
       },
       transaction: {
         hash: receipt.transactionHash,
         origin: receipt.from,
-        nonce: 0,
+        nonce: '0x00' as const,
       },
-    }
+    } satisfies Deployment<Abi>
 
     await env.save('L2ReverseRegistrar', completeDeployment)
   }
@@ -186,7 +187,7 @@ const safeDeploy = async (
   }
 
   const protocolKit = await Safe.init({
-    provider: env.network.provider,
+    provider: env.network.provider as Eip1193Provider,
     signer: privateKey,
     safeAddress,
     contractNetworks: {
@@ -244,7 +245,11 @@ const safeDeploy = async (
   const deployment = {
     address: expectedDeploymentAddress,
     abi,
-    argsData: deployConfig.deploymentArgs,
+    argsData: encodeDeployData({
+      abi,
+      args: deployConfig.deploymentArgs,
+      bytecode: '0x',
+    }),
     bytecode,
     ...artifactData,
   }

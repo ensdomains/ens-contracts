@@ -48,7 +48,7 @@ export default deployScript(
     } else {
       console.log(`  - Multicall3 already exists, skipping deployment`)
       save('Multicall3', {
-        argsData: [],
+        argsData: '0x',
         address: multicallAddress,
         abi: Abi_Multicall3,
         bytecode: '0x',
@@ -75,7 +75,7 @@ export default deployScript(
       raw: multicallDeployTransaction,
     })
     await save('Multicall3', {
-      argsData: [],
+      argsData: '0x',
       address: multicallAddress,
       abi: Abi_Multicall3,
       bytecode: '0x',

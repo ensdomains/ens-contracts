@@ -1,6 +1,7 @@
 import { createAnvil } from '@viem/anvil'
-import { executeDeployScripts, resolveConfig } from 'rocketh'
+import type { UnresolvedNetworkSpecificData, UnresolvedUnknownNamedAccounts, UserConfig } from 'rocketh/types'
 import { createWalletClient, http } from 'viem'
+import { loadAndExecuteDeploymentsFromFilesWithConfig } from '../rocketh/environment.js'
 
 const t0 = Date.now()
 
@@ -9,11 +10,9 @@ await anvil.start()
 
 const hostPort = `http://${anvil.host}:${anvil.port}`
 
-const pollingInterval = 1
-
 const client = createWalletClient({
   transport: http(hostPort),
-  pollingInterval,
+  pollingInterval: 0,
 })
 
 const [deployer, owner] = await client.requestAddresses()
@@ -21,21 +20,26 @@ const accounts = { deployer, owner }
 
 process.env.BATCH_GATEWAY_URLS = '["x-batch-gateway:true"]'
 
-const env = await executeDeployScripts(
-  resolveConfig({
-    network: {
-      name: 'local',
+const env = await loadAndExecuteDeploymentsFromFilesWithConfig({
+  askBeforeProceeding: false,
+  saveDeployments: false,
+  defaultPollingInterval: 0.000001,
+  environment: 'localhost',
+}, {
+  accounts: accounts as never,
+  chains: {
+    [31337]: {
+      rpcUrl: hostPort,
+      pollingInterval: 0.00000001,
       tags: ['test', 'legacy', 'use_root', 'allow_unsafe'],
-      nodeUrl: hostPort,
-      fork: false,
-      pollingInterval: Math.max(1, pollingInterval) / 1000, // can't be 0
+    }
+  },
+  environments: {
+    localhost: {
+      chain: 31337,
     },
-    accounts,
-    askBeforeProceeding: false,
-    saveDeployments: false,
-    logLevel: 1,
-  }),
-)
+  },
+} satisfies UserConfig<UnresolvedUnknownNamedAccounts, UnresolvedNetworkSpecificData>)
 
 console.table(
   Object.entries(env.deployments).map(([name, { address }]) => ({
