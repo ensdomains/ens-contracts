@@ -31,7 +31,7 @@ contract BasicExtendedDNSResolver is ERC165, IExtendedDNSResolver {
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {
-        return interfaceId == type(IExtendedDNSResolver).interfaceId;
+        return interfaceId == type(IExtendedDNSResolver).interfaceId || super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IExtendedDNSResolver

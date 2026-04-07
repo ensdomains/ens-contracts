@@ -6,27 +6,29 @@ import {
   parseAbi,
   stringToHex,
 } from 'viem'
+import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 
-const testAddress = '0x8000000000000000000000000000000000000001' as const
+const testAddress = '0x8000000000000000000000000000000000000001'
 const testName = dnsEncodeName('ignored1')
 const testNode = namehash('ignored2')
 
 const connection = await hre.network.connect()
 
-async function fixture() {
-  const resolver = await connection.viem.deployContract(
-    'BasicExtendedDNSResolver',
-    [],
-  )
-  return resolver
+function fixture() {
+  return connection.viem.deployContract('BasicExtendedDNSResolver', [])
 }
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('BasicExtendedDNSResolver', () => {
-  it(`addr()`, async () => {
+  shouldSupportInterfaces({
+    contract: () => loadFixture(),
+    interfaces: ['IExtendedDNSResolver'],
+  })
+
+  it('addr()', async () => {
     const F = await loadFixture()
     const answer = await F.read.resolve([
       testName,
@@ -41,7 +43,7 @@ describe('BasicExtendedDNSResolver', () => {
     )
   })
 
-  it(`addr(60)`, async () => {
+  it('addr(60)', async () => {
     const F = await loadFixture()
     const answer = await F.read.resolve([
       testName,
@@ -56,7 +58,7 @@ describe('BasicExtendedDNSResolver', () => {
     )
   })
 
-  it(`addr(<not 60>)`, async () => {
+  it('addr(<not 60>)', async () => {
     const F = await loadFixture()
     const answer = await F.read.resolve([
       testName,
@@ -78,7 +80,7 @@ describe('BasicExtendedDNSResolver', () => {
     await expect(
       F.read.resolve([
         dnsEncodeName(name),
-        selector,
+        selector, // unknown profile
         stringToHex(`${testAddress}`),
       ]),
     )
@@ -95,7 +97,7 @@ describe('BasicExtendedDNSResolver', () => {
           abi: parseAbi(['function addr(bytes32) returns (address)']),
           args: [testNode],
         }),
-        stringToHex('0x1234'),
+        stringToHex('0x1234'), // not 42 bytes
       ]),
     ).toBeRevertedWithCustomError('InvalidAddressFormat')
   })
