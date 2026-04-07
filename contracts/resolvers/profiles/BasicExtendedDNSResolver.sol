@@ -11,19 +11,20 @@ import {HexUtils} from "../../utils/HexUtils.sol";
 import {COIN_TYPE_ETH} from "../../utils/ENSIP19.sol";
 
 /// @notice An IExtendedDNSResolver that parses a single address from DNS TXT records and implements IAddrResolver.
-/// 
+///
 /// DNS TXT record format: `ENS1 dnsname.ens.eth <address>`
 /// (where "dnsname.ens.eth" resolves to this contract.)
 ///
 /// Supported record formats:
-/// * `addr(bytes32)`
-/// * `addr(bytes32, coinType)` where `coinType = 60`
+/// * `addr(bytes32 node)`
+/// * `addr(bytes32 node, uint256 coinType)`
+/// 
+/// `name` and `node` are ignored.
 ///
 contract BasicExtendedDNSResolver is ERC165, IExtendedDNSResolver {
-
     /// @dev Error selector: `0x7b1c461b`
     error UnsupportedResolverProfile(bytes4 selector);
-    
+
     /// @dev Error selector: `0xc9e47ee5`
     error InvalidAddressFormat();
 
@@ -31,7 +32,9 @@ contract BasicExtendedDNSResolver is ERC165, IExtendedDNSResolver {
     function supportsInterface(
         bytes4 interfaceId
     ) public view virtual override returns (bool) {
-        return interfaceId == type(IExtendedDNSResolver).interfaceId || super.supportsInterface(interfaceId);
+        return
+            interfaceId == type(IExtendedDNSResolver).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IExtendedDNSResolver
