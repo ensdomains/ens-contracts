@@ -15,10 +15,10 @@ import {COIN_TYPE_ETH} from "../../utils/ENSIP19.sol";
 /// DNS TXT record format: `ENS1 dnsname.ens.eth <address>`
 /// (where "dnsname.ens.eth" resolves to this contract.)
 ///
-/// Supported record formats:
-/// * `addr(bytes32 node)`
-/// * `addr(bytes32 node, uint256 coinType)`
-/// 
+/// Supported resolver profiles:
+/// * `IAddrResolver`
+/// * `IAddressResolver` but returns null for every coin type except 60.
+///
 /// `name` and `node` are ignored.
 ///
 contract BasicExtendedDNSResolver is ERC165, IExtendedDNSResolver {
