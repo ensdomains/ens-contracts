@@ -9,23 +9,27 @@
     "outDir": "build",
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "types": ["vitest/globals"],
+    "paths": {
+      "@rocketh": ["./rocketh.ts"]
+    }
   },
   "include": [
     "./utils/**/*.ts",
     "./scripts/**/*.ts",
     "./test/**/*.ts",
     "./tasks/**/*.ts",
+    "./tasks/**/*.cts",
     "./deploy/**/*.ts",
     "./typings-custom/**/*.ts",
     "./artifacts/**/*.d.ts",
-    "tasks/hardhat-deploy-viem.cts",
-    "tasks/deploy-test.cts"
+    "./artifacts/node_modules/**/*.d.ts"
   ],
   "ts-node": {
     "experimentalResolver": true,
     "experimentalSpecifierResolution": "node",
     "files": true
   },
-  "files": ["hardhat.config.cts"]
+  "files": ["hardhat.config.ts"]
 }

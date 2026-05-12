@@ -14,9 +14,7 @@ import "./profiles/IPubkeyResolver.sol";
 import "./profiles/ITextResolver.sol";
 import "./profiles/IExtendedResolver.sol";
 
-/**
- * A generic resolver interface which includes all the functions including the ones deprecated
- */
+/// A generic resolver interface which includes all the functions including the ones deprecated
 interface Resolver is
     IERC165,
     IABIResolver,

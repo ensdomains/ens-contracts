@@ -1,31 +1,41 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { namehash } from 'viem'
+import { artifacts, deployScript } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default deployScript(
+  async ({ deploy, get, execute: write, namedAccounts }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { owner } = await viem.getNamedClients()
+    // Deploy OwnedResolver
+    const ethOwnedResolver = await deploy('OwnedResolver', {
+      account: deployer,
+      artifact: artifacts.OwnedResolver,
+      args: [],
+    })
 
-  const ethOwnedResolver = await viem.deploy('OwnedResolver', [])
+    if (!ethOwnedResolver.newlyDeployed) return
 
-  if (!ethOwnedResolver.newlyDeployed) return
+    if (owner !== deployer) {
+      console.log(`  - Transferring ownership of OwnedResolver to ${owner}`)
+      await write(ethOwnedResolver, {
+        functionName: 'transferOwnership',
+        args: [owner],
+        account: deployer,
+      })
+    }
 
-  const registry = await viem.getContract('ENSRegistry')
-  const registrar = await viem.getContract('BaseRegistrarImplementation')
+    const registrar = get<
+      (typeof artifacts.BaseRegistrarImplementation)['abi']
+    >('BaseRegistrarImplementation')
 
-  const setResolverHash = await registrar.write.setResolver(
-    [ethOwnedResolver.address],
-    { account: owner.account },
-  )
-  await viem.waitForTransactionSuccess(setResolverHash)
-
-  const resolver = await registry.read.resolver([namehash('eth')])
-  console.log(`set resolver for .eth to ${resolver}`)
-  if (!ethOwnedResolver.newlyDeployed) return
-}
-
-func.id = 'eth-owned-resolver'
-func.tags = ['resolvers', 'OwnedResolver', 'EthOwnedResolver']
-func.dependencies = ['Registry']
-
-export default func
+    console.log(`  - Setting resolver for .eth to ${ethOwnedResolver.address}`)
+    await write(registrar, {
+      functionName: 'setResolver',
+      args: [ethOwnedResolver.address],
+      account: owner,
+    })
+  },
+  {
+    id: 'EthOwnedResolver v1.0.0',
+    tags: ['category:resolvers', 'OwnedResolver', 'EthOwnedResolver'],
+    dependencies: ['ENSRegistry', 'BaseRegistrarImplementation'],
+  },
+)

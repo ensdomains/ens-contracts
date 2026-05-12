@@ -1,19 +1,25 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, deployScript } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default deployScript(
+  async ({ deploy, get, namedAccounts }) => {
+    const { deployer } = namedAccounts
 
-  const registry = await viem.getContract('ENSRegistry')
-  const dnssec = await viem.getContract('DNSSECImpl')
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const dnssec = get<(typeof artifacts.DNSSECImpl)['abi']>('DNSSECImpl')
 
-  await viem.deploy('OffchainDNSResolver', [
-    registry.address,
-    dnssec.address,
-    'https://dnssec-oracle.ens.domains/',
-  ])
-}
-
-func.tags = ['OffchainDNSResolver']
-func.dependencies = ['registry', 'dnssec-oracle']
-
-export default func
+    await deploy('OffchainDNSResolver', {
+      account: deployer,
+      artifact: artifacts.OffchainDNSResolver,
+      args: [
+        registry.address,
+        dnssec.address,
+        'https://dnssec-oracle.ens.domains/',
+      ],
+    })
+  },
+  {
+    id: 'OffchainDNSResolver v1.0.0',
+    tags: ['category:dnsregistrar', 'OffchainDNSResolver'],
+    dependencies: ['ENSRegistry', 'DNSSECImpl'],
+  },
+)

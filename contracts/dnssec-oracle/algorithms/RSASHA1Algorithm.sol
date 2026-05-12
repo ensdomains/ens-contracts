@@ -1,13 +1,11 @@
 pragma solidity ^0.8.4;
 
 import "./Algorithm.sol";
-import "./RSAVerify.sol";
+import "./RSAPKCS1Verify.sol";
 import "../../utils/BytesUtils.sol";
 import "@ensdomains/solsha1/contracts/SHA1.sol";
 
-/**
- * @dev Implements the DNSSEC RSASHA1 algorithm.
- */
+/// @dev Implements the DNSSEC RSASHA1 algorithm.
 contract RSASHA1Algorithm is Algorithm {
     using BytesUtils for *;
 
@@ -35,12 +33,6 @@ contract RSASHA1Algorithm is Algorithm {
             );
         }
 
-        // Recover the message from the signature
-        bool ok;
-        bytes memory result;
-        (ok, result) = RSAVerify.rsarecover(modulus, exponent, sig);
-
-        // Verify it ends with the hash of our data
-        return ok && SHA1.sha1(data) == result.readBytes20(result.length - 20);
+        return RSAPKCS1Verify.verifySHA1(modulus, exponent, sig, SHA1.sha1(data));
     }
 }

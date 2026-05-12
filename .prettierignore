@@ -10,3 +10,4 @@ forge-cache
 out
 *.sh
 deployments
+generated

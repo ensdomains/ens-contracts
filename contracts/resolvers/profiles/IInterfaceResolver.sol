@@ -8,16 +8,14 @@ interface IInterfaceResolver {
         address implementer
     );
 
-    /**
-     * Returns the address of a contract that implements the specified interface for this name.
-     * If an implementer has not been set for this interfaceID and name, the resolver will query
-     * the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that
-     * contract implements EIP165 and returns `true` for the specified interfaceID, its address
-     * will be returned.
-     * @param node The ENS node to query.
-     * @param interfaceID The EIP 165 interface ID to check for.
-     * @return The address that implements this interface, or 0 if the interface is unsupported.
-     */
+    /// Returns the address of a contract that implements the specified interface for this name.
+    /// If an implementer has not been set for this interfaceID and name, the resolver will query
+    /// the contract at `addr()`. If `addr()` is set, a contract exists at that address, and that
+    /// contract implements EIP165 and returns `true` for the specified interfaceID, its address
+    /// will be returned.
+    /// @param node The ENS node to query.
+    /// @param interfaceID The EIP 165 interface ID to check for.
+    /// @return The address that implements this interface, or 0 if the interface is unsupported.
     function interfaceImplementer(
         bytes32 node,
         bytes4 interfaceID

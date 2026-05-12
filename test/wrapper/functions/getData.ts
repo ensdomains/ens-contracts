@@ -1,5 +1,5 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
+import type { NetworkConnection } from 'hardhat/types/network'
+
 import { DAY } from '../../fixtures/constants.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -9,10 +9,13 @@ import {
   IS_DOT_ETH,
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
-  deployNameWrapperWithUtils as fixture,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const getDataTests = () => {
+export const getDataTests = (
+  connection: NetworkConnection,
+  loadFixture: LoadNameWrapperFixture,
+) => {
   describe('getData()', () => {
     const label = 'getfuses'
     const name = `${label}.eth`
@@ -20,8 +23,7 @@ export const getDataTests = () => {
     const subname = `${sublabel}.${name}`
 
     it('returns the correct fuses and expiry', async () => {
-      const { baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+      const { baseRegistrar, nameWrapper, actions } = await loadFixture()
 
       const initialFuses = CANNOT_UNWRAP | CANNOT_SET_RESOLVER
 
@@ -42,7 +44,7 @@ export const getDataTests = () => {
 
     it('clears fuses when domain is expired', async () => {
       const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       const initialFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
 

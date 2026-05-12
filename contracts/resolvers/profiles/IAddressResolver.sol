@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-/**
- * Interface for the new (multicoin) addr function.
- */
+/// Interface for the new (multicoin) addr function.
 interface IAddressResolver {
     event AddressChanged(
         bytes32 indexed node,

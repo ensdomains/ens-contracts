@@ -1,14 +1,12 @@
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
 
-export async function deployNameWrapperFixture() {
-  const accounts = await hre.viem
-    .getWalletClients()
-    .then((clients) => clients.map((c) => c.account))
-  const publicClient = await hre.viem.getPublicClient()
-  const testClient = await hre.viem.getTestClient()
-  const ensRegistry = await hre.viem.deployContract('ENSRegistry', [])
-  const baseRegistrar = await hre.viem.deployContract(
+import { getAccounts } from '../../fixtures/utils.js'
+
+export async function deployNameWrapperFixture(connection: NetworkConnection) {
+  const accounts = await getAccounts(connection)
+  const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
+  const baseRegistrar = await connection.viem.deployContract(
     'BaseRegistrarImplementation',
     [ensRegistry.address, namehash('eth')],
   )
@@ -16,15 +14,16 @@ export async function deployNameWrapperFixture() {
   await baseRegistrar.write.addController([accounts[0].address])
   await baseRegistrar.write.addController([accounts[1].address])
 
-  const metadataService = await hre.viem.deployContract(
+  const metadataService = await connection.viem.deployContract(
     'StaticMetadataService',
     ['https://ens.domains'],
   )
 
   // setup reverse registrar
-  const reverseRegistrar = await hre.viem.deployContract('ReverseRegistrar', [
-    ensRegistry.address,
-  ])
+  const reverseRegistrar = await connection.viem.deployContract(
+    'ReverseRegistrar',
+    [ensRegistry.address],
+  )
 
   await ensRegistry.write.setSubnodeOwner([
     zeroHash,
@@ -37,22 +36,20 @@ export async function deployNameWrapperFixture() {
     reverseRegistrar.address,
   ])
 
-  const publicResolver = await hre.viem.deployContract('PublicResolver', [
-    ensRegistry.address,
-    zeroAddress,
-    zeroAddress,
-    reverseRegistrar.address,
-  ])
+  const publicResolver = await connection.viem.deployContract(
+    'PublicResolver',
+    [ensRegistry.address, zeroAddress, zeroAddress, reverseRegistrar.address],
+  )
 
   await reverseRegistrar.write.setDefaultResolver([publicResolver.address])
 
-  const nameWrapper = await hre.viem.deployContract('NameWrapper', [
+  const nameWrapper = await connection.viem.deployContract('NameWrapper', [
     ensRegistry.address,
     baseRegistrar.address,
     metadataService.address,
   ])
 
-  const nameWrapperUpgraded = await hre.viem.deployContract(
+  const nameWrapperUpgraded = await connection.viem.deployContract(
     'UpgradedNameWrapperMock',
     [ensRegistry.address, baseRegistrar.address],
   )
@@ -79,9 +76,6 @@ export async function deployNameWrapperFixture() {
     publicResolver,
     nameWrapper,
     nameWrapperUpgraded,
-    accounts,
-    publicClient,
-    testClient,
   }
 }
 

@@ -7,13 +7,11 @@ import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 library LowLevelCallUtils {
     using Address for address;
 
-    /**
-     * @dev Makes a static call to the specified `target` with `data`. Return data can be fetched with
-     *      `returnDataSize` and `readReturnData`.
-     * @param target The address to staticcall.
-     * @param data The data to pass to the call.
-     * @return success True if the call succeeded, or false if it reverts.
-     */
+    /// @dev Makes a static call to the specified `target` with `data`. Return data can be fetched with
+    ///      `returnDataSize` and `readReturnData`.
+    /// @param target The address to staticcall.
+    /// @param data The data to pass to the call.
+    /// @return success True if the call succeeded, or false if it reverts.
     function functionStaticCall(
         address target,
         bytes memory data
@@ -21,14 +19,12 @@ library LowLevelCallUtils {
         return functionStaticCall(target, data, gasleft());
     }
 
-    /**
-     * @dev Makes a static call to the specified `target` with `data` using `gasLimit`. Return data can be fetched with
-     *      `returnDataSize` and `readReturnData`.
-     * @param target The address to staticcall.
-     * @param data The data to pass to the call.
-     * @param gasLimit The gas limit to use for the call.
-     * @return success True if the call succeeded, or false if it reverts.
-     */
+    /// @dev Makes a static call to the specified `target` with `data` using `gasLimit`. Return data can be fetched with
+    ///      `returnDataSize` and `readReturnData`.
+    /// @param target The address to staticcall.
+    /// @param data The data to pass to the call.
+    /// @param gasLimit The gas limit to use for the call.
+    /// @return success True if the call succeeded, or false if it reverts.
     function functionStaticCall(
         address target,
         bytes memory data,
@@ -50,20 +46,16 @@ library LowLevelCallUtils {
         }
     }
 
-    /**
-     * @dev Returns the size of the return data of the most recent external call.
-     */
+    /// @dev Returns the size of the return data of the most recent external call.
     function returnDataSize() internal pure returns (uint256 len) {
         assembly {
             len := returndatasize()
         }
     }
 
-    /**
-     * @dev Reads return data from the most recent external call.
-     * @param offset Offset into the return data.
-     * @param length Number of bytes to return.
-     */
+    /// @dev Reads return data from the most recent external call.
+    /// @param offset Offset into the return data.
+    /// @param length Number of bytes to return.
     function readReturnData(
         uint256 offset,
         uint256 length
@@ -74,9 +66,7 @@ library LowLevelCallUtils {
         }
     }
 
-    /**
-     * @dev Reverts with the return data from the most recent external call.
-     */
+    /// @dev Reverts with the return data from the most recent external call.
     function propagateRevert() internal pure {
         assembly {
             returndatacopy(0, 0, returndatasize())

@@ -1,6 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { getAddress, namehash, zeroAddress } from 'viem'
+
 import {
   CANNOT_SET_RESOLVER,
   CANNOT_SET_TTL,
@@ -10,17 +10,20 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const setRecordTests = () => {
+export const setRecordTests = (
+  connection: NetworkConnection,
+  loadNameWrapperFixture: LoadNameWrapperFixture,
+) => {
   describe('setRecord', () => {
     const label = 'setrecord'
     const name = `${label}.eth`
 
-    async function setRecordFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { actions } = initial
 
       await actions.registerSetupAndWrapName({
@@ -30,9 +33,11 @@ export const setRecordTests = () => {
 
       return initial
     }
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
 
     it('Can be called by the owner', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
@@ -45,9 +50,7 @@ export const setRecordTests = () => {
     })
 
     it('Performs the appropriate function on the ENS registry and Wrapper', async () => {
-      const { ensRegistry, nameWrapper, accounts } = await loadFixture(
-        setRecordFixture,
-      )
+      const { ensRegistry, nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.setRecord([
         namehash(name),
@@ -64,7 +67,7 @@ export const setRecordTests = () => {
     })
 
     it('Can be called by an account authorised by the owner.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
@@ -77,70 +80,73 @@ export const setRecordTests = () => {
     })
 
     it('Cannot be called by anyone else.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write(
-          'setRecord',
+      await expect(
+        nameWrapper.write.setRecord(
           [namehash(name), accounts[1].address, accounts[0].address, 50n],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Cannot be called if CANNOT_TRANSFER is burned.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.setFuses([namehash(name), CANNOT_TRANSFER])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(name),
           accounts[1].address,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Cannot be called if CANNOT_SET_RESOLVER is burned.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.setFuses([namehash(name), CANNOT_SET_RESOLVER])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(name),
           accounts[1].address,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Cannot be called if CANNOT_SET_TTL is burned.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(setRecordFixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
       await nameWrapper.write.setFuses([namehash(name), CANNOT_SET_TTL])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(name),
           accounts[1].address,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Setting the owner to 0 reverts if CANNOT_UNWRAP is burned', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       const subname = `sub.${name}`
 
@@ -159,21 +165,21 @@ export const setRecordTests = () => {
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(subname),
           zeroAddress,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Setting the owner of a subdomain to 0 unwraps the name and passes through resolver/ttl', async () => {
-      const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, actions, accounts } =
+        await loadNameWrapperFixture()
 
       const subname = `sub.${name}`
 
@@ -192,15 +198,16 @@ export const setRecordTests = () => {
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(subname),
           zeroAddress,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toEmitEvent('NameUnwrapped')
-        .withArgs(namehash(subname), zeroAddress)
+        .withArgs({ node: namehash(subname), owner: zeroAddress })
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(zeroAccount)
       await expectOwnerOf(subname).on(ensRegistry).toBe(zeroAccount)
@@ -213,7 +220,7 @@ export const setRecordTests = () => {
     })
 
     it('Setting the owner to 0 on a .eth reverts', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -222,15 +229,16 @@ export const setRecordTests = () => {
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('setRecord', [
+      await expect(
+        nameWrapper.write.setRecord([
           namehash(name),
           zeroAddress,
           accounts[0].address,
           50n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('IncorrectTargetOwner')
-        .withArgs(zeroAddress)
+        .withArgs([zeroAddress])
     })
   })
 }

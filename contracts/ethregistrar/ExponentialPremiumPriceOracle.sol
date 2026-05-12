@@ -36,9 +36,7 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
     uint256 constant bit15 = 840896415253714560;
     uint256 constant bit16 = 707106781186547584;
 
-    /**
-     * @dev Returns the pricing premium in internal base units.
-     */
+    /// @dev Returns the pricing premium in internal base units.
     function _premium(
         string memory,
         uint256 expires,
@@ -57,11 +55,9 @@ contract ExponentialPremiumPriceOracle is StablePriceOracle {
         return 0;
     }
 
-    /**
-     * @dev Returns the premium price at current time elapsed
-     * @param startPremium starting price
-     * @param elapsed time past since expiry
-     */
+    /// @dev Returns the premium price at current time elapsed
+    /// @param startPremium starting price
+    /// @param elapsed time past since expiry
     function decayedPremium(
         uint256 startPremium,
         uint256 elapsed

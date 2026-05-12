@@ -1,20 +1,19 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
 import { DAY } from '../../fixtures/constants.js'
 import {
   CAN_DO_EVERYTHING,
   GRACE_PERIOD,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const ownerOfTests = () => {
+export const ownerOfTests = (loadFixture: LoadNameWrapperFixture) => {
   describe('ownerOf()', () => {
     const label = 'subdomain'
     const name = `${label}.eth`
 
     it('Returns the owner', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -25,7 +24,7 @@ export const ownerOfTests = () => {
     })
 
     it('Returns 0 when owner is expired', async () => {
-      const { nameWrapper, actions, testClient } = await loadFixture(fixture)
+      const { nameWrapper, actions, testClient } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,

@@ -49,13 +49,11 @@ contract LinearPremiumPriceOracle is StablePriceOracle {
         return initialPremium - discount;
     }
 
-    /**
-     * @dev Returns the timestamp at which a name with the specified expiry date will have
-     *      the specified re-registration price premium.
-     * @param expires The timestamp at which the name expires.
-     * @param amount The amount, in wei, the caller is willing to pay
-     * @return The timestamp at which the premium for this domain will be `amount`.
-     */
+    /// @dev Returns the timestamp at which a name with the specified expiry date will have
+    ///      the specified re-registration price premium.
+    /// @param expires The timestamp at which the name expires.
+    /// @param amount The amount, in wei, the caller is willing to pay
+    /// @return The timestamp at which the premium for this domain will be `amount`.
     function timeUntilPremium(
         uint256 expires,
         uint256 amount

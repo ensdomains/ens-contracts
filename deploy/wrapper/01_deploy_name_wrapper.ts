@@ -1,72 +1,98 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import { namehash, zeroAddress } from 'viem'
-import { getInterfaceId } from '../../test/fixtures/createInterfaceId.js'
+import { artifacts, deployScript } from '@rocketh'
+import { encodeFunctionData, namehash, zeroAddress, type Address } from 'viem'
+import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default deployScript(
+  async ({ deploy, get, read, execute: write, tx, namedAccounts, network }) => {
+    const { deployer, owner } = namedAccounts
 
-  const { deployer, owner } = await viem.getNamedClients()
-
-  const registry = await viem.getContract('ENSRegistry', owner)
-  const registrar = await viem.getContract('BaseRegistrarImplementation', owner)
-  const metadata = await viem.getContract('StaticMetadataService', owner)
-
-  const nameWrapperDeployment = await viem.deploy('NameWrapper', [
-    registry.address,
-    registrar.address,
-    metadata.address,
-  ])
-  if (!nameWrapperDeployment.newlyDeployed) return
-
-  const nameWrapper = await viem.getContract('NameWrapper')
-
-  if (owner.address !== deployer.address) {
-    const hash = await nameWrapper.write.transferOwnership([owner.address])
-    console.log(
-      `Transferring ownership of NameWrapper to ${owner.address} (tx: ${hash})...`,
+    // Get dependencies
+    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
+    const registrar = get<
+      (typeof artifacts.BaseRegistrarImplementation)['abi']
+    >('BaseRegistrarImplementation')
+    const registrarSecurityController = get<
+      (typeof artifacts.RegistrarSecurityController)['abi']
+    >('RegistrarSecurityController')
+    const metadata = get<(typeof artifacts.StaticMetadataService)['abi']>(
+      'StaticMetadataService',
     )
-    await viem.waitForTransactionSuccess(hash)
-  }
 
-  // Only attempt to make controller etc changes directly on testnets
-  if (network.name === 'mainnet') return
+    // Deploy NameWrapper
+    const nameWrapper = await deploy('NameWrapper', {
+      account: deployer,
+      artifact: artifacts.NameWrapper,
+      args: [registry.address, registrar.address, metadata.address],
+    })
 
-  const addControllerHash = await registrar.write.addController([
-    nameWrapper.address,
-  ])
-  console.log(
-    `Adding NameWrapper as controller on registrar (tx: ${addControllerHash})...`,
-  )
-  await viem.waitForTransactionSuccess(addControllerHash)
+    if (!nameWrapper.newlyDeployed) return
 
-  const interfaceId = await getInterfaceId('INameWrapper')
-  const resolver = await registry.read.resolver([namehash('eth')])
-  if (resolver === zeroAddress) {
+    // Transfer ownership to owner
+    if (owner !== deployer) {
+      console.log(`  - Transferring ownership of NameWrapper to ${owner}`)
+      await write(nameWrapper, {
+        functionName: 'transferOwnership',
+        args: [owner],
+        account: deployer,
+      })
+    }
+
+    // Only attempt to make controller etc changes directly on testnets
+    if (network.name === 'mainnet' && !network.tags?.tenderly) return
+
     console.log(
-      `No resolver set for .eth; not setting interface ${interfaceId} for NameWrapper`,
+      `  - Adding NameWrapper as controller via RegistrarSecurityController`,
     )
-    return
-  }
+    await write(registrarSecurityController, {
+      functionName: 'addRegistrarController',
+      args: [nameWrapper.address],
+      account: owner,
+    })
 
-  const resolverContract = await viem.getContractAt('OwnedResolver', resolver)
-  const setInterfaceHash = await resolverContract.write.setInterface([
-    namehash('eth'),
-    interfaceId,
-    nameWrapper.address,
-  ])
-  console.log(
-    `Setting NameWrapper interface ID ${interfaceId} on .eth resolver (tx: ${setInterfaceHash})...`,
-  )
-  await viem.waitForTransactionSuccess(setInterfaceHash)
-}
+    // Set NameWrapper interface on resolver
+    const artifact = artifacts.INameWrapper
+    const interfaceId = createInterfaceId(artifact.abi)
 
-func.id = 'name-wrapper'
-func.tags = ['wrapper', 'NameWrapper']
-func.dependencies = [
-  'StaticMetadataService',
-  'registry',
-  'ReverseRegistrar',
-  'OwnedResolver',
-]
+    const resolver = await read(registry, {
+      functionName: 'resolver',
+      args: [namehash('eth')],
+    })
 
-export default func
+    if (resolver === zeroAddress) {
+      console.warn(
+        `  - WARN: No resolver set for .eth; not setting interface ${interfaceId} for NameWrapper`,
+      )
+      return
+    }
+
+    // Set interface on the resolver configured for .eth
+    const ownedResolver =
+      get<(typeof artifacts.OwnedResolver)['abi']>('OwnedResolver')
+    console.log(
+      `  - Setting NameWrapper interface ID ${interfaceId} on .eth resolver`,
+    )
+    await tx({
+      to: resolver as Address,
+      data: encodeFunctionData({
+        abi: ownedResolver.abi,
+        functionName: 'setInterface',
+        args: [namehash('eth'), interfaceId, nameWrapper.address],
+      }),
+      account: owner,
+    })
+
+    return true
+  },
+  {
+    id: 'NameWrapper v1.0.0',
+    tags: ['category:wrapper', 'NameWrapper'],
+    dependencies: [
+      'StaticMetadataService',
+      'ENSRegistry',
+      'BaseRegistrarImplementation',
+      'RegistrarSecurityController',
+      'ReverseRegistrar', // due to ReverseClaimer
+      'OwnedResolver',
+    ],
+  },
+)

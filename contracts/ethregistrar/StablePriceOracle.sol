@@ -62,9 +62,7 @@ contract StablePriceOracle is IPriceOracle {
             });
     }
 
-    /**
-     * @dev Returns the pricing premium in wei.
-     */
+    /// @dev Returns the pricing premium in wei.
     function premium(
         string calldata name,
         uint256 expires,
@@ -73,9 +71,7 @@ contract StablePriceOracle is IPriceOracle {
         return attoUSDToWei(_premium(name, expires, duration));
     }
 
-    /**
-     * @dev Returns the pricing premium in internal base units.
-     */
+    /// @dev Returns the pricing premium in internal base units.
     function _premium(
         string memory name,
         uint256 expires,

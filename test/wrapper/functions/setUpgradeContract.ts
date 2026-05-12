@@ -1,26 +1,25 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { zeroAddress } from 'viem'
+
 import {
   DUMMY_ADDRESS,
-  deployNameWrapperWithUtils as fixture,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const setUpgradeContractTests = () =>
+export const setUpgradeContractTests = (loadFixture: LoadNameWrapperFixture) =>
   describe('setUpgradeContract()', () => {
     it('Reverts if called by someone that is not the owner', async () => {
-      const { nameWrapper, accounts } = await loadFixture(fixture)
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('setUpgradeContract', [accounts[1].address], {
+      await expect(
+        nameWrapper.write.setUpgradeContract([accounts[1].address], {
           account: accounts[1],
-        })
-        .toBeRevertedWithString('Ownable: caller is not the owner')
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
     })
 
     it('Will setApprovalForAll for the upgradeContract addresses in the registrar and registry to true', async () => {
       const { nameWrapper, nameWrapperUpgraded, baseRegistrar, ensRegistry } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await expect(
         baseRegistrar.read.isApprovedForAll([
@@ -54,7 +53,7 @@ export const setUpgradeContractTests = () =>
 
     it('Will setApprovalForAll for the old upgradeContract addresses in the registrar and registry to false', async () => {
       const { nameWrapper, nameWrapperUpgraded, baseRegistrar, ensRegistry } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       // set the upgradeContract of the NameWrapper contract
       await nameWrapper.write.setUpgradeContract([DUMMY_ADDRESS])
@@ -98,7 +97,7 @@ export const setUpgradeContractTests = () =>
 
     it('Will not setApprovalForAll for the new upgrade address if it is the address(0)', async () => {
       const { nameWrapper, nameWrapperUpgraded, baseRegistrar, ensRegistry } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       // set the upgradeContract of the NameWrapper contract
       await nameWrapper.write.setUpgradeContract([nameWrapperUpgraded.address])

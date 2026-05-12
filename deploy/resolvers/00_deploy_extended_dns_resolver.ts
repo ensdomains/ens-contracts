@@ -1,11 +1,19 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, deployScript } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { viem } = hre
+export default deployScript(
+  async ({ deploy, namedAccounts }) => {
+    const { deployer } = namedAccounts
 
-  await viem.deploy('ExtendedDNSResolver', [])
-}
-
-func.tags = ['resolvers', 'ExtendedDNSResolver']
-
-export default func
+    // Deploy ExtendedDNSResolver
+    await deploy('ExtendedDNSResolver', {
+      account: deployer,
+      artifact: artifacts.ExtendedDNSResolver,
+      args: [],
+    })
+  },
+  {
+    id: 'ExtendedDNSResolver v1.0.0',
+    tags: ['category:resolvers', 'ExtendedDNSResolver'],
+    dependencies: [],
+  },
+)

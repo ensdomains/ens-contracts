@@ -4,19 +4,15 @@ pragma solidity ^0.8.4;
 import "../utils/BytesUtils.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
 
-/**
- * @dev RRUtils is a library that provides utilities for parsing DNS resource records.
- */
+/// @dev RRUtils is a library that provides utilities for parsing DNS resource records.
 library RRUtils {
     using BytesUtils for *;
     using Buffer for *;
 
-    /**
-     * @dev Returns the number of bytes in the DNS name at 'offset' in 'self'.
-     * @param self The byte array to read a name from.
-     * @param offset The offset to start reading at.
-     * @return The length of the DNS name at 'offset', in bytes.
-     */
+    /// @dev Returns the number of bytes in the DNS name at 'offset' in 'self'.
+    /// @param self The byte array to read a name from.
+    /// @param offset The offset to start reading at.
+    /// @return The length of the DNS name at 'offset', in bytes.
     function nameLength(
         bytes memory self,
         uint256 offset
@@ -33,12 +29,10 @@ library RRUtils {
         return idx - offset;
     }
 
-    /**
-     * @dev Returns a DNS format name at the specified offset of self.
-     * @param self The byte array to read a name from.
-     * @param offset The offset to start reading at.
-     * @return ret The name.
-     */
+    /// @dev Returns a DNS format name at the specified offset of self.
+    /// @param self The byte array to read a name from.
+    /// @param offset The offset to start reading at.
+    /// @return ret The name.
     function readName(
         bytes memory self,
         uint256 offset
@@ -47,12 +41,10 @@ library RRUtils {
         return self.substring(offset, len);
     }
 
-    /**
-     * @dev Returns the number of labels in the DNS name at 'offset' in 'self'.
-     * @param self The byte array to read a name from.
-     * @param offset The offset to start reading at.
-     * @return The number of labels in the DNS name at 'offset', in bytes.
-     */
+    /// @dev Returns the number of labels in the DNS name at 'offset' in 'self'.
+    /// @param self The byte array to read a name from.
+    /// @param offset The offset to start reading at.
+    /// @return The number of labels in the DNS name at 'offset', in bytes.
     function labelCount(
         bytes memory self,
         uint256 offset
@@ -115,9 +107,7 @@ library RRUtils {
         return iterateRRs(rrset.data, 0);
     }
 
-    /**
-     * @dev An iterator over resource records.
-     */
+    /// @dev An iterator over resource records.
     struct RRIterator {
         bytes data;
         uint256 offset;
@@ -128,12 +118,10 @@ library RRUtils {
         uint256 nextOffset;
     }
 
-    /**
-     * @dev Begins iterating over resource records.
-     * @param self The byte string to read from.
-     * @param offset The offset to start reading at.
-     * @return ret An iterator object.
-     */
+    /// @dev Begins iterating over resource records.
+    /// @param self The byte string to read from.
+    /// @param offset The offset to start reading at.
+    /// @return ret An iterator object.
     function iterateRRs(
         bytes memory self,
         uint256 offset
@@ -143,19 +131,15 @@ library RRUtils {
         next(ret);
     }
 
-    /**
-     * @dev Returns true iff there are more RRs to iterate.
-     * @param iter The iterator to check.
-     * @return True iff the iterator has finished.
-     */
+    /// @dev Returns true iff there are more RRs to iterate.
+    /// @param iter The iterator to check.
+    /// @return True iff the iterator has finished.
     function done(RRIterator memory iter) internal pure returns (bool) {
         return iter.offset >= iter.data.length;
     }
 
-    /**
-     * @dev Moves the iterator to the next resource record.
-     * @param iter The iterator to advance.
-     */
+    /// @dev Moves the iterator to the next resource record.
+    /// @param iter The iterator to advance.
     function next(RRIterator memory iter) internal pure {
         iter.offset = iter.nextOffset;
         if (iter.offset >= iter.data.length) {
@@ -180,11 +164,9 @@ library RRUtils {
         iter.nextOffset = off + rdataLength;
     }
 
-    /**
-     * @dev Returns the name of the current record.
-     * @param iter The iterator.
-     * @return A new bytes object containing the owner name from the RR.
-     */
+    /// @dev Returns the name of the current record.
+    /// @param iter The iterator.
+    /// @return A new bytes object containing the owner name from the RR.
     function name(RRIterator memory iter) internal pure returns (bytes memory) {
         return
             iter.data.substring(
@@ -193,11 +175,9 @@ library RRUtils {
             );
     }
 
-    /**
-     * @dev Returns the rdata portion of the current record.
-     * @param iter The iterator.
-     * @return A new bytes object containing the RR's RDATA.
-     */
+    /// @dev Returns the rdata portion of the current record.
+    /// @param iter The iterator.
+    /// @return A new bytes object containing the RR's RDATA.
     function rdata(
         RRIterator memory iter
     ) internal pure returns (bytes memory) {
@@ -327,9 +307,7 @@ library RRUtils {
             );
     }
 
-    /**
-     * @dev Compares two serial numbers using RFC1982 serial number math.
-     */
+    /// @dev Compares two serial numbers using RFC1982 serial number math.
     function serialNumberGte(
         uint32 i1,
         uint32 i2
@@ -346,11 +324,9 @@ library RRUtils {
         return off + 1 + body.readUint8(off);
     }
 
-    /**
-     * @dev Computes the keytag for a chunk of data.
-     * @param data The data to compute a keytag for.
-     * @return The computed key tag.
-     */
+    /// @dev Computes the keytag for a chunk of data.
+    /// @param data The data to compute a keytag for.
+    /// @return The computed key tag.
     function computeKeytag(bytes memory data) internal pure returns (uint16) {
         /* This function probably deserves some explanation.
          * The DNSSEC keytag function is a checksum that relies on summing up individual bytes

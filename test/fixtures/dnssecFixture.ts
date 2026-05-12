@@ -1,26 +1,30 @@
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { encodedAnchors } from './anchors.js'
 
-export async function dnssecFixture() {
-  const accounts = await hre.viem
-    .getWalletClients()
-    .then((clients) => clients.map((c) => c.account))
+export async function dnssecFixture(connection: NetworkConnection) {
+  const dnssec = await connection.viem.deployContract('DNSSECImpl', [
+    encodedAnchors,
+  ])
 
-  const dnssec = await hre.viem.deployContract('DNSSECImpl', [encodedAnchors])
-
-  const rsasha256Algorithm = await hre.viem.deployContract(
+  const rsasha256Algorithm = await connection.viem.deployContract(
     'RSASHA256Algorithm',
     [],
   )
-  const rsasha1Algorithm = await hre.viem.deployContract('RSASHA1Algorithm', [])
-  const sha256Digest = await hre.viem.deployContract('SHA256Digest', [])
-  const sha1Digest = await hre.viem.deployContract('SHA1Digest', [])
-  const p256Sha256Algorithm = await hre.viem.deployContract(
+  const rsasha1Algorithm = await connection.viem.deployContract(
+    'RSASHA1Algorithm',
+    [],
+  )
+  const sha256Digest = await connection.viem.deployContract('SHA256Digest', [])
+  const sha1Digest = await connection.viem.deployContract('SHA1Digest', [])
+  const p256Sha256Algorithm = await connection.viem.deployContract(
     'P256SHA256Algorithm',
     [],
   )
-  const dummyAlgorithm = await hre.viem.deployContract('DummyAlgorithm', [])
-  const dummyDigest = await hre.viem.deployContract('DummyDigest', [])
+  const dummyAlgorithm = await connection.viem.deployContract(
+    'DummyAlgorithm',
+    [],
+  )
+  const dummyDigest = await connection.viem.deployContract('DummyDigest', [])
 
   await dnssec.write.setAlgorithm([5, rsasha1Algorithm.address])
   await dnssec.write.setAlgorithm([7, rsasha1Algorithm.address])
@@ -35,5 +39,5 @@ export async function dnssecFixture() {
   // dummy
   await dnssec.write.setDigest([253, dummyDigest.address])
 
-  return { dnssec, accounts }
+  return { dnssec }
 }

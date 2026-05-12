@@ -1,6 +1,5 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { getAddress, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -10,16 +9,15 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const unwrapTests = () =>
+export const unwrapTests = (loadFixture: LoadNameWrapperFixture) =>
   describe('unwrap()', () => {
     it('Allows owner to unwrap name', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const parentLabel = 'xyz'
       const childLabel = 'unwrapped'
@@ -52,8 +50,7 @@ export const unwrapTests = () =>
     })
 
     it('Will not allow previous owner to unwrap name when name expires', async () => {
-      const { baseRegistrar, nameWrapper, accounts, testClient, actions } =
-        await loadFixture(fixture)
+      const { nameWrapper, accounts, testClient, actions } = await loadFixture()
 
       const parentLabel = 'unwrapped'
       const parentName = `${parentLabel}.eth`
@@ -77,20 +74,19 @@ export const unwrapTests = () =>
       })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('unwrap', [
+      await expect(
+        nameWrapper.write.unwrap([
           namehash(parentName),
           labelhash(childLabel),
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(childName), getAddress(accounts[0].address))
+        .withArgs([namehash(childName), getAddress(accounts[0].address)])
     })
 
     it('emits Unwrap event', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'xyz'
 
@@ -101,16 +97,22 @@ export const unwrapTests = () =>
         resolver: zeroAddress,
       })
 
-      await expect(nameWrapper)
-        .write('unwrap', [zeroHash, labelhash(label), accounts[0].address])
+      await expect(
+        nameWrapper.write.unwrap([
+          zeroHash,
+          labelhash(label),
+          accounts[0].address,
+        ]),
+      )
         .toEmitEvent('NameUnwrapped')
-        .withArgs(namehash(label), getAddress(accounts[0].address))
+        .withArgs({
+          node: namehash(label),
+          owner: getAddress(accounts[0].address),
+        })
     })
 
     it('emits TransferSingle event', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'xyz'
 
@@ -121,22 +123,26 @@ export const unwrapTests = () =>
         resolver: zeroAddress,
       })
 
-      await expect(nameWrapper)
-        .write('unwrap', [zeroHash, labelhash(label), accounts[0].address])
+      await expect(
+        nameWrapper.write.unwrap([
+          zeroHash,
+          labelhash(label),
+          accounts[0].address,
+        ]),
+      )
         .toEmitEvent('TransferSingle')
-        .withArgs(
-          accounts[0].address,
-          accounts[0].address,
-          zeroAddress,
-          toNameId(label),
-          1n,
-        )
+        .withArgs({
+          operator: getAddress(accounts[0].address),
+          from: getAddress(accounts[0].address),
+          to: zeroAddress,
+          id: toNameId(label),
+          value: 1n,
+        })
     })
 
     it('Allows an account authorised by the owner on the NFT Wrapper to unwrap a name', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const label = 'abc'
 
@@ -171,9 +177,7 @@ export const unwrapTests = () =>
     })
 
     it('Does not allow an account authorised by the owner on the ENS registry to unwrap a name', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, accounts, actions } = await loadFixture()
 
       const label = 'abc'
 
@@ -207,9 +211,7 @@ export const unwrapTests = () =>
     })
 
     it('Does not allow anyone else to unwrap a name', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       const label = 'abc'
 
@@ -228,17 +230,21 @@ export const unwrapTests = () =>
       await expectOwnerOf(label).on(nameWrapper).toBe(accounts[0])
 
       // unwrap using accounts[1]
-      await expect(nameWrapper)
-        .write('unwrap', [zeroHash, labelhash(label), accounts[1].address], {
-          account: accounts[1],
-        })
+      await expect(
+        nameWrapper.write.unwrap(
+          [zeroHash, labelhash(label), accounts[1].address],
+          {
+            account: accounts[1],
+          },
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(label), getAddress(accounts[1].address))
+        .withArgs([namehash(label), getAddress(accounts[1].address)])
     })
 
     it('Will not unwrap .eth 2LDs.', async () => {
       const { nameWrapper, baseRegistrar, accounts, actions } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       const label = 'unwrapped'
 
@@ -249,19 +255,18 @@ export const unwrapTests = () =>
 
       await expectOwnerOf(`${label}.eth`).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('unwrap', [
+      await expect(
+        nameWrapper.write.unwrap([
           namehash('eth'),
           labelhash(label),
           accounts[0].address,
-        ])
-        .toBeRevertedWithCustomError('IncompatibleParent')
+        ]),
+      ).toBeRevertedWithCustomError('IncompatibleParent')
     })
 
     it('Will not allow a target address of 0x0 or the wrapper contract address.', async () => {
-      const { ensRegistry, nameWrapper, accounts, actions } = await loadFixture(
-        fixture,
-      )
+      const { ensRegistry, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const label = 'abc'
 
@@ -277,21 +282,26 @@ export const unwrapTests = () =>
         resolver: zeroAddress,
       })
 
-      await expect(nameWrapper)
-        .write('unwrap', [zeroHash, labelhash(label), zeroAddress])
+      await expect(
+        nameWrapper.write.unwrap([zeroHash, labelhash(label), zeroAddress]),
+      )
         .toBeRevertedWithCustomError('IncorrectTargetOwner')
-        .withArgs(zeroAddress)
+        .withArgs([zeroAddress])
 
-      await expect(nameWrapper)
-        .write('unwrap', [zeroHash, labelhash(label), nameWrapper.address])
+      await expect(
+        nameWrapper.write.unwrap([
+          zeroHash,
+          labelhash(label),
+          nameWrapper.address,
+        ]),
+      )
         .toBeRevertedWithCustomError('IncorrectTargetOwner')
-        .withArgs(getAddress(nameWrapper.address))
+        .withArgs([getAddress(nameWrapper.address)])
     })
 
     it('Will not allow to unwrap with PCC/CU burned if expired', async () => {
-      const { accounts, ensRegistry, nameWrapper, actions } = await loadFixture(
-        fixture,
-      )
+      const { accounts, ensRegistry, nameWrapper, actions } =
+        await loadFixture()
 
       const parentLabel = 'awesome'
       const parentName = `${parentLabel}.eth`
@@ -326,26 +336,20 @@ export const unwrapTests = () =>
 
       await expectOwnerOf(childName).on(ensRegistry).toBe(nameWrapper)
 
-      await expect(nameWrapper)
-        .write('unwrap', [
+      await expect(
+        nameWrapper.write.unwrap([
           namehash(parentName),
           labelhash(childLabel),
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(childName), getAddress(accounts[0].address))
+        .withArgs([namehash(childName), getAddress(accounts[0].address)])
     })
 
     it('Will allow to unwrap with PCC/CU burned if expired and then extended without PCC/CU', async () => {
-      const {
-        baseRegistrar,
-        nameWrapper,
-        ensRegistry,
-        accounts,
-        publicClient,
-        testClient,
-        actions,
-      } = await loadFixture(fixture)
+      const { ensRegistry, nameWrapper, accounts, testClient, actions } =
+        await loadFixture()
 
       const parentLabel = 'awesome'
       const parentName = `${parentLabel}.eth`
@@ -385,14 +389,15 @@ export const unwrapTests = () =>
       await testClient.increaseTime({ seconds: Number(2n * DAY) })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('unwrap', [
+      await expect(
+        nameWrapper.write.unwrap([
           namehash(parentName),
           labelhash(childLabel),
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(childName), getAddress(accounts[0].address))
+        .withArgs([namehash(childName), getAddress(accounts[0].address)])
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName,
@@ -413,7 +418,7 @@ export const unwrapTests = () =>
 
     it('Will not allow to unwrap a name with the CANNOT_UNWRAP fuse burned if not expired', async () => {
       const { ensRegistry, baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       const parentLabel = 'abc'
       const parentName = `${parentLabel}.eth`
@@ -447,19 +452,20 @@ export const unwrapTests = () =>
         expiry: MAX_EXPIRY,
       })
 
-      await expect(nameWrapper)
-        .write('unwrap', [
+      await expect(
+        nameWrapper.write.unwrap([
           namehash(parentName),
           labelhash(childLabel),
           accounts[0].address,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(childName))
+        .withArgs([namehash(childName)])
     })
 
     it('Unwrapping a previously wrapped unexpired name retains PCC and expiry', async () => {
-      const { ensRegistry, baseRegistrar, nameWrapper, accounts, actions } =
-        await loadFixture(fixture)
+      const { baseRegistrar, nameWrapper, accounts, actions } =
+        await loadFixture()
 
       const parentLabel = 'test'
       const parentName = `${parentLabel}.eth`

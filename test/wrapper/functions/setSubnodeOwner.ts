@@ -1,7 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
-import hre from 'hardhat'
+import type { NetworkConnection } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
+
 import { DAY } from '../../fixtures/constants.js'
 import { dnsEncodeName } from '../../fixtures/dnsEncodeName.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
@@ -16,19 +15,22 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
   zeroAccount,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const setSubnodeOwnerTests = () =>
+export const setSubnodeOwnerTests = (
+  connection: NetworkConnection,
+  loadNameWrapperFixture: LoadNameWrapperFixture,
+) =>
   describe('setSubnodeOwner()', () => {
     const label = 'ownerandwrap'
     const name = `${label}.eth`
     const sublabel = 'sub'
     const subname = `${sublabel}.${name}`
 
-    async function setSubnodeOwnerFixture() {
-      const initial = await loadFixture(fixture)
+    async function fixture() {
+      const initial = await loadNameWrapperFixture()
       const { actions } = initial
 
       await actions.registerSetupAndWrapName({
@@ -39,10 +41,12 @@ export const setSubnodeOwnerTests = () =>
       return initial
     }
 
+    const loadFixture = async () =>
+      connection.networkHelpers.loadFixture(fixture)
+
     it('Can be called by the owner of a name and sets this contract as owner on the ENS registry.', async () => {
-      const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { ensRegistry, nameWrapper, actions, accounts } =
+        await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
@@ -60,9 +64,8 @@ export const setSubnodeOwnerTests = () =>
     })
 
     it('Can be called by an account authorised by the owner.', async () => {
-      const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { ensRegistry, nameWrapper, actions, accounts } =
+        await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
@@ -81,9 +84,8 @@ export const setSubnodeOwnerTests = () =>
     })
 
     it('Transfers the wrapped token to the target address.', async () => {
-      const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { ensRegistry, nameWrapper, actions, accounts } =
+        await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
@@ -100,52 +102,48 @@ export const setSubnodeOwnerTests = () =>
     })
 
     it('Will not allow wrapping with a target address of 0x0.', async () => {
-      const { nameWrapper, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { nameWrapper, accounts } = await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           zeroAddress,
           CAN_DO_EVERYTHING,
           0n,
-        ])
-        .toBeRevertedWithString('ERC1155: mint to the zero address')
+        ]),
+      ).toBeRevertedWithString('ERC1155: mint to the zero address')
     })
 
     it('Will not allow wrapping with a target address of the wrapper contract address', async () => {
-      const { nameWrapper } = await loadFixture(setSubnodeOwnerFixture)
+      const { nameWrapper } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           nameWrapper.address,
           CAN_DO_EVERYTHING,
           0n,
-        ])
-        .toBeRevertedWithString(
-          'ERC1155: newOwner cannot be the NameWrapper contract',
-        )
+        ]),
+      ).toBeRevertedWithString(
+        'ERC1155: newOwner cannot be the NameWrapper contract',
+      )
     })
 
     it('Does not allow anyone else to wrap a name even if the owner has authorised the wrapper with the ENS registry.', async () => {
-      const { ensRegistry, nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { ensRegistry, nameWrapper, actions, accounts } =
+        await loadFixture()
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
       // TODO: this is not testing what the description of the test is
       await ensRegistry.write.setApprovalForAll([accounts[1].address, true])
 
-      await expect(nameWrapper)
-        .write(
-          'setSubnodeOwner',
+      await expect(
+        nameWrapper.write.setSubnodeOwner(
           [
             namehash(name),
             sublabel,
@@ -154,56 +152,59 @@ export const setSubnodeOwnerTests = () =>
             0n,
           ],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(name), getAddress(accounts[1].address))
+        .withArgs([namehash(name), getAddress(accounts[1].address)])
     })
 
     it('Fuses cannot be burned if the name does not have PARENT_CANNOT_CONTROL burned', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[0].address,
           CANNOT_UNWRAP | CANNOT_TRANSFER,
           MAX_EXPIRY,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Does not allow fuses to be burned if CANNOT_UNWRAP is not burned.', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[0].address,
           PARENT_CANNOT_CONTROL | CANNOT_TRANSFER,
           0n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Allows fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL is burned and is not expired', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -228,15 +229,15 @@ export const setSubnodeOwnerTests = () =>
 
     it('Does not allow IS_DOT_ETH to be burned', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CANNOT_UNWRAP,
       })
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[0].address,
@@ -245,14 +246,15 @@ export const setSubnodeOwnerTests = () =>
             CANNOT_SET_RESOLVER |
             IS_DOT_ETH,
           MAX_EXPIRY,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Does not allow fuses to be burned if CANNOT_UNWRAP and PARENT_CANNOT_CONTROL are burned, but the name is expired', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -283,7 +285,7 @@ export const setSubnodeOwnerTests = () =>
     it("normalises the max expiry of a subdomain to the parent's expiry", async () => {
       // note: not using suite specific fixture here
       const { baseRegistrar, nameWrapper, actions, accounts } =
-        await loadFixture(fixture)
+        await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -308,73 +310,67 @@ export const setSubnodeOwnerTests = () =>
     })
 
     it('Emits Wrap event', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[1].address,
           0,
           0n,
-        ])
+        ]),
+      )
         .toEmitEvent('NameWrapped')
-        .withArgs(
-          namehash(subname),
-          dnsEncodeName(subname),
-          accounts[1].address,
-          0,
-          0n,
-        )
+        .withArgs({
+          node: namehash(subname),
+          name: dnsEncodeName(subname),
+          owner: getAddress(accounts[1].address),
+          fuses: 0,
+          expiry: 0n,
+        })
     })
 
     it('Emits TransferSingle event', async () => {
-      const { nameWrapper, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { nameWrapper, accounts } = await loadFixture()
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[1].address,
           0,
           0n,
-        ])
+        ]),
+      )
         .toEmitEvent('TransferSingle')
-        .withArgs(
-          accounts[0].address,
-          zeroAddress,
-          accounts[1].address,
-          toNameId(subname),
-          1n,
-        )
+        .withArgs({
+          operator: getAddress(accounts[0].address),
+          from: zeroAddress,
+          to: getAddress(accounts[1].address),
+          id: toNameId(subname),
+          value: 1n,
+        })
     })
 
     it('Will not create a subdomain with an empty label', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { nameWrapper, actions, accounts } = await loadFixture()
 
       await actions.setRegistryApprovalForWrapper()
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           '',
           accounts[0].address,
           CAN_DO_EVERYTHING,
           0n,
-        ])
-        .toBeRevertedWithCustomError('LabelTooShort')
+        ]),
+      ).toBeRevertedWithCustomError('LabelTooShort')
     })
 
     it('should be able to call twice and change the owner', async () => {
-      const { nameWrapper, actions, accounts } = await loadFixture(
-        setSubnodeOwnerFixture,
-      )
+      const { nameWrapper, actions, accounts } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -399,7 +395,7 @@ export const setSubnodeOwnerTests = () =>
 
     it('setting owner to 0 burns and unwraps', async () => {
       // note: not using suite specific fixture here
-      const { nameWrapper, actions, accounts } = await loadFixture(fixture)
+      const { nameWrapper, actions, accounts } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -418,31 +414,31 @@ export const setSubnodeOwnerTests = () =>
         expiry: MAX_EXPIRY,
       })
 
-      const tx = await actions.setSubnodeOwner.onNameWrapper({
+      const tx = actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
         label: sublabel,
         owner: zeroAddress,
         fuses: PARENT_CANNOT_CONTROL,
         expiry: MAX_EXPIRY,
       })
+      await tx
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(zeroAccount)
 
-      await expect(nameWrapper)
-        .transaction(tx)
+      await expect(tx)
         .toEmitEvent('NameUnwrapped')
-        .withArgs(namehash(subname), zeroAddress)
+        .withArgs({ node: namehash(subname), owner: zeroAddress })
     })
 
     it('Unwrapping within an external contract does not create any state inconsistencies', async () => {
-      const { nameWrapper, accounts, actions } = await loadFixture(fixture)
+      const { nameWrapper, accounts, actions } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      const testReentrancy = await hre.viem.deployContract(
+      const testReentrancy = await connection.viem.deployContract(
         'TestNameWrapperReentrancy',
         [
           accounts[0].address,
@@ -463,16 +459,17 @@ export const setSubnodeOwnerTests = () =>
       })
 
       // attempt to move owner to testReentrancy, which unwraps domain itself to account while keeping ERC1155 to testReentrancy
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           testReentrancy.address,
           CANNOT_UNWRAP | PARENT_CANNOT_CONTROL,
           MAX_EXPIRY,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
 
       // reverts because CANNOT_UNWRAP/PCC are burned first, and then unwrap is attempted inside contract, which fails, because CU has already been burned
     })
@@ -480,7 +477,7 @@ export const setSubnodeOwnerTests = () =>
     it('Unwrapping a previously wrapped unexpired name retains PCC and so reverts setSubnodeRecord', async () => {
       // note: not using suite specific fixture here
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -524,16 +521,17 @@ export const setSubnodeOwnerTests = () =>
       expect(expiry).toEqual(parentExpiry + GRACE_PERIOD)
       expect(fuses).toEqual(PARENT_CANNOT_CONTROL)
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[1].address,
           0,
           0n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Rewrapping a name that had PCC burned, but has now expired is possible and resets fuses', async () => {
@@ -545,7 +543,7 @@ export const setSubnodeOwnerTests = () =>
         baseRegistrar,
         testClient,
         publicClient,
-      } = await loadFixture(fixture)
+      } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -629,7 +627,7 @@ export const setSubnodeOwnerTests = () =>
         baseRegistrar,
         testClient,
         publicClient,
-      } = await loadFixture(fixture)
+      } = await loadNameWrapperFixture()
 
       const sublabel2 = 'sub2'
 
@@ -659,16 +657,17 @@ export const setSubnodeOwnerTests = () =>
         CANNOT_CREATE_SUBDOMAIN,
       ])
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel2,
           accounts[1].address,
           0,
           parentExpiry - DAY / 2n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(`${sublabel2}.${name}`))
+        .withArgs([namehash(`${sublabel2}.${name}`)])
 
       await testClient.increaseTime({ seconds: Number(DAY / 2n + 1n) })
       await testClient.mine({ blocks: 1 })
@@ -684,16 +683,17 @@ export const setSubnodeOwnerTests = () =>
       expect(fuses).toEqual(0)
       expect(expiry).toBeLessThan(timestamp)
 
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[1].address,
           0,
           parentExpiry - DAY / 2n,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Burning a name still protects it from the parent as long as it is unexpired and has PCC burnt', async () => {
@@ -705,7 +705,7 @@ export const setSubnodeOwnerTests = () =>
         accounts,
         baseRegistrar,
         publicClient,
-      } = await loadFixture(fixture)
+      } = await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -758,15 +758,16 @@ export const setSubnodeOwnerTests = () =>
       await expectOwnerOf(subname).on(ensRegistry).toBe(zeroAccount)
 
       // attempt to take back the name
-      await expect(nameWrapper)
-        .write('setSubnodeOwner', [
+      await expect(
+        nameWrapper.write.setSubnodeOwner([
           namehash(name),
           sublabel,
           accounts[0].address,
           PARENT_CANNOT_CONTROL,
           MAX_EXPIRY,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
   })

@@ -1,16 +1,45 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
+import { artifacts, deployScript } from '@rocketh'
 
-const func: DeployFunction = async function (hre) {
-  const { network, viem } = hre
+export default deployScript(
+  async ({ deploy, namedAccounts, network }) => {
+    const { deployer } = namedAccounts
 
-  await viem.deploy('RSASHA1Algorithm', [])
-  await viem.deploy('RSASHA256Algorithm', [])
-  await viem.deploy('P256SHA256Algorithm', [])
+    await deploy('RSASHA1Algorithm', {
+      account: deployer,
+      artifact: artifacts.RSASHA1Algorithm,
+      args: [],
+    })
 
-  if (network.tags.test) await viem.deploy('DummyAlgorithm', [])
-}
+    await deploy('RSASHA256Algorithm', {
+      account: deployer,
+      artifact: artifacts.RSASHA256Algorithm,
+      args: [],
+    })
 
-func.tags = ['dnssec-algorithms']
-func.dependencies = ['BaseRegistrarImplementation'] // not necessary but allows registrar to be deployed first
+    await deploy('P256SHA256Algorithm', {
+      account: deployer,
+      artifact: artifacts.P256SHA256Algorithm,
+      args: [],
+    })
 
-export default func
+    if (network.tags?.test) {
+      await deploy('DummyAlgorithm', {
+        account: deployer,
+        artifact: artifacts.DummyAlgorithm,
+        args: [],
+      })
+    }
+  },
+  {
+    id: 'dnssec-algorithms v1.0.0',
+    tags: [
+      'category:dnssec-oracle',
+      'dnssec-algorithms',
+      'RSASHA1Algorithm',
+      'RSASHA256Algorithm',
+      'P256SHA256Algorithm',
+      'DummyAlgorithm',
+    ],
+    dependencies: [],
+  },
+)

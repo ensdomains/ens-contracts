@@ -135,6 +135,7 @@ PublicResolver includes the following profiles that implements different EIPs.
 - ABIResolver = EIP 205 - ABI support (`ABI()`).
 - AddrResolver = EIP 137 - Contract address interface. EIP 2304 - Multicoin support (`addr()`).
 - ContentHashResolver = EIP 1577 - Content hash support (`contenthash()`).
+- DataResolver =  ENSIP-24 - Arbitrary Data Resolution (`data()`).
 - InterfaceResolver = EIP 165 - Interface Detection (`supportsInterface()`).
 - NameResolver = EIP 181 - Reverse resolution (`name()`).
 - PubkeyResolver = EIP 619 - SECP256k1 public keys (`pubkey()`).
@@ -167,13 +168,64 @@ bun run test
 bun run pub
 ```
 
+## L2 contracts
+
+The only contract in this repo deployed on L2s is `L2ReverseRegistrar` (and its dependency `UniversalSigValidator`).
+
+Anyone can deploy this contract onto any L2, however the contract has functionality which allows using one signature across multiple L2s.
+Given this functionality, and [EIP-191](https://eips.ethereum.org/EIPS/eip-191)'s requirement for the intended validator address in the signature, the contract address needs to stay the same between all networks.
+
+To allow for a unified contract address, a Safe and a helper CREATE3 contract are used in the deployment process. The contract can be deployed outside the process, but it means that it will lack the multi-chain signature functionality.
+
+Testnet Safe address: `0x343431e9CEb7C19cC8d3eA0EE231bfF82B584910`
+Mainnet Safe address: `0x353530FE74098903728Ddb66Ecdb70f52e568eC1`
+
+## Release flow
+
 ### Deployment
 
+When readying a new deployment of certain contracts, bump the deploy script version number to the appropriate new version. Doing this ensures that the new deployment script will run for each network.
+
+Deployment scripts can be run for any specified network found in the [config](hardhat.config.ts#L38), with the following:
+
 ```
-NODE_OPTIONS='--experimental-loader ts-node/esm/transpile-only' bun run hardhat --network <network_name> deploy
+bun hh --network <network_name> deploy
 ```
 
-Full list of available networks for deployment is [here](hardhat.config.cts#L38).
+Only scripts that haven't been run on the specified network before will be run.
+
+### Deployment testing
+
+To test deploying contracts and the functionality of them after deployment, there are two basic paths for forking:
+
+- Run an anvil fork, useful for testing locally and iterating. (`anvil --fork-url <url>`)
+- Use a Tenderly Virtual TestNet, useful as a staging environment.
+
+When **access to the owner account is available** (testnet only - owner on mainnet is the DAO), you can deploy straight to the fork by replacing the forked network's URL in the hardhat config with your RPC:
+
+```typescript
+const config = {
+  // ... existing config
+  networks: {
+    targetNetwork: {
+      // ... other network config
+      url: 'tenderly-or-anvil-url-here',
+    },
+  },
+}
+```
+
+Without access to the owner account, you can deploy via the impersonation script, which makes impersonated accounts from an external node available to hardhat.
+
+```bash
+./scripts/deploy-with-impersonation.ts --rpc-url <url> --accounts <addr1> [addr2 ...] [--tags <tags>]
+
+# Testnet usage
+./scripts/deploy-with-impersonation.ts --rpc-url <url> --accounts 0x0F32b753aFc8ABad9Ca6fE589F707755f4df2353
+
+# Mainnet usage
+./scripts/deploy-with-impersonation.ts --rpc-url <url> --accounts 0xFe89cc7aBB2C4183683ab71653C4cdc9B02D44b7
+```
 
 ### Release flow
 

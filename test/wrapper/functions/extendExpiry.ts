@@ -1,6 +1,6 @@
-import { loadFixture } from '@nomicfoundation/hardhat-toolbox-viem/network-helpers.js'
-import { expect } from 'chai'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
+
+import type { NetworkConnection } from 'hardhat/types/network'
 import { DAY } from '../../fixtures/constants.js'
 import { toLabelId, toNameId } from '../../fixtures/utils.js'
 import {
@@ -11,10 +11,13 @@ import {
   MAX_EXPIRY,
   PARENT_CANNOT_CONTROL,
   expectOwnerOf,
-  deployNameWrapperWithUtils as fixture,
+  type LoadNameWrapperFixture,
 } from '../fixtures/utils.js'
 
-export const extendExpiryTests = () => {
+export const extendExpiryTests = (
+  connection: NetworkConnection,
+  loadFixture: LoadNameWrapperFixture,
+) => {
   describe('extendExpiry()', () => {
     const label = 'fuses'
     const name = `${label}.eth`
@@ -23,7 +26,7 @@ export const extendExpiryTests = () => {
 
     it('Allows parent owner to set expiry without CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -64,7 +67,7 @@ export const extendExpiryTests = () => {
 
     it('Allows parent owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -109,7 +112,7 @@ export const extendExpiryTests = () => {
 
     it('Allows parent owner to set expiry with same child owner and CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -154,7 +157,7 @@ export const extendExpiryTests = () => {
 
     it('Allows approved operators of parent owner to set expiry without CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -197,7 +200,7 @@ export const extendExpiryTests = () => {
 
     it('Allows approved operators of parent owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -244,7 +247,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow child owner to set expiry without CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -269,19 +272,19 @@ export const extendExpiryTests = () => {
       expect(initialFuses).toEqual(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
       expect(initialExpiry).toEqual(parentExpiry - 3600n)
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Allows child owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -325,7 +328,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow approved operator of child owner to set expiry without CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -355,19 +358,19 @@ export const extendExpiryTests = () => {
         account: accounts[1],
       })
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[2] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Allows approved operator of child owner to set expiry with CAN_EXTEND_EXPIRY burned', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -416,7 +419,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow accounts other than parent/child owners or approved operators to set expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -443,18 +446,18 @@ export const extendExpiryTests = () => {
       )
       expect(initialExpiry).toEqual(parentExpiry - 3600n)
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[2] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(subname), getAddress(accounts[2].address))
+        .withArgs([namehash(subname), getAddress(accounts[2].address)])
     })
 
     it('Does not allow owner of .eth 2LD to set expiry', async () => {
-      const { nameWrapper, actions } = await loadFixture(fixture)
+      const { nameWrapper, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -469,15 +472,20 @@ export const extendExpiryTests = () => {
         IS_DOT_ETH | PARENT_CANNOT_CONTROL | CANNOT_UNWRAP,
       )
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [namehash('eth'), labelhash(label), expiry])
+      await expect(
+        nameWrapper.write.extendExpiry([
+          namehash('eth'),
+          labelhash(label),
+          expiry,
+        ]),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(name))
+        .withArgs([namehash(name)])
     })
 
     it('Allows parent owner of non-Emancipated name to set expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -518,7 +526,7 @@ export const extendExpiryTests = () => {
 
     it('Allows child owner of non-Emancipated name to set expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -558,7 +566,7 @@ export const extendExpiryTests = () => {
 
     it('Expiry is normalized to old expiry if too low', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -602,7 +610,7 @@ export const extendExpiryTests = () => {
 
     it('Expiry is normalized to parent expiry if too high', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -646,7 +654,7 @@ export const extendExpiryTests = () => {
 
     it('Expiry is not normalized to new value if between old expiry and parent expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -690,7 +698,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow .eth 2LD owner to set expiry on child if the .eth 2LD is expired but grace period has not ended', async () => {
       const { baseRegistrar, nameWrapper, testClient, actions, accounts } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -719,19 +727,20 @@ export const extendExpiryTests = () => {
       await testClient.increaseTime({ seconds: Number(DAY + 1n) })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [
+      await expect(
+        nameWrapper.write.extendExpiry([
           namehash(name),
           labelhash(sublabel),
           MAX_EXPIRY,
-        ])
+        ]),
+      )
         .toBeRevertedWithCustomError('Unauthorised')
-        .withArgs(namehash(subname), getAddress(accounts[0].address))
+        .withArgs([namehash(subname), getAddress(accounts[0].address)])
     })
 
     it('Allows child owner to set expiry if parent .eth 2LD is expired but grace period has not ended', async () => {
       const { baseRegistrar, nameWrapper, testClient, actions, accounts } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -779,7 +788,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow child owner to set expiry if Emancipated child name has expired', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -808,18 +817,17 @@ export const extendExpiryTests = () => {
       await testClient.increaseTime({ seconds: 3601 })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[1] },
-        )
-        .toBeRevertedWithCustomError('NameIsNotWrapped')
+        ),
+      ).toBeRevertedWithCustomError('NameIsNotWrapped')
     })
 
     it('Does not allow child owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -848,19 +856,19 @@ export const extendExpiryTests = () => {
       await testClient.increaseTime({ seconds: 3601 })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toBeRevertedWithCustomError('OperationProhibited')
-        .withArgs(namehash(subname))
+        .withArgs([namehash(subname)])
     })
 
     it('Does not allow parent owner to set expiry if Emancipated child name has expired', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -889,18 +897,18 @@ export const extendExpiryTests = () => {
       await testClient.increaseTime({ seconds: 3601 })
       await testClient.mine({ blocks: 1 })
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [
+      await expect(
+        nameWrapper.write.extendExpiry([
           namehash(name),
           labelhash(sublabel),
           MAX_EXPIRY,
-        ])
-        .toBeRevertedWithCustomError('NameIsNotWrapped')
+        ]),
+      ).toBeRevertedWithCustomError('NameIsNotWrapped')
     })
 
     it('Allows parent owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
       const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -945,7 +953,7 @@ export const extendExpiryTests = () => {
     })
 
     it('Does not allow extendExpiry() to be called on unregistered names (not registered ever)', async () => {
-      const { nameWrapper, actions } = await loadFixture(fixture)
+      const { nameWrapper, actions } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -959,18 +967,18 @@ export const extendExpiryTests = () => {
       expect(initialFuses).toEqual(0)
       expect(initialExpiry).toEqual(0n)
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [
+      await expect(
+        nameWrapper.write.extendExpiry([
           namehash(name),
           labelhash(sublabel),
           MAX_EXPIRY,
-        ])
-        .toBeRevertedWithCustomError('NameIsNotWrapped')
+        ]),
+      ).toBeRevertedWithCustomError('NameIsNotWrapped')
     })
 
     it('Does not allow extendExpiry() to be called on unregistered names (expired w/ PCC burnt)', async () => {
       const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -995,18 +1003,18 @@ export const extendExpiryTests = () => {
       await testClient.mine({ blocks: 1 })
 
       // extendExpiry() on the unregistered name will be reverted
-      await expect(nameWrapper)
-        .write('extendExpiry', [
+      await expect(
+        nameWrapper.write.extendExpiry([
           namehash(name),
           labelhash(sublabel),
           MAX_EXPIRY,
-        ])
-        .toBeRevertedWithCustomError('NameIsNotWrapped')
+        ]),
+      ).toBeRevertedWithCustomError('NameIsNotWrapped')
     })
 
     it('Allow extendExpiry() to be called on wrapped names', async () => {
       const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -1047,7 +1055,7 @@ export const extendExpiryTests = () => {
 
     it('Does not allow extendExpiry() to be called on unwrapped names', async () => {
       const { ensRegistry, baseRegistrar, nameWrapper, actions, accounts } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -1096,18 +1104,18 @@ export const extendExpiryTests = () => {
       // Verify the registry owner is the account and not the wrapper contract
       await expectOwnerOf(subname).on(ensRegistry).toBe(accounts[0])
 
-      await expect(nameWrapper)
-        .write('extendExpiry', [
+      await expect(
+        nameWrapper.write.extendExpiry([
           namehash(name),
           labelhash(sublabel),
           MAX_EXPIRY,
-        ])
-        .toBeRevertedWithCustomError('NameIsNotWrapped')
+        ]),
+      ).toBeRevertedWithCustomError('NameIsNotWrapped')
     })
 
     it('Emits Expiry Extended event', async () => {
       const { baseRegistrar, nameWrapper, actions, accounts } =
-        await loadFixture(fixture)
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -1125,14 +1133,17 @@ export const extendExpiryTests = () => {
         expiry: parentExpiry - 3600n,
       })
 
-      await expect(nameWrapper)
-        .write(
-          'extendExpiry',
+      await expect(
+        nameWrapper.write.extendExpiry(
           [namehash(name), labelhash(sublabel), MAX_EXPIRY],
           { account: accounts[1] },
-        )
+        ),
+      )
         .toEmitEvent('ExpiryExtended')
-        .withArgs(namehash(subname), parentExpiry + GRACE_PERIOD)
+        .withArgs({
+          node: namehash(subname),
+          expiry: parentExpiry + GRACE_PERIOD,
+        })
     })
   })
 }

@@ -1,9 +1,7 @@
 pragma solidity ^0.8.4;
 
 library ModexpPrecompile {
-    /**
-     * @dev Computes (base ^ exponent) % modulus over big numbers.
-     */
+    /// @dev Computes (base ^ exponent) % modulus over big numbers.
     function modexp(
         bytes memory base,
         bytes memory exponent,

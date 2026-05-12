@@ -1,64 +1,60 @@
-import type { DeployFunction } from 'hardhat-deploy/types.js'
-import type { Address } from 'viem'
+import { artifacts, deployScript } from '@rocketh'
+import type { Abi } from 'viem'
+import legacyArtifactRaw from '../../deployments/archive/ETHRegistrarController_mainnet_9380471.sol/ETHRegistrarController_mainnet_9380471.json'
 
-const func: DeployFunction = async function (hre) {
-  const { deployments, viem } = hre
-  const { run } = deployments
-
-  const { owner } = await viem.getNamedClients()
-
-  const registrar = await viem.getContract('BaseRegistrarImplementation') // as owner
-  const priceOracle = await viem.getContract('ExponentialPremiumPriceOracle')
-  const reverseRegistrar = await viem.getContract('ReverseRegistrar') // as owner
-
-  const controller = await viem.deploy(
-    'LegacyETHRegistrarController',
-    [registrar.address, priceOracle.address, 60n, 86400n],
-    {
-      artifact: await deployments.getArtifact(
-        'ETHRegistrarController_mainnet_9380471',
-      ),
-    },
-  )
-
-  const registrarAddControllerHash = await registrar.write.addController(
-    [controller.address as Address],
-    { account: owner.account },
-  )
-  console.log(
-    `Adding controller as controller on registrar (tx: ${registrarAddControllerHash})...`,
-  )
-  await viem.waitForTransactionSuccess(registrarAddControllerHash)
-
-  const reverseRegistrarSetControllerHash =
-    await reverseRegistrar.write.setController(
-      [controller.address as Address, true],
-      { account: owner.account },
-    )
-  console.log(
-    `Setting controller of ReverseRegistrar to controller (tx: ${reverseRegistrarSetControllerHash})...`,
-  )
-  await viem.waitForTransactionSuccess(reverseRegistrarSetControllerHash)
-
-  if (process.env.npm_package_name !== '@ensdomains/ens-contracts') {
-    console.log('Running unwrapped name registrations...')
-    await run('register-unwrapped-names', {
-      deletePreviousDeployments: false,
-      resetMemory: false,
-    })
-  }
-
-  return true
+const legacyArtifact = {
+  ...legacyArtifactRaw,
+  metadata: '{}',
+  abi: legacyArtifactRaw.abi as Abi,
 }
 
-func.id = 'legacy-controller'
-func.tags = ['LegacyETHRegistrarController']
-func.dependencies = [
-  'registry',
-  'wrapper',
-  'LegacyPublicResolver',
-  'ExponentialPremiumPriceOracle',
-  'ReverseRegistrar',
-]
+export default deployScript(
+  async ({
+    deploy,
+    get,
+    execute: write,
+    namedAccounts,
+    registerLegacyNames,
+  }) => {
+    const { deployer, owner } = namedAccounts
 
-export default func
+    const registrar = get<
+      (typeof artifacts.BaseRegistrarImplementation)['abi']
+    >('BaseRegistrarImplementation')
+    const registrarSecurityController = get<
+      (typeof artifacts.RegistrarSecurityController)['abi']
+    >('RegistrarSecurityController')
+    const priceOracle = get<
+      (typeof artifacts.ExponentialPremiumPriceOracle)['abi']
+    >('ExponentialPremiumPriceOracle')
+
+    const controller = await deploy('LegacyETHRegistrarController', {
+      account: deployer,
+      artifact: legacyArtifact,
+      args: [registrar.address, priceOracle.address, 60n, 86400n],
+    })
+
+    console.log(
+      `  - Adding LegacyETHRegistrarController via RegistrarSecurityController`,
+    )
+    await write(registrarSecurityController, {
+      functionName: 'addRegistrarController',
+      args: [controller.address],
+      account: owner,
+    })
+
+    if (registerLegacyNames) {
+      console.log('  - Running registerLegacyNames hook')
+      await registerLegacyNames()
+    }
+  },
+  {
+    id: 'ETHRegistrarController v1.0.0',
+    tags: ['category:ethregistrar', 'LegacyETHRegistrarController'],
+    dependencies: [
+      'BaseRegistrarImplementation',
+      'RegistrarSecurityController',
+      'ExponentialPremiumPriceOracle',
+    ],
+  },
+)

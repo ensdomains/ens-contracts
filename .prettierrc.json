@@ -14,8 +14,7 @@
         "tabWidth": 4,
         "useTabs": false,
         "singleQuote": false,
-        "bracketSpacing": false,
-        "explicitTypes": "always"
+        "bracketSpacing": false
       }
     }
   ]

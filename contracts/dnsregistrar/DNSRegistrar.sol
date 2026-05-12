@@ -14,10 +14,8 @@ import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
 import "./IDNSRegistrar.sol";
 
-/**
- * @dev An ENS registrar that allows the owner of a DNS name to claim the
- *      corresponding name in ENS.
- */
+/// @dev An ENS registrar that allows the owner of a DNS name to claim the
+///      corresponding name in ENS.
 contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using BytesUtils for bytes;
     using Buffer for Buffer.buffer;
@@ -67,9 +65,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         ens = _ens;
     }
 
-    /**
-     * @dev This contract's owner-only functions can be invoked by the owner of the ENS root.
-     */
+    /// @dev This contract's owner-only functions can be invoked by the owner of the ENS root.
     modifier onlyOwner() {
         Root root = Root(ens.owner(bytes32(0)));
         address owner = root.owner();
@@ -82,11 +78,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         emit NewPublicSuffixList(address(suffixes));
     }
 
-    /**
-     * @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
-     * @param name The name to claim, in DNS wire format.
-     * @param input A chain of signed DNS RRSETs ending with a text record.
-     */
+    /// @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
+    /// @param name The name to claim, in DNS wire format.
+    /// @param input A chain of signed DNS RRSETs ending with a text record.
     function proveAndClaim(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
