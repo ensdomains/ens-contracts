@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {ERC165} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 
 import {GatewayFetchTarget, IGatewayVerifier} from "@unruggable/gateways/GatewayFetchTarget.sol";
@@ -9,7 +8,6 @@ import {GatewayFetcher, GatewayRequest, RequestOverflow} from "@unruggable/gatew
 
 import {AbstractReverseResolver} from "./AbstractReverseResolver.sol";
 import {IStandaloneReverseRegistrar} from "../reverseRegistrar/IStandaloneReverseRegistrar.sol";
-import {IVerifiableResolver} from "../resolvers/profiles/IVerifiableResolver.sol";
 import {INameReverser} from "./INameReverser.sol";
 import {ENSIP19} from "../utils/ENSIP19.sol";
 
@@ -21,7 +19,6 @@ import {ENSIP19} from "../utils/ENSIP19.sol";
 ///
 contract ChainReverseResolver is
     AbstractReverseResolver,
-	IVerifiableResolver,
     GatewayFetchTarget,
     Ownable
 {
@@ -57,25 +54,6 @@ contract ChainReverseResolver is
         gatewayVerifier = verifier;
         gatewayURLs = gateways;
     }
-
-    /// @inheritdoc ERC165
-    function supportsInterface(
-        bytes4 interfaceId
-    ) public view override returns (bool) {
-        return
-            interfaceId == type(IVerifiableResolver).interfaceId ||
-            super.supportsInterface(interfaceId);
-    }
-
-	/// @inheritdoc IVerifiableResolver
-    function verifierMetadata(
-        bytes memory name
-    ) external view returns (address verifier, string[] memory gateways) {
-		 (bytes memory a, uint256 ct) = ENSIP19.parse(name);
-		 if (a.length == 20 && ct == coinType) {
-			return (address(gatewayVerifier), gatewayURLs);
-		 }
-	}
 
     /// @notice Set gateway URLs.
     /// @param gateways The new gateway URLs.

@@ -87,7 +87,6 @@ describe('ChainReverseResolver', () => {
       'IExtendedResolver',
       'INameReverser',
       'IERC7996',
-      'IVerifiableResolver',
     ],
   })
 
@@ -103,33 +102,6 @@ describe('ChainReverseResolver', () => {
     await expect(F.reverseResolver.read.chainId()).resolves.toStrictEqual(
       chainFromCoinType(l2CoinType),
     )
-  })
-
-  describe('verifierMetadata()', async () => {
-    it('valid', async () => {
-      const F = await loadFixture()
-      await expect(
-        F.reverseResolver.read.verifierMetadata([
-          dnsEncodeName(getReverseName(zeroAddress, l2CoinType)),
-        ]),
-      ).resolves.toStrictEqual([F.verifierAddress, F.verifierGateways])
-    })
-    it('invalid coinType', async () => {
-      const F = await loadFixture()
-      await expect(
-        F.reverseResolver.read.verifierMetadata([
-          dnsEncodeName(getReverseName(zeroAddress, ~l2CoinType)),
-        ]),
-      ).resolves.toStrictEqual([zeroAddress, []])
-    })
-    it('invalid address', async () => {
-      const F = await loadFixture()
-      await expect(
-        F.reverseResolver.read.verifierMetadata([
-          dnsEncodeName(getReverseName('0x00', l2CoinType)),
-        ]),
-      ).resolves.toStrictEqual([zeroAddress, []])
-    })
   })
 
   describe('resolve()', () => {
