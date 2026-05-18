@@ -392,16 +392,7 @@ abstract contract AbstractUniversalResolver is
         ) = abi.decode(extraData, (bool, bool, bytes4, bytes));
         bytes memory answer;
         if (multi) {
-            bytes[] memory m = new bytes[](lookups.length);
-            for (uint256 i; i < lookups.length; ++i) {
-                Lookup memory lu = lookups[i];
-                bytes memory v = lu.data;
-                if (extended && (lu.flags & FLAGS_ANY_ERROR) == 0) {
-                    v = abi.decode(v, (bytes)); // unwrap resolve()
-                }
-                m[i] = v;
-            }
-            answer = abi.encode(m);
+            answer = abi.encode(_toResponseArray(lookups, extended));
         } else {
             Lookup memory lu = lookups[0];
             answer = lu.data;

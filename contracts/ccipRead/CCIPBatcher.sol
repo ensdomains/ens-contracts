@@ -4,6 +4,12 @@ pragma solidity ^0.8.17;
 import {IBatchGateway} from "./IBatchGateway.sol";
 import {CCIPReader, EIP3668, OffchainLookup} from "./CCIPReader.sol";
 
+/// @dev CCIP-Read batch gateway client implementation.
+///
+/// Since requests are read-only, empty responses are considered an error.
+///
+/// Usage: `ccipRead(address(this), abi.encodeCall(this.ccipBatch, (createBatch(...))), ...)`
+///
 abstract contract CCIPBatcher is CCIPReader {
     /// @notice The batch gateway supplied an incorrect number of responses.
     /// @dev Error selector: `0x4a5c31ea`
@@ -184,5 +190,31 @@ abstract contract CCIPBatcher is CCIPReader {
             revert InvalidBatchGatewayResponse();
         }
         _revertBatchGateway(batch);
+    }
+
+    /// @dev Safely collapse `Lookup[]` into `bytes[]`.
+    ///      If `FLAGS_ANY_ERROR` and response is non-empty, the response is zero-padded so that `length % 32 == 4`.
+    /// @param lookups Array of completed lookups.
+    /// @param wrapped If `true`, successful responses are unwrapped as `bytes`.
+    /// @return arr Array of call responses.
+    function _toResponseArray(Lookup[] memory lookups, bool wrapped) internal pure returns (bytes[] memory arr) {
+        arr = new bytes[](lookups.length);
+        for (uint256 i; i < lookups.length; ++i) {
+            Lookup memory lu = lookups[i];
+            bytes memory v = lu.data;
+            if ((lu.flags & FLAGS_ANY_ERROR) == 0) {
+                if (wrapped) {
+                    v = abi.decode(v, (bytes));
+                }
+            } else if (v.length != 0) {
+                uint256 rem = v.length & 31;
+                if (rem != 4) {
+                    bytes memory pad = new bytes(rem < 4 ? 4 - rem : rem - 4);
+                    v = abi.encodePacked(v, pad); 
+                }
+            }
+            arr[i] = v;
+        }
+        return arr;
     }
 }
