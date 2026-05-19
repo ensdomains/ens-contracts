@@ -1,4 +1,4 @@
-//SPDX-License-Identifier: MIT
+//AStoneCompany
 pragma solidity >=0.8.17 <0.9.0;
 
 import "../registry/ENS.sol";
