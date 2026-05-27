@@ -1,0 +1,485 @@
+import hre from 'hardhat'
+import {
+  labelhash,
+  namehash,
+  zeroAddress,
+  zeroHash,
+} from 'viem'
+
+import { DAY } from '../fixtures/constants.js'
+
+const REGISTRATION_TIME = 28n * DAY
+const GRACE_PERIOD = 90n * DAY
+
+const connection = await hre.network.connect()
+const publicClient = await connection.viem.getPublicClient()
+const testClient = await connection.viem.getTestClient()
+const [ownerClient, registrantClient, otherClient] =
+  await connection.viem.getWalletClients()
+const ownerAccount = ownerClient.account
+const registrantAccount = registrantClient.account
+const otherAccount = otherClient.account
+
+async function fixture() {
+  const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
+  const baseRegistrar = await connection.viem.deployContract(
+    'BaseRegistrarImplementation',
+    [ensRegistry.address, namehash('testing')],
+  )
+  const reverseRegistrar = await connection.viem.deployContract(
+    'ReverseRegistrar',
+    [ensRegistry.address],
+  )
+  const defaultReverseRegistrar = await connection.viem.deployContract(
+    'DefaultReverseRegistrar',
+    [],
+  )
+
+  await ensRegistry.write.setSubnodeOwner([
+    zeroHash,
+    labelhash('reverse'),
+    ownerAccount.address,
+  ])
+  await ensRegistry.write.setSubnodeOwner([
+    namehash('reverse'),
+    labelhash('addr'),
+    reverseRegistrar.address,
+  ])
+  await ensRegistry.write.setSubnodeOwner([
+    zeroHash,
+    labelhash('testing'),
+    baseRegistrar.address,
+  ])
+
+  const mockNft = await connection.viem.deployContract('MockSMPXNFT', [])
+  await mockNft.write.mint([registrantAccount.address])
+
+  const dummyOracle = await connection.viem.deployContract('DummyOracle', [
+    100000000n,
+  ])
+  const priceOracle = await connection.viem.deployContract(
+    'StablePriceOracle',
+    [dummyOracle.address, [0n, 0n, 4n, 2n, 1n]],
+  )
+
+  const controller = await connection.viem.deployContract(
+    'SimplexController',
+    [
+      baseRegistrar.address,
+      priceOracle.address,
+      600n,
+      86400n,
+      reverseRegistrar.address,
+      defaultReverseRegistrar.address,
+      ensRegistry.address,
+      {
+        tldNode: namehash('testing'),
+        tldSuffix: '.testing',
+        minCharLength: 6,
+        smpxNft: mockNft.address,
+        nftGateEnabled: true,
+      },
+    ],
+  )
+
+  await baseRegistrar.write.addController([controller.address])
+  await reverseRegistrar.write.setController([controller.address, true])
+  await defaultReverseRegistrar.write.setController([
+    controller.address,
+    true,
+  ])
+
+  return {
+    ensRegistry,
+    baseRegistrar,
+    reverseRegistrar,
+    defaultReverseRegistrar,
+    dummyOracle,
+    priceOracle,
+    controller,
+    mockNft,
+  }
+}
+
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
+
+async function commitAndRegister(
+  controller: any,
+  label: string,
+  account: any,
+  duration: bigint = REGISTRATION_TIME,
+) {
+  const registration = {
+    label,
+    owner: account.address,
+    duration,
+    secret: zeroHash,
+    resolver: zeroAddress,
+    data: [],
+    reverseRecord: 0,
+    referrer: zeroHash,
+  }
+  const commitment = await controller.read.makeCommitment([registration])
+  await controller.write.commit([commitment], { account })
+  await testClient.increaseTime({ seconds: 601 })
+  await testClient.mine({ blocks: 1 })
+  const price = await controller.read.rentPrice([label, duration])
+  const value = price.base + price.premium
+  await controller.write.register([registration], { account, value })
+}
+
+describe('SimplexController', () => {
+  describe('Name length gate', () => {
+    it('rejects names shorter than minCharLength', async () => {
+      const { controller } = await loadFixture()
+      const registration = {
+        label: 'short',
+        owner: registrantAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], {
+        account: registrantAccount,
+      })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice([
+        'short',
+        REGISTRATION_TIME,
+      ])
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: price.base + price.premium,
+        }),
+      ).toBeRevertedWithCustomError('NameTooShort')
+    })
+
+    it('accepts names at exactly minCharLength', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'sixchr', registrantAccount)
+    })
+
+    it('accepts names longer than minCharLength', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'longername', registrantAccount)
+    })
+  })
+
+  describe('Admin: setMinCharLength', () => {
+    it('allows owner to decrease minCharLength', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.setMinCharLength([5], { account: ownerAccount })
+      expect(await controller.read.minCharLength()).toBe(5)
+    })
+
+    it('rejects increasing minCharLength', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.setMinCharLength([5], { account: ownerAccount })
+      await expect(
+        controller.write.setMinCharLength([6], { account: ownerAccount }),
+      ).toBeRevertedWithCustomError('MinCharLengthCanOnlyDecrease')
+    })
+
+    it('rejects setting same minCharLength', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.setMinCharLength([6], { account: ownerAccount }),
+      ).toBeRevertedWithCustomError('MinCharLengthCanOnlyDecrease')
+    })
+
+    it('rejects non-owner', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.setMinCharLength([5], {
+          account: registrantAccount,
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('allows registration of shorter names after decrease', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.setMinCharLength([3], { account: ownerAccount })
+      await commitAndRegister(controller, 'abc', registrantAccount)
+    })
+  })
+
+  describe('Reserved names', () => {
+    it('rejects registration of reserved name', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.addReservedName(['simplex'], {
+        account: ownerAccount,
+      })
+      const registration = {
+        label: 'simplex',
+        owner: registrantAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], {
+        account: registrantAccount,
+      })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice([
+        'simplex',
+        REGISTRATION_TIME,
+      ])
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: price.base + price.premium,
+        }),
+      ).toBeRevertedWithCustomError('NameReserved')
+    })
+
+    it('allows registration after removing reserved name', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.addReservedName(['testname'], {
+        account: ownerAccount,
+      })
+      await controller.write.removeReservedName(['testname'], {
+        account: ownerAccount,
+      })
+      await commitAndRegister(controller, 'testname', registrantAccount)
+    })
+
+    it('admin can register reserved name via registerReserved', async () => {
+      const { controller, baseRegistrar } = await loadFixture()
+      await controller.write.addReservedName(['simplex'], {
+        account: ownerAccount,
+      })
+      await controller.write.registerReserved(
+        ['simplex', registrantAccount.address, REGISTRATION_TIME],
+        { account: ownerAccount },
+      )
+      const tokenOwner = await baseRegistrar.read.ownerOf([
+        BigInt(labelhash('simplex')),
+      ])
+      expect(tokenOwner.toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+    })
+
+    it('rejects non-owner adding reserved name', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.addReservedName(['simplex'], {
+          account: registrantAccount,
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+  })
+
+  describe('NFT gate', () => {
+    it('allows NFT holder to register', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'holder', registrantAccount)
+    })
+
+    it('rejects non-NFT-holder', async () => {
+      const { controller } = await loadFixture()
+      const registration = {
+        label: 'noholder',
+        owner: otherAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: otherAccount })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice([
+        'noholder',
+        REGISTRATION_TIME,
+      ])
+      await expect(
+        controller.write.register([registration], {
+          account: otherAccount,
+          value: price.base + price.premium,
+        }),
+      ).toBeRevertedWithCustomError('NftRequired')
+    })
+
+    it('allows anyone after NFT gate is disabled', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.disableNftGate([], { account: ownerAccount })
+      await commitAndRegister(controller, 'anyone', otherAccount)
+    })
+
+    it('disableNftGate is one-way', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.disableNftGate([], { account: ownerAccount })
+      await expect(
+        controller.write.disableNftGate([], { account: ownerAccount }),
+      ).toBeRevertedWithCustomError('NftGateCanOnlyBeDisabled')
+    })
+
+    it('rejects non-owner disabling gate', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.disableNftGate([], { account: registrantAccount }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+  })
+
+  describe('Commit-reveal (unchanged from ENS)', () => {
+    it('registers a name with commit-reveal flow', async () => {
+      const { controller, baseRegistrar } = await loadFixture()
+      await commitAndRegister(controller, 'testname', registrantAccount)
+      const tokenOwner = await baseRegistrar.read.ownerOf([
+        BigInt(labelhash('testname')),
+      ])
+      expect(tokenOwner.toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+    })
+
+    it('rejects registration with insufficient value', async () => {
+      const { controller } = await loadFixture()
+      const registration = {
+        label: 'testname',
+        owner: registrantAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], {
+        account: registrantAccount,
+      })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: 0n,
+        }),
+      ).toBeRevertedWithCustomError('InsufficientValue')
+    })
+  })
+
+  describe('SimplexController without NFT gate (.simplex config)', () => {
+    async function noGateFixture() {
+      const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
+      const baseRegistrar = await connection.viem.deployContract(
+        'BaseRegistrarImplementation',
+        [ensRegistry.address, namehash('simplex')],
+      )
+      const reverseRegistrar = await connection.viem.deployContract(
+        'ReverseRegistrar',
+        [ensRegistry.address],
+      )
+      const defaultReverseRegistrar = await connection.viem.deployContract(
+        'DefaultReverseRegistrar',
+        [],
+      )
+
+      await ensRegistry.write.setSubnodeOwner([
+        zeroHash,
+        labelhash('reverse'),
+        ownerAccount.address,
+      ])
+      await ensRegistry.write.setSubnodeOwner([
+        namehash('reverse'),
+        labelhash('addr'),
+        reverseRegistrar.address,
+      ])
+      await ensRegistry.write.setSubnodeOwner([
+        zeroHash,
+        labelhash('simplex'),
+        baseRegistrar.address,
+      ])
+
+      const dummyOracle = await connection.viem.deployContract('DummyOracle', [
+        100000000n,
+      ])
+      const priceOracle = await connection.viem.deployContract(
+        'StablePriceOracle',
+        [dummyOracle.address, [0n, 0n, 4n, 2n, 1n]],
+      )
+
+      const controller = await connection.viem.deployContract(
+        'SimplexController',
+        [
+          baseRegistrar.address,
+          priceOracle.address,
+          600n,
+          86400n,
+          reverseRegistrar.address,
+          defaultReverseRegistrar.address,
+          ensRegistry.address,
+          {
+            tldNode: namehash('simplex'),
+            tldSuffix: '.simplex',
+            minCharLength: 6,
+            smpxNft: zeroAddress,
+            nftGateEnabled: false,
+          },
+        ],
+      )
+
+      await baseRegistrar.write.addController([controller.address])
+      await reverseRegistrar.write.setController([controller.address, true])
+      await defaultReverseRegistrar.write.setController([
+        controller.address,
+        true,
+      ])
+
+      return { controller, baseRegistrar }
+    }
+
+    const loadNoGateFixture = async () =>
+      connection.networkHelpers.loadFixture(noGateFixture)
+
+    it('allows anyone to register without NFT', async () => {
+      const { controller } = await loadNoGateFixture()
+      await commitAndRegister(controller, 'anyone', otherAccount)
+    })
+
+    it('still enforces minCharLength', async () => {
+      const { controller } = await loadNoGateFixture()
+      const registration = {
+        label: 'short',
+        owner: otherAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: otherAccount })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice([
+        'short',
+        REGISTRATION_TIME,
+      ])
+      await expect(
+        controller.write.register([registration], {
+          account: otherAccount,
+          value: price.base + price.premium,
+        }),
+      ).toBeRevertedWithCustomError('NameTooShort')
+    })
+  })
+})
