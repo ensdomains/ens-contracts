@@ -10,3 +10,4 @@ forge-cache
 out
 deployments/**/.pendingSafeTransactions
 deployments/localhost
+pnpm-lock.yaml
