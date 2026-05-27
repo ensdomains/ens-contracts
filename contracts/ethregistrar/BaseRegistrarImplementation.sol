@@ -4,8 +4,10 @@ import "../registry/ENS.sol";
 import "./IBaseRegistrar.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
+contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable, Initializable, UUPSUpgradeable {
     // A map of expiry times
     mapping(uint256 => uint256) expiries;
     // The ENS registry
@@ -53,6 +55,16 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         ens = _ens;
         baseNode = _baseNode;
     }
+
+    function initialize(ENS _ens, bytes32 _baseNode, address _owner) public initializer {
+        __UUPSUpgradeable_init();
+        ens = _ens;
+        baseNode = _baseNode;
+        _transferOwnership(_owner);
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+
 
     modifier live() {
         require(ens.owner(baseNode) == address(this));
