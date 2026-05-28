@@ -25,6 +25,7 @@ const config = {
     hardhat: {
       type: 'edr-simulated',
       allowUnlimitedContractSize: false,
+      chainId: 1337,
     },
     mainnetFork: {
       type: 'edr-simulated',
