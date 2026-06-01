@@ -1,5 +1,6 @@
 import hre from 'hardhat'
 import {
+  encodeFunctionData,
   labelhash,
   namehash,
   zeroAddress,
@@ -7,6 +8,59 @@ import {
 } from 'viem'
 
 import { DAY } from '../fixtures/constants.js'
+
+/**
+ * Deploy SimplexController behind an ERC1967 proxy. The implementation's
+ * constructor calls _disableInitializers(); initialize() is invoked
+ * atomically as the proxy's constructor data. Tests interact with the
+ * proxy address using the implementation ABI.
+ */
+async function deploySimplexControllerProxy(args: {
+  base: `0x${string}`
+  prices: `0x${string}`
+  minCommitmentAge: bigint
+  maxCommitmentAge: bigint
+  reverseRegistrar: `0x${string}`
+  defaultReverseRegistrar: `0x${string}`
+  ens: `0x${string}`
+  config: {
+    tldNode: `0x${string}`
+    tldSuffix: string
+    minCharLength: number
+    smpxNft: `0x${string}`
+    nftGateEnabled: boolean
+  }
+  ownerAddress: `0x${string}`
+}) {
+  const implementation = await connection.viem.deployContract(
+    'SimplexController',
+    [],
+  )
+  const initData = encodeFunctionData({
+    abi: implementation.abi,
+    functionName: 'initialize',
+    args: [
+      args.base,
+      args.prices,
+      args.minCommitmentAge,
+      args.maxCommitmentAge,
+      args.reverseRegistrar,
+      args.defaultReverseRegistrar,
+      args.ens,
+      args.config,
+      args.ownerAddress,
+    ],
+  })
+  const proxy = await connection.viem.deployContract('SimplexControllerProxy', [
+    implementation.address,
+    initData,
+  ])
+  const controller = await connection.viem.getContractAt(
+    'SimplexController',
+    proxy.address,
+  )
+  return { controller, implementation, proxyAddress: proxy.address }
+}
 
 const REGISTRATION_TIME = 28n * DAY
 const GRACE_PERIOD = 90n * DAY
@@ -62,25 +116,24 @@ async function fixture() {
     [dummyOracle.address, [0n, 0n, 4n, 2n, 1n]],
   )
 
-  const controller = await connection.viem.deployContract(
-    'SimplexController',
-    [
-      baseRegistrar.address,
-      priceOracle.address,
-      600n,
-      86400n,
-      reverseRegistrar.address,
-      defaultReverseRegistrar.address,
-      ensRegistry.address,
-      {
+  const { controller, implementation, proxyAddress } =
+    await deploySimplexControllerProxy({
+      base: baseRegistrar.address,
+      prices: priceOracle.address,
+      minCommitmentAge: 600n,
+      maxCommitmentAge: 86400n,
+      reverseRegistrar: reverseRegistrar.address,
+      defaultReverseRegistrar: defaultReverseRegistrar.address,
+      ens: ensRegistry.address,
+      config: {
         tldNode: namehash('testing'),
         tldSuffix: '.testing',
         minCharLength: 6,
         smpxNft: mockNft.address,
         nftGateEnabled: true,
       },
-    ],
-  )
+      ownerAddress: ownerAccount.address,
+    })
 
   await baseRegistrar.write.addController([controller.address])
   await reverseRegistrar.write.setController([controller.address, true])
@@ -97,6 +150,8 @@ async function fixture() {
     dummyOracle,
     priceOracle,
     controller,
+    implementation,
+    proxyAddress,
     mockNft,
   }
 }
@@ -416,25 +471,23 @@ describe('SimplexController', () => {
         [dummyOracle.address, [0n, 0n, 4n, 2n, 1n]],
       )
 
-      const controller = await connection.viem.deployContract(
-        'SimplexController',
-        [
-          baseRegistrar.address,
-          priceOracle.address,
-          600n,
-          86400n,
-          reverseRegistrar.address,
-          defaultReverseRegistrar.address,
-          ensRegistry.address,
-          {
-            tldNode: namehash('simplex'),
-            tldSuffix: '.simplex',
-            minCharLength: 6,
-            smpxNft: zeroAddress,
-            nftGateEnabled: false,
-          },
-        ],
-      )
+      const { controller } = await deploySimplexControllerProxy({
+        base: baseRegistrar.address,
+        prices: priceOracle.address,
+        minCommitmentAge: 600n,
+        maxCommitmentAge: 86400n,
+        reverseRegistrar: reverseRegistrar.address,
+        defaultReverseRegistrar: defaultReverseRegistrar.address,
+        ens: ensRegistry.address,
+        config: {
+          tldNode: namehash('simplex'),
+          tldSuffix: '.simplex',
+          minCharLength: 6,
+          smpxNft: zeroAddress,
+          nftGateEnabled: false,
+        },
+        ownerAddress: ownerAccount.address,
+      })
 
       await baseRegistrar.write.addController([controller.address])
       await reverseRegistrar.write.setController([controller.address, true])
@@ -480,6 +533,120 @@ describe('SimplexController', () => {
           value: price.base + price.premium,
         }),
       ).toBeRevertedWithCustomError('NameTooShort')
+    })
+  })
+
+  describe('UUPS upgradeability', () => {
+    it('re-initializing the proxy reverts', async () => {
+      const { controller, baseRegistrar, priceOracle, reverseRegistrar, defaultReverseRegistrar, ensRegistry, mockNft } =
+        await loadFixture()
+      await expect(
+        controller.write.initialize(
+          [
+            baseRegistrar.address,
+            priceOracle.address,
+            600n,
+            86400n,
+            reverseRegistrar.address,
+            defaultReverseRegistrar.address,
+            ensRegistry.address,
+            {
+              tldNode: namehash('testing'),
+              tldSuffix: '.testing',
+              minCharLength: 6,
+              smpxNft: mockNft.address,
+              nftGateEnabled: true,
+            },
+            ownerAccount.address,
+          ],
+          { account: otherAccount },
+        ),
+      ).toBeRevertedWithString('Initializable: contract is already initialized')
+    })
+
+    it('implementation contract cannot be initialized directly', async () => {
+      const { implementation, baseRegistrar, priceOracle, reverseRegistrar, defaultReverseRegistrar, ensRegistry, mockNft } =
+        await loadFixture()
+      // The constructor of SimplexController calls _disableInitializers().
+      // Anyone calling initialize() on the implementation directly must revert.
+      await expect(
+        implementation.write.initialize(
+          [
+            baseRegistrar.address,
+            priceOracle.address,
+            600n,
+            86400n,
+            reverseRegistrar.address,
+            defaultReverseRegistrar.address,
+            ensRegistry.address,
+            {
+              tldNode: namehash('testing'),
+              tldSuffix: '.testing',
+              minCharLength: 6,
+              smpxNft: mockNft.address,
+              nftGateEnabled: true,
+            },
+            otherAccount.address,
+          ],
+          { account: otherAccount },
+        ),
+      ).toBeRevertedWithString('Initializable: contract is already initialized')
+    })
+
+    it('non-owner cannot upgrade the proxy', async () => {
+      const { controller } = await loadFixture()
+      const newImpl = await connection.viem.deployContract(
+        'SimplexController',
+        [],
+      )
+      await expect(
+        controller.write.upgradeTo([newImpl.address], {
+          account: registrantAccount,
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('owner can upgrade and storage is preserved', async () => {
+      const { controller } = await loadFixture()
+      // Mutate some state through the proxy to prove it survives the upgrade.
+      await controller.write.setMinCharLength([5], { account: ownerAccount })
+      await controller.write.addReservedName(['preserveme'], {
+        account: ownerAccount,
+      })
+
+      const newImpl = await connection.viem.deployContract(
+        'SimplexController',
+        [],
+      )
+      await controller.write.upgradeTo([newImpl.address], {
+        account: ownerAccount,
+      })
+
+      expect(await controller.read.minCharLength()).toBe(5)
+      expect(
+        await controller.read.reservedNames([
+          labelhash('preserveme'),
+        ]),
+      ).toBe(true)
+    })
+
+    it('upgraded controller can still register names', async () => {
+      const { controller } = await loadFixture()
+      const newImpl = await connection.viem.deployContract(
+        'SimplexController',
+        [],
+      )
+      await controller.write.upgradeTo([newImpl.address], {
+        account: ownerAccount,
+      })
+      await commitAndRegister(controller, 'postupgrade', registrantAccount)
+    })
+
+    it('initial owner is the address passed to initialize, not the deployer', async () => {
+      const { controller } = await loadFixture()
+      expect((await controller.read.owner()).toLowerCase()).toBe(
+        ownerAccount.address.toLowerCase(),
+      )
     })
   })
 })

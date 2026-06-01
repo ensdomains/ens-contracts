@@ -1,9 +1,12 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 import {BaseRegistrarImplementation} from "../ethregistrar/BaseRegistrarImplementation.sol";
@@ -13,17 +16,21 @@ import {ENS} from "../registry/ENS.sol";
 import {IReverseRegistrar} from "../reverseRegistrar/IReverseRegistrar.sol";
 import {IDefaultReverseRegistrar} from "../reverseRegistrar/IDefaultReverseRegistrar.sol";
 import {IETHRegistrarController, IPriceOracle} from "../ethregistrar/IETHRegistrarController.sol";
-import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
 /// @dev Fork of ETHRegistrarController with additional access controls:
 ///      - Minimum name length gate (admin can lower monotonically)
 ///      - Reserved names (admin-managed blocklist)
 ///      - NFT gate (optional, for .testing TLD)
+///
+///      Deployed behind an ERC1967 proxy (UUPS). The implementation has
+///      its initializers disabled in the constructor; storage lives in
+///      the proxy and is preserved across upgrades.
 contract SimplexController is
-    Ownable,
+    Initializable,
+    OwnableUpgradeable,
+    UUPSUpgradeable,
     IETHRegistrarController,
-    ERC165,
-    ERC20Recoverable
+    ERC165
 {
     using StringUtils for *;
 
@@ -32,14 +39,17 @@ contract SimplexController is
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
-    ENS public immutable ens;
-    BaseRegistrarImplementation immutable base;
-    uint256 public immutable minCommitmentAge;
-    uint256 public immutable maxCommitmentAge;
-    IReverseRegistrar public immutable reverseRegistrar;
-    IDefaultReverseRegistrar public immutable defaultReverseRegistrar;
-    IPriceOracle public immutable prices;
-    bytes32 public immutable tldNode;
+    // Was immutable in the non-upgradeable version. Converted to plain
+    // storage so values survive a UUPS upgrade rather than being baked
+    // into each implementation's bytecode.
+    ENS public ens;
+    BaseRegistrarImplementation base;
+    uint256 public minCommitmentAge;
+    uint256 public maxCommitmentAge;
+    IReverseRegistrar public reverseRegistrar;
+    IDefaultReverseRegistrar public defaultReverseRegistrar;
+    IPriceOracle public prices;
+    bytes32 public tldNode;
     string public tldSuffix;
 
     mapping(bytes32 => uint256) public commitments;
@@ -98,7 +108,12 @@ contract SimplexController is
     event ReservedNameRemoved(string name);
     event NftGateDisabled();
 
-    constructor(
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
+    function initialize(
         BaseRegistrarImplementation _base,
         IPriceOracle _prices,
         uint256 _minCommitmentAge,
@@ -106,8 +121,12 @@ contract SimplexController is
         IReverseRegistrar _reverseRegistrar,
         IDefaultReverseRegistrar _defaultReverseRegistrar,
         ENS _ens,
-        SimplexConfig memory _config
-    ) {
+        SimplexConfig memory _config,
+        address _owner
+    ) public initializer {
+        __Ownable_init();
+        __UUPSUpgradeable_init();
+
         if (_maxCommitmentAge <= _minCommitmentAge) revert MaxCommitmentAgeTooLow();
         if (_maxCommitmentAge > block.timestamp) revert MaxCommitmentAgeTooHigh();
 
@@ -123,6 +142,21 @@ contract SimplexController is
         minCharLength = _config.minCharLength;
         smpxNft = _config.smpxNft;
         nftGateEnabled = _config.nftGateEnabled;
+
+        if (_owner != msg.sender) {
+            _transferOwnership(_owner);
+        }
+    }
+
+    function _authorizeUpgrade(address) internal override onlyOwner {}
+
+    /// @notice Recover ERC20 tokens sent to this contract by mistake.
+    function recoverFunds(
+        address _token,
+        address _to,
+        uint256 _amount
+    ) external onlyOwner {
+        IERC20(_token).transfer(_to, _amount);
     }
 
     // --- Simplex admin functions ---
@@ -360,4 +394,10 @@ contract SimplexController is
     ) internal view returns (bool) {
         return valid(label) && base.available(uint256(labelhash));
     }
+
+    /// @dev Reserved storage to allow new state variables in upgrades
+    ///      without colliding with child contracts. Use indices from the
+    ///      front of the array; the size shrinks as state variables are
+    ///      added in future versions.
+    uint256[50] private __gap;
 }

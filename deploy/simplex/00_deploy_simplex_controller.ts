@@ -1,5 +1,5 @@
 import { artifacts, deployScript } from '@rocketh'
-import { namehash, zeroAddress } from 'viem'
+import { encodeFunctionData, namehash, zeroAddress } from 'viem'
 
 export default deployScript(
   async ({
@@ -32,9 +32,19 @@ export default deployScript(
       ? (process.env.SMPX_NFT_ADDRESS || zeroAddress)
       : zeroAddress
 
-    const controller = await deploy('SimplexController', {
+    // 1. Implementation. Its constructor calls _disableInitializers() so
+    //    nobody can hijack the implementation contract itself.
+    const implementation = await deploy('SimplexControllerImpl', {
       account: deployer,
       artifact: artifacts.SimplexController,
+    })
+
+    // 2. Atomically deploy ERC1967 proxy with initialize() call as
+    //    constructor data. State is set in the same tx as deployment;
+    //    no window where the proxy is uninitialised.
+    const initData = encodeFunctionData({
+      abi: artifacts.SimplexController.abi,
+      functionName: 'initialize',
       args: [
         registrar.address,
         priceOracle.address,
@@ -50,28 +60,26 @@ export default deployScript(
           smpxNft: smpxNftAddress,
           nftGateEnabled,
         },
+        owner,
       ],
     })
 
-    if (!controller.newlyDeployed) return
+    const proxy = await deploy('SimplexController', {
+      account: deployer,
+      artifact: artifacts.SimplexControllerProxy,
+      args: [implementation.address, initData],
+    })
 
-    if (owner !== deployer) {
-      console.log(
-        `  - Transferring ownership of SimplexController to ${owner}`,
-      )
-      await write(controller, {
-        functionName: 'transferOwnership',
-        args: [owner],
-        account: deployer,
-      })
-    }
+    if (!proxy.newlyDeployed) return
 
     if (network.name === 'mainnet' && !network.tags?.tenderly) return
+
+    const controllerAddress = proxy.address
 
     console.log(`  - Adding SimplexController as controller on BaseRegistrar`)
     await write(registrar, {
       functionName: 'addController',
-      args: [controller.address],
+      args: [controllerAddress],
       account: owner,
     })
 
@@ -80,7 +88,7 @@ export default deployScript(
     )
     await write(reverseRegistrar, {
       functionName: 'setController',
-      args: [controller.address, true],
+      args: [controllerAddress, true],
       account: owner,
     })
 
@@ -89,12 +97,12 @@ export default deployScript(
     )
     await write(defaultReverseRegistrar, {
       functionName: 'setController',
-      args: [controller.address, true],
+      args: [controllerAddress, true],
       account: owner,
     })
   },
   {
-    id: 'SimplexController v1.0.0',
+    id: 'SimplexController v2.0.0',
     tags: ['category:simplex', 'SimplexController'],
     dependencies: [
       'ENSRegistry',

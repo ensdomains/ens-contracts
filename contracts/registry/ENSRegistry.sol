@@ -1,12 +1,9 @@
 pragma solidity >=0.8.4;
 
 import "./ENS.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /// The ENS registry contract.
-contract ENSRegistry is ENS, Initializable, UUPSUpgradeable, OwnableUpgradeable {
+contract ENSRegistry is ENS {
     struct Record {
         address owner;
         address resolver;
@@ -27,16 +24,6 @@ contract ENSRegistry is ENS, Initializable, UUPSUpgradeable, OwnableUpgradeable 
     constructor() public {
         records[0x0].owner = msg.sender;
     }
-
-    function initialize(address _owner) public initializer {
-        __Ownable_init();
-        __UUPSUpgradeable_init();
-        records[0x0].owner = _owner;
-        transferOwnership(_owner);
-    }
-
-    function _authorizeUpgrade(address) internal override onlyOwner {}
-
 
     /// @dev Sets the record for a node.
     /// @param node The node to update.
