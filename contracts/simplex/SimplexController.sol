@@ -69,6 +69,8 @@ contract SimplexController is
     error ResolverRequiredForReverseRecord();
     error UnexpiredCommitmentExists(bytes32 commitment);
     error InsufficientValue();
+    error TransferFailed();
+    error NameNotReserved(string name);
     struct SimplexConfig {
         bytes32 tldNode;
         string tldSuffix;
@@ -183,6 +185,8 @@ contract SimplexController is
         uint256 duration
     ) external onlyOwner {
         bytes32 labelhash = keccak256(bytes(label));
+        if (!reservedNames[labelhash]) revert NameNotReserved(label);
+        if (duration < MIN_REGISTRATION_DURATION) revert DurationTooShort(duration);
         base.register(uint256(labelhash), owner, duration);
     }
 
@@ -340,8 +344,10 @@ contract SimplexController is
             registration.referrer
         );
 
-        if (msg.value > totalPrice)
-            payable(msg.sender).transfer(msg.value - totalPrice);
+        if (msg.value > totalPrice) {
+            (bool ok, ) = payable(msg.sender).call{value: msg.value - totalPrice}("");
+            if (!ok) revert TransferFailed();
+        }
     }
 
     function renew(
@@ -358,12 +364,15 @@ contract SimplexController is
 
         emit NameRenewed(label, labelhash, price.base, expires, referrer);
 
-        if (msg.value > price.base)
-            payable(msg.sender).transfer(msg.value - price.base);
+        if (msg.value > price.base) {
+            (bool ok, ) = payable(msg.sender).call{value: msg.value - price.base}("");
+            if (!ok) revert TransferFailed();
+        }
     }
 
     function withdraw() public {
-        payable(owner()).transfer(address(this).balance);
+        (bool ok, ) = payable(owner()).call{value: address(this).balance}("");
+        if (!ok) revert TransferFailed();
     }
 
     function supportsInterface(

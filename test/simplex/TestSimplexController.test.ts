@@ -649,4 +649,119 @@ describe('SimplexController', () => {
       )
     })
   })
+
+  describe('Refund / withdraw to smart-contract receiver (M-1)', () => {
+    it('withdraw succeeds when owner is a contract with a non-trivial fallback', async () => {
+      const { controller, baseRegistrar, priceOracle, reverseRegistrar, defaultReverseRegistrar, ensRegistry, mockNft } =
+        await loadFixture()
+
+      // Build a fresh proxy whose owner is a contract whose receive()
+      // does an SSTORE (>2300 gas). The earlier `.transfer()` would
+      // have reverted; the `.call{value:}` form must succeed.
+      const gasHog = await connection.viem.deployContract('GasHogReceiver', [])
+      const { controller: gasHogOwnedController } = await deploySimplexControllerProxy({
+        base: baseRegistrar.address,
+        prices: priceOracle.address,
+        minCommitmentAge: 600n,
+        maxCommitmentAge: 86400n,
+        reverseRegistrar: reverseRegistrar.address,
+        defaultReverseRegistrar: defaultReverseRegistrar.address,
+        ens: ensRegistry.address,
+        config: {
+          tldNode: namehash('testing'),
+          tldSuffix: '.testing',
+          minCharLength: 6,
+          smpxNft: mockNft.address,
+          nftGateEnabled: true,
+        },
+        ownerAddress: gasHog.address,
+      })
+
+      // Seed the controller with some balance; anyone may trigger withdraw.
+      await testClient.setBalance({
+        address: gasHogOwnedController.address,
+        value: 1_000_000_000_000_000_000n,
+      })
+
+      await gasHogOwnedController.write.withdraw([], {
+        account: registrantAccount,
+      })
+
+      expect(await gasHog.read.lastReceived()).toBeGreaterThan(0n)
+    })
+
+    it('register refund succeeds when caller is a contract with a non-trivial fallback', async () => {
+      const { controller, mockNft } = await loadFixture()
+      const gasHog = await connection.viem.deployContract('GasHogReceiver', [])
+      // Mint NFT to the gas-hog contract so it passes the gate.
+      await mockNft.write.mint([gasHog.address])
+
+      // Have the gas-hog send a register tx by impersonating it via
+      // setBalance + setCode trick — viem testClient supports impersonation.
+      await testClient.impersonateAccount({ address: gasHog.address })
+      await testClient.setBalance({
+        address: gasHog.address,
+        value: 10_000_000_000_000_000_000n,
+      })
+
+      const registration = {
+        label: 'refunde',
+        owner: gasHog.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: gasHog.address })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice(['refunde', REGISTRATION_TIME])
+      // Send 10x the price; the controller must refund the excess via .call.
+      await controller.write.register([registration], {
+        account: gasHog.address,
+        value: (price.base + price.premium) * 10n,
+      })
+
+      expect(await gasHog.read.lastReceived()).toBeGreaterThan(0n)
+    })
+  })
+
+  describe('registerReserved access checks (M-2)', () => {
+    it('reverts when the name is not in reservedNames', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.registerReserved(
+          ['unreservedname', registrantAccount.address, REGISTRATION_TIME],
+          { account: ownerAccount },
+        ),
+      ).toBeRevertedWithCustomError('NameNotReserved')
+    })
+
+    it('reverts when duration is below MIN_REGISTRATION_DURATION', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.addReservedName(['shortdur'], {
+        account: ownerAccount,
+      })
+      await expect(
+        controller.write.registerReserved(
+          ['shortdur', registrantAccount.address, 1n],
+          { account: ownerAccount },
+        ),
+      ).toBeRevertedWithCustomError('DurationTooShort')
+    })
+
+    it('reverts for non-owner caller', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.addReservedName(['acl'], { account: ownerAccount })
+      await expect(
+        controller.write.registerReserved(
+          ['acl', registrantAccount.address, REGISTRATION_TIME],
+          { account: registrantAccount },
+        ),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+  })
 })
