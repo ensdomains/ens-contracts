@@ -764,4 +764,115 @@ describe('SimplexController', () => {
       ).toBeRevertedWithString('Ownable: caller is not the owner')
     })
   })
+
+  describe('Two-step ownership transfer (L-1)', () => {
+    it('transferOwnership sets pendingOwner without changing owner', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.transferOwnership([registrantAccount.address], {
+        account: ownerAccount,
+      })
+      expect((await controller.read.owner()).toLowerCase()).toBe(
+        ownerAccount.address.toLowerCase(),
+      )
+      expect((await controller.read.pendingOwner()).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+    })
+
+    it('acceptOwnership by pending owner completes the transfer', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.transferOwnership([registrantAccount.address], {
+        account: ownerAccount,
+      })
+      await controller.write.acceptOwnership([], { account: registrantAccount })
+      expect((await controller.read.owner()).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+    })
+
+    it('acceptOwnership reverts when called by a non-pending account', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.transferOwnership([registrantAccount.address], {
+        account: ownerAccount,
+      })
+      await expect(
+        controller.write.acceptOwnership([], { account: otherAccount }),
+      ).toBeRevertedWithString('Ownable2Step: caller is not the new owner')
+    })
+
+    it('old owner loses admin rights after handover is accepted', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.transferOwnership([registrantAccount.address], {
+        account: ownerAccount,
+      })
+      await controller.write.acceptOwnership([], { account: registrantAccount })
+      await expect(
+        controller.write.setMinCharLength([5], { account: ownerAccount }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('a typo in transferOwnership does not lose admin: original owner stays', async () => {
+      const { controller } = await loadFixture()
+      // simulate a fat-fingered transferOwnership: the wrong address
+      // never calls acceptOwnership, so the original owner is preserved.
+      await controller.write.transferOwnership([otherAccount.address], {
+        account: ownerAccount,
+      })
+      // original owner can still administer
+      await controller.write.setMinCharLength([5], { account: ownerAccount })
+      expect(await controller.read.minCharLength()).toBe(5)
+    })
+  })
+
+  describe('Initializer config bounds (L-3)', () => {
+    it('reverts when _maxCommitmentAge exceeds 30 days', async () => {
+      // 30 days + 1 second
+      const tooHigh = 30n * 86400n + 1n
+      const { baseRegistrar, priceOracle, reverseRegistrar, defaultReverseRegistrar, ensRegistry, mockNft } =
+        await loadFixture()
+      await expect(
+        deploySimplexControllerProxy({
+          base: baseRegistrar.address,
+          prices: priceOracle.address,
+          minCommitmentAge: 600n,
+          maxCommitmentAge: tooHigh,
+          reverseRegistrar: reverseRegistrar.address,
+          defaultReverseRegistrar: defaultReverseRegistrar.address,
+          ens: ensRegistry.address,
+          config: {
+            tldNode: namehash('testing'),
+            tldSuffix: '.testing',
+            minCharLength: 6,
+            smpxNft: mockNft.address,
+            nftGateEnabled: true,
+          },
+          ownerAddress: ownerAccount.address,
+        }),
+      ).rejects.toThrow(/MaxCommitmentAgeTooHigh/)
+    })
+
+    it('accepts _maxCommitmentAge at exactly 30 days', async () => {
+      const exact = 30n * 86400n
+      const { baseRegistrar, priceOracle, reverseRegistrar, defaultReverseRegistrar, ensRegistry, mockNft } =
+        await loadFixture()
+      const { controller } = await deploySimplexControllerProxy({
+        base: baseRegistrar.address,
+        prices: priceOracle.address,
+        minCommitmentAge: 600n,
+        maxCommitmentAge: exact,
+        reverseRegistrar: reverseRegistrar.address,
+        defaultReverseRegistrar: defaultReverseRegistrar.address,
+        ens: ensRegistry.address,
+        config: {
+          tldNode: namehash('testing'),
+          tldSuffix: '.testing',
+          minCharLength: 6,
+          smpxNft: mockNft.address,
+          nftGateEnabled: true,
+        },
+        ownerAddress: ownerAccount.address,
+      })
+      expect(await controller.read.maxCommitmentAge()).toBe(exact)
+    })
+  })
 })

@@ -3,7 +3,7 @@ pragma solidity ~0.8.17;
 
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {Ownable2StepUpgradeable} from "@openzeppelin/contracts-upgradeable/access/Ownable2StepUpgradeable.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -27,7 +27,7 @@ import {IETHRegistrarController, IPriceOracle} from "../ethregistrar/IETHRegistr
 ///      the proxy and is preserved across upgrades.
 contract SimplexController is
     Initializable,
-    OwnableUpgradeable,
+    Ownable2StepUpgradeable,
     UUPSUpgradeable,
     IETHRegistrarController,
     ERC165
@@ -126,11 +126,14 @@ contract SimplexController is
         SimplexConfig memory _config,
         address _owner
     ) public initializer {
-        __Ownable_init();
+        __Ownable2Step_init();
         __UUPSUpgradeable_init();
 
         if (_maxCommitmentAge <= _minCommitmentAge) revert MaxCommitmentAgeTooLow();
-        if (_maxCommitmentAge > block.timestamp) revert MaxCommitmentAgeTooHigh();
+        // Sanity cap on how long a commitment may sit before it expires.
+        // The previous form compared duration to block.timestamp (~1.7e9),
+        // which never triggered for any plausible deploy value.
+        if (_maxCommitmentAge > 30 days) revert MaxCommitmentAgeTooHigh();
 
         ens = _ens;
         base = _base;
