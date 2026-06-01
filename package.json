@@ -73,6 +73,11 @@
   "resolutions": {
     "hardhat": "3.1.4"
   },
+  "pnpm": {
+    "overrides": {
+      "hardhat": "3.1.4"
+    }
+  },
   "directories": {
     "test": "test"
   },
