@@ -177,14 +177,23 @@ contract SimplexController is
         emit MinCharLengthChanged(newMinCharLength);
     }
 
-    function addReservedName(string calldata name) external onlyOwner {
-        reservedNames[keccak256(bytes(name))] = true;
-        emit ReservedNameAdded(name);
+    /// @notice Reserve any number of names in a single transaction. Pass a
+    ///         single-element array to reserve one. Each addition emits a
+    ///         `ReservedNameAdded` event so indexers see them individually.
+    function addReservedNames(string[] calldata names) external onlyOwner {
+        for (uint256 i = 0; i < names.length; ++i) {
+            reservedNames[keccak256(bytes(names[i]))] = true;
+            emit ReservedNameAdded(names[i]);
+        }
     }
 
-    function removeReservedName(string calldata name) external onlyOwner {
-        delete reservedNames[keccak256(bytes(name))];
-        emit ReservedNameRemoved(name);
+    /// @notice Symmetric bulk-remove. Pass a single-element array to remove
+    ///         one. Each removal emits a `ReservedNameRemoved` event.
+    function removeReservedNames(string[] calldata names) external onlyOwner {
+        for (uint256 i = 0; i < names.length; ++i) {
+            delete reservedNames[keccak256(bytes(names[i]))];
+            emit ReservedNameRemoved(names[i]);
+        }
     }
 
     function registerReserved(

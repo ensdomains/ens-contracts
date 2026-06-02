@@ -267,7 +267,7 @@ describe('SimplexController', () => {
   describe('Reserved names', () => {
     it('rejects registration of reserved name', async () => {
       const { controller } = await loadFixture()
-      await controller.write.addReservedName(['simplex'], {
+      await controller.write.addReservedNames([['simplex']], {
         account: ownerAccount,
       })
       const registration = {
@@ -300,10 +300,10 @@ describe('SimplexController', () => {
 
     it('allows registration after removing reserved name', async () => {
       const { controller } = await loadFixture()
-      await controller.write.addReservedName(['testname'], {
+      await controller.write.addReservedNames([['testname']], {
         account: ownerAccount,
       })
-      await controller.write.removeReservedName(['testname'], {
+      await controller.write.removeReservedNames([['testname']], {
         account: ownerAccount,
       })
       await commitAndRegister(controller, 'testname', registrantAccount)
@@ -311,7 +311,7 @@ describe('SimplexController', () => {
 
     it('admin can register reserved name via registerReserved', async () => {
       const { controller, baseRegistrar } = await loadFixture()
-      await controller.write.addReservedName(['simplex'], {
+      await controller.write.addReservedNames([['simplex']], {
         account: ownerAccount,
       })
       await controller.write.registerReserved(
@@ -329,10 +329,39 @@ describe('SimplexController', () => {
     it('rejects non-owner adding reserved name', async () => {
       const { controller } = await loadFixture()
       await expect(
-        controller.write.addReservedName(['simplex'], {
+        controller.write.addReservedNames([['simplex']], {
           account: registrantAccount,
         }),
       ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('reserves and unreserves many names in a single transaction', async () => {
+      const { controller } = await loadFixture()
+      const labels = ['alpha', 'bravo', 'charlie', 'delta', 'echo']
+      const { keccak256, toBytes } = await import('viem')
+      await controller.write.addReservedNames([labels], {
+        account: ownerAccount,
+      })
+      for (const l of labels) {
+        expect(
+          await controller.read.reservedNames([keccak256(toBytes(l))]),
+        ).toBe(true)
+      }
+      await controller.write.removeReservedNames([labels], {
+        account: ownerAccount,
+      })
+      for (const l of labels) {
+        expect(
+          await controller.read.reservedNames([keccak256(toBytes(l))]),
+        ).toBe(false)
+      }
+    })
+
+    it('empty bulk-add is a no-op (does not revert)', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.addReservedNames([[]], {
+        account: ownerAccount,
+      })
     })
   })
 
@@ -610,7 +639,7 @@ describe('SimplexController', () => {
       const { controller } = await loadFixture()
       // Mutate some state through the proxy to prove it survives the upgrade.
       await controller.write.setMinCharLength([5], { account: ownerAccount })
-      await controller.write.addReservedName(['preserveme'], {
+      await controller.write.addReservedNames([['preserveme']], {
         account: ownerAccount,
       })
 
@@ -742,7 +771,7 @@ describe('SimplexController', () => {
 
     it('reverts when duration is below MIN_REGISTRATION_DURATION', async () => {
       const { controller } = await loadFixture()
-      await controller.write.addReservedName(['shortdur'], {
+      await controller.write.addReservedNames([['shortdur']], {
         account: ownerAccount,
       })
       await expect(
@@ -755,7 +784,7 @@ describe('SimplexController', () => {
 
     it('reverts for non-owner caller', async () => {
       const { controller } = await loadFixture()
-      await controller.write.addReservedName(['acl'], { account: ownerAccount })
+      await controller.write.addReservedNames([['acl']], { account: ownerAccount })
       await expect(
         controller.write.registerReserved(
           ['acl', registrantAccount.address, REGISTRATION_TIME],
