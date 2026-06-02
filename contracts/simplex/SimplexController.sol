@@ -59,6 +59,7 @@ contract SimplexController is
     mapping(bytes32 => bool) public reservedNames;
     IERC721 public smpxNft;
     bool public nftGateEnabled;
+    bool public priceOracleFrozen;
 
     error CommitmentNotFound(bytes32 commitment);
     error CommitmentTooNew(bytes32 commitment, uint256 minimumCommitmentTimestamp, uint256 currentTimestamp);
@@ -86,6 +87,8 @@ contract SimplexController is
     error NftRequired();
     error MinCharLengthCanOnlyDecrease();
     error NftGateCanOnlyBeDisabled();
+    error PriceOracleAlreadyFrozen();
+    error ZeroAddress();
 
     event NameRegistered(
         string label,
@@ -109,6 +112,8 @@ contract SimplexController is
     event ReservedNameAdded(string name);
     event ReservedNameRemoved(string name);
     event NftGateDisabled();
+    event PriceOracleChanged(IPriceOracle indexed newOracle);
+    event PriceOracleFrozen();
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -197,6 +202,24 @@ contract SimplexController is
         if (!nftGateEnabled) revert NftGateCanOnlyBeDisabled();
         nftGateEnabled = false;
         emit NftGateDisabled();
+    }
+
+    /// @notice Swap the active price oracle. Reverts after `freezePriceOracle`
+    ///         has been called so the contract can graduate to immutable
+    ///         pricing without a full UUPS upgrade.
+    function setPriceOracle(IPriceOracle newOracle) external onlyOwner {
+        if (priceOracleFrozen) revert PriceOracleAlreadyFrozen();
+        if (address(newOracle) == address(0)) revert ZeroAddress();
+        prices = newOracle;
+        emit PriceOracleChanged(newOracle);
+    }
+
+    /// @notice One-way: permanently disables `setPriceOracle`. Matches the
+    ///         renounce-later pattern used for the NFT gate.
+    function freezePriceOracle() external onlyOwner {
+        if (priceOracleFrozen) revert PriceOracleAlreadyFrozen();
+        priceOracleFrozen = true;
+        emit PriceOracleFrozen();
     }
 
     // --- ENS controller functions (unchanged logic, added gates) ---
@@ -411,5 +434,8 @@ contract SimplexController is
     ///      without colliding with child contracts. Use indices from the
     ///      front of the array; the size shrinks as state variables are
     ///      added in future versions.
-    uint256[50] private __gap;
+    // Decremented from 50 to 49 when `priceOracleFrozen` was added in the
+    // setPriceOracle / freezePriceOracle change. Decrement further whenever
+    // new state variables land here.
+    uint256[49] private __gap;
 }

@@ -875,4 +875,114 @@ describe('SimplexController', () => {
       expect(await controller.read.maxCommitmentAge()).toBe(exact)
     })
   })
+
+  describe('Price oracle admin (setPriceOracle / freezePriceOracle)', () => {
+    it('owner can swap the price oracle', async () => {
+      const { controller, dummyOracle } = await loadFixture()
+      // Deploy a second oracle (different prices) to swap to.
+      const newStable = await connection.viem.deployContract(
+        'StablePriceOracle',
+        [dummyOracle.address, [0n, 0n, 0n, 0n, 0n]],
+      )
+      await controller.write.setPriceOracle([newStable.address], {
+        account: ownerAccount,
+      })
+      expect((await controller.read.prices()).toLowerCase()).toBe(
+        newStable.address.toLowerCase(),
+      )
+    })
+
+    it('rejects non-owner setPriceOracle', async () => {
+      const { controller, dummyOracle } = await loadFixture()
+      const newStable = await connection.viem.deployContract(
+        'StablePriceOracle',
+        [dummyOracle.address, [0n, 0n, 0n, 0n, 0n]],
+      )
+      await expect(
+        controller.write.setPriceOracle([newStable.address], {
+          account: registrantAccount,
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('rejects setPriceOracle with the zero address', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.setPriceOracle([zeroAddress], {
+          account: ownerAccount,
+        }),
+      ).toBeRevertedWithCustomError('ZeroAddress')
+    })
+
+    it('owner can freeze the price oracle (one-way)', async () => {
+      const { controller } = await loadFixture()
+      expect(await controller.read.priceOracleFrozen()).toBe(false)
+      await controller.write.freezePriceOracle([], { account: ownerAccount })
+      expect(await controller.read.priceOracleFrozen()).toBe(true)
+    })
+
+    it('rejects non-owner freezePriceOracle', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.freezePriceOracle([], { account: registrantAccount }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('setPriceOracle reverts after freeze', async () => {
+      const { controller, dummyOracle } = await loadFixture()
+      await controller.write.freezePriceOracle([], { account: ownerAccount })
+      const newStable = await connection.viem.deployContract(
+        'StablePriceOracle',
+        [dummyOracle.address, [0n, 0n, 0n, 0n, 0n]],
+      )
+      await expect(
+        controller.write.setPriceOracle([newStable.address], {
+          account: ownerAccount,
+        }),
+      ).toBeRevertedWithCustomError('PriceOracleAlreadyFrozen')
+    })
+
+    it('double-freeze reverts', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.freezePriceOracle([], { account: ownerAccount })
+      await expect(
+        controller.write.freezePriceOracle([], { account: ownerAccount }),
+      ).toBeRevertedWithCustomError('PriceOracleAlreadyFrozen')
+    })
+
+    it('registration uses the new oracle after a swap', async () => {
+      const { controller, dummyOracle } = await loadFixture()
+      // Swap to a zero-price oracle. Registration should then succeed with
+      // value=0 (the controller refuses msg.value < totalPrice; totalPrice=0
+      // means anything passes).
+      const freeOracle = await connection.viem.deployContract(
+        'StablePriceOracle',
+        [dummyOracle.address, [0n, 0n, 0n, 0n, 0n]],
+      )
+      await controller.write.setPriceOracle([freeOracle.address], {
+        account: ownerAccount,
+      })
+
+      const registration = {
+        label: 'freelb',
+        owner: registrantAccount.address,
+        duration: REGISTRATION_TIME,
+        secret: zeroHash,
+        resolver: zeroAddress,
+        data: [],
+        reverseRecord: 0,
+        referrer: zeroHash,
+      }
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], {
+        account: registrantAccount,
+      })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      await controller.write.register([registration], {
+        account: registrantAccount,
+        value: 0n,
+      })
+    })
+  })
 })
