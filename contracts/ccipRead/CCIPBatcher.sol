@@ -207,7 +207,7 @@ abstract contract CCIPBatcher is CCIPReader {
                     v = abi.decode(v, (bytes));
                 }
             } else if (v.length != 0) {
-                // pad error response to length mod 4
+                // force pad error response to length mod 32 == 4
                 // prevents unverified data from passing as valid response 
                 unchecked {
                     uint256 pad = (4 - v.length) & 31;
