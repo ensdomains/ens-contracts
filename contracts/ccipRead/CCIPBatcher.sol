@@ -207,10 +207,13 @@ abstract contract CCIPBatcher is CCIPReader {
                     v = abi.decode(v, (bytes));
                 }
             } else if (v.length != 0) {
-                uint256 rem = v.length & 31;
-                if (rem != 4) {
-                    bytes memory pad = new bytes(rem < 4 ? 4 - rem : rem - 4);
-                    v = abi.encodePacked(v, pad); 
+                // pad error response to length mod 4
+                // prevents unverified data from passing as valid response 
+                unchecked {
+                    uint256 pad = (4 - v.length) & 31;
+                    if (pad > 0) {
+                        v = abi.encodePacked(v, new bytes(pad)); 
+                    }
                 }
             }
             arr[i] = v;
