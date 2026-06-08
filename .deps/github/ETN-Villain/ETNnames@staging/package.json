@@ -1,0 +1,91 @@
+{
+  "name": "@ensdomains/ens-contracts",
+  "version": "1.7.0",
+  "description": "ENS contracts",
+  "type": "module",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "bun run compile && NODE_OPTIONS=\"--disable-warning=ExperimentalWarning\" vitest run",
+    "test:remote": "TEST_REMOTE=1 bun run test ./test/**/Test*.remote.ts",
+    "test:parallel": "bun run test ./test/**/Test*.ts --sequence.concurrent",
+    "test:local": "bun run test --network localhost",
+    "test:deploy": "bun ./scripts/deploy-test.ts",
+    "l2:deploy": "bun run hh deploy --tags l2",
+    "interfaces": "bun run compile --quiet && bun ./scripts/interfaces.ts",
+    "lint": "bun run hh check",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "format": "prettier --write .",
+    "prepublishOnly": "bun run build",
+    "pub": "npm publish --access public",
+    "wiki": "bun ./scripts/wiki.ts"
+  },
+  "files": [
+    "build",
+    "contracts/**/*.sol",
+    "artifacts",
+    "deployments"
+  ],
+  "main": "index.js",
+  "devDependencies": {
+    "@ensdomains/address-encoder": "1.1.2",
+    "@ensdomains/dnsprovejs": "^0.5.1",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.1.14",
+    "@namestone/ezccip": "^0.1.1",
+    "@nomicfoundation/hardhat-keystore": "^3.0.0",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
+    "@nomicfoundation/hardhat-viem": "^3.0.0",
+    "@rocketh/deploy": "0.14.0",
+    "@rocketh/read-execute": "0.14.0",
+    "@rocketh/verifier": "0.14.5",
+    "@rocketh/viem": "0.14.0",
+    "@safe-global/api-kit": "^2.5.6",
+    "@safe-global/protocol-kit": "5.2.13",
+    "@safe-global/safe-core-sdk-types": "^5.1.0",
+    "@types/mocha": "^9.1.1",
+    "@types/node": "^18.0.0",
+    "@viem/anvil": "^0.0.10",
+    "abitype": "^1.0.8",
+    "chai": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.15.0",
+    "hardhat": "3.1.4",
+    "hardhat-deploy": "^2.0.0-next.35",
+    "husky": "^9.1.7",
+    "prettier": "^2.6.2",
+    "prettier-plugin-solidity": "^1.0.0-beta.24",
+    "rocketh": "0.14.5",
+    "ts-node": "^10.9.2",
+    "typescript": "5.9.2",
+    "viem": "2.33.3",
+    "vitest": "^3.2.3"
+  },
+  "dependencies": {
+    "@ensdomains/buffer": "^0.1.3",
+    "@ensdomains/solsha1": "0.0.3",
+    "@openzeppelin/contracts": "4.9.3",
+    "@openzeppelin/contracts-v5": "npm:@openzeppelin/contracts@5.1.0",
+    "@unruggable/gateways": "^1.3.0",
+    "clones-with-immutable-args": "Arachnid/clones-with-immutable-args#feature/create2",
+    "dns-packet": "^5.3.0",
+    "glob": "^11.0.3"
+  },
+  "resolutions": {
+    "hardhat": "3.1.4"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ensdomains/ens-contracts.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ensdomains/ens-contracts/issues"
+  },
+  "homepage": "https://github.com/ensdomains/ens-contracts#readme",
+  "volta": {
+    "node": "24.6.0"
+  }
+}
