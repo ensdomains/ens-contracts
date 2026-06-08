@@ -1,0 +1,26 @@
+{
+  "name": "contracts",
+  "version": "0.4.0",
+  "description": "Validation library to define and validate JSON Schemas for functions and express handlers. Supports filters.",
+  "keywords": [
+    "json schema",
+    "schema",
+    "data",
+    "validation",
+    "express"
+  ],
+  "author": "Eirikur Nilsson <eirikur@nilsson.is>",
+  "url": "http://github.com/eirikurn/contracts/",
+  "dependencies": {
+    "JSV": "3.5.0",
+    "validator": "0.2.9"
+  },
+  "devDependencies": {
+    "expresso": "0.9.x",
+    "should": "0.6.x"
+  },
+  "main": "index",
+  "engines": {
+    "node": ">= 0.6.0"
+  }
+}

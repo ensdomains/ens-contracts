@@ -1,0 +1,17 @@
+{
+  "contracts@0.4.0/ETNNamehash.sol": ".deps/npm/contracts@0.4.0/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/YOUR_USERNAME/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/YOUR_USERNAME/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/E/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/E/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ET/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ET/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN-/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-V/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN-V/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Vi/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Vi/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Vil/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Vil/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/YOUR_REPO_NAME/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/YOUR_REPO_NAME@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/E/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/E@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ET/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ET@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ETN/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETN@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ETNn/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNn@main/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ETNnames/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@main/contracts/ETNNamehash.sol"
+}
