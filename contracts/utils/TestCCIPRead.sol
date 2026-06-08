@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {console} from "hardhat/console.sol";
-
 import {EIP3668, OffchainLookup} from "../ccipRead/EIP3668.sol";
 import {CCIPReader} from "../ccipRead/CCIPReader.sol";
 import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
@@ -180,8 +178,8 @@ contract TestCCIPRead is CCIPBatcher {
     function test_ccipBatchCallback_expectedSizeMismatch() external view {
         try
             this.ccipBatchCallback(
-                abi.encode(new bool[](1), new bytes[](2)),
-                abi.encode(Batch(new Lookup[](3), new string[](0)))
+                abi.encode(new bool[](0), new bytes[](0)),
+                abi.encode(Batch(new Lookup[](1), new string[](0)))
             )
         returns (Batch memory) {
             revert("bug");
