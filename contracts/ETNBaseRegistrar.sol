@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import "https://raw.githubusercontent.com/ETN-Villain/ETNnames/main/contracts/ETNNamehash.sol";
-import "https://raw.githubusercontent.com/ETN-Villain/ETNnames/main/contracts/ETNRegistry.sol";
+import "https://raw.githubusercontent.com/ETN-Villain/ETNnames/staging/contracts/ETNNamehash.sol";
+import "https://raw.githubusercontent.com/ETN-Villain/ETNnames/staging/contracts/ETNRegistry.sol";
 // ─── Minimal interfaces ───────────────────────────────────────────────────────
 
 interface IETNResolver {
