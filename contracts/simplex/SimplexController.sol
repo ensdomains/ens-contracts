@@ -39,6 +39,14 @@ contract SimplexController is
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
+    // Manual reentrancy guard (see `_reentrancyStatus` + `nonReentrant`).
+    // Implemented by hand rather than inheriting ReentrancyGuardUpgradeable so
+    // the guard's state appends to the reserved `__gap` instead of inserting a
+    // new base contract's storage ahead of existing variables — see
+    // docs/upgrades.md (this contract is already deployed behind a UUPS proxy).
+    uint256 private constant _NOT_ENTERED = 1;
+    uint256 private constant _ENTERED = 2;
+
     // Was immutable in the non-upgradeable version. Converted to plain
     // storage so values survive a UUPS upgrade rather than being baked
     // into each implementation's bytecode.
@@ -115,6 +123,20 @@ contract SimplexController is
     event PriceOracleChanged(IPriceOracle indexed newOracle);
     event PriceOracleFrozen();
 
+    error ReentrantCall();
+
+    /// @dev Manual `nonReentrant`. A freshly-zero `_reentrancyStatus` (the case
+    ///      for the already-deployed instance, whose `initialize` does not
+    ///      re-run on upgrade) reads as not-entered, so the guard is correct
+    ///      without a reinitializer; `initialize` seeds it to `_NOT_ENTERED`
+    ///      for fresh deploys to get the cheaper steady-state cost.
+    modifier nonReentrant() {
+        if (_reentrancyStatus == _ENTERED) revert ReentrantCall();
+        _reentrancyStatus = _ENTERED;
+        _;
+        _reentrancyStatus = _NOT_ENTERED;
+    }
+
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
         _disableInitializers();
@@ -133,6 +155,7 @@ contract SimplexController is
     ) public initializer {
         __Ownable2Step_init();
         __UUPSUpgradeable_init();
+        _reentrancyStatus = _NOT_ENTERED;
 
         if (_maxCommitmentAge <= _minCommitmentAge) revert MaxCommitmentAgeTooLow();
         // Sanity cap on how long a commitment may sit before it expires.
@@ -267,7 +290,7 @@ contract SimplexController is
         return keccak256(abi.encode(registration));
     }
 
-    function commit(bytes32 commitment) public override {
+    function commit(bytes32 commitment) public override nonReentrant {
         if (commitments[commitment] + maxCommitmentAge >= block.timestamp) {
             revert UnexpiredCommitmentExists(commitment);
         }
@@ -285,7 +308,7 @@ contract SimplexController is
 
     function register(
         Registration calldata registration
-    ) public payable override {
+    ) public payable override nonReentrant {
         _checkSimplexGates(registration.label);
 
         bytes32 labelhash = keccak256(bytes(registration.label));
@@ -389,7 +412,7 @@ contract SimplexController is
         string calldata label,
         uint256 duration,
         bytes32 referrer
-    ) external payable override {
+    ) external payable override nonReentrant {
         bytes32 labelhash = keccak256(bytes(label));
 
         IPriceOracle.Price memory price = _rentPrice(label, labelhash, duration);
@@ -405,7 +428,7 @@ contract SimplexController is
         }
     }
 
-    function withdraw() public {
+    function withdraw() public nonReentrant {
         (bool ok, ) = payable(owner()).call{value: address(this).balance}("");
         if (!ok) revert TransferFailed();
     }
@@ -446,5 +469,7 @@ contract SimplexController is
     // Decremented from 50 to 49 when `priceOracleFrozen` was added in the
     // setPriceOracle / freezePriceOracle change. Decrement further whenever
     // new state variables land here.
-    uint256[49] private __gap;
+    // 49 -> 48 when `_reentrancyStatus` was added (reentrancy guard).
+    uint256 private _reentrancyStatus;
+    uint256[48] private __gap;
 }

@@ -1014,4 +1014,71 @@ describe('SimplexController', () => {
       })
     })
   })
+
+  describe('Reentrancy guard', () => {
+    // A registration whose resolver is the malicious contract and whose `data`
+    // is non-empty, so `register` invokes `multicallWithNodeCheck` (the re-entry
+    // point) while the nonReentrant lock is held.
+    const attackRegistration = (resolver: `0x${string}`) => ({
+      label: 'reentrancytest',
+      owner: registrantAccount.address,
+      duration: REGISTRATION_TIME,
+      secret: zeroHash,
+      resolver,
+      data: ['0x12345678' as `0x${string}`],
+      reverseRecord: 0,
+      referrer: zeroHash,
+    })
+
+    for (const [name, mode] of [
+      ['register', 0],
+      ['commit', 1],
+      ['withdraw', 2],
+    ] as const) {
+      it(`reverts when the resolver re-enters ${name} during register`, async () => {
+        const { controller } = await loadFixture()
+        const attacker = await connection.viem.deployContract(
+          'ReentrantResolver',
+          [controller.address],
+        )
+        await attacker.write.setMode([mode])
+
+        const registration = attackRegistration(attacker.address)
+        const commitment = await controller.read.makeCommitment([registration])
+        await controller.write.commit([commitment], { account: registrantAccount })
+        await testClient.increaseTime({ seconds: 601 })
+        await testClient.mine({ blocks: 1 })
+        const price = await controller.read.rentPrice([
+          registration.label,
+          REGISTRATION_TIME,
+        ])
+
+        await expect(
+          controller.write.register([registration], {
+            account: registrantAccount,
+            value: price.base + price.premium,
+          }),
+        ).toBeRevertedWithCustomError('ReentrantCall')
+      })
+    }
+
+    it('still allows a normal (non-reentrant) registration', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'normalname', registrantAccount)
+      expect(
+        await controller.read.makeCommitment([
+          {
+            label: 'normalname',
+            owner: registrantAccount.address,
+            duration: REGISTRATION_TIME,
+            secret: zeroHash,
+            resolver: zeroAddress,
+            data: [],
+            reverseRecord: 0,
+            referrer: zeroHash,
+          },
+        ]),
+      ).toBeDefined()
+    })
+  })
 })
