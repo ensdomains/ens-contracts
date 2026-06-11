@@ -1438,9 +1438,207 @@ describe('SimplexController', () => {
     })
   })
 
-  // Deferred: NameWrapper integration (wrap a registered SNRC name). The
-  // upstream NameWrapper is hardcoded to the `.eth` node (ETH_NODE) for
-  // wrapETH2LD, so wrapping a `.testing` name needs separate investigation of
-  // how SNRC wraps non-.eth TLDs. Tracked for a follow-up.
-  it.skip('wraps a registered SNRC name via NameWrapper (deferred — .eth-hardcoded)', () => {})
+  // NameWrapper integration. FINDING: the verbatim ENS NameWrapper hardcodes
+  // ETH_NODE = namehash('eth'); `wrapETH2LD` / `_wrapETH2LD` always derive the
+  // wrapped node from ETH_NODE and DNS-encode "\x03eth\x00". The SNRC
+  // BaseRegistrar keys tokens by labelhash (TLD-agnostic), so a `.testing` 2LD
+  // CAN be fed into wrapETH2LD — but it is wrapped under the WRONG node
+  // (`label.eth`), not `label.testing`. These tests pin that broken behaviour
+  // so a future TLD-parameterised NameWrapper can flip them. See the issue.
+  describe('Branch gap-fill (full coverage)', () => {
+    const depsFrom = (f: any) => ({
+      base: f.baseRegistrar.address,
+      prices: f.priceOracle.address,
+      minCommitmentAge: 600n,
+      maxCommitmentAge: 86400n,
+      reverseRegistrar: f.reverseRegistrar.address,
+      defaultReverseRegistrar: f.defaultReverseRegistrar.address,
+      ens: f.ensRegistry.address,
+      config: {
+        tldNode: namehash('testing'),
+        tldSuffix: '.testing',
+        minCharLength: 6,
+        smpxNft: f.mockNft.address,
+        nftGateEnabled: true,
+      },
+      ownerAddress: ownerAccount.address,
+    })
+
+    it('initialize reverts MaxCommitmentAgeTooLow when max <= min', async () => {
+      const f = await loadFixture()
+      await expect(
+        deploySimplexControllerProxy({
+          ...depsFrom(f),
+          minCommitmentAge: 600n,
+          maxCommitmentAge: 600n, // max <= min
+        }),
+      ).rejects.toThrow()
+    })
+
+    it('makeCommitment reverts DurationTooShort below MIN_REGISTRATION_DURATION', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.read.makeCommitment([mkReg({ duration: 1n })]),
+      ).toBeRevertedWithCustomError('DurationTooShort')
+    })
+
+    it('register reverts NameNotAvailable for an already-registered name', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'takenname', registrantAccount)
+      const registration = mkReg({ label: 'takenname' })
+      await commitWait(controller, registration)
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: await totalPrice(controller, 'takenname'),
+        }),
+      ).toBeRevertedWithCustomError('NameNotAvailable')
+    })
+
+    it('owner can recover ERC-20 tokens sent to the contract by mistake', async () => {
+      const { controller } = await loadFixture()
+      const token = await connection.viem.deployContract('MockERC20', [
+        'Token',
+        'TKN',
+        [controller.address],
+      ])
+      const bal = await token.read.balanceOf([controller.address])
+      expect(bal > 0n).toBe(true)
+      await controller.write.recoverFunds([token.address, registrantAccount.address, bal], {
+        account: ownerAccount,
+      })
+      expect(await token.read.balanceOf([registrantAccount.address])).toBe(bal)
+      expect(await token.read.balanceOf([controller.address])).toBe(0n)
+    })
+
+    it('rejects non-owner recoverFunds', async () => {
+      const { controller } = await loadFixture()
+      const token = await connection.viem.deployContract('MockERC20', ['Token', 'TKN', []])
+      await expect(
+        controller.write.recoverFunds([token.address, registrantAccount.address, 1n], {
+          account: registrantAccount,
+        }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('withdraw reverts TransferFailed when the owner rejects ETH', async () => {
+      const f = await loadFixture()
+      const rejecter = await connection.viem.deployContract('RejectEther', [])
+      const { controller } = await deploySimplexControllerProxy({
+        ...depsFrom(f),
+        ownerAddress: rejecter.address,
+      })
+      await testClient.setBalance({
+        address: controller.address,
+        value: 1_000_000_000_000_000_000n,
+      })
+      await expect(
+        controller.write.withdraw({ account: registrantAccount }),
+      ).toBeRevertedWithCustomError('TransferFailed')
+    })
+
+    it('register reverts TransferFailed when the refund recipient rejects ETH', async () => {
+      const { controller, mockNft } = await loadFixture()
+      const rejecter = await connection.viem.deployContract('RejectEther', [])
+      await mockNft.write.mint([rejecter.address])
+      await testClient.impersonateAccount({ address: rejecter.address })
+      await testClient.setBalance({
+        address: rejecter.address,
+        value: 10_000_000_000_000_000_000n,
+      })
+      const registration = mkReg({ label: 'refundfail', owner: rejecter.address })
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: rejecter.address })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const total = await totalPrice(controller, 'refundfail')
+      await expect(
+        controller.write.register([registration], {
+          account: rejecter.address,
+          value: total + 1_000_000n, // excess → refund fails
+        }),
+      ).toBeRevertedWithCustomError('TransferFailed')
+    })
+
+    it('renew reverts TransferFailed when the refund recipient rejects ETH', async () => {
+      const { controller, mockNft } = await loadFixture()
+      const rejecter = await connection.viem.deployContract('RejectEther', [])
+      await mockNft.write.mint([rejecter.address])
+      await testClient.impersonateAccount({ address: rejecter.address })
+      await testClient.setBalance({
+        address: rejecter.address,
+        value: 10_000_000_000_000_000_000n,
+      })
+      const registration = mkReg({ label: 'renewfail', owner: rejecter.address })
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: rejecter.address })
+      await testClient.increaseTime({ seconds: 601 })
+      await testClient.mine({ blocks: 1 })
+      const total = await totalPrice(controller, 'renewfail')
+      await controller.write.register([registration], {
+        account: rejecter.address,
+        value: total, // exact — no refund, so register succeeds
+      })
+      const price = await controller.read.rentPrice(['renewfail', REGISTRATION_TIME])
+      await expect(
+        controller.write.renew(['renewfail', REGISTRATION_TIME, zeroHash], {
+          account: rejecter.address,
+          value: price.base + 1_000_000n, // excess → refund fails
+        }),
+      ).toBeRevertedWithCustomError('TransferFailed')
+    })
+  })
+
+  describe('NameWrapper integration (verbatim — ETH_NODE hardcoded)', () => {
+    const deployWrapper = async (ensRegistry: any, baseRegistrar: any) => {
+      const metadata = await connection.viem.deployContract('StaticMetadataService', [
+        'https://example.com/',
+      ])
+      return connection.viem.deployContract('NameWrapper', [
+        ensRegistry.address,
+        baseRegistrar.address,
+        metadata.address,
+      ])
+    }
+
+    it('mis-wraps a .testing name under the .eth node (resolver omitted)', async () => {
+      const { controller, ensRegistry, baseRegistrar } = await loadFixture()
+      const wrapper = await deployWrapper(ensRegistry, baseRegistrar)
+      await commitAndRegister(controller, 'wrapme', registrantAccount)
+      await baseRegistrar.write.setApprovalForAll([wrapper.address, true], {
+        account: registrantAccount,
+      })
+      await wrapper.write.wrapETH2LD(['wrapme', registrantAccount.address, 0, zeroAddress], {
+        account: registrantAccount,
+      })
+
+      const ethNode = BigInt(namehash('wrapme.eth'))
+      const testingNode = namehash('wrapme.testing')
+      // The ERC-1155 was minted for `wrapme.eth`, NOT `wrapme.testing`.
+      expect((await wrapper.read.ownerOf([ethNode])).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+      expect(await wrapper.read.ownerOf([BigInt(testingNode)])).toBe(zeroAddress)
+      // Meanwhile the real registry node is orphaned: owned by the wrapper but
+      // with no corresponding wrapped token.
+      expect((await ensRegistry.read.owner([testingNode])).toLowerCase()).toBe(
+        wrapper.address.toLowerCase(),
+      )
+    })
+
+    it('reverts when a resolver is supplied (wrapper not authorised for the .eth node)', async () => {
+      const { controller, ensRegistry, baseRegistrar, reverseRegistrar } = await loadFixture()
+      const wrapper = await deployWrapper(ensRegistry, baseRegistrar)
+      const resolver = await deployPublicResolver(controller, ensRegistry, reverseRegistrar)
+      await commitAndRegister(controller, 'wrapme2', registrantAccount)
+      await baseRegistrar.write.setApprovalForAll([wrapper.address, true], {
+        account: registrantAccount,
+      })
+      await expect(
+        wrapper.write.wrapETH2LD(['wrapme2', registrantAccount.address, 0, resolver.address], {
+          account: registrantAccount,
+        }),
+      ).rejects.toThrow()
+    })
+  })
 })
