@@ -3,8 +3,10 @@ import type { Artifact } from 'rocketh'
 import { namehash, zeroAddress, type Abi } from 'viem'
 import wrappedEthRegistrarArtifactRaw from '../../deployments/mainnet/WrappedETHRegistrarController.json'
 
-const wrappedEthRegistrarArtifact =
-  wrappedEthRegistrarArtifactRaw as unknown as Artifact<Abi>
+const wrappedEthRegistrarArtifact = (() => {
+  const { address, ...a } = wrappedEthRegistrarArtifactRaw
+  return a as unknown as Artifact<Abi>
+})()
 
 export default deployScript(
   async ({
