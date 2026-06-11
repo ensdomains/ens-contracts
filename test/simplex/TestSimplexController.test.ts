@@ -1081,4 +1081,366 @@ describe('SimplexController', () => {
       ).toBeDefined()
     })
   })
+
+  // ------------------------------------------------------------------
+  // Issue #9: expanded branch / lifecycle coverage.
+  // ------------------------------------------------------------------
+
+  const mkReg = (over: Record<string, any> = {}) => ({
+    label: 'coveragename',
+    owner: registrantAccount.address,
+    duration: REGISTRATION_TIME,
+    secret: zeroHash,
+    resolver: zeroAddress as `0x${string}`,
+    data: [] as `0x${string}`[],
+    reverseRecord: 0,
+    referrer: zeroHash,
+    ...over,
+  })
+
+  const commitWait = async (
+    controller: any,
+    registration: any,
+    account = registrantAccount,
+  ) => {
+    const commitment = await controller.read.makeCommitment([registration])
+    await controller.write.commit([commitment], { account })
+    await testClient.increaseTime({ seconds: 601 })
+    await testClient.mine({ blocks: 1 })
+    return commitment
+  }
+
+  const totalPrice = async (
+    controller: any,
+    label: string,
+    duration = REGISTRATION_TIME,
+  ) => {
+    const p = await controller.read.rentPrice([label, duration])
+    return p.base + p.premium
+  }
+
+  const deployPublicResolver = async (
+    controller: any,
+    ensRegistry: any,
+    reverseRegistrar: any,
+  ) =>
+    connection.viem.deployContract('PublicResolver', [
+      ensRegistry.address,
+      zeroAddress,
+      controller.address, // trustedETHController — lets the controller write records
+      reverseRegistrar.address,
+    ])
+
+  describe('Commit-reveal error branches', () => {
+    it('register reverts CommitmentNotFound when no commitment exists', async () => {
+      const { controller } = await loadFixture()
+      const registration = mkReg({ label: 'nocommit' })
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: await totalPrice(controller, 'nocommit'),
+        }),
+      ).toBeRevertedWithCustomError('CommitmentNotFound')
+    })
+
+    it('register reverts CommitmentTooNew before minCommitmentAge', async () => {
+      const { controller } = await loadFixture()
+      const registration = mkReg({ label: 'toonew' })
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: registrantAccount })
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: await totalPrice(controller, 'toonew'),
+        }),
+      ).toBeRevertedWithCustomError('CommitmentTooNew')
+    })
+
+    it('register reverts CommitmentTooOld after maxCommitmentAge', async () => {
+      const { controller } = await loadFixture()
+      const registration = mkReg({ label: 'tooold' })
+      const commitment = await controller.read.makeCommitment([registration])
+      await controller.write.commit([commitment], { account: registrantAccount })
+      await testClient.increaseTime({ seconds: 86401 }) // > maxCommitmentAge (86400)
+      await testClient.mine({ blocks: 1 })
+      await expect(
+        controller.write.register([registration], {
+          account: registrantAccount,
+          value: await totalPrice(controller, 'tooold'),
+        }),
+      ).toBeRevertedWithCustomError('CommitmentTooOld')
+    })
+
+    it('commit reverts UnexpiredCommitmentExists on a duplicate commit', async () => {
+      const { controller } = await loadFixture()
+      const commitment = await controller.read.makeCommitment([mkReg({ label: 'dup' })])
+      await controller.write.commit([commitment], { account: registrantAccount })
+      await expect(
+        controller.write.commit([commitment], { account: registrantAccount }),
+      ).toBeRevertedWithCustomError('UnexpiredCommitmentExists')
+    })
+
+    it('deletes the commitment after a successful register (replay protection)', async () => {
+      const { controller } = await loadFixture()
+      const registration = mkReg({ label: 'deleted' })
+      const commitment = await commitWait(controller, registration)
+      await controller.write.register([registration], {
+        account: registrantAccount,
+        value: await totalPrice(controller, 'deleted'),
+      })
+      expect(await controller.read.commitments([commitment])).toBe(0n)
+    })
+  })
+
+  describe('Resolver / record-write branch', () => {
+    it('makeCommitment reverts ResolverRequiredWhenDataSupplied (data, no resolver)', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.read.makeCommitment([mkReg({ data: ['0x12345678'] })]),
+      ).toBeRevertedWithCustomError('ResolverRequiredWhenDataSupplied')
+    })
+
+    it('makeCommitment reverts ResolverRequiredForReverseRecord (reverseRecord, no resolver)', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.read.makeCommitment([mkReg({ reverseRecord: 1 })]),
+      ).toBeRevertedWithCustomError('ResolverRequiredForReverseRecord')
+    })
+
+    it('registers with a resolver and empty data (sets the resolver in the registry)', async () => {
+      const { controller, ensRegistry, reverseRegistrar } = await loadFixture()
+      const resolver = await deployPublicResolver(controller, ensRegistry, reverseRegistrar)
+      const registration = mkReg({ label: 'resolvonly', resolver: resolver.address })
+      await commitWait(controller, registration)
+      await controller.write.register([registration], {
+        account: registrantAccount,
+        value: await totalPrice(controller, 'resolvonly'),
+      })
+      const node = namehash('resolvonly.testing')
+      expect((await ensRegistry.read.resolver([node])).toLowerCase()).toBe(
+        resolver.address.toLowerCase(),
+      )
+      expect((await ensRegistry.read.owner([node])).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+    })
+
+    it('registers with a resolver and writes a record via multicallWithNodeCheck', async () => {
+      const { controller, ensRegistry, reverseRegistrar } = await loadFixture()
+      const resolver = await deployPublicResolver(controller, ensRegistry, reverseRegistrar)
+      const node = namehash('resolvdata.testing')
+      const { encodeFunctionData } = await import('viem')
+      const setAddrAbi = [
+        {
+          type: 'function',
+          name: 'setAddr',
+          stateMutability: 'nonpayable',
+          inputs: [{ type: 'bytes32' }, { type: 'address' }],
+          outputs: [],
+        },
+      ] as const
+      const addrAbi = [
+        {
+          type: 'function',
+          name: 'addr',
+          stateMutability: 'view',
+          inputs: [{ type: 'bytes32' }],
+          outputs: [{ type: 'address' }],
+        },
+      ] as const
+      const data = encodeFunctionData({
+        abi: setAddrAbi,
+        functionName: 'setAddr',
+        args: [node, registrantAccount.address],
+      })
+      const registration = mkReg({ label: 'resolvdata', resolver: resolver.address, data: [data] })
+      await commitWait(controller, registration)
+      await controller.write.register([registration], {
+        account: registrantAccount,
+        value: await totalPrice(controller, 'resolvdata'),
+      })
+      const stored = (await publicClient.readContract({
+        address: resolver.address,
+        abi: addrAbi,
+        functionName: 'addr',
+        args: [node],
+      })) as string
+      expect(stored.toLowerCase()).toBe(registrantAccount.address.toLowerCase())
+    })
+
+    for (const [name, bit] of [
+      ['ETHEREUM', 1],
+      ['DEFAULT', 2],
+      ['both', 3],
+    ] as const) {
+      it(`registers with reverseRecord ${name} bit set`, async () => {
+        const { controller, ensRegistry, reverseRegistrar } = await loadFixture()
+        const resolver = await deployPublicResolver(controller, ensRegistry, reverseRegistrar)
+        const label = `rev${bit}name`
+        const registration = mkReg({
+          label,
+          resolver: resolver.address,
+          reverseRecord: bit,
+        })
+        await commitWait(controller, registration)
+        await controller.write.register([registration], {
+          account: registrantAccount,
+          value: await totalPrice(controller, label),
+        })
+        // Register completed past the reverse-record branch → forward record set.
+        expect((await ensRegistry.read.owner([namehash(`${label}.testing`)])).toLowerCase()).toBe(
+          registrantAccount.address.toLowerCase(),
+        )
+      })
+    }
+  })
+
+  describe('Renew', () => {
+    it('renews a name and extends its expiry', async () => {
+      const { controller, baseRegistrar } = await loadFixture()
+      await commitAndRegister(controller, 'renewme', registrantAccount)
+      const id = BigInt(labelhash('renewme'))
+      const before = await baseRegistrar.read.nameExpires([id])
+      const price = await controller.read.rentPrice(['renewme', REGISTRATION_TIME])
+      await controller.write.renew(['renewme', REGISTRATION_TIME, zeroHash], {
+        account: registrantAccount,
+        value: price.base,
+      })
+      expect((await baseRegistrar.read.nameExpires([id])) > before).toBe(true)
+    })
+
+    it('renew reverts InsufficientValue when underpaid', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'renewpoor', registrantAccount)
+      const price = await controller.read.rentPrice(['renewpoor', REGISTRATION_TIME])
+      await expect(
+        controller.write.renew(['renewpoor', REGISTRATION_TIME, zeroHash], {
+          account: registrantAccount,
+          value: price.base > 0n ? price.base - 1n : 0n,
+        }),
+      ).toBeRevertedWithCustomError('InsufficientValue')
+    })
+
+    it('renews a name during the grace period', async () => {
+      const { controller, baseRegistrar } = await loadFixture()
+      await commitAndRegister(controller, 'graceful', registrantAccount)
+      const id = BigInt(labelhash('graceful'))
+      const before = await baseRegistrar.read.nameExpires([id])
+      await testClient.increaseTime({ seconds: Number(REGISTRATION_TIME) + Number(DAY) })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice(['graceful', REGISTRATION_TIME])
+      await controller.write.renew(['graceful', REGISTRATION_TIME, zeroHash], {
+        account: registrantAccount,
+        value: price.base,
+      })
+      expect((await baseRegistrar.read.nameExpires([id])) > before).toBe(true)
+    })
+
+    it('refunds excess value on renew', async () => {
+      const { controller } = await loadFixture()
+      await commitAndRegister(controller, 'renewexcess', registrantAccount)
+      const balBefore = await publicClient.getBalance({ address: controller.address })
+      const price = await controller.read.rentPrice(['renewexcess', REGISTRATION_TIME])
+      await controller.write.renew(['renewexcess', REGISTRATION_TIME, zeroHash], {
+        account: registrantAccount,
+        value: price.base + 12345n,
+      })
+      const balAfter = await publicClient.getBalance({ address: controller.address })
+      expect(balAfter - balBefore).toBe(price.base)
+    })
+
+    it('renew bypasses the gates (works on a now-reserved name)', async () => {
+      const { controller, baseRegistrar } = await loadFixture()
+      await commitAndRegister(controller, 'reservedrenew', registrantAccount)
+      await controller.write.addReservedNames([['reservedrenew']], { account: ownerAccount })
+      const id = BigInt(labelhash('reservedrenew'))
+      const before = await baseRegistrar.read.nameExpires([id])
+      const price = await controller.read.rentPrice(['reservedrenew', REGISTRATION_TIME])
+      await controller.write.renew(['reservedrenew', REGISTRATION_TIME, zeroHash], {
+        account: registrantAccount,
+        value: price.base,
+      })
+      expect((await baseRegistrar.read.nameExpires([id])) > before).toBe(true)
+    })
+  })
+
+  describe('Misc branch coverage', () => {
+    it('refunds excess value on register', async () => {
+      const { controller } = await loadFixture()
+      const registration = mkReg({ label: 'regexcess' })
+      await commitWait(controller, registration)
+      const total = await totalPrice(controller, 'regexcess')
+      await controller.write.register([registration], {
+        account: registrantAccount,
+        value: total + 99999n,
+      })
+      expect(await publicClient.getBalance({ address: controller.address })).toBe(total)
+    })
+
+    it('withdraw succeeds with a zero balance', async () => {
+      const { controller } = await loadFixture()
+      expect(await publicClient.getBalance({ address: controller.address })).toBe(0n)
+      await controller.write.withdraw({ account: ownerAccount })
+      expect(await publicClient.getBalance({ address: controller.address })).toBe(0n)
+    })
+
+    it('rejects non-owner removeReservedNames', async () => {
+      const { controller } = await loadFixture()
+      await expect(
+        controller.write.removeReservedNames([['simplex']], { account: registrantAccount }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('renounceOwnership leaves no owner and locks admin functions', async () => {
+      const { controller } = await loadFixture()
+      await controller.write.renounceOwnership({ account: ownerAccount })
+      expect((await controller.read.owner()).toLowerCase()).toBe(zeroAddress)
+      await expect(
+        controller.write.setMinCharLength([5], { account: ownerAccount }),
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
+    })
+
+    it('supportsInterface: ERC-165 + IETHRegistrarController true, unknown false', async () => {
+      const { controller } = await loadFixture()
+      const { toFunctionSelector } = await import('viem')
+      const sigs = [
+        'rentPrice(string,uint256)',
+        'available(string)',
+        'makeCommitment((string,address,uint256,bytes32,address,bytes[],uint8,bytes32))',
+        'commit(bytes32)',
+        'register((string,address,uint256,bytes32,address,bytes[],uint8,bytes32))',
+        'renew(string,uint256,bytes32)',
+      ]
+      let acc = 0n
+      for (const s of sigs) acc ^= BigInt(toFunctionSelector(s))
+      const controllerId = ('0x' + acc.toString(16).padStart(8, '0')) as `0x${string}`
+      expect(await controller.read.supportsInterface([controllerId])).toBe(true)
+      expect(await controller.read.supportsInterface(['0x01ffc9a7'])).toBe(true) // ERC-165
+      expect(await controller.read.supportsInterface(['0xffffffff'])).toBe(false)
+    })
+  })
+
+  describe('Premium pricing (ExponentialPremiumPriceOracle)', () => {
+    it('charges a premium for a recently-expired name', async () => {
+      const { controller, dummyOracle } = await loadFixture()
+      const premiumOracle = await connection.viem.deployContract(
+        'ExponentialPremiumPriceOracle',
+        [dummyOracle.address, [0n, 0n, 4n, 2n, 1n], 100000000000000000000000000n, 21n],
+      )
+      await controller.write.setPriceOracle([premiumOracle.address], { account: ownerAccount })
+      await commitAndRegister(controller, 'premiumname', registrantAccount)
+      await testClient.increaseTime({
+        seconds: Number(REGISTRATION_TIME) + Number(GRACE_PERIOD) + 60,
+      })
+      await testClient.mine({ blocks: 1 })
+      const price = await controller.read.rentPrice(['premiumname', REGISTRATION_TIME])
+      expect(price.premium > 0n).toBe(true)
+    })
+  })
+
+  // Deferred: NameWrapper integration (wrap a registered SNRC name). The
+  // upstream NameWrapper is hardcoded to the `.eth` node (ETH_NODE) for
+  // wrapETH2LD, so wrapping a `.testing` name needs separate investigation of
+  // how SNRC wraps non-.eth TLDs. Tracked for a follow-up.
+  it.skip('wraps a registered SNRC name via NameWrapper (deferred — .eth-hardcoded)', () => {})
 })
