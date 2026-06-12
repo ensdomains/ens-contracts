@@ -202,6 +202,8 @@ export async function deployEnsStack(
     ensRegistry.address,
     baseRegistrarImplementation.address,
     staticMetadataService.address,
+    '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae',
+    '0x0365746800',
   ])
 
   await nameWrapper.write.transferOwnership([owner.address])

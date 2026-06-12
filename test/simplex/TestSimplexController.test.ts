@@ -1438,13 +1438,6 @@ describe('SimplexController', () => {
     })
   })
 
-  // NameWrapper integration. FINDING: the verbatim ENS NameWrapper hardcodes
-  // ETH_NODE = namehash('eth'); `wrapETH2LD` / `_wrapETH2LD` always derive the
-  // wrapped node from ETH_NODE and DNS-encode "\x03eth\x00". The SNRC
-  // BaseRegistrar keys tokens by labelhash (TLD-agnostic), so a `.testing` 2LD
-  // CAN be fed into wrapETH2LD — but it is wrapped under the WRONG node
-  // (`label.eth`), not `label.testing`. These tests pin that broken behaviour
-  // so a future TLD-parameterised NameWrapper can flip them. See the issue.
   describe('Branch gap-fill (full coverage)', () => {
     const depsFrom = (f: any) => ({
       base: f.baseRegistrar.address,
@@ -1589,7 +1582,13 @@ describe('SimplexController', () => {
     })
   })
 
-  describe('NameWrapper integration (verbatim — ETH_NODE hardcoded)', () => {
+  // NameWrapper is now TLD-parameterised (TLD_NODE + names[TLD_NODE] DNS name
+  // set in the constructor), so a `.testing` 2LD wraps under its correct node
+  // `namehash(label.testing)`. These tests are the inverse of the former
+  // "mis-wrap under .eth" regression: they assert the fix end-to-end.
+  describe('NameWrapper integration (.testing TLD-parameterised)', () => {
+    // DNS-encoded ".testing" suffix: 0x07 'testing' 0x00.
+    const TESTING_DNS = '0x0774657374696e6700' as const
     const deployWrapper = async (ensRegistry: any, baseRegistrar: any) => {
       const metadata = await connection.viem.deployContract('StaticMetadataService', [
         'https://example.com/',
@@ -1598,10 +1597,12 @@ describe('SimplexController', () => {
         ensRegistry.address,
         baseRegistrar.address,
         metadata.address,
+        namehash('testing'),
+        TESTING_DNS,
       ])
     }
 
-    it('mis-wraps a .testing name under the .eth node (resolver omitted)', async () => {
+    it('wraps a .testing name under its correct node', async () => {
       const { controller, ensRegistry, baseRegistrar } = await loadFixture()
       const wrapper = await deployWrapper(ensRegistry, baseRegistrar)
       await commitAndRegister(controller, 'wrapme', registrantAccount)
@@ -1612,21 +1613,19 @@ describe('SimplexController', () => {
         account: registrantAccount,
       })
 
-      const ethNode = BigInt(namehash('wrapme.eth'))
       const testingNode = namehash('wrapme.testing')
-      // The ERC-1155 was minted for `wrapme.eth`, NOT `wrapme.testing`.
-      expect((await wrapper.read.ownerOf([ethNode])).toLowerCase()).toBe(
+      // ERC-1155 minted for the correct node; nothing under `.eth`.
+      expect((await wrapper.read.ownerOf([BigInt(testingNode)])).toLowerCase()).toBe(
         registrantAccount.address.toLowerCase(),
       )
-      expect(await wrapper.read.ownerOf([BigInt(testingNode)])).toBe(zeroAddress)
-      // Meanwhile the real registry node is orphaned: owned by the wrapper but
-      // with no corresponding wrapped token.
+      expect(await wrapper.read.ownerOf([BigInt(namehash('wrapme.eth'))])).toBe(zeroAddress)
+      // Registry node held by the wrapper (the wrapped representation).
       expect((await ensRegistry.read.owner([testingNode])).toLowerCase()).toBe(
         wrapper.address.toLowerCase(),
       )
     })
 
-    it('reverts when a resolver is supplied (wrapper not authorised for the .eth node)', async () => {
+    it('wraps with a resolver supplied and sets it on the correct node', async () => {
       const { controller, ensRegistry, baseRegistrar, reverseRegistrar } = await loadFixture()
       const wrapper = await deployWrapper(ensRegistry, baseRegistrar)
       const resolver = await deployPublicResolver(controller, ensRegistry, reverseRegistrar)
@@ -1634,11 +1633,41 @@ describe('SimplexController', () => {
       await baseRegistrar.write.setApprovalForAll([wrapper.address, true], {
         account: registrantAccount,
       })
-      await expect(
-        wrapper.write.wrapETH2LD(['wrapme2', registrantAccount.address, 0, resolver.address], {
-          account: registrantAccount,
-        }),
-      ).rejects.toThrow()
+      await wrapper.write.wrapETH2LD(
+        ['wrapme2', registrantAccount.address, 0, resolver.address],
+        { account: registrantAccount },
+      )
+      const node = namehash('wrapme2.testing')
+      expect((await wrapper.read.ownerOf([BigInt(node)])).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+      expect((await ensRegistry.read.resolver([node])).toLowerCase()).toBe(
+        resolver.address.toLowerCase(),
+      )
+    })
+
+    it('unwraps a wrapped .testing name back to the registrant (round-trip)', async () => {
+      const { controller, ensRegistry, baseRegistrar } = await loadFixture()
+      const wrapper = await deployWrapper(ensRegistry, baseRegistrar)
+      await commitAndRegister(controller, 'roundtrip', registrantAccount)
+      const tokenId = BigInt(labelhash('roundtrip'))
+      await baseRegistrar.write.setApprovalForAll([wrapper.address, true], {
+        account: registrantAccount,
+      })
+      await wrapper.write.wrapETH2LD(['roundtrip', registrantAccount.address, 0, zeroAddress], {
+        account: registrantAccount,
+      })
+      await wrapper.write.unwrapETH2LD(
+        [labelhash('roundtrip'), registrantAccount.address, registrantAccount.address],
+        { account: registrantAccount },
+      )
+      // ERC-721 returned to the registrant; wrapped token burned.
+      expect((await baseRegistrar.read.ownerOf([tokenId])).toLowerCase()).toBe(
+        registrantAccount.address.toLowerCase(),
+      )
+      expect(await wrapper.read.ownerOf([BigInt(namehash('roundtrip.testing'))])).toBe(
+        zeroAddress,
+      )
     })
   })
 })

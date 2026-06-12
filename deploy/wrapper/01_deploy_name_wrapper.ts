@@ -22,7 +22,13 @@ export default deployScript(
     const nameWrapper = await deploy('NameWrapper', {
       account: deployer,
       artifact: artifacts.NameWrapper,
-      args: [registry.address, registrar.address, metadata.address],
+      args: [
+        registry.address,
+        registrar.address,
+        metadata.address,
+        namehash('eth'),
+        '0x0365746800',
+      ],
     })
 
     if (!nameWrapper.newlyDeployed) return
