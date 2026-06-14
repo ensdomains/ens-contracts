@@ -2,12 +2,21 @@ pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
 import "./IBaseRegistrar.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "./IMetadataRenderer.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
+contract BaseRegistrarImplementation is
+    ERC721Enumerable,
+    IBaseRegistrar,
+    Ownable
+{
     // A map of expiry times
     mapping(uint256 => uint256) expiries;
+    // labelhash (tokenId) => plaintext label, recorded write-once by register(string).
+    mapping(uint256 => string) public labelOf;
+    // Swappable on-chain metadata renderer; tokenURI delegates here.
+    address public metadataRenderer;
     // The ENS registry
     ENS public ens;
     // The namehash of the TLD this registrar owns (eg, .eth)
@@ -17,20 +26,10 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     uint256 public constant GRACE_PERIOD = 90 days;
     bytes4 private constant INTERFACE_META_ID =
         bytes4(keccak256("supportsInterface(bytes4)"));
-    bytes4 private constant ERC721_ID =
-        bytes4(
-            keccak256("balanceOf(address)") ^
-                keccak256("ownerOf(uint256)") ^
-                keccak256("approve(address,uint256)") ^
-                keccak256("getApproved(uint256)") ^
-                keccak256("setApprovalForAll(address,bool)") ^
-                keccak256("isApprovedForAll(address,address)") ^
-                keccak256("transferFrom(address,address,uint256)") ^
-                keccak256("safeTransferFrom(address,address,uint256)") ^
-                keccak256("safeTransferFrom(address,address,uint256,bytes)")
-        );
     bytes4 private constant RECLAIM_ID =
         bytes4(keccak256("reclaim(uint256,address)"));
+
+    event MetadataRendererChanged(address indexed renderer);
 
     /// v2.1.3 version of _isApprovedOrOwner which calls ownerOf(tokenId) and takes grace period into consideration instead of ERC721.ownerOf(tokenId);
     /// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.1.3/contracts/token/ERC721/ERC721.sol#L187
@@ -49,7 +48,10 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
             isApprovedForAll(owner, spender));
     }
 
-    constructor(ENS _ens, bytes32 _baseNode) ERC721("", "") {
+    constructor(
+        ENS _ens,
+        bytes32 _baseNode
+    ) ERC721("SimpleX Names", "SIMPLEX") {
         ens = _ens;
         baseNode = _baseNode;
     }
@@ -115,6 +117,23 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         return _register(id, owner, duration, true);
     }
 
+    /// @dev Register a name from its plaintext label, recording the label
+    ///      on-chain (write-once) so hash->name resolves without an indexer.
+    /// @param label The plaintext label (eg "alice").
+    /// @param owner The address that should own the registration.
+    /// @param duration Duration in seconds for the registration.
+    function register(
+        string calldata label,
+        address owner,
+        uint256 duration
+    ) external returns (uint256) {
+        uint256 id = uint256(keccak256(bytes(label)));
+        if (bytes(labelOf[id]).length == 0) {
+            labelOf[id] = label;
+        }
+        return _register(id, owner, duration, true);
+    }
+
     /// @dev Register a name, without modifying the registry.
     /// @param id The token ID (keccak256 of the label).
     /// @param owner The address that should own the registration.
@@ -174,12 +193,32 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         ens.setSubnodeOwner(baseNode, bytes32(id), owner);
     }
 
+    // Sets the on-chain metadata renderer that tokenURI delegates to.
+    function setMetadataRenderer(address renderer) external onlyOwner {
+        metadataRenderer = renderer;
+        emit MetadataRendererChanged(renderer);
+    }
+
+    /// @dev ERC-721 metadata. Delegates to the swappable renderer, passing the
+    ///      stored plaintext label so the NFT title is the domain name.
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
+        _requireMinted(tokenId);
+        if (metadataRenderer == address(0)) return "";
+        return
+            IMetadataRenderer(metadataRenderer).tokenURI(
+                tokenId,
+                labelOf[tokenId]
+            );
+    }
+
     function supportsInterface(
         bytes4 interfaceID
-    ) public view override(ERC721, IERC165) returns (bool) {
+    ) public view override(ERC721Enumerable, IERC165) returns (bool) {
         return
             interfaceID == INTERFACE_META_ID ||
-            interfaceID == ERC721_ID ||
-            interfaceID == RECLAIM_ID;
+            interfaceID == RECLAIM_ID ||
+            super.supportsInterface(interfaceID);
     }
 }

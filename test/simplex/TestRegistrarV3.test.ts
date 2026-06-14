@@ -1,0 +1,189 @@
+import hre from 'hardhat'
+import {
+  labelhash,
+  namehash,
+  zeroHash,
+  getAddress,
+  toFunctionSelector,
+} from 'viem'
+import { describe, it, expect } from 'vitest'
+
+import { DAY } from '../fixtures/constants.js'
+
+const connection = await hre.network.connect()
+const publicClient = await connection.viem.getPublicClient()
+const [ownerClient, registrantClient, otherClient] =
+  await connection.viem.getWalletClients()
+const ownerAccount = ownerClient.account
+const registrantAccount = registrantClient.account
+const otherAccount = otherClient.account
+
+const DURATION = 365n * DAY
+
+async function fixture() {
+  const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
+  const baseRegistrar = await connection.viem.deployContract(
+    'BaseRegistrarImplementation',
+    [ensRegistry.address, namehash('testing')],
+  )
+  // Registrar must own the TLD node for the `live` modifier to pass.
+  await ensRegistry.write.setSubnodeOwner([
+    zeroHash,
+    labelhash('testing'),
+    baseRegistrar.address,
+  ])
+  // Drive registration directly from the owner account, acting as a controller.
+  await baseRegistrar.write.addController([ownerAccount.address])
+  const renderer = await connection.viem.deployContract('MetadataRenderer', [
+    '.testing',
+  ])
+  return { ensRegistry, baseRegistrar, renderer }
+}
+
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
+
+// viem resolves the register overload by argument type: a string label selects
+// register(string,address,uint256); a bigint id selects register(uint256,...).
+const registerLabel = (
+  baseRegistrar: any,
+  label: string,
+  owner: `0x${string}`,
+) => baseRegistrar.write.register([label, owner, DURATION])
+
+describe('BaseRegistrarImplementation v3', () => {
+  describe('label index', () => {
+    it('records the plaintext label on register(string)', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      const id = BigInt(labelhash('alice'))
+      expect(await baseRegistrar.read.labelOf([id])).toBe('alice')
+    })
+
+    it('write-once: re-registration after expiry keeps the label', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      const id = BigInt(labelhash('alice'))
+      // expire past the grace period, then re-register to a new owner
+      await connection.networkHelpers.time.increase(DURATION + 91n * DAY)
+      await registerLabel(baseRegistrar, 'alice', otherAccount.address)
+      expect(await baseRegistrar.read.labelOf([id])).toBe('alice')
+      expect(await baseRegistrar.read.ownerOf([id])).toBe(
+        getAddress(otherAccount.address),
+      )
+    })
+
+    it('register(uint256) leaves labelOf empty (upstream path)', async () => {
+      const { baseRegistrar } = await loadFixture()
+      const id = BigInt(labelhash('bob'))
+      await baseRegistrar.write.register([
+        id,
+        registrantAccount.address,
+        DURATION,
+      ])
+      expect(await baseRegistrar.read.labelOf([id])).toBe('')
+    })
+  })
+
+  describe('ERC721Enumerable', () => {
+    it('enumerates names by owner and globally', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      await registerLabel(baseRegistrar, 'carol', registrantAccount.address)
+
+      expect(await baseRegistrar.read.totalSupply()).toBe(2n)
+      expect(
+        await baseRegistrar.read.balanceOf([registrantAccount.address]),
+      ).toBe(2n)
+
+      const owned = await Promise.all([
+        baseRegistrar.read.tokenOfOwnerByIndex([
+          registrantAccount.address,
+          0n,
+        ]),
+        baseRegistrar.read.tokenOfOwnerByIndex([
+          registrantAccount.address,
+          1n,
+        ]),
+      ])
+      expect(owned.map((x) => x.toString()).sort()).toEqual(
+        [BigInt(labelhash('alice')), BigInt(labelhash('carol'))]
+          .map((x) => x.toString())
+          .sort(),
+      )
+    })
+
+    it('keeps per-owner enumeration correct across transfers', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      const id = BigInt(labelhash('alice'))
+      await baseRegistrar.write.transferFrom(
+        [registrantAccount.address, otherAccount.address, id],
+        { account: registrantAccount },
+      )
+      expect(
+        await baseRegistrar.read.balanceOf([registrantAccount.address]),
+      ).toBe(0n)
+      expect(await baseRegistrar.read.balanceOf([otherAccount.address])).toBe(
+        1n,
+      )
+      expect(
+        await baseRegistrar.read.tokenOfOwnerByIndex([
+          otherAccount.address,
+          0n,
+        ]),
+      ).toBe(id)
+    })
+  })
+
+  describe('tokenURI / metadata renderer', () => {
+    it('returns empty string when no renderer is set', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      expect(
+        await baseRegistrar.read.tokenURI([BigInt(labelhash('alice'))]),
+      ).toBe('')
+    })
+
+    it('delegates to the renderer once set', async () => {
+      const { baseRegistrar, renderer } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      await baseRegistrar.write.setMetadataRenderer([renderer.address])
+      const uri = await baseRegistrar.read.tokenURI([
+        BigInt(labelhash('alice')),
+      ])
+      expect(uri.startsWith('data:application/json;base64,')).toBe(true)
+      const json = JSON.parse(
+        Buffer.from(uri.split(',')[1], 'base64').toString(),
+      )
+      expect(json.name).toBe('alice.testing')
+    })
+
+    it('only the owner can set the renderer', async () => {
+      const { baseRegistrar, renderer } = await loadFixture()
+      await expect(
+        baseRegistrar.write.setMetadataRenderer([renderer.address], {
+          account: otherAccount,
+        }),
+      ).rejects.toThrow()
+    })
+  })
+
+  describe('supportsInterface', () => {
+    it('advertises ERC721, ERC721Metadata, ERC721Enumerable and reclaim', async () => {
+      const { baseRegistrar } = await loadFixture()
+      const ids = {
+        erc165: '0x01ffc9a7',
+        erc721: '0x80ac58cd',
+        erc721Metadata: '0x5b5e139f',
+        erc721Enumerable: '0x780e9d63',
+        reclaim: toFunctionSelector('reclaim(uint256,address)'),
+      } as const
+      for (const id of Object.values(ids)) {
+        expect(await baseRegistrar.read.supportsInterface([id])).toBe(true)
+      }
+      expect(await baseRegistrar.read.supportsInterface(['0xffffffff'])).toBe(
+        false,
+      )
+    })
+  })
+})
