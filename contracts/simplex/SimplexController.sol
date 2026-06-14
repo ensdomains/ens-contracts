@@ -227,7 +227,7 @@ contract SimplexController is
         bytes32 labelhash = keccak256(bytes(label));
         if (!reservedNames[labelhash]) revert NameNotReserved(label);
         if (duration < MIN_REGISTRATION_DURATION) revert DurationTooShort(duration);
-        base.register(label, owner, duration);
+        base.registerWithLabel(label, owner, duration);
     }
 
     function disableNftGate() external onlyOwner {
@@ -347,13 +347,13 @@ contract SimplexController is
         uint256 expires;
 
         if (registration.resolver == address(0)) {
-            expires = base.register(
+            expires = base.registerWithLabel(
                 registration.label,
                 registration.owner,
                 registration.duration
             );
         } else {
-            expires = base.register(
+            expires = base.registerWithLabel(
                 registration.label,
                 address(this),
                 registration.duration

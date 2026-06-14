@@ -6,6 +6,13 @@ import "./IMetadataRenderer.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
+/// @dev INVARIANT (ERC721Enumerable): enumeration (`totalSupply`,
+///      `tokenByIndex`, `balanceOf`, `tokenOfOwnerByIndex`) is maintained on
+///      transfer/mint/burn, NOT on expiry — a name is only burned when it is
+///      re-registered after its grace period. So enumeration includes
+///      expired-but-unburned names and can disagree with the grace-period
+///      `ownerOf` (which reverts once expired). Readers MUST filter by
+///      `nameExpires(id) > block.timestamp` to get the live set.
 contract BaseRegistrarImplementation is
     ERC721Enumerable,
     IBaseRegistrar,
@@ -13,10 +20,13 @@ contract BaseRegistrarImplementation is
 {
     // A map of expiry times
     mapping(uint256 => uint256) expiries;
-    // labelhash (tokenId) => plaintext label, recorded write-once by register(string).
+    // labelhash (tokenId) => plaintext label, recorded write-once by registerWithLabel.
     mapping(uint256 => string) public labelOf;
     // Swappable on-chain metadata renderer; tokenURI delegates here.
     address public metadataRenderer;
+    // Max label byte-length accepted by registerWithLabel; 0 = no limit. Set at
+    // deployment (and adjustable by the owner) as a per-TLD policy knob.
+    uint256 public maxLabelLength;
     // The ENS registry
     ENS public ens;
     // The namehash of the TLD this registrar owns (eg, .eth)
@@ -30,6 +40,9 @@ contract BaseRegistrarImplementation is
         bytes4(keccak256("reclaim(uint256,address)"));
 
     event MetadataRendererChanged(address indexed renderer);
+    event MaxLabelLengthChanged(uint256 maxLabelLength);
+
+    error LabelTooLong(uint256 length, uint256 max);
 
     /// v2.1.3 version of _isApprovedOrOwner which calls ownerOf(tokenId) and takes grace period into consideration instead of ERC721.ownerOf(tokenId);
     /// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.1.3/contracts/token/ERC721/ERC721.sol#L187
@@ -119,14 +132,19 @@ contract BaseRegistrarImplementation is
 
     /// @dev Register a name from its plaintext label, recording the label
     ///      on-chain (write-once) so hash->name resolves without an indexer.
+    ///      This is the SNRC registration path; the low-level register(uint256)
+    ///      above does NOT record a label and exists only for the upstream
+    ///      IBaseRegistrar interface (eg NameWrapper).
     /// @param label The plaintext label (eg "alice").
     /// @param owner The address that should own the registration.
     /// @param duration Duration in seconds for the registration.
-    function register(
+    function registerWithLabel(
         string calldata label,
         address owner,
         uint256 duration
     ) external returns (uint256) {
+        if (maxLabelLength != 0 && bytes(label).length > maxLabelLength)
+            revert LabelTooLong(bytes(label).length, maxLabelLength);
         uint256 id = uint256(keccak256(bytes(label)));
         if (bytes(labelOf[id]).length == 0) {
             labelOf[id] = label;
@@ -197,6 +215,12 @@ contract BaseRegistrarImplementation is
     function setMetadataRenderer(address renderer) external onlyOwner {
         metadataRenderer = renderer;
         emit MetadataRendererChanged(renderer);
+    }
+
+    // Sets the max label byte-length for registerWithLabel; 0 = no limit.
+    function setMaxLabelLength(uint256 newMax) external onlyOwner {
+        maxLabelLength = newMax;
+        emit MaxLabelLengthChanged(newMax);
     }
 
     /// @dev ERC-721 metadata. Delegates to the swappable renderer, passing the

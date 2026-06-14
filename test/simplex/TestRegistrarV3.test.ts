@@ -43,17 +43,15 @@ async function fixture() {
 
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
-// viem resolves the register overload by argument type: a string label selects
-// register(string,address,uint256); a bigint id selects register(uint256,...).
 const registerLabel = (
   baseRegistrar: any,
   label: string,
   owner: `0x${string}`,
-) => baseRegistrar.write.register([label, owner, DURATION])
+) => baseRegistrar.write.registerWithLabel([label, owner, DURATION])
 
 describe('BaseRegistrarImplementation v3', () => {
   describe('label index', () => {
-    it('records the plaintext label on register(string)', async () => {
+    it('records the plaintext label on registerWithLabel', async () => {
       const { baseRegistrar } = await loadFixture()
       await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
       const id = BigInt(labelhash('alice'))
@@ -189,12 +187,13 @@ describe('BaseRegistrarImplementation v3', () => {
   })
 
   describe('adversarial', () => {
-    it('rejects register(string) from a non-controller', async () => {
+    it('rejects registerWithLabel from a non-controller', async () => {
       const { baseRegistrar } = await loadFixture()
       await expect(
-        baseRegistrar.write.register(['alice', otherAccount.address, DURATION], {
-          account: otherAccount,
-        }),
+        baseRegistrar.write.registerWithLabel(
+          ['alice', otherAccount.address, DURATION],
+          { account: otherAccount },
+        ),
       ).rejects.toThrow()
     })
 
@@ -228,6 +227,38 @@ describe('BaseRegistrarImplementation v3', () => {
       expect(await baseRegistrar.read.ownerOf([id])).toBe(
         getAddress(registrantAccount.address),
       )
+    })
+  })
+
+  describe('max label length guard', () => {
+    it('defaults to no limit (long labels register)', async () => {
+      const { baseRegistrar } = await loadFixture()
+      expect(await baseRegistrar.read.maxLabelLength()).toBe(0n)
+      await registerLabel(
+        baseRegistrar,
+        'a-very-long-label-name-indeed',
+        registrantAccount.address,
+      )
+    })
+
+    it('enforces the limit once set', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await baseRegistrar.write.setMaxLabelLength([5n])
+      await expect(
+        registerLabel(baseRegistrar, 'sixsix', registrantAccount.address),
+      ).rejects.toThrow('LabelTooLong')
+      // exactly at the limit is allowed
+      await registerLabel(baseRegistrar, 'fives', registrantAccount.address)
+      expect(
+        await baseRegistrar.read.labelOf([BigInt(labelhash('fives'))]),
+      ).toBe('fives')
+    })
+
+    it('only the owner can set the limit', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await expect(
+        baseRegistrar.write.setMaxLabelLength([5n], { account: otherAccount }),
+      ).rejects.toThrow()
     })
   })
 })

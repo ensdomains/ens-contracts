@@ -2,6 +2,7 @@
 pragma solidity ~0.8.26;
 
 import {ENS} from "../registry/ENS.sol";
+import {ISubnameRegistrar} from "./ISubnameRegistrar.sol";
 
 /// @notice Creates and indexes subnames so the dApp can enumerate them and
 ///         resolve hash->label without an indexer. Immutable and single-purpose:
@@ -15,7 +16,7 @@ import {ENS} from "../registry/ENS.sol";
 ///         must own the parent), and submitSubname only indexes subnames whose
 ///         owner matches their parent's. Foreign-owned subnames created by a
 ///         direct registry call are never indexed here.
-contract SubnameRegistrar {
+contract SubnameRegistrar is ISubnameRegistrar {
     /// @dev The ENS registry this contract creates subnodes in.
     ENS public immutable ens;
 
@@ -52,6 +53,13 @@ contract SubnameRegistrar {
     ///         transaction. The caller must own `parentNode` and must have
     ///         approved this contract as a registry operator
     ///         (`ens.setApprovalForAll(subnameRegistrar, true)`).
+    /// @dev    WARNING — reclaim/seize semantics: the subname owner is forced to
+    ///         the caller (the parent owner), so calling this for a label that
+    ///         already exists under the parent REASSIGNS it to the parent owner,
+    ///         even if a third party currently holds it. This is intentional
+    ///         (subnames are parent-revocable in the wrapper-free design).
+    /// @dev    Emits both SubnameCreated and (via _index) SubnameIndexed; an
+    ///         indexer listening to both should treat them as one logical create.
     function createSubname(
         bytes32 parentNode,
         string calldata label
