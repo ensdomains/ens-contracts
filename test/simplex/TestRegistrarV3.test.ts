@@ -4,6 +4,7 @@ import {
   namehash,
   zeroHash,
   getAddress,
+  keccak256,
   toFunctionSelector,
 } from 'viem'
 import { describe, it, expect } from 'vitest'
@@ -183,6 +184,49 @@ describe('BaseRegistrarImplementation v3', () => {
       }
       expect(await baseRegistrar.read.supportsInterface(['0xffffffff'])).toBe(
         false,
+      )
+    })
+  })
+
+  describe('adversarial', () => {
+    it('rejects register(string) from a non-controller', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await expect(
+        baseRegistrar.write.register(['alice', otherAccount.address, DURATION], {
+          account: otherAccount,
+        }),
+      ).rejects.toThrow()
+    })
+
+    it('tokenURI reverts for a non-existent token', async () => {
+      const { baseRegistrar, renderer } = await loadFixture()
+      await baseRegistrar.write.setMetadataRenderer([renderer.address])
+      await expect(
+        baseRegistrar.read.tokenURI([BigInt(labelhash('neverminted'))]),
+      ).rejects.toThrow()
+    })
+
+    it('tokenURI still renders an expired-but-unburned token (known edge)', async () => {
+      // The ERC-721 token is not burned on expiry (only on re-registration), so
+      // _requireMinted passes and metadata still renders. Expiry filtering is a
+      // read-side (dApp) concern; documented here so the behaviour is explicit.
+      const { baseRegistrar, renderer } = await loadFixture()
+      await registerLabel(baseRegistrar, 'alice', registrantAccount.address)
+      await baseRegistrar.write.setMetadataRenderer([renderer.address])
+      await connection.networkHelpers.time.increase(DURATION + 91n * DAY)
+      const uri = await baseRegistrar.read.tokenURI([BigInt(labelhash('alice'))])
+      expect(uri.startsWith('data:application/json;base64,')).toBe(true)
+    })
+
+    it('handles an empty label without reverting (labelOf stays empty)', async () => {
+      const { baseRegistrar } = await loadFixture()
+      await registerLabel(baseRegistrar, '', registrantAccount.address)
+      // The contract derives id = keccak256(bytes("")); note viem's labelhash("")
+      // special-cases to the zero hash, which is NOT the id used here.
+      const id = BigInt(keccak256('0x'))
+      expect(await baseRegistrar.read.labelOf([id])).toBe('')
+      expect(await baseRegistrar.read.ownerOf([id])).toBe(
+        getAddress(registrantAccount.address),
       )
     })
   })

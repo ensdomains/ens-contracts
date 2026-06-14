@@ -158,4 +158,59 @@ describe('SubnameRegistrar', () => {
       expect(pastEnd).toEqual([])
     })
   })
+
+  describe('adversarial', () => {
+    // SubnameRegistrar makes no untrusted external calls (the registry is
+    // trusted; it holds no funds), so there is no reentrancy vector to test.
+
+    it('parent reclaims a third-party-owned subname via createSubname', async () => {
+      const { ensRegistry, subnames } = await loadFixture()
+      await approve(ensRegistry, subnames, aliceAccount)
+      // Alice hands a subname to someone else by a direct registry call...
+      await ensRegistry.write.setSubnodeOwner(
+        [ALICE_NODE, labelhash('x'), otherAccount.address],
+        { account: aliceAccount },
+      )
+      const node = subnode(ALICE_NODE, 'x')
+      expect(await ensRegistry.read.owner([node])).toBe(
+        getAddress(otherAccount.address),
+      )
+      // ...then reclaims it: createSubname forces the owner back to the parent.
+      await subnames.write.createSubname([ALICE_NODE, 'x'], {
+        account: aliceAccount,
+      })
+      expect(await ensRegistry.read.owner([node])).toBe(
+        getAddress(aliceAccount.address),
+      )
+      expect(await subnames.read.childIndexed([node])).toBe(true)
+    })
+
+    it('submitSubname rejects a previously-indexed subname whose owner has drifted', async () => {
+      const { ensRegistry, subnames } = await loadFixture()
+      await approve(ensRegistry, subnames, aliceAccount)
+      await subnames.write.createSubname([ALICE_NODE, 'y'], {
+        account: aliceAccount,
+      })
+      // Alice reassigns the (indexed) subname to a third party.
+      await ensRegistry.write.setSubnodeOwner(
+        [ALICE_NODE, labelhash('y'), otherAccount.address],
+        { account: aliceAccount },
+      )
+      // The live owner==parentOwner check rejects re-indexing it.
+      await expect(
+        subnames.write.submitSubname([ALICE_NODE, 'y']),
+      ).rejects.toThrow('OwnerMismatch')
+    })
+
+    it('an operator of a different owner cannot create under a node they do not own', async () => {
+      const { ensRegistry, subnames } = await loadFixture()
+      // other approves the registrar for THEIR own names, then targets Alice's.
+      await approve(ensRegistry, subnames, otherAccount)
+      await expect(
+        subnames.write.createSubname([ALICE_NODE, 'z'], {
+          account: otherAccount,
+        }),
+      ).rejects.toThrow('NotParentOwner')
+    })
+  })
 })
