@@ -31,8 +31,8 @@ const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 async function fixtureWithRegistration() {
   const existing = await loadFixture()
-  await existing.baseRegistrar.write.register(
-    [toLabelId('newname'), registrantAccount.address, 86400n],
+  await existing.baseRegistrar.write.registerWithLabel(
+    ['newname', registrantAccount.address, 86400n],
     {
       account: controllerAccount,
     },
@@ -46,8 +46,8 @@ describe('BaseRegistrar', () => {
   it('should allow new registrations', async () => {
     const { ensRegistry, baseRegistrar } = await loadFixture()
 
-    const hash = await baseRegistrar.write.register(
-      [toLabelId('newname'), registrantAccount.address, 86400n],
+    const hash = await baseRegistrar.write.registerWithLabel(
+      ['newname', registrantAccount.address, 86400n],
       {
         account: controllerAccount,
       },
@@ -63,29 +63,6 @@ describe('BaseRegistrar', () => {
     ).resolves.toEqualAddress(registrantAccount.address)
     await expect(
       baseRegistrar.read.nameExpires([toLabelId('newname')]),
-    ).resolves.toEqual(block.timestamp + 86400n)
-  })
-
-  it('should allow registrations without updating the registry', async () => {
-    const { ensRegistry, baseRegistrar } = await loadFixture()
-
-    const hash = await baseRegistrar.write.registerOnly(
-      [toLabelId('silentname'), registrantAccount.address, 86400n],
-      {
-        account: controllerAccount,
-      },
-    )
-    const receipt = await publicClient.getTransactionReceipt({ hash })
-    const block = await publicClient.getBlock({ blockHash: receipt.blockHash })
-
-    await expect(
-      ensRegistry.read.owner([namehash('silentname.eth')]),
-    ).resolves.toEqualAddress(zeroAddress)
-    await expect(
-      baseRegistrar.read.ownerOf([toLabelId('silentname')]),
-    ).resolves.toEqualAddress(registrantAccount.address)
-    await expect(
-      baseRegistrar.read.nameExpires([toLabelId('silentname')]),
     ).resolves.toEqual(block.timestamp + 86400n)
   })
 
@@ -109,8 +86,8 @@ describe('BaseRegistrar', () => {
     const { baseRegistrar } = await loadFixture()
 
     await expect(
-      baseRegistrar.write.register(
-        [toLabelId('foo'), otherAccount.address, 86400n],
+      baseRegistrar.write.registerWithLabel(
+        ['foo', otherAccount.address, 86400n],
         {
           account: otherAccount,
         },
@@ -132,8 +109,8 @@ describe('BaseRegistrar', () => {
     const { baseRegistrar } = await loadFixtureWithRegistration()
 
     await expect(
-      baseRegistrar.write.register(
-        [toLabelId('newname'), registrantAccount.address, 86400n],
+      baseRegistrar.write.registerWithLabel(
+        ['newname', registrantAccount.address, 86400n],
         {
           account: controllerAccount,
         },
@@ -277,8 +254,8 @@ describe('BaseRegistrar', () => {
       baseRegistrar.read.ownerOf([toLabelId('newname')]),
     ).toBeRevertedWithoutReason()
 
-    await baseRegistrar.write.register(
-      [toLabelId('newname'), otherAccount.address, 86400n],
+    await baseRegistrar.write.registerWithLabel(
+      ['newname', otherAccount.address, 86400n],
       {
         account: controllerAccount,
       },

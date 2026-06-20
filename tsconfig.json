@@ -26,6 +26,15 @@
     "./artifacts/**/*.d.ts",
     "./artifacts/node_modules/**/*.d.ts"
   ],
+  "exclude": [
+    "./test/wrapper/**",
+    "./test/ethregistrar/TestBulkRenewal.test.ts",
+    "./test/ethregistrar/TestEthRegistrarController.test.ts",
+    "./test/ethregistrar/TestStaticBulkRenewal.test.ts",
+    "./test/utils/TestMigrationHelper.test.ts",
+    "./test/fixtures/deployEnsFixture.ts",
+    "./test/fixtures/registerName.ts"
+  ],
   "ts-node": {
     "experimentalResolver": true,
     "experimentalSpecifierResolution": "node",

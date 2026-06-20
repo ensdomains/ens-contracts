@@ -9,13 +9,6 @@ const accounts = await getAccounts(connection)
 
 async function fixture() {
   const ensRegistry = await connection.viem.deployContract('ENSRegistry', [])
-  const baseRegistrar = await connection.viem.deployContract(
-    'BaseRegistrarImplementation',
-    [ensRegistry.address, namehash('eth')],
-  )
-
-  await baseRegistrar.write.addController([accounts[0].address])
-  await baseRegistrar.write.addController([accounts[1].address])
 
   const reverseRegistrar = await connection.viem.deployContract(
     'ReverseRegistrar',
@@ -33,38 +26,11 @@ async function fixture() {
     reverseRegistrar.address,
   ])
 
-  const metadataService = await connection.viem.deployContract(
-    'StaticMetadataService',
-    ['https://ens.domains/'],
-  )
-
-  const nameWrapper = await connection.viem.deployContract('NameWrapper', [
-    ensRegistry.address,
-    baseRegistrar.address,
-    metadataService.address,
-    '0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae',
-    '0x0365746800',
-  ])
-
-  return {
-    ensRegistry,
-    baseRegistrar,
-    reverseRegistrar,
-    metadataService,
-    nameWrapper,
-  }
+  return { ensRegistry, reverseRegistrar }
 }
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('ReverseClaimer', () => {
-  it('claims a reverse node to the msg.sender of the deployer', async () => {
-    const { ensRegistry, nameWrapper } = await loadFixture()
-
-    await expect(
-      ensRegistry.read.owner([namehash(getReverseName(nameWrapper.address))]),
-    ).resolves.toEqualAddress(accounts[0].address)
-  })
-
   it('claims a reverse node to an address specified by the deployer', async () => {
     const { ensRegistry } = await loadFixture()
 

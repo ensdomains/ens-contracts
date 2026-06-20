@@ -34,13 +34,6 @@ interface IBaseRegistrar is IERC721 {
     // Returns true if the specified name is available for registration.
     function available(uint256 id) external view returns (bool);
 
-    /// @dev Register a name.
-    function register(
-        uint256 id,
-        address owner,
-        uint256 duration
-    ) external returns (uint256);
-
     function renew(uint256 id, uint256 duration) external returns (uint256);
 
     /// @dev Reclaim ownership of a name in ENS, if you own it in the registrar.

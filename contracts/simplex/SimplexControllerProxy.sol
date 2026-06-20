@@ -10,9 +10,9 @@ import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.s
 ///         `artifacts.SimplexControllerProxy`.
 ///
 ///         SimplexController is the only contract we wrap in a proxy.
-///         All other ENS contracts (ENSRegistry, BaseRegistrarImplementation,
-///         NameWrapper, PublicResolver, Root, ReverseRegistrar) are
-///         deployed verbatim from upstream and are non-upgradeable.
+///         All other core contracts (ENSRegistry, BaseRegistrarImplementation,
+///         PublicResolver, Root, ReverseRegistrar) are deployed without a proxy
+///         and are non-upgradeable.
 contract SimplexControllerProxy is ERC1967Proxy {
     constructor(address _logic, bytes memory _data)
         payable

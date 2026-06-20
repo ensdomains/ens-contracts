@@ -18,6 +18,15 @@ export default defineConfig({
       'test/dnssec-oracle/**',
       'test/dnsregistrar/**',
       'test/resolvers/TestExtendedDNSResolver.test.ts',
+      // The upstream NameWrapper / ETHRegistrarController / BulkRenewal /
+      // MigrationHelper subsystem is kept for parity with `simplex` but is not
+      // part of the wrapper-free redesign and is excluded from the build, so its
+      // tests can't run. See the dead-code exclusion in hardhat.config.ts.
+      'test/wrapper/**',
+      'test/ethregistrar/TestBulkRenewal.test.ts',
+      'test/ethregistrar/TestEthRegistrarController.test.ts',
+      'test/ethregistrar/TestStaticBulkRenewal.test.ts',
+      'test/utils/TestMigrationHelper.test.ts',
     ],
     reporters: ['verbose'],
     environment: 'node',
