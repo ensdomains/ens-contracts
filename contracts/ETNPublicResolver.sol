@@ -74,10 +74,10 @@ contract ETNPublicResolver {
     //  Address records
     // ─────────────────────────────────────────────
 
-    function setAddr(bytes32 node, address addr) external authorised(node) {
-        _addresses[node] = addr;
-        emit AddrChanged(node, addr);
-    }
+function setAddr(bytes32 node, address _addr) external authorised(node) {
+    _addresses[node] = _addr;
+    emit AddrChanged(node, _addr);
+}
 
     function addr(bytes32 node) external view returns (address) {
         return _addresses[node];

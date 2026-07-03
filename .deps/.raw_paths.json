@@ -16,5 +16,19 @@
   "https://raw.githubusercontent.com/ETN-Villain/ETNnames/main/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@main/contracts/ETNNamehash.sol",
   "https://raw.githubusercontent.com/ETN-Villain/ETNnames/stagcontracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@stagcontracts/ETNNamehash.sol",
   "https://raw.githubusercontent.com/ETN-Villain/ETNnames/stagin/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@stagin/contracts/ETNNamehash.sol",
-  "https://raw.githubusercontent.com/ETN-Villain/ETNnames/staging/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@staging/contracts/ETNNamehash.sol"
+  "https://raw.githubusercontent.com/ETN-Villain/ETNnames/staging/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@staging/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ETNnames/blob/staging/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@blob/staging/contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/ETN-Villain/ETNnames/contracts/ETNNamehash.sol": ".deps/github/ETN-Villain/ETNnames@contracts/ETNNamehash.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/ERC721.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/token/ERC721/ERC721.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/IERC721.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/token/ERC721/IERC721.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/IERC165.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/introspection/IERC165.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/IERC721Receiver.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/token/ERC721/IERC721Receiver.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/extensions/IERC721Metadata.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/token/ERC721/extensions/IERC721Metadata.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/Context.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/Context.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/Strings.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/Strings.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/math/Math.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/math/Math.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/math/SignedMath.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/math/SignedMath.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/ERC165.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/introspection/ERC165.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/interfaces/draft-IERC6093.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/interfaces/draft-IERC6093.sol",
+  "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/Base64.sol": ".deps/github/OpenZeppelin/openzeppelin-contracts@v5.0.2/contracts/utils/Base64.sol"
 }

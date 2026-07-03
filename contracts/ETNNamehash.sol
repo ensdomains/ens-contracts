@@ -15,7 +15,7 @@ pragma solidity ^0.8.20;
 library ETNNamehash {
 
     bytes32 internal constant ETN_NODE =
-        0x587d09fe5fa45354680537d38145a28b772971e0f293af3ee0c536fc919710fb;
+        0x69a3977d40595dbc343e3fa6ddbd26dbe31cc237836622384941b3c5148974cd;
         // keccak256(abi.encodePacked(bytes32(0), keccak256("etn")))
 
     /**

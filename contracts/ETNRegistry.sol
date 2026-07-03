@@ -39,14 +39,14 @@ contract ETNRegistry {
     //  Modifiers
     // ─────────────────────────────────────────────
 
-    modifier authorised(bytes32 node) {
-        address owner = _records[node].owner;
-        require(
-            owner == msg.sender || _operators[node][msg.sender],
-            "ETNRegistry: not authorised"
-        );
-        _;
-    }
+modifier authorised(bytes32 node) {
+    address _owner = _records[node].owner;
+    require(
+        _owner == msg.sender || _operators[node][msg.sender],
+        "ETNRegistry: not authorised"
+    );
+    _;
+}
 
     // ─────────────────────────────────────────────
     //  Constructor — bootstrap root node
