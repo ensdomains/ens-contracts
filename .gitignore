@@ -1,0 +1,14 @@
+# Compiled artifacts / build output
+artifacts/
+cache/
+
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.org
+
+# Editor/OS cruft
+.vscode/
+.DS_Store
