@@ -1,16 +1,17 @@
+// SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
 import "../registry/ENS.sol";
 import "./IBaseRegistrar.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/ERC721.sol";
+import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol";
 
 contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     // A map of expiry times
     mapping(uint256 => uint256) expiries;
     // The ENS registry
     ENS public ens;
-    // The namehash of the TLD this registrar owns (eg, .eth)
+    // The namehash of the TLD this registrar owns (eg, .etn)
     bytes32 public baseNode;
     // A map of addresses that are authorised to register and renew names.
     mapping(address => bool) public controllers;
@@ -32,24 +33,28 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
     bytes4 private constant RECLAIM_ID =
         bytes4(keccak256("reclaim(uint256,address)"));
 
-    /// v2.1.3 version of _isApprovedOrOwner which calls ownerOf(tokenId) and takes grace period into consideration instead of ERC721.ownerOf(tokenId);
-    /// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/v2.1.3/contracts/token/ERC721/ERC721.sol#L187
-    /// @dev Returns whether the given spender can transfer a given token ID
+    /// @dev Returns whether the given spender can transfer a given token ID.
+    ///      Rebuilt for OZ v5, which removed `_isApprovedOrOwner`. Uses the
+    ///      grace-period-aware public `ownerOf(tokenId)` (not ERC721's raw
+    ///      `_ownerOf`), matching the original v4-era semantics of this check.
     /// @param spender address of the spender to query
     /// @param tokenId uint256 ID of the token to be transferred
     /// @return bool whether the msg.sender is approved for the given token ID,
     ///              is an operator of the owner, or is the owner of the token
-    function _isApprovedOrOwner(
+    function _isApprovedOrOwnerOfName(
         address spender,
         uint256 tokenId
-    ) internal view override returns (bool) {
+    ) internal view returns (bool) {
         address owner = ownerOf(tokenId);
         return (spender == owner ||
             getApproved(tokenId) == spender ||
             isApprovedForAll(owner, spender));
     }
 
-    constructor(ENS _ens, bytes32 _baseNode) ERC721("", "") {
+    constructor(
+        ENS _ens,
+        bytes32 _baseNode
+    ) ERC721("", "") Ownable(msg.sender) {
         ens = _ens;
         baseNode = _baseNode;
     }
@@ -140,7 +145,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         ); // Prevent future overflow
 
         expiries[id] = block.timestamp + duration;
-        if (_exists(id)) {
+        if (_ownerOf(id) != address(0)) {
             // Name was previously owned, and expired
             _burn(id);
         }
@@ -170,7 +175,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
 
     /// @dev Reclaim ownership of a name in ENS, if you own it in the registrar.
     function reclaim(uint256 id, address owner) external override live {
-        require(_isApprovedOrOwner(msg.sender, id));
+        require(_isApprovedOrOwnerOfName(msg.sender, id));
         ens.setSubnodeOwner(baseNode, bytes32(id), owner);
     }
 
@@ -180,6 +185,7 @@ contract BaseRegistrarImplementation is ERC721, IBaseRegistrar, Ownable {
         return
             interfaceID == INTERFACE_META_ID ||
             interfaceID == ERC721_ID ||
-            interfaceID == RECLAIM_ID;
+            interfaceID == RECLAIM_ID ||
+            super.supportsInterface(interfaceID);
     }
 }

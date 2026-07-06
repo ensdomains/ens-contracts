@@ -1,0 +1,416 @@
+{
+	"id": "da4f4d52c7ad47c7e48e209248a69894",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.20",
+	"solcLongVersion": "0.8.20+commit.a1b79de6",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"contracts/resolvers/profiles/IAddressResolver.sol": {
+				"content": "// SPDX-License-Identifier: MIT\npragma solidity >=0.8.4;\n\n/// Interface for the new (multicoin) addr function.\ninterface IAddressResolver {\n    event AddressChanged(\n        bytes32 indexed node,\n        uint256 coinType,\n        bytes newAddress\n    );\n\n    function addr(\n        bytes32 node,\n        uint256 coinType\n    ) external view returns (bytes memory);\n}\n"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": true,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": [
+				"@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+				"@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+				"@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+				"clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+			],
+			"evmVersion": "london"
+		}
+	},
+	"output": {
+		"contracts": {
+			"contracts/resolvers/profiles/IAddressResolver.sol": {
+				"IAddressResolver": {
+					"abi": [
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "bytes32",
+									"name": "node",
+									"type": "bytes32"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "coinType",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "bytes",
+									"name": "newAddress",
+									"type": "bytes"
+								}
+							],
+							"name": "AddressChanged",
+							"type": "event"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "bytes32",
+									"name": "node",
+									"type": "bytes32"
+								},
+								{
+									"internalType": "uint256",
+									"name": "coinType",
+									"type": "uint256"
+								}
+							],
+							"name": "addr",
+							"outputs": [
+								{
+									"internalType": "bytes",
+									"name": "",
+									"type": "bytes"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"addr(bytes32,uint256)": "f1cb7e06"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"coinType\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"newAddress\",\"type\":\"bytes\"}],\"name\":\"AddressChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"internalType\":\"uint256\",\"name\":\"coinType\",\"type\":\"uint256\"}],\"name\":\"addr\",\"outputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"Interface for the new (multicoin) addr function.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/resolvers/profiles/IAddressResolver.sol\":\"IAddressResolver\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/\",\":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\",\":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts\",\":clones-with-immutable-args/=node_modules/clones-with-immutable-args/\"]},\"sources\":{\"contracts/resolvers/profiles/IAddressResolver.sol\":{\"keccak256\":\"0x8da5dd0fc1c5ab4f47e03c23126976a86d4b2dbeac161e70e3af9e2a13330cf0\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://aa9a6d4445fd9e3be89007842a80d2562822043d0d80d55494b0eca8c64d8c71\",\"dweb:/ipfs/QmWy9cyMPEBzJma1CUfrRX8PAf1mfJjJSaPW3Cj3eFhEWo\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"notice": "Interface for the new (multicoin) addr function.",
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"contracts/resolvers/profiles/IAddressResolver.sol": {
+				"ast": {
+					"absolutePath": "contracts/resolvers/profiles/IAddressResolver.sol",
+					"exportedSymbols": {
+						"IAddressResolver": [
+							20
+						]
+					},
+					"id": 21,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								">=",
+								"0.8",
+								".4"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "32:24:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IAddressResolver",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"documentation": {
+								"id": 2,
+								"nodeType": "StructuredDocumentation",
+								"src": "58:53:0",
+								"text": "Interface for the new (multicoin) addr function."
+							},
+							"fullyImplemented": false,
+							"id": 20,
+							"linearizedBaseContracts": [
+								20
+							],
+							"name": "IAddressResolver",
+							"nameLocation": "121:16:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"anonymous": false,
+									"eventSelector": "65412581168e88a1e60c6459d7f44ae83ad0832e670826c05a4e2476b57af752",
+									"id": 10,
+									"name": "AddressChanged",
+									"nameLocation": "150:14:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 9,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 4,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "node",
+												"nameLocation": "190:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 10,
+												"src": "174:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 3,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "174:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 6,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "coinType",
+												"nameLocation": "212:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 10,
+												"src": "204:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 5,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "204:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 8,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "newAddress",
+												"nameLocation": "236:10:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 10,
+												"src": "230:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes_memory_ptr",
+													"typeString": "bytes"
+												},
+												"typeName": {
+													"id": 7,
+													"name": "bytes",
+													"nodeType": "ElementaryTypeName",
+													"src": "230:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes_storage_ptr",
+														"typeString": "bytes"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "164:88:0"
+									},
+									"src": "144:109:0"
+								},
+								{
+									"functionSelector": "f1cb7e06",
+									"id": 19,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "addr",
+									"nameLocation": "268:4:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 15,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 12,
+												"mutability": "mutable",
+												"name": "node",
+												"nameLocation": "290:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "282:12:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 11,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "282:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 14,
+												"mutability": "mutable",
+												"name": "coinType",
+												"nameLocation": "312:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "304:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 13,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "304:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "272:54:0"
+									},
+									"returnParameters": {
+										"id": 18,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 17,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "350:12:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes_memory_ptr",
+													"typeString": "bytes"
+												},
+												"typeName": {
+													"id": 16,
+													"name": "bytes",
+													"nodeType": "ElementaryTypeName",
+													"src": "350:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes_storage_ptr",
+														"typeString": "bytes"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "349:14:0"
+									},
+									"scope": 20,
+									"src": "259:105:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 21,
+							"src": "111:255:0",
+							"usedErrors": [],
+							"usedEvents": [
+								10
+							]
+						}
+					],
+					"src": "32:335:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

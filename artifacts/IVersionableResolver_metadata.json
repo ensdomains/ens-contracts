@@ -1,0 +1,89 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint64",
+						"name": "newVersion",
+						"type": "uint64"
+					}
+				],
+				"name": "VersionChanged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					}
+				],
+				"name": "recordVersions",
+				"outputs": [
+					{
+						"internalType": "uint64",
+						"name": "",
+						"type": "uint64"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/resolvers/profiles/IVersionableResolver.sol": "IVersionableResolver"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+			":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+			":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+			":clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+		]
+	},
+	"sources": {
+		"contracts/resolvers/profiles/IVersionableResolver.sol": {
+			"keccak256": "0xd0d09596f20c57bafb2ffa8521a8c57120e9af6c6b194f9c689d4da56f91a57c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://3e78ca35813a5eb02e6e61ad49102dfccd219ff7f9a81e54783582be2af1a0c0",
+				"dweb:/ipfs/QmaCb9Bv9FnKMd6TVXsjhchq1F7ZdsSpLrqDhPYgp8j2qV"
+			]
+		}
+	},
+	"version": 1
+}

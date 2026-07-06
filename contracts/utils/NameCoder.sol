@@ -16,9 +16,10 @@ import {BytesUtils} from "./BytesUtils.sol";
 /// * `dns.length == 2 + ens.length` and the mapping is injective.
 ///
 library NameCoder {
-    /// @dev The namehash of "eth".
-    bytes32 public constant ETH_NODE =
-        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    /// @dev The namehash of "etn".
+    bytes32 internal constant ETN_NODE =
+        0x69a3977d40595dbc343e3fa6ddbd26dbe31cc237836622384941b3c5148974cd;
+        // keccak256(abi.encodePacked(bytes32(0), keccak256("etn")))
 
     /// @dev The label was empty.
     ///      Error selector: `0xbf9a2740`
@@ -95,7 +96,7 @@ library NameCoder {
     }
 
     /// @dev Count number of labels in `name`.
-    ///      * `countLabels("\x03eth\x00") = 1`
+    ///      * `countLabels("\x03etn\x00") = 1`
     ///      * `countLabels("\x00") = 0`
     ///      Reverts like `nextLabel()`.
     ///
@@ -213,7 +214,7 @@ library NameCoder {
 
     /// @dev Convert DNS-encoded name to ENS name.
     ///      * `decode("\x00") = ""`
-    ///      * `decode("\x03eth\x00") = "eth"`
+    ///      * `decode("\x03etn\x00") = "etn"`
     ///      * `decode("\x03aaa\x02bb\x01c\x00") = "aa.bb.c"`
     ///      * `decode("\x03a.b\x00")` reverts
     ///      Reverts like `nextLabel()`.
@@ -248,7 +249,7 @@ library NameCoder {
 
     /// @dev Convert ENS name to DNS-encoded name.
     ///      * `encode("aaa.bb.c") = "\x03aaa\x02bb\x01c\x00"`
-    ///      * `encode("eth") = "\x03eth\x00"`
+    ///      * `encode("etn") = "\x03etn\x00"`
     ///      * `encode("") = "\x00"`
     ///      Reverts `DNSEncodingFailed`.
     ///
@@ -341,8 +342,8 @@ library NameCoder {
     }
 
     /// @dev Prepend `label` to DNS-encoded `name`.
-    ///      * `addLabel("\x03eth\x00", "test") = "\x04test\x03eth\x00"`
-    ///      * `addLabel("\x00", "eth") = "\x03eth\x00"`
+    ///      * `addLabel("\x03etn\x00", "test") = "\x04test\x03etn\x00"`
+    ///      * `addLabel("\x00", "etn") = "\x03etn\x00"`
     ///      * `addLabel("", "abc") = "\x03abc"` invalid
     ///      * `addLabel("", "")` reverts
     ///      Assumes `name` is properly encoded.
@@ -359,14 +360,14 @@ library NameCoder {
         return abi.encodePacked(assertLabelSize(label), label, name);
     }
 
-    /// @dev Transform `label` to DNS-encoded `{label}.eth`.
-    ///      * `ethName("eth") = "\x04test\x03eth\x00"`
+    /// @dev Transform `label` to DNS-encoded `{label}.etn`.
+    ///      * `etnName("etn") = "\x04test\x03etn\x00"`
     ///      Behaves like `addLabel()`.
     ///
     /// @param label The label to encode.
     ///
     /// @return The DNS-encoded name.
-    function ethName(string memory label) internal pure returns (bytes memory) {
-        return addLabel("\x03eth\x00", label);
+    function etnName(string memory label) internal pure returns (bytes memory) {
+        return addLabel("\x03etn\x00", label);
     }
 }

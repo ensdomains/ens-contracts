@@ -146,16 +146,7 @@ abstract contract ResolverCaller is CCIPBatcher {
         Lookup[] memory lookups = abi.decode(response, (Batch)).lookups;
         (bool multi, bool extended) = abi.decode(extraData, (bool, bool));
         if (multi) {
-            bytes[] memory m = new bytes[](lookups.length);
-            for (uint256 i; i < lookups.length; ++i) {
-                Lookup memory lu = lookups[i];
-                bytes memory v = lu.data;
-                if (extended && (lu.flags & FLAGS_ANY_ERROR) == 0) {
-                    v = abi.decode(v, (bytes)); // unwrap resolve()
-                }
-                m[i] = v;
-            }
-            return abi.encode(m);
+            return abi.encode(_toResponseArray(lookups, extended));
         } else {
             Lookup memory lu = lookups[0];
             bytes memory v = lu.data;

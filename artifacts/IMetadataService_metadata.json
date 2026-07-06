@@ -1,0 +1,70 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"name": "uri",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/wrapper/IMetadataService.sol": "IMetadataService"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+			":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+			":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+			":clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+		]
+	},
+	"sources": {
+		"contracts/wrapper/IMetadataService.sol": {
+			"keccak256": "0xb3f1cf6df01ed7b15e5f2318f6823afbdb586ca38c2124c67955c645647ae9a2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://71aa1053dd87829c5eb25d32840d7b0d33cd9d54d22e905a01436bf97cc32b8c",
+				"dweb:/ipfs/QmeMNnGKqf3oZyYwDQzEuQhti58UCCMRCMAD2EBx5T8dSH"
+			]
+		}
+	},
+	"version": 1
+}

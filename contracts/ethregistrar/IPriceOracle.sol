@@ -16,5 +16,5 @@ interface IPriceOracle {
         string calldata name,
         uint256 expires,
         uint256 duration
-    ) external view returns (Price calldata);
+    ) external view returns (Price memory);
 }

@@ -1,0 +1,410 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "OwnableInvalidOwner",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "OwnableUnauthorizedAccount",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "startPremium",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "decayPeriod",
+						"type": "uint256"
+					}
+				],
+				"name": "PremiumUpdated",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": false,
+						"internalType": "uint256[]",
+						"name": "prices",
+						"type": "uint256[]"
+					}
+				],
+				"name": "PricesUpdated",
+				"type": "event"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "premiumDecayPeriod",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "uint256",
+						"name": "expires",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "duration",
+						"type": "uint256"
+					}
+				],
+				"name": "price",
+				"outputs": [
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "base",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "premium",
+								"type": "uint256"
+							}
+						],
+						"internalType": "struct IPriceOracle.Price",
+						"name": "",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "price1Letter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "price2Letter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "price3Letter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "price4Letter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "price5Letter",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "_startPremium",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "_decayPeriod",
+						"type": "uint256"
+					}
+				],
+				"name": "setPremium",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256[5]",
+						"name": "prices",
+						"type": "uint256[5]"
+					}
+				],
+				"name": "setPrices",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "startPremium",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "transferOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"details": "Prices are set directly in ETN (wei), NOT derived from a live USD feed.      Defaults below are illustrative starting points based on ETN's spot price      at time of writing (~$0.0009 USD, highly volatile) and should be revisited      periodically by the owner via setPrices().",
+			"errors": {
+				"OwnableInvalidOwner(address)": [
+					{
+						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
+					}
+				],
+				"OwnableUnauthorizedAccount(address)": [
+					{
+						"details": "The caller account is not authorized to perform an operation."
+					}
+				]
+			},
+			"kind": "dev",
+			"methods": {
+				"owner()": {
+					"details": "Returns the address of the current owner."
+				},
+				"price(string,uint256,uint256)": {
+					"details": "Returns the price to register or renew a name.",
+					"params": {
+						"duration": "How long the name is being registered or extended for, in seconds.",
+						"expires": "When the name presently expires (0 if this is a new registration).",
+						"name": "The name being registered or renewed."
+					},
+					"returns": {
+						"_0": "base premium tuple of base price + premium price"
+					}
+				},
+				"renounceOwnership()": {
+					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"setPremium(uint256,uint256)": {
+					"params": {
+						"_decayPeriod": "Time over which the premium linearly decays to 0.",
+						"_startPremium": "Premium (in wei) charged immediately after expiry."
+					}
+				},
+				"setPrices(uint256[5])": {
+					"params": {
+						"prices": "[1-letter, 2-letter, 3-letter, 4-letter, 5+letter]"
+					}
+				},
+				"transferOwnership(address)": {
+					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"setPremium(uint256,uint256)": {
+					"notice": "Update the recently-expired-name premium curve."
+				},
+				"setPrices(uint256[5])": {
+					"notice": "Update per-length-tier annual prices, in wei."
+				}
+			},
+			"notice": "Fixed, owner-adjustable ETN-denominated pricing oracle for name registration.",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/ethregistrar/StablePriceOracle.sol": "StablePriceOracle"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+			":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+			":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+			":clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+		]
+	},
+	"sources": {
+		"contracts/ethregistrar/IPriceOracle.sol": {
+			"keccak256": "0x189d4cc2204a887a3893d99399f55cbbcab4f2b43eee6d7640cab52522066c0d",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://d1ee4288a75a9107f0a0d15a2ce9b3042ef63e0db1c8645eada18a1e00ab986b",
+				"dweb:/ipfs/QmQpdKcxqSQLECdvS6JdonEVMEkoW96CkNz68wiNdpye1Z"
+			]
+		},
+		"contracts/ethregistrar/StablePriceOracle.sol": {
+			"keccak256": "0x83203660d81728049da593eb39b2b58c30007dbb341774b545d7e455e0b5b025",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ed060cb14c6993e0dc4196763a5ac3e5bd1acdc31fd17d9eae8c32ff844087de",
+				"dweb:/ipfs/QmUpa6WbTTocdCpNiwaFjqJioD9oEXZj7M5tsJcWgZLccq"
+			]
+		},
+		"contracts/utils/StringUtils.sol": {
+			"keccak256": "0x0bfe56e70297eb274d45dccd1dab1fe1904f7802fdb27d0b5ff102cec3defb85",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://940c105b95b6a1bdc007b55b8792b1fcc3019ac24324d6186dcbd75fd0f90538",
+				"dweb:/ipfs/QmTuD4PzkFHzrZCpWtncSdEUW9fvvC53Jw3LyQh6nPLhmN"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol": {
+			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/Context.sol": {
+			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+			]
+		}
+	},
+	"version": 1
+}

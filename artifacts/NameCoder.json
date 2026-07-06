@@ -1,0 +1,119 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"sepolia:11155111": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"linkReferences": {},
+			"object": "60566037600b82828239805160001a607314602a57634e487b7160e01b600052600060045260246000fd5b30600052607381538281f3fe73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220cb0d88280d823c1f67d93b4e93e5a3825d5915ae57e6f7112f6988fe2ea7fb3664736f6c63430008140033",
+			"opcodes": "PUSH1 0x56 PUSH1 0x37 PUSH1 0xB DUP3 DUP3 DUP3 CODECOPY DUP1 MLOAD PUSH1 0x0 BYTE PUSH1 0x73 EQ PUSH1 0x2A JUMPI PUSH4 0x4E487B71 PUSH1 0xE0 SHL PUSH1 0x0 MSTORE PUSH1 0x0 PUSH1 0x4 MSTORE PUSH1 0x24 PUSH1 0x0 REVERT JUMPDEST ADDRESS PUSH1 0x0 MSTORE PUSH1 0x73 DUP2 MSTORE8 DUP3 DUP2 RETURN INVALID PUSH20 0x0 ADDRESS EQ PUSH1 0x80 PUSH1 0x40 MSTORE PUSH1 0x0 DUP1 REVERT INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xCB 0xD DUP9 0x28 0xD DUP3 EXTCODECOPY 0x1F PUSH8 0xD93B4E93E5A3825D MSIZE ISZERO 0xAE JUMPI 0xE6 0xF7 GT 0x2F PUSH10 0x88FE2EA7FB3664736F6C PUSH4 0x43000814 STOP CALLER ",
+			"sourceMap": "556:12523:2:-:0;;;;;;;;;;;;;;;-1:-1:-1;;;556:12523:2;;;;;;;;;;;;;;;;;"
+		},
+		"deployedBytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"immutableReferences": {},
+			"linkReferences": {},
+			"object": "73000000000000000000000000000000000000000030146080604052600080fdfea2646970667358221220cb0d88280d823c1f67d93b4e93e5a3825d5915ae57e6f7112f6988fe2ea7fb3664736f6c63430008140033",
+			"opcodes": "PUSH20 0x0 ADDRESS EQ PUSH1 0x80 PUSH1 0x40 MSTORE PUSH1 0x0 DUP1 REVERT INVALID LOG2 PUSH5 0x6970667358 0x22 SLT KECCAK256 0xCB 0xD DUP9 0x28 0xD DUP3 EXTCODECOPY 0x1F PUSH8 0xD93B4E93E5A3825D MSIZE ISZERO 0xAE JUMPI 0xE6 0xF7 GT 0x2F PUSH10 0x88FE2EA7FB3664736F6C PUSH4 0x43000814 STOP CALLER ",
+			"sourceMap": "556:12523:2:-:0;;;;;;;;"
+		},
+		"gasEstimates": {
+			"creation": {
+				"codeDepositCost": "17200",
+				"executionCost": "103",
+				"totalCost": "17303"
+			},
+			"internal": {
+				"addLabel(bytes memory,string memory)": "infinite",
+				"assertLabelSize(string memory)": "infinite",
+				"countLabels(bytes memory,uint256)": "infinite",
+				"decode(bytes memory)": "infinite",
+				"encode(string memory)": "infinite",
+				"etnName(string memory)": "infinite",
+				"extractLabel(bytes memory,uint256)": "infinite",
+				"firstLabel(bytes memory)": "infinite",
+				"matchSuffix(bytes memory,uint256,bytes32)": "infinite",
+				"namehash(bytes memory,uint256)": "infinite",
+				"namehash(bytes32,bytes32)": "infinite",
+				"nextLabel(bytes memory,uint256)": "infinite",
+				"prevLabel(bytes memory,uint256)": "infinite",
+				"readLabel(bytes memory,uint256)": "infinite"
+			}
+		},
+		"methodIdentifiers": {}
+	},
+	"abi": [
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "dns",
+					"type": "bytes"
+				}
+			],
+			"name": "DNSDecodingFailed",
+			"type": "error"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "ens",
+					"type": "string"
+				}
+			],
+			"name": "DNSEncodingFailed",
+			"type": "error"
+		},
+		{
+			"inputs": [],
+			"name": "LabelIsEmpty",
+			"type": "error"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "label",
+					"type": "string"
+				}
+			],
+			"name": "LabelIsTooLong",
+			"type": "error"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "name",
+					"type": "bytes"
+				},
+				{
+					"internalType": "bytes",
+					"name": "suffix",
+					"type": "bytes"
+				}
+			],
+			"name": "NoSuffixMatch",
+			"type": "error"
+		}
+	]
+}

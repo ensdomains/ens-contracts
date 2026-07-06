@@ -1,0 +1,132 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					}
+				],
+				"name": "setName",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					},
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					}
+				],
+				"name": "setNameForAddr",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "addr",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "signatureExpiry",
+						"type": "uint256"
+					},
+					{
+						"internalType": "string",
+						"name": "name",
+						"type": "string"
+					},
+					{
+						"internalType": "bytes",
+						"name": "signature",
+						"type": "bytes"
+					}
+				],
+				"name": "setNameForAddrWithSignature",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"setName(string)": {
+					"params": {
+						"name": "The name to set."
+					}
+				},
+				"setNameForAddrWithSignature(address,uint256,string,bytes)": {
+					"params": {
+						"addr": "The address to set the name for.",
+						"name": "The name to set.",
+						"signature": "The signature from the addr.",
+						"signatureExpiry": "Date when the signature expires."
+					}
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"setName(string)": {
+					"notice": "Sets the `nameForAddr()` record for the calling account."
+				},
+				"setNameForAddrWithSignature(address,uint256,string,bytes)": {
+					"notice": "Sets the `nameForAddr()` record for the addr provided account using a signature."
+				}
+			},
+			"notice": "Interface for the Default Reverse Registrar.",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/reverseRegistrar/IDefaultReverseRegistrar.sol": "IDefaultReverseRegistrar"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+			":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+			":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+			":clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+		]
+	},
+	"sources": {
+		"contracts/reverseRegistrar/IDefaultReverseRegistrar.sol": {
+			"keccak256": "0x45187ce3d3f5da57eac0453ae7df24295e820da379eeaf21cfc967a21038fe7e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c15c93872b466e563acf3f025473af3b3b1b494c4e724f082daeb8a1d768a03b",
+				"dweb:/ipfs/QmSpot1dEZw7LnBLnbXig3wZbjfL3oyog33mZmnyG7pW46"
+			]
+		}
+	},
+	"version": 1
+}
