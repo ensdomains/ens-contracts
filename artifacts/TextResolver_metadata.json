@@ -1,0 +1,271 @@
+{
+	"compiler": {
+		"version": "0.8.20+commit.a1b79de6"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					},
+					{
+						"indexed": true,
+						"internalType": "string",
+						"name": "indexedKey",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "key",
+						"type": "string"
+					},
+					{
+						"indexed": false,
+						"internalType": "string",
+						"name": "value",
+						"type": "string"
+					}
+				],
+				"name": "TextChanged",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint64",
+						"name": "newVersion",
+						"type": "uint64"
+					}
+				],
+				"name": "VersionChanged",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					}
+				],
+				"name": "clearRecords",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "",
+						"type": "bytes32"
+					}
+				],
+				"name": "recordVersions",
+				"outputs": [
+					{
+						"internalType": "uint64",
+						"name": "",
+						"type": "uint64"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "string",
+						"name": "key",
+						"type": "string"
+					},
+					{
+						"internalType": "string",
+						"name": "value",
+						"type": "string"
+					}
+				],
+				"name": "setText",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes4",
+						"name": "interfaceID",
+						"type": "bytes4"
+					}
+				],
+				"name": "supportsInterface",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bytes32",
+						"name": "node",
+						"type": "bytes32"
+					},
+					{
+						"internalType": "string",
+						"name": "key",
+						"type": "string"
+					}
+				],
+				"name": "text",
+				"outputs": [
+					{
+						"internalType": "string",
+						"name": "",
+						"type": "string"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {
+				"clearRecords(bytes32)": {
+					"params": {
+						"node": "The node to update."
+					}
+				},
+				"setText(bytes32,string,string)": {
+					"params": {
+						"key": "The key to set.",
+						"node": "The node to update.",
+						"value": "The text data value to set."
+					}
+				},
+				"text(bytes32,string)": {
+					"params": {
+						"key": "The text data key to query.",
+						"node": "The ENS node to query."
+					},
+					"returns": {
+						"_0": "The associated text data."
+					}
+				}
+			},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"clearRecords(bytes32)": {
+					"notice": "Increments the record version associated with an ENS node. May only be called by the owner of that node in the ENS registry."
+				},
+				"setText(bytes32,string,string)": {
+					"notice": "Sets the text data associated with an ENS node and key. May only be called by the owner of that node in the ENS registry."
+				},
+				"text(bytes32,string)": {
+					"notice": "Returns the text data associated with an ENS node and key."
+				}
+			},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"contracts/resolvers/profiles/TextResolver.sol": "TextResolver"
+		},
+		"evmVersion": "london",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": true,
+			"runs": 200
+		},
+		"remappings": [
+			":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+			":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+			":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+			":clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+		]
+	},
+	"sources": {
+		"contracts/resolvers/ResolverBase.sol": {
+			"keccak256": "0xd10a943d58bd22ad811a9c712bae514189dc17bc910be5d4862e72e3775ad100",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f5f7d0d4d81133434865e8e75814a26d9043abf4bfa67065531504f998f4d0e1",
+				"dweb:/ipfs/QmQvQwc6d69vB7uwXA6mMKWJdbty7MtHcmBN2dFtFBERzw"
+			]
+		},
+		"contracts/resolvers/profiles/ITextResolver.sol": {
+			"keccak256": "0xe91c15697be2d20417cce3c58d4ecce34796986fdedc97be5b93a823be58e471",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://108dd435f8ed22a40c33345423a3b28a012753df915a4ec18949ca36956f8eb3",
+				"dweb:/ipfs/QmQ9ysUkDMRSTqZFof324ey24FYs6qYVWtPnMxzAiiZy6T"
+			]
+		},
+		"contracts/resolvers/profiles/IVersionableResolver.sol": {
+			"keccak256": "0xd0d09596f20c57bafb2ffa8521a8c57120e9af6c6b194f9c689d4da56f91a57c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://3e78ca35813a5eb02e6e61ad49102dfccd219ff7f9a81e54783582be2af1a0c0",
+				"dweb:/ipfs/QmaCb9Bv9FnKMd6TVXsjhchq1F7ZdsSpLrqDhPYgp8j2qV"
+			]
+		},
+		"contracts/resolvers/profiles/TextResolver.sol": {
+			"keccak256": "0x82a914dfe1b30634e729c03450e4c9ef4afd53919993231a92fb9cca2f8b3a83",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1ab56cc4458988da25864b910f11eee74455f994946bad486a29a2a414b794c6",
+				"dweb:/ipfs/QmNVV7CXWd1E6bK98YRGVSDQJQT78M7WVKjevS3aHWbqpw"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/ERC165.sol": {
+			"keccak256": "0x9e8778b14317ba9e256c30a76fd6c32b960af621987f56069e1e819c77c6a133",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://1777404f1dcd0fac188e55a288724ec3c67b45288e49cc64723e95e702b49ab8",
+				"dweb:/ipfs/QmZFdC626GButBApwDUvvTnUzdinevC3B24d7yyh57XkiA"
+			]
+		},
+		"https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/IERC165.sol": {
+			"keccak256": "0x4296879f55019b23e135000eb36896057e7101fb7fb859c5ef690cf14643757b",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://87b3541437c8c443ccd36795e56a338ed12855eec17f8da624511b8d1a7e14df",
+				"dweb:/ipfs/QmeJQCtZrQjtJLr6u7ZHWeH3pBnjtLWzvRrKViAi7UZqxL"
+			]
+		}
+	},
+	"version": 1
+}

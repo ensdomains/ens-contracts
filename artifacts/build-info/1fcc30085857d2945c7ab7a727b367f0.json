@@ -1,0 +1,423 @@
+{
+	"id": "1fcc30085857d2945c7ab7a727b367f0",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.20",
+	"solcLongVersion": "0.8.20+commit.a1b79de6",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"contracts/ethregistrar/IPriceOracle.sol": {
+				"content": "//SPDX-License-Identifier: MIT\npragma solidity >=0.8.17 <0.9.0;\n\ninterface IPriceOracle {\n    struct Price {\n        uint256 base;\n        uint256 premium;\n    }\n\n    /// @dev Returns the price to register or renew a name.\n    /// @param name The name being registered or renewed.\n    /// @param expires When the name presently expires (0 if this is a new registration).\n    /// @param duration How long the name is being registered or extended for, in seconds.\n    /// @return base premium tuple of base price + premium price\n    function price(\n        string calldata name,\n        uint256 expires,\n        uint256 duration\n    ) external view returns (Price memory);\n}"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": true,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": [
+				"@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+				"@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+				"@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+				"clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+			],
+			"evmVersion": "london"
+		}
+	},
+	"output": {
+		"contracts": {
+			"contracts/ethregistrar/IPriceOracle.sol": {
+				"IPriceOracle": {
+					"abi": [
+						{
+							"inputs": [
+								{
+									"internalType": "string",
+									"name": "name",
+									"type": "string"
+								},
+								{
+									"internalType": "uint256",
+									"name": "expires",
+									"type": "uint256"
+								},
+								{
+									"internalType": "uint256",
+									"name": "duration",
+									"type": "uint256"
+								}
+							],
+							"name": "price",
+							"outputs": [
+								{
+									"components": [
+										{
+											"internalType": "uint256",
+											"name": "base",
+											"type": "uint256"
+										},
+										{
+											"internalType": "uint256",
+											"name": "premium",
+											"type": "uint256"
+										}
+									],
+									"internalType": "struct IPriceOracle.Price",
+									"name": "",
+									"type": "tuple"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {
+							"price(string,uint256,uint256)": {
+								"details": "Returns the price to register or renew a name.",
+								"params": {
+									"duration": "How long the name is being registered or extended for, in seconds.",
+									"expires": "When the name presently expires (0 if this is a new registration).",
+									"name": "The name being registered or renewed."
+								},
+								"returns": {
+									"_0": "base premium tuple of base price + premium price"
+								}
+							}
+						},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"price(string,uint256,uint256)": "50e9a715"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"},{\"internalType\":\"uint256\",\"name\":\"expires\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"duration\",\"type\":\"uint256\"}],\"name\":\"price\",\"outputs\":[{\"components\":[{\"internalType\":\"uint256\",\"name\":\"base\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"premium\",\"type\":\"uint256\"}],\"internalType\":\"struct IPriceOracle.Price\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"price(string,uint256,uint256)\":{\"details\":\"Returns the price to register or renew a name.\",\"params\":{\"duration\":\"How long the name is being registered or extended for, in seconds.\",\"expires\":\"When the name presently expires (0 if this is a new registration).\",\"name\":\"The name being registered or renewed.\"},\"returns\":{\"_0\":\"base premium tuple of base price + premium price\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/ethregistrar/IPriceOracle.sol\":\"IPriceOracle\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/\",\":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\",\":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts\",\":clones-with-immutable-args/=node_modules/clones-with-immutable-args/\"]},\"sources\":{\"contracts/ethregistrar/IPriceOracle.sol\":{\"keccak256\":\"0x189d4cc2204a887a3893d99399f55cbbcab4f2b43eee6d7640cab52522066c0d\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://d1ee4288a75a9107f0a0d15a2ce9b3042ef63e0db1c8645eada18a1e00ab986b\",\"dweb:/ipfs/QmQpdKcxqSQLECdvS6JdonEVMEkoW96CkNz68wiNdpye1Z\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"contracts/ethregistrar/IPriceOracle.sol": {
+				"ast": {
+					"absolutePath": "contracts/ethregistrar/IPriceOracle.sol",
+					"exportedSymbols": {
+						"IPriceOracle": [
+							20
+						]
+					},
+					"id": 21,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								">=",
+								"0.8",
+								".17",
+								"<",
+								"0.9",
+								".0"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "31:32:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IPriceOracle",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"fullyImplemented": false,
+							"id": 20,
+							"linearizedBaseContracts": [
+								20
+							],
+							"name": "IPriceOracle",
+							"nameLocation": "75:12:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"canonicalName": "IPriceOracle.Price",
+									"id": 6,
+									"members": [
+										{
+											"constant": false,
+											"id": 3,
+											"mutability": "mutable",
+											"name": "base",
+											"nameLocation": "125:4:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 6,
+											"src": "117:12:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint256",
+												"typeString": "uint256"
+											},
+											"typeName": {
+												"id": 2,
+												"name": "uint256",
+												"nodeType": "ElementaryTypeName",
+												"src": "117:7:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												}
+											},
+											"visibility": "internal"
+										},
+										{
+											"constant": false,
+											"id": 5,
+											"mutability": "mutable",
+											"name": "premium",
+											"nameLocation": "147:7:0",
+											"nodeType": "VariableDeclaration",
+											"scope": 6,
+											"src": "139:15:0",
+											"stateVariable": false,
+											"storageLocation": "default",
+											"typeDescriptions": {
+												"typeIdentifier": "t_uint256",
+												"typeString": "uint256"
+											},
+											"typeName": {
+												"id": 4,
+												"name": "uint256",
+												"nodeType": "ElementaryTypeName",
+												"src": "139:7:0",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												}
+											},
+											"visibility": "internal"
+										}
+									],
+									"name": "Price",
+									"nameLocation": "101:5:0",
+									"nodeType": "StructDefinition",
+									"scope": 20,
+									"src": "94:67:0",
+									"visibility": "public"
+								},
+								{
+									"documentation": {
+										"id": 7,
+										"nodeType": "StructuredDocumentation",
+										"src": "167:359:0",
+										"text": "@dev Returns the price to register or renew a name.\n @param name The name being registered or renewed.\n @param expires When the name presently expires (0 if this is a new registration).\n @param duration How long the name is being registered or extended for, in seconds.\n @return base premium tuple of base price + premium price"
+									},
+									"functionSelector": "50e9a715",
+									"id": 19,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "price",
+									"nameLocation": "540:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 14,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 9,
+												"mutability": "mutable",
+												"name": "name",
+												"nameLocation": "571:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "555:20:0",
+												"stateVariable": false,
+												"storageLocation": "calldata",
+												"typeDescriptions": {
+													"typeIdentifier": "t_string_calldata_ptr",
+													"typeString": "string"
+												},
+												"typeName": {
+													"id": 8,
+													"name": "string",
+													"nodeType": "ElementaryTypeName",
+													"src": "555:6:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_string_storage_ptr",
+														"typeString": "string"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 11,
+												"mutability": "mutable",
+												"name": "expires",
+												"nameLocation": "593:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "585:15:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 10,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "585:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 13,
+												"mutability": "mutable",
+												"name": "duration",
+												"nameLocation": "618:8:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "610:16:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 12,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "610:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "545:87:0"
+									},
+									"returnParameters": {
+										"id": 18,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 17,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 19,
+												"src": "656:12:0",
+												"stateVariable": false,
+												"storageLocation": "memory",
+												"typeDescriptions": {
+													"typeIdentifier": "t_struct$_Price_$6_memory_ptr",
+													"typeString": "struct IPriceOracle.Price"
+												},
+												"typeName": {
+													"id": 16,
+													"nodeType": "UserDefinedTypeName",
+													"pathNode": {
+														"id": 15,
+														"name": "Price",
+														"nameLocations": [
+															"656:5:0"
+														],
+														"nodeType": "IdentifierPath",
+														"referencedDeclaration": 6,
+														"src": "656:5:0"
+													},
+													"referencedDeclaration": 6,
+													"src": "656:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_struct$_Price_$6_storage_ptr",
+														"typeString": "struct IPriceOracle.Price"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "655:14:0"
+									},
+									"scope": 20,
+									"src": "531:139:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 21,
+							"src": "65:607:0",
+							"usedErrors": [],
+							"usedEvents": []
+						}
+					],
+					"src": "31:641:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

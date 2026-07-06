@@ -1,0 +1,371 @@
+{
+	"id": "5d0c6beb5e20fe2785588cc09def81f7",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.20",
+	"solcLongVersion": "0.8.20+commit.a1b79de6",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"contracts/resolvers/profiles/IAddrResolver.sol": {
+				"content": "// SPDX-License-Identifier: MIT\npragma solidity >=0.8.4;\n\n/// Interface for the legacy (ETH-only) addr function.\ninterface IAddrResolver {\n    event AddrChanged(bytes32 indexed node, address a);\n\n    /// Returns the address associated with an ENS node.\n    /// @param node The ENS node to query.\n    /// @return The associated address.\n    function addr(bytes32 node) external view returns (address payable);\n}\n"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": true,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": [
+				"@unruggable/gateways/=node_modules/@unruggable/gateways/contracts",
+				"@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+				"@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+				"clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+			],
+			"evmVersion": "london"
+		}
+	},
+	"output": {
+		"contracts": {
+			"contracts/resolvers/profiles/IAddrResolver.sol": {
+				"IAddrResolver": {
+					"abi": [
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "bytes32",
+									"name": "node",
+									"type": "bytes32"
+								},
+								{
+									"indexed": false,
+									"internalType": "address",
+									"name": "a",
+									"type": "address"
+								}
+							],
+							"name": "AddrChanged",
+							"type": "event"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "bytes32",
+									"name": "node",
+									"type": "bytes32"
+								}
+							],
+							"name": "addr",
+							"outputs": [
+								{
+									"internalType": "address payable",
+									"name": "",
+									"type": "address"
+								}
+							],
+							"stateMutability": "view",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"kind": "dev",
+						"methods": {
+							"addr(bytes32)": {
+								"params": {
+									"node": "The ENS node to query."
+								},
+								"returns": {
+									"_0": "The associated address."
+								}
+							}
+						},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"addr(bytes32)": "3b3b57de"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.20+commit.a1b79de6\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"},{\"indexed\":false,\"internalType\":\"address\",\"name\":\"a\",\"type\":\"address\"}],\"name\":\"AddrChanged\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"addr\",\"outputs\":[{\"internalType\":\"address payable\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"addr(bytes32)\":{\"params\":{\"node\":\"The ENS node to query.\"},\"returns\":{\"_0\":\"The associated address.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"addr(bytes32)\":{\"notice\":\"Returns the address associated with an ENS node.\"}},\"notice\":\"Interface for the legacy (ETH-only) addr function.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/resolvers/profiles/IAddrResolver.sol\":\"IAddrResolver\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/\",\":@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\",\":@unruggable/gateways/=node_modules/@unruggable/gateways/contracts\",\":clones-with-immutable-args/=node_modules/clones-with-immutable-args/\"]},\"sources\":{\"contracts/resolvers/profiles/IAddrResolver.sol\":{\"keccak256\":\"0x91dd0c350698c505d6c7e4c919da9f981d4b8d7ad062e25073fa1f6af7cb79d1\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://81e7825faf4a4271c98a36f934b398164967fefedd26b97a1b777e702d9860fd\",\"dweb:/ipfs/QmboiQ18MSxVRxo5ST9QpFZcBn6k1BFMYBpQLhPUtGRqna\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {
+							"addr(bytes32)": {
+								"notice": "Returns the address associated with an ENS node."
+							}
+						},
+						"notice": "Interface for the legacy (ETH-only) addr function.",
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"contracts/resolvers/profiles/IAddrResolver.sol": {
+				"ast": {
+					"absolutePath": "contracts/resolvers/profiles/IAddrResolver.sol",
+					"exportedSymbols": {
+						"IAddrResolver": [
+							17
+						]
+					},
+					"id": 18,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								">=",
+								"0.8",
+								".4"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "32:24:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IAddrResolver",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"documentation": {
+								"id": 2,
+								"nodeType": "StructuredDocumentation",
+								"src": "58:55:0",
+								"text": "Interface for the legacy (ETH-only) addr function."
+							},
+							"fullyImplemented": false,
+							"id": 17,
+							"linearizedBaseContracts": [
+								17
+							],
+							"name": "IAddrResolver",
+							"nameLocation": "123:13:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"anonymous": false,
+									"eventSelector": "52d7d861f09ab3d26239d492e8968629f95e9e318cf0b73bfddc441522a15fd2",
+									"id": 8,
+									"name": "AddrChanged",
+									"nameLocation": "149:11:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 7,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 4,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "node",
+												"nameLocation": "177:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 8,
+												"src": "161:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 3,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "161:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 6,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "a",
+												"nameLocation": "191:1:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 8,
+												"src": "183:9:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 5,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "183:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "160:33:0"
+									},
+									"src": "143:51:0"
+								},
+								{
+									"documentation": {
+										"id": 9,
+										"nodeType": "StructuredDocumentation",
+										"src": "200:135:0",
+										"text": "Returns the address associated with an ENS node.\n @param node The ENS node to query.\n @return The associated address."
+									},
+									"functionSelector": "3b3b57de",
+									"id": 16,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "addr",
+									"nameLocation": "349:4:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 12,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 11,
+												"mutability": "mutable",
+												"name": "node",
+												"nameLocation": "362:4:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 16,
+												"src": "354:12:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bytes32",
+													"typeString": "bytes32"
+												},
+												"typeName": {
+													"id": 10,
+													"name": "bytes32",
+													"nodeType": "ElementaryTypeName",
+													"src": "354:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bytes32",
+														"typeString": "bytes32"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "353:14:0"
+									},
+									"returnParameters": {
+										"id": 15,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 14,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 16,
+												"src": "391:15:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address_payable",
+													"typeString": "address payable"
+												},
+												"typeName": {
+													"id": 13,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "391:15:0",
+													"stateMutability": "payable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address_payable",
+														"typeString": "address payable"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "390:17:0"
+									},
+									"scope": 17,
+									"src": "340:68:0",
+									"stateMutability": "view",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 18,
+							"src": "113:297:0",
+							"usedErrors": [],
+							"usedEvents": [
+								8
+							]
+						}
+					],
+					"src": "32:379:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}

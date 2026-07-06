@@ -1,0 +1,1192 @@
+{
+	"deploy": {
+		"VM:-": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"main:1": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"sepolia:11155111": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		},
+		"Custom": {
+			"linkReferences": {},
+			"autoDeployLib": true
+		}
+	},
+	"data": {
+		"bytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"deployedBytecode": {
+			"functionDebugData": {},
+			"generatedSources": [],
+			"immutableReferences": {},
+			"linkReferences": {},
+			"object": "",
+			"opcodes": "",
+			"sourceMap": ""
+		},
+		"gasEstimates": null,
+		"methodIdentifiers": {
+			"allFusesBurned(bytes32,uint32)": "adf4960a",
+			"approve(address,uint256)": "095ea7b3",
+			"balanceOf(address,uint256)": "00fdd58e",
+			"balanceOfBatch(address[],uint256[])": "4e1273f4",
+			"canModifyName(bytes32,address)": "41415eab",
+			"ens()": "3f15457f",
+			"extendExpiry(bytes32,bytes32,uint64)": "6e5d6ad2",
+			"getApproved(uint256)": "081812fc",
+			"getData(uint256)": "0178fe3f",
+			"isApprovedForAll(address,address)": "e985e9c5",
+			"isWrapped(bytes32)": "fd0cd0d9",
+			"isWrapped(bytes32,bytes32)": "d9a50c12",
+			"metadataService()": "53095467",
+			"name()": "06fdde03",
+			"names(bytes32)": "20c38e2b",
+			"ownerOf(uint256)": "6352211e",
+			"registerAndWrapETH2LD(string,address,uint256,address,uint16)": "a4014982",
+			"registrar()": "2b20e397",
+			"renew(uint256,uint256)": "c475abff",
+			"safeBatchTransferFrom(address,address,uint256[],uint256[],bytes)": "2eb2c2d6",
+			"safeTransferFrom(address,address,uint256,uint256,bytes)": "f242432a",
+			"setApprovalForAll(address,bool)": "a22cb465",
+			"setChildFuses(bytes32,bytes32,uint32,uint64)": "33c69ea9",
+			"setFuses(bytes32,uint16)": "402906fc",
+			"setMetadataService(address)": "1534e177",
+			"setRecord(bytes32,address,address,uint64)": "cf408823",
+			"setResolver(bytes32,address)": "1896f70a",
+			"setSubnodeOwner(bytes32,string,address,uint32,uint64)": "c658e086",
+			"setSubnodeRecord(bytes32,string,address,address,uint64,uint32,uint64)": "24c1af44",
+			"setTTL(bytes32,uint64)": "14ab9038",
+			"setUpgradeContract(address)": "b6bcad26",
+			"supportsInterface(bytes4)": "01ffc9a7",
+			"unwrap(bytes32,bytes32,address)": "d8c9921a",
+			"unwrapETH2LD(bytes32,address,address)": "8b4dfa75",
+			"upgrade(bytes,bytes)": "c93ab3fd",
+			"upgradeContract()": "1f4e1504",
+			"uri(uint256)": "0e89341c",
+			"wrap(bytes,address,address)": "eb8ae530",
+			"wrapETH2LD(string,address,uint16,address)": "8cf8b41e"
+		}
+	},
+	"abi": [
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "account",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "operator",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "bool",
+					"name": "approved",
+					"type": "bool"
+				}
+			],
+			"name": "ApprovalForAll",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "ExpiryExtended",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint32",
+					"name": "fuses",
+					"type": "uint32"
+				}
+			],
+			"name": "FusesSet",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"indexed": false,
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				}
+			],
+			"name": "NameUnwrapped",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"indexed": false,
+					"internalType": "bytes",
+					"name": "name",
+					"type": "bytes"
+				},
+				{
+					"indexed": false,
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint32",
+					"name": "fuses",
+					"type": "uint32"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "NameWrapped",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "operator",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "from",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256[]",
+					"name": "ids",
+					"type": "uint256[]"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256[]",
+					"name": "values",
+					"type": "uint256[]"
+				}
+			],
+			"name": "TransferBatch",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "operator",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "from",
+					"type": "address"
+				},
+				{
+					"indexed": true,
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				},
+				{
+					"indexed": false,
+					"internalType": "uint256",
+					"name": "value",
+					"type": "uint256"
+				}
+			],
+			"name": "TransferSingle",
+			"type": "event"
+		},
+		{
+			"anonymous": false,
+			"inputs": [
+				{
+					"indexed": false,
+					"internalType": "string",
+					"name": "value",
+					"type": "string"
+				},
+				{
+					"indexed": true,
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				}
+			],
+			"name": "URI",
+			"type": "event"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "uint32",
+					"name": "fuseMask",
+					"type": "uint32"
+				}
+			],
+			"name": "allFusesBurned",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256",
+					"name": "tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "approve",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "account",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				}
+			],
+			"name": "balanceOf",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address[]",
+					"name": "accounts",
+					"type": "address[]"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "ids",
+					"type": "uint256[]"
+				}
+			],
+			"name": "balanceOfBatch",
+			"outputs": [
+				{
+					"internalType": "uint256[]",
+					"name": "",
+					"type": "uint256[]"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "addr",
+					"type": "address"
+				}
+			],
+			"name": "canModifyName",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "ens",
+			"outputs": [
+				{
+					"internalType": "contract ENS",
+					"name": "",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "labelhash",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "extendExpiry",
+			"outputs": [
+				{
+					"internalType": "uint64",
+					"name": "",
+					"type": "uint64"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "getApproved",
+			"outputs": [
+				{
+					"internalType": "address",
+					"name": "",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				}
+			],
+			"name": "getData",
+			"outputs": [
+				{
+					"internalType": "address",
+					"name": "",
+					"type": "address"
+				},
+				{
+					"internalType": "uint32",
+					"name": "",
+					"type": "uint32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "",
+					"type": "uint64"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "account",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "operator",
+					"type": "address"
+				}
+			],
+			"name": "isApprovedForAll",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				}
+			],
+			"name": "isWrapped",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				}
+			],
+			"name": "isWrapped",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "metadataService",
+			"outputs": [
+				{
+					"internalType": "contract IMetadataService",
+					"name": "",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "name",
+			"outputs": [
+				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				}
+			],
+			"name": "names",
+			"outputs": [
+				{
+					"internalType": "bytes",
+					"name": "",
+					"type": "bytes"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				}
+			],
+			"name": "ownerOf",
+			"outputs": [
+				{
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "label",
+					"type": "string"
+				},
+				{
+					"internalType": "address",
+					"name": "wrappedOwner",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256",
+					"name": "duration",
+					"type": "uint256"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				},
+				{
+					"internalType": "uint16",
+					"name": "ownerControlledFuses",
+					"type": "uint16"
+				}
+			],
+			"name": "registerAndWrapETH2LD",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "registrarExpiry",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "registrar",
+			"outputs": [
+				{
+					"internalType": "contract IBaseRegistrar",
+					"name": "",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "labelHash",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "duration",
+					"type": "uint256"
+				}
+			],
+			"name": "renew",
+			"outputs": [
+				{
+					"internalType": "uint256",
+					"name": "expires",
+					"type": "uint256"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "from",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "ids",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "uint256[]",
+					"name": "values",
+					"type": "uint256[]"
+				},
+				{
+					"internalType": "bytes",
+					"name": "data",
+					"type": "bytes"
+				}
+			],
+			"name": "safeBatchTransferFrom",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "from",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "to",
+					"type": "address"
+				},
+				{
+					"internalType": "uint256",
+					"name": "id",
+					"type": "uint256"
+				},
+				{
+					"internalType": "uint256",
+					"name": "value",
+					"type": "uint256"
+				},
+				{
+					"internalType": "bytes",
+					"name": "data",
+					"type": "bytes"
+				}
+			],
+			"name": "safeTransferFrom",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "address",
+					"name": "operator",
+					"type": "address"
+				},
+				{
+					"internalType": "bool",
+					"name": "approved",
+					"type": "bool"
+				}
+			],
+			"name": "setApprovalForAll",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "parentNode",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "labelhash",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "uint32",
+					"name": "fuses",
+					"type": "uint32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "setChildFuses",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "uint16",
+					"name": "ownerControlledFuses",
+					"type": "uint16"
+				}
+			],
+			"name": "setFuses",
+			"outputs": [
+				{
+					"internalType": "uint32",
+					"name": "newFuses",
+					"type": "uint32"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "contract IMetadataService",
+					"name": "_metadataService",
+					"type": "address"
+				}
+			],
+			"name": "setMetadataService",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				},
+				{
+					"internalType": "uint64",
+					"name": "ttl",
+					"type": "uint64"
+				}
+			],
+			"name": "setRecord",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				}
+			],
+			"name": "setResolver",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "string",
+					"name": "label",
+					"type": "string"
+				},
+				{
+					"internalType": "address",
+					"name": "newOwner",
+					"type": "address"
+				},
+				{
+					"internalType": "uint32",
+					"name": "fuses",
+					"type": "uint32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "setSubnodeOwner",
+			"outputs": [
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "string",
+					"name": "label",
+					"type": "string"
+				},
+				{
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				},
+				{
+					"internalType": "uint64",
+					"name": "ttl",
+					"type": "uint64"
+				},
+				{
+					"internalType": "uint32",
+					"name": "fuses",
+					"type": "uint32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "expiry",
+					"type": "uint64"
+				}
+			],
+			"name": "setSubnodeRecord",
+			"outputs": [
+				{
+					"internalType": "bytes32",
+					"name": "",
+					"type": "bytes32"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "uint64",
+					"name": "ttl",
+					"type": "uint64"
+				}
+			],
+			"name": "setTTL",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "contract INameWrapperUpgrade",
+					"name": "_upgradeAddress",
+					"type": "address"
+				}
+			],
+			"name": "setUpgradeContract",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes4",
+					"name": "interfaceID",
+					"type": "bytes4"
+				}
+			],
+			"name": "supportsInterface",
+			"outputs": [
+				{
+					"internalType": "bool",
+					"name": "",
+					"type": "bool"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "node",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "bytes32",
+					"name": "label",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "owner",
+					"type": "address"
+				}
+			],
+			"name": "unwrap",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes32",
+					"name": "label",
+					"type": "bytes32"
+				},
+				{
+					"internalType": "address",
+					"name": "newRegistrant",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "newController",
+					"type": "address"
+				}
+			],
+			"name": "unwrapETH2LD",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "name",
+					"type": "bytes"
+				},
+				{
+					"internalType": "bytes",
+					"name": "extraData",
+					"type": "bytes"
+				}
+			],
+			"name": "upgrade",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [],
+			"name": "upgradeContract",
+			"outputs": [
+				{
+					"internalType": "contract INameWrapperUpgrade",
+					"name": "",
+					"type": "address"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "uint256",
+					"name": "tokenId",
+					"type": "uint256"
+				}
+			],
+			"name": "uri",
+			"outputs": [
+				{
+					"internalType": "string",
+					"name": "",
+					"type": "string"
+				}
+			],
+			"stateMutability": "view",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "bytes",
+					"name": "name",
+					"type": "bytes"
+				},
+				{
+					"internalType": "address",
+					"name": "wrappedOwner",
+					"type": "address"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				}
+			],
+			"name": "wrap",
+			"outputs": [],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		},
+		{
+			"inputs": [
+				{
+					"internalType": "string",
+					"name": "label",
+					"type": "string"
+				},
+				{
+					"internalType": "address",
+					"name": "wrappedOwner",
+					"type": "address"
+				},
+				{
+					"internalType": "uint16",
+					"name": "ownerControlledFuses",
+					"type": "uint16"
+				},
+				{
+					"internalType": "address",
+					"name": "resolver",
+					"type": "address"
+				}
+			],
+			"name": "wrapETH2LD",
+			"outputs": [
+				{
+					"internalType": "uint64",
+					"name": "expires",
+					"type": "uint64"
+				}
+			],
+			"stateMutability": "nonpayable",
+			"type": "function"
+		}
+	]
+}

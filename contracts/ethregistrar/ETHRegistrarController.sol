@@ -1,16 +1,15 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {Ownable} from "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol";
+import {ERC165} from "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/ERC165.sol";
+import {IERC165} from "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/utils/introspection/IERC165.sol";
 
 import {BaseRegistrarImplementation} from "./BaseRegistrarImplementation.sol";
 import {StringUtils} from "../utils/StringUtils.sol";
 import {Resolver} from "../resolvers/Resolver.sol";
 import {ENS} from "../registry/ENS.sol";
 import {IReverseRegistrar} from "../reverseRegistrar/IReverseRegistrar.sol";
-import {IDefaultReverseRegistrar} from "../reverseRegistrar/IDefaultReverseRegistrar.sol";
 import {IETHRegistrarController, IPriceOracle} from "./IETHRegistrarController.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
@@ -26,15 +25,13 @@ contract ETHRegistrarController is
     /// @notice The bitmask for the Ethereum reverse record.
     uint8 constant REVERSE_RECORD_ETHEREUM_BIT = 1;
 
-    /// @notice The bitmask for the default reverse record.
-    uint8 constant REVERSE_RECORD_DEFAULT_BIT = 2;
-
     /// @notice The minimum duration for a registration.
     uint256 public constant MIN_REGISTRATION_DURATION = 28 days;
 
-    // @notice The node (i.e. namehash) for the eth TLD.
-    bytes32 private constant ETH_NODE =
-        0x93cdeb708b7545dc668eb9280176169d1c33cfd8ed6f04690a0bcc88a93fc4ae;
+    // @notice The node (i.e. namehash) for the etn TLD.
+    bytes32 internal constant ETN_NODE =
+        0x69a3977d40595dbc343e3fa6ddbd26dbe31cc237836622384941b3c5148974cd;
+        // keccak256(abi.encodePacked(bytes32(0), keccak256("etn")))
 
     /// @notice The maximum expiry time for a registration.
     uint64 private constant MAX_EXPIRY = type(uint64).max;
@@ -42,7 +39,7 @@ contract ETHRegistrarController is
     /// @notice The ENS registry.
     ENS public immutable ens;
 
-    // @notice The base registrar implementation for the eth TLD.
+    // @notice The base registrar implementation for the etn TLD.
     BaseRegistrarImplementation immutable base;
 
     /// @notice The minimum time a commitment must exist to be valid.
@@ -54,10 +51,7 @@ contract ETHRegistrarController is
     /// @notice The registrar for addr.reverse. (i.e. reverse for coinType 60)
     IReverseRegistrar public immutable reverseRegistrar;
 
-    /// @notice The registrar for default.reverse. (i.e. fallback reverse for all EVM chains)
-    IDefaultReverseRegistrar public immutable defaultReverseRegistrar;
-
-    /// @notice The price oracle for the eth TLD.
+    /// @notice The price oracle for the etn TLD.
     IPriceOracle public immutable prices;
 
     /// @notice A mapping of commitments to their timestamp.
@@ -140,12 +134,11 @@ contract ETHRegistrarController is
 
     /// @notice Constructor for the ETHRegistrarController.
     ///
-    /// @param _base The base registrar implementation for the eth TLD.
-    /// @param _prices The price oracle for the eth TLD.
+    /// @param _base The base registrar implementation for the etn TLD.
+    /// @param _prices The price oracle for the etn TLD.
     /// @param _minCommitmentAge The minimum time a commitment must exist to be valid.
     /// @param _maxCommitmentAge The maximum time a commitment can exist to be valid.
     /// @param _reverseRegistrar The registrar for addr.reverse.
-    /// @param _defaultReverseRegistrar The registrar for default.reverse.
     /// @param _ens The ENS registry.
     constructor(
         BaseRegistrarImplementation _base,
@@ -153,9 +146,8 @@ contract ETHRegistrarController is
         uint256 _minCommitmentAge,
         uint256 _maxCommitmentAge,
         IReverseRegistrar _reverseRegistrar,
-        IDefaultReverseRegistrar _defaultReverseRegistrar,
         ENS _ens
-    ) {
+    ) Ownable(msg.sender) {
         if (_maxCommitmentAge <= _minCommitmentAge)
             revert MaxCommitmentAgeTooLow();
 
@@ -168,7 +160,6 @@ contract ETHRegistrarController is
         minCommitmentAge = _minCommitmentAge;
         maxCommitmentAge = _maxCommitmentAge;
         reverseRegistrar = _reverseRegistrar;
-        defaultReverseRegistrar = _defaultReverseRegistrar;
     }
 
     /// @notice Returns the price of a registration for the given label and duration.
@@ -297,7 +288,7 @@ contract ETHRegistrarController is
                 registration.duration
             );
 
-            bytes32 namehash = keccak256(abi.encodePacked(ETH_NODE, labelhash));
+            bytes32 namehash = keccak256(abi.encodePacked(ETN_NODE, labelhash));
             ens.setRecord(
                 namehash,
                 registration.owner,
@@ -321,12 +312,7 @@ contract ETHRegistrarController is
                     msg.sender,
                     msg.sender,
                     registration.resolver,
-                    string.concat(registration.label, ".eth")
-                );
-            if (registration.reverseRecord & REVERSE_RECORD_DEFAULT_BIT != 0)
-                defaultReverseRegistrar.setNameForAddr(
-                    msg.sender,
-                    string.concat(registration.label, ".eth")
+                    string.concat(registration.label, ".etn")
                 );
         }
 

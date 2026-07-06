@@ -1,0 +1,135 @@
+{
+  "mcp": {
+    "version": "1.0.0",
+    "security": {
+      "allowedFileTypes": [
+        "sol",
+        "js",
+        "ts",
+        "json",
+        "md",
+        "txt",
+        "toml",
+        "yaml",
+        "yml",
+        "sql",
+        "jsx",
+        "tsx",
+        "abi",
+        "css",
+        "html",
+        "go",
+        "py",
+        "java",
+        "rb",
+        "php",
+        "rs",
+        "cpp",
+        "c",
+        "h",
+        "hpp"
+      ],
+      "blockedPaths": [
+        ".env",
+        ".git",
+        "node_modules",
+        ".ssh",
+        "private",
+        "secret"
+      ],
+      "allowedPaths": [],
+      "maxExecutionTime": 30000,
+      "excludeTools": [],
+      "permissions": {
+        "requirePermissions": true,
+        "defaultPermissions": [
+          "*"
+        ]
+      },
+      "rateLimit": {
+        "enabled": true,
+        "requestsPerMinute": 100,
+        "burstAllowance": 4
+      },
+      "fileWritePermissions": {
+        "mode": "ask",
+        "allowedFiles": []
+      }
+    },
+    "validation": {
+      "validateSchemas": true,
+      "validateTypes": true,
+      "validateRanges": true,
+      "validateFormats": true,
+      "strictMode": false,
+      "toolValidation": {},
+      "fileOperations": {
+        "maxFileSize": 10485760,
+        "allowedExtensions": [
+          "sol",
+          "js",
+          "ts",
+          "json",
+          "md",
+          "txt",
+          "toml",
+          "yaml",
+          "yml",
+          "sql",
+          "jsx",
+          "tsx",
+          "abi",
+          "css",
+          "html",
+          "go",
+          "py",
+          "java",
+          "rb",
+          "php",
+          "rs",
+          "cpp",
+          "c",
+          "h",
+          "hpp"
+        ],
+        "blockedPatterns": [
+          "**/node_modules/**",
+          "**/.git/**"
+        ]
+      },
+      "networkOperations": {
+        "allowedNetworks": [
+          "sepolia",
+          "goerli",
+          "localhost",
+          "vm",
+          "mainnet"
+        ],
+        "warnOnMainnet": true,
+        "maxGasLimit": 15000000
+      }
+    },
+    "resources": {
+      "enableCache": true,
+      "cacheTTL": 300000,
+      "excludeResources": [],
+      "allowResources": [],
+      "accessPatterns": {
+        "allowedPatterns": [],
+        "blockedPatterns": []
+      }
+    },
+    "features": {
+      "compilation": true,
+      "deployment": true,
+      "debugging": true,
+      "analysis": true,
+      "testing": true,
+      "git": true
+    },
+    "logging": {
+      "level": "info",
+      "console": false
+    }
+  }
+}
