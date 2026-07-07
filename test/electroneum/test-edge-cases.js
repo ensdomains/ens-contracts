@@ -1,19 +1,18 @@
 // scripts/test-edge-cases.js
 // Run in Remix via: right-click -> Run
-// Assumes TEST_LABEL from your previous test run is already registered.
 
 import { ethers } from 'ethers'
 
 // ---- Fill these in ----
-const REGISTRY_ADDR = '0x1239193Ee0954d4A61Ae244A550e1D73BFb96fE5';
-const BASE_REGISTRAR_ADDR = '0xf5Af2b932160d7D528DfF4d0467b13003FCa8Baf';
-const REVERSE_REGISTRAR_ADDR = '0x2A93654305D37105B3281d87139ddcCC909764B1';
-const PRICE_ORACLE_ADDR = '0xf9fE23EEf3ED14F86e835785F1751a3A5e27AE10';
-const CONTROLLER_ADDR = '0xDFA971C9c5BB0fCe89940c7462a01D79D2759E98';
-const PUBLIC_RESOLVER_ADDR = '0xE2357d2e384B413f9fCcb2e7997497Ce76646922';
+const REGISTRY_ADDR = '0x78EA71136e82eDBF2C06354D6Ef98b8d7e3de544';
+const BASE_REGISTRAR_ADDR = '0x81EcACe6dD13AFf8AdA5236C93819cB943FdED63';
+const REVERSE_REGISTRAR_ADDR = '0x00cFF59f61c68652Ad96F127Dc80B2C112a5a1F3';
+const PRICE_ORACLE_ADDR = '0x1928e9132DF17dfeF55C12E64cE86b53D31A90D5';
+const CONTROLLER_ADDR = '0x68b9656899CF37F5AbD9B9000F8C5200E7db2f04';
+const PUBLIC_RESOLVER_ADDR = '0x0764C6aD0F7FeD7444F3A314192E50DfB6bA7c14';
 
-const EXISTING_LABEL = 'testname123'; // must still be owned/unexpired
-const SHORT_LABEL = 'ab';             // under 3 chars, should be rejected by valid()
+const EXISTING_LABEL = 'testname687124'; // registered successfully in test.js run
+const SHORT_LABEL = 'ab';
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -190,7 +189,7 @@ async function expectRevert(promiseFn, expectedSubstring, label) {
       secret: randomSecret(),
       resolver: PUBLIC_RESOLVER_ADDR,
       data: [],
-      reverseRecord: 1, // REVERSE_RECORD_ETHEREUM_BIT
+      reverseRecord: 1,
       referrer: ethers.constants.HashZero,
     };
     const reverseCommitment = await controller.makeCommitment(reverseRegistration);
@@ -209,7 +208,7 @@ async function expectRevert(promiseFn, expectedSubstring, label) {
 
     try {
       const resolvedName = await publicResolver['name(bytes32)'](reverseNodeForMe);
-      console.log('Resolved reverse name:', resolvedName, `| Expected: ${newLabel}.eth`);
+      console.log('Resolved reverse name:', resolvedName, `| Expected: ${newLabel}.etn`);
     } catch (e) {
       console.log('Reverse name read failed. Full error:', e.message || e);
     }

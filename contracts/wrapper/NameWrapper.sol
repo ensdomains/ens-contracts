@@ -10,9 +10,9 @@ import {ENS} from "../registry/ENS.sol";
 import {IReverseRegistrar} from "../reverseRegistrar/IReverseRegistrar.sol";
 import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
 import {IBaseRegistrar} from "../ethregistrar/IBaseRegistrar.sol";
-import {IERC721Receiver} from "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC721/IERC721Receiver.sol";
-import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/token/ERC1155/IERC1155.sol";
-import {Ownable} from "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {BytesUtils_LEGACY} from "../utils/BytesUtils_LEGACY.sol";
 import {ERC20Recoverable} from "../utils/ERC20Recoverable.sol";
 
@@ -56,15 +56,14 @@ contract NameWrapper is
     INameWrapperUpgrade public upgradeContract;
     uint64 private constant MAX_EXPIRY = type(uint64).max;
 
-constructor(
-    ENS _ens,
-    IBaseRegistrar _registrar,
-    IMetadataService _metadataService
-) Ownable(msg.sender) ReverseClaimer(_ens, msg.sender) {
-    ens = _ens;
-    registrar = _registrar;
-    metadataService = _metadataService;
-    ...
+    constructor(
+        ENS _ens,
+        IBaseRegistrar _registrar,
+        IMetadataService _metadataService
+    ) ReverseClaimer(_ens, msg.sender) {
+        ens = _ens;
+        registrar = _registrar;
+        metadataService = _metadataService;
 
         /* Burn PARENT_CANNOT_CONTROL and CANNOT_UNWRAP fuses for ROOT_NODE and ETH_NODE and set expiry to max */
 

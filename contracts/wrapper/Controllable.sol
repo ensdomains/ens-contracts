@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ~0.8.17;
 
-import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-abstract contract Controllable is Ownable {
+contract Controllable is Ownable {
     mapping(address => bool) public controllers;
 
     event ControllerChanged(address indexed controller, bool active);

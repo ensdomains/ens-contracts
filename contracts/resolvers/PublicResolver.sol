@@ -13,6 +13,7 @@ import "./profiles/PubkeyResolver.sol";
 import "./profiles/TextResolver.sol";
 import "./Multicallable.sol";
 import {ReverseClaimer} from "../reverseRegistrar/ReverseClaimer.sol";
+import {INameWrapper} from "../wrapper/INameWrapper.sol";
 
 /// A simple resolver anyone can use; only allows the owner of a node to set its
 /// address.
@@ -30,6 +31,7 @@ contract PublicResolver is
     ReverseClaimer
 {
     ENS immutable ens;
+    INameWrapper immutable nameWrapper;
     address immutable trustedETHController;
     address immutable trustedReverseRegistrar;
 
@@ -63,10 +65,12 @@ contract PublicResolver is
 
     constructor(
         ENS _ens,
+        INameWrapper wrapperAddress,
         address _trustedETHController,
         address _trustedReverseRegistrar
     ) ReverseClaimer(_ens, msg.sender) {
         ens = _ens;
+        nameWrapper = wrapperAddress;
         trustedETHController = _trustedETHController;
         trustedReverseRegistrar = _trustedReverseRegistrar;
     }
@@ -115,6 +119,9 @@ contract PublicResolver is
             return true;
         }
         address owner = ens.owner(node);
+        if (owner == address(nameWrapper)) {
+            owner = nameWrapper.ownerOf(uint256(node));
+        }
         return
             owner == msg.sender ||
             isApprovedForAll(owner, msg.sender) ||

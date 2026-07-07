@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity >=0.8.4;
 
-import "https://raw.githubusercontent.com/OpenZeppelin/openzeppelin-contracts/v5.0.2/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 import "../registry/ENS.sol";
 import "./IReverseRegistrar.sol";
@@ -127,9 +127,9 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
         address resolver,
         string memory name
     ) public override returns (bytes32) {
-        bytes32 reverseNode = claimForAddr(addr, owner, resolver);
-        NameResolver(resolver).setName(reverseNode, name);
-        return reverseNode;
+        bytes32 node = claimForAddr(addr, owner, resolver);
+        NameResolver(resolver).setName(node, name);
+        return node;
     }
 
     /// @dev Returns the node hash for a given account's reverse records.
@@ -143,7 +143,7 @@ contract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {
     }
 
     /// @dev An optimised function to compute the sha3 of the lower-case
-    ///      hexadecimal representation of an Electroneum address.
+    ///      hexadecimal representation of an Ethereum address.
     /// @param addr The address to hash
     /// @return ret The SHA3 hash of the lower-case hexadecimal encoding of the
     ///         input address.

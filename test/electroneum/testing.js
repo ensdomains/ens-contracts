@@ -1,16 +1,15 @@
 // scripts/test.js
 // Run in Remix via: right-click -> Run
-// Fill in the addresses from your deploy.js output below.
 
 import { ethers } from 'ethers'
 
 // ---- Fill these in from your deployment output ----
-const REGISTRY_ADDR = '0x1239193Ee0954d4A61Ae244A550e1D73BFb96fE5';
-const BASE_REGISTRAR_ADDR = '0xf5Af2b932160d7D528DfF4d0467b13003FCa8Baf';
-const REVERSE_REGISTRAR_ADDR = '0x2A93654305D37105B3281d87139ddcCC909764B1';
-const PRICE_ORACLE_ADDR = '0xf9fE23EEf3ED14F86e835785F1751a3A5e27AE10';
-const CONTROLLER_ADDR = '0xDFA971C9c5BB0fCe89940c7462a01D79D2759E98';
-const PUBLIC_RESOLVER_ADDR = '0xE2357d2e384B413f9fCcb2e7997497Ce76646922';
+const REGISTRY_ADDR = '0x78EA71136e82eDBF2C06354D6Ef98b8d7e3de544';
+const BASE_REGISTRAR_ADDR = '0x81EcACe6dD13AFf8AdA5236C93819cB943FdED63';
+const REVERSE_REGISTRAR_ADDR = '0x00cFF59f61c68652Ad96F127Dc80B2C112a5a1F3';
+const PRICE_ORACLE_ADDR = '0x1928e9132DF17dfeF55C12E64cE86b53D31A90D5';
+const CONTROLLER_ADDR = '0x68b9656899CF37F5AbD9B9000F8C5200E7db2f04';
+const PUBLIC_RESOLVER_ADDR = '0x0764C6aD0F7FeD7444F3A314192E50DfB6bA7c14';
 
 const TEST_LABEL = 'testname' + Math.floor(Math.random() * 1000000); // fresh label every run
 const REGISTRATION_DURATION = 28 * 24 * 60 * 60; // 28 days, matches MIN_REGISTRATION_DURATION
@@ -72,10 +71,10 @@ function sleep(ms) {
       label: TEST_LABEL,
       owner: myAddress,
       duration: REGISTRATION_DURATION,
-      secret: randomSecret(), // was: ethers.constants.HashZero
+      secret: randomSecret(),
       resolver: PUBLIC_RESOLVER_ADDR,
       data: [],
-      reverseRecord: 0, // 0 = no reverse record for this test; set to 1 to test reverse too
+      reverseRecord: 0,
       referrer: ethers.constants.HashZero,
     };
 
@@ -89,7 +88,7 @@ function sleep(ms) {
     // ---- TEST 4: Wait for minCommitmentAge, then register ----
     console.log('\n=== TEST 4: register() ===');
     const minAge = await controller.minCommitmentAge();
-    const waitMs = (minAge.toNumber() + 5) * 1000; // small buffer past the minimum
+    const waitMs = (minAge.toNumber() + 5) * 1000;
     console.log(`Waiting ${waitMs / 1000}s for commitment to mature...`);
     await sleep(waitMs);
 
