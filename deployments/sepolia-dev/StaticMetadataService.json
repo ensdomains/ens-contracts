@@ -1,0 +1,96 @@
+{
+  "address": "0xfb361686c8d5ac5a3e638ed152f2ac3268463d85",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "_metaDataUri",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "name": "uri",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "contractName": "StaticMetadataService",
+  "sourceName": "contracts/wrapper/StaticMetadataService.sol",
+  "bytecode": "0x608060405234801561001057600080fd5b5060405161047538038061047583398101604081905261002f91610058565b600061003b82826101ad565b505061026b565b634e487b7160e01b600052604160045260246000fd5b60006020828403121561006a57600080fd5b81516001600160401b0381111561008057600080fd5b8201601f8101841361009157600080fd5b80516001600160401b038111156100aa576100aa610042565b604051601f8201601f19908116603f011681016001600160401b03811182821017156100d8576100d8610042565b6040528181528282016020018610156100f057600080fd5b60005b8281101561010f576020818501810151838301820152016100f3565b50600091810160200191909152949350505050565b600181811c9082168061013857607f821691505b60208210810361015857634e487b7160e01b600052602260045260246000fd5b50919050565b601f8211156101a857806000526020600020601f840160051c810160208510156101855750805b601f840160051c820191505b818110156101a55760008155600101610191565b50505b505050565b81516001600160401b038111156101c6576101c6610042565b6101da816101d48454610124565b8461015e565b6020601f82116001811461020e57600083156101f65750848201515b600019600385901b1c1916600184901b1784556101a5565b600084815260208120601f198516915b8281101561023e578785015182556020948501946001909201910161021e565b508482101561025c5786840151600019600387901b60f8161c191681555b50505050600190811b01905550565b6101fb8061027a6000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c80630e89341c14610030575b600080fd5b61004361003e3660046100ed565b610059565b6040516100509190610106565b60405180910390f35b60606000805461006890610172565b80601f016020809104026020016040519081016040528092919081815260200182805461009490610172565b80156100e15780601f106100b6576101008083540402835291602001916100e1565b820191906000526020600020905b8154815290600101906020018083116100c457829003601f168201915b50505050509050919050565b6000602082840312156100ff57600080fd5b5035919050565b602081526000825180602084015260005b818110156101345760208186018101516040868401015201610117565b5060006040828501015260407fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011684010191505092915050565b600181811c9082168061018657607f821691505b6020821081036101bf577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b5091905056fea26469706673582212203c3ed2817f858b86979cd0f2b514be4da40fa9e27af4ad303d7957c72d0cee5b64736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c80630e89341c14610030575b600080fd5b61004361003e3660046100ed565b610059565b6040516100509190610106565b60405180910390f35b60606000805461006890610172565b80601f016020809104026020016040519081016040528092919081815260200182805461009490610172565b80156100e15780601f106100b6576101008083540402835291602001916100e1565b820191906000526020600020905b8154815290600101906020018083116100c457829003601f168201915b50505050509050919050565b6000602082840312156100ff57600080fd5b5035919050565b602081526000825180602084015260005b818110156101345760208186018101516040868401015201610117565b5060006040828501015260407fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f83011684010191505092915050565b600181811c9082168061018657607f821691505b6020821081036101bf577f4e487b7100000000000000000000000000000000000000000000000000000000600052602260045260246000fd5b5091905056fea26469706673582212203c3ed2817f858b86979cd0f2b514be4da40fa9e27af4ad303d7957c72d0cee5b64736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/wrapper/StaticMetadataService.sol",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "101400",
+        "executionCost": "infinite",
+        "totalCost": "infinite"
+      },
+      "external": {
+        "uri(uint256)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"string\",\"name\":\"_metaDataUri\",\"type\":\"string\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"name\":\"uri\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/wrapper/StaticMetadataService.sol\":\"StaticMetadataService\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"project/contracts/wrapper/StaticMetadataService.sol\":{\"content\":\"//SPDX-License-Identifier: MIT\\npragma solidity ~0.8.17;\\n\\ncontract StaticMetadataService {\\n    string private _uri;\\n\\n    constructor(string memory _metaDataUri) {\\n        _uri = _metaDataUri;\\n    }\\n\\n    function uri(uint256) public view returns (string memory) {\\n        return _uri;\\n    }\\n}\\n\",\"keccak256\":\"0x28aad4cb829118de64965e06af8e785e6b2efa5207859d2efc63e404c26cfea3\",\"license\":\"MIT\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 38554,
+        "contract": "project/contracts/wrapper/StaticMetadataService.sol:StaticMetadataService",
+        "label": "_uri",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_string_storage"
+      }
+    ],
+    "types": {
+      "t_string_storage": {
+        "encoding": "bytes",
+        "label": "string",
+        "numberOfBytes": "32"
+      }
+    }
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x0000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000002c656e732d6d657461646174612d736572766963652e61707073706f742e636f6d2f6e616d652f30787b69647d0000000000000000000000000000000000000000",
+  "transaction": {
+    "hash": "0x51614cd6f68609d282917e0470b839557593aa468e62a7b6789badfc466e41fb",
+    "nonce": "0x1782",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0x0b0baf76e2229990e270b15dce9e73f801a6fd258dc897eb468b291dd0f004ca",
+    "blockNumber": "0x9fa463",
+    "transactionIndex": "0x36"
+  }
+}

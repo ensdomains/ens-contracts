@@ -1,23 +1,27 @@
-import { artifacts, deployScript } from '@rocketh'
-import { namehash } from 'viem'
+import { deployScript } from '@rocketh'
+import type { Abi_DefaultReverseRegistrar } from 'generated/abis/DefaultReverseRegistrar.js'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import type { Abi_Root } from 'generated/abis/Root.js'
+import { Artifact_DefaultReverseResolver } from 'generated/artifacts/DefaultReverseResolver.js'
+import { getAddress, namehash } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, read, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, read, execute: write, namedAccounts, network, tags }) => {
     const { deployer, owner } = namedAccounts
 
     const defaultReverseRegistrar = get<
-      (typeof artifacts.DefaultReverseRegistrar)['abi']
+      Abi_DefaultReverseRegistrar
     >('DefaultReverseRegistrar')
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
-    const root = get<(typeof artifacts.Root)['abi']>('Root')
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
+    const root = get<Abi_Root>('Root')
 
     const defaultReverseResolver = await deploy('DefaultReverseResolver', {
       account: deployer,
-      artifact: artifacts.DefaultReverseResolver,
+      artifact: Artifact_DefaultReverseResolver,
       args: [defaultReverseRegistrar.address],
     })
 
-    if (network.name === 'mainnet' && !network.tags.tenderly) return
+    if (network.chain.id === 1 && !tags.tenderly) return
 
     const currentRootOwner = await read(root, {
       functionName: 'owner',
@@ -27,14 +31,14 @@ export default deployScript(
       functionName: 'owner',
       args: [namehash('reverse')],
     })
-    if (currentRootOwner === owner && currentReverseOwner !== owner) {
+    if (currentRootOwner === getAddress(owner) && currentReverseOwner !== getAddress(owner)) {
       console.log(`  - Setting owner of .reverse to owner on root`)
       await write(root, {
         functionName: 'transferOwnership',
         args: [owner],
         account: deployer,
       })
-    } else if (currentRootOwner !== owner) {
+    } else if (currentRootOwner !== getAddress(owner)) {
       console.warn(
         `  - WARN: Root owner account not available, skipping .reverse setup on registry`,
       )
@@ -49,6 +53,8 @@ export default deployScript(
       args: [namehash('reverse'), defaultReverseResolver.address],
       account: owner,
     })
+
+    return true;
   },
   {
     id: 'DefaultReverseResolver v1.0.0',

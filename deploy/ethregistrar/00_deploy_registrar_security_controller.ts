@@ -1,18 +1,18 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
+import { Artifact_RegistrarSecurityController } from 'generated/artifacts/RegistrarSecurityController.js'
 
 export default deployScript(
-  async ({ deploy, get, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, execute: write, namedAccounts, tags }) => {
     const { deployer, owner } = namedAccounts
 
-    if (!network.tags?.use_root) return
+    if (!tags?.use_root) return
 
-    const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
-    >('BaseRegistrarImplementation')
+    const registrar = get<Abi_BaseRegistrarImplementation>('BaseRegistrarImplementation')
 
     const securityController = await deploy('RegistrarSecurityController', {
       account: deployer,
-      artifact: artifacts.RegistrarSecurityController,
+      artifact: Artifact_RegistrarSecurityController,
       args: [registrar.address],
     })
 
@@ -28,6 +28,8 @@ export default deployScript(
         account: deployer,
       })
     }
+
+    return true;
   },
   {
     id: 'RegistrarSecurityController v1.0.0',

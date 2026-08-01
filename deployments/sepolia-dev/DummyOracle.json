@@ -1,0 +1,104 @@
+{
+  "address": "0x4bb893dd474db7a8f459aed568ef92a7686752fc",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_value",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "inputs": [],
+      "name": "latestAnswer",
+      "outputs": [
+        {
+          "internalType": "int256",
+          "name": "",
+          "type": "int256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "int256",
+          "name": "_value",
+          "type": "int256"
+        }
+      ],
+      "name": "set",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "contractName": "DummyOracle",
+  "sourceName": "contracts/ethregistrar/DummyOracle.sol",
+  "bytecode": "0x6080604052348015600f57600080fd5b5060405161010b38038061010b833981016040819052602c916039565b603481600055565b506051565b600060208284031215604a57600080fd5b5051919050565b60ac8061005f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c806350d25bcd146037578063e5c19b2d14604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea26469706673582212209978ff9a8fe4b98ec4229c64d331a421fefeb2a9250de66692c36b0c33a0d91364736f6c634300081a0033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060325760003560e01c806350d25bcd146037578063e5c19b2d14604c575b600080fd5b60005460405190815260200160405180910390f35b605c6057366004605e565b600055565b005b600060208284031215606f57600080fd5b503591905056fea26469706673582212209978ff9a8fe4b98ec4229c64d331a421fefeb2a9250de66692c36b0c33a0d91364736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/ethregistrar/DummyOracle.sol",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "34400",
+        "executionCost": "infinite",
+        "totalCost": "infinite"
+      },
+      "external": {
+        "latestAnswer()": "2246",
+        "set(int256)": "22312"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_value\",\"type\":\"int256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[],\"name\":\"latestAnswer\",\"outputs\":[{\"internalType\":\"int256\",\"name\":\"\",\"type\":\"int256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"int256\",\"name\":\"_value\",\"type\":\"int256\"}],\"name\":\"set\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/ethregistrar/DummyOracle.sol\":\"DummyOracle\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"project/contracts/ethregistrar/DummyOracle.sol\":{\"content\":\"pragma solidity >=0.8.4;\\n\\ncontract DummyOracle {\\n    int256 value;\\n\\n    constructor(int256 _value) public {\\n        set(_value);\\n    }\\n\\n    function set(int256 _value) public {\\n        value = _value;\\n    }\\n\\n    function latestAnswer() public view returns (int256) {\\n        return value;\\n    }\\n}\\n\",\"keccak256\":\"0x8f0d88c42c074c3fb80710f7639cb455a582fa96629e26a974dd6a19c15678ff\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 18516,
+        "contract": "project/contracts/ethregistrar/DummyOracle.sol:DummyOracle",
+        "label": "value",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_int256"
+      }
+    ],
+    "types": {
+      "t_int256": {
+        "encoding": "inplace",
+        "label": "int256",
+        "numberOfBytes": "32"
+      }
+    }
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x0000000000000000000000000000000000000000000000000000002540be4000",
+  "transaction": {
+    "hash": "0x3e6c3616ec500fce1e52d2bef76e7e7ddf6d4772994bb2c8ce5e1c79b73a3f10",
+    "nonce": "0x177b",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0x269b48c39e16f529343f8eba3de0a43288dbb0cd3badd98981463db5ef7ef616",
+    "blockNumber": "0x9fa45c",
+    "transactionIndex": "0x38"
+  }
+}

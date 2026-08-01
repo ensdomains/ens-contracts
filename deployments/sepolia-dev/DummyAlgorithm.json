@@ -1,0 +1,81 @@
+{
+  "address": "0x9d62b4e6dc9977013e543d56e5d493e112dabba3",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        },
+        {
+          "internalType": "bytes",
+          "name": "",
+          "type": "bytes"
+        }
+      ],
+      "name": "verify",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "contractName": "DummyAlgorithm",
+  "sourceName": "contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol",
+  "bytecode": "0x6080604052348015600f57600080fd5b506101838061001f6000396000f3fe608060405234801561001057600080fd5b506004361061002b5760003560e01c8063de8f50a114610030575b600080fd5b61004a61003e3660046100a7565b60019695505050505050565b604051901515815260200160405180910390f35b60008083601f84011261007057600080fd5b50813567ffffffffffffffff81111561008857600080fd5b6020830191508360208285010111156100a057600080fd5b9250929050565b600080600080600080606087890312156100c057600080fd5b863567ffffffffffffffff8111156100d757600080fd5b6100e389828a0161005e565b909750955050602087013567ffffffffffffffff81111561010357600080fd5b61010f89828a0161005e565b909550935050604087013567ffffffffffffffff81111561012f57600080fd5b61013b89828a0161005e565b979a969950949750929593949250505056fea2646970667358221220b58a9cbb4d9cff1d67ba2416b847c53d6ee00337fa7d09ef2d0559eb22a5b02164736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061002b5760003560e01c8063de8f50a114610030575b600080fd5b61004a61003e3660046100a7565b60019695505050505050565b604051901515815260200160405180910390f35b60008083601f84011261007057600080fd5b50813567ffffffffffffffff81111561008857600080fd5b6020830191508360208285010111156100a057600080fd5b9250929050565b600080600080600080606087890312156100c057600080fd5b863567ffffffffffffffff8111156100d757600080fd5b6100e389828a0161005e565b909750955050602087013567ffffffffffffffff81111561010357600080fd5b61010f89828a0161005e565b909550935050604087013567ffffffffffffffff81111561012f57600080fd5b61013b89828a0161005e565b979a969950949750929593949250505056fea2646970667358221220b58a9cbb4d9cff1d67ba2416b847c53d6ee00337fa7d09ef2d0559eb22a5b02164736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {},
+  "inputSourceName": "project/contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol",
+  "devdoc": {
+    "details": "Implements a dummy DNSSEC (signing) algorithm that approves all      signatures, for testing.",
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "77400",
+        "executionCost": "129",
+        "totalCost": "77529"
+      },
+      "external": {
+        "verify(bytes,bytes,bytes)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"},{\"internalType\":\"bytes\",\"name\":\"\",\"type\":\"bytes\"}],\"name\":\"verify\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"details\":\"Implements a dummy DNSSEC (signing) algorithm that approves all      signatures, for testing.\",\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol\":\"DummyAlgorithm\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"project/contracts/dnssec-oracle/algorithms/Algorithm.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\n/// @dev An interface for contracts implementing a DNSSEC (signing) algorithm.\\ninterface Algorithm {\\n    /// @dev Verifies a signature.\\n    /// @param key The public key to verify with.\\n    /// @param data The signed data to verify.\\n    /// @param signature The signature to verify.\\n    /// @return True iff the signature is valid.\\n    function verify(\\n        bytes calldata key,\\n        bytes calldata data,\\n        bytes calldata signature\\n    ) external view virtual returns (bool);\\n}\\n\",\"keccak256\":\"0xbcbdc06d72b64903e733e7ddfbf59c35c984c3eb0022baacab12c97292cc13df\"},\"project/contracts/dnssec-oracle/algorithms/DummyAlgorithm.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nimport \\\"./Algorithm.sol\\\";\\n\\n/// @dev Implements a dummy DNSSEC (signing) algorithm that approves all\\n///      signatures, for testing.\\ncontract DummyAlgorithm is Algorithm {\\n    function verify(\\n        bytes calldata,\\n        bytes calldata,\\n        bytes calldata\\n    ) external view override returns (bool) {\\n        return true;\\n    }\\n}\\n\",\"keccak256\":\"0x90bd156a2352bfabcd2f0e77cd406103168a48e56bd76e24cead7cbe6c41ed80\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [],
+    "types": null
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x",
+  "transaction": {
+    "hash": "0xfa0e9f908cb10d794aef896f5f78f11897ec4bc651d0f11f4cc5b130593b5c6a",
+    "nonce": "0x171c",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0x15364749424dbdcfcc9de0f96cd1ca12542d3b35e6f5c762a1a6ceaf823f2c37",
+    "blockNumber": "0x9fa411",
+    "transactionIndex": "0x3b"
+  }
+}

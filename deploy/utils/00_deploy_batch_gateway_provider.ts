@@ -1,4 +1,5 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_GatewayProvider } from 'generated/artifacts/GatewayProvider.js'
 
 export default deployScript(
   async ({ deploy, namedAccounts }) => {
@@ -13,9 +14,11 @@ export default deployScript(
     }
     await deploy('BatchGatewayProvider', {
       account: deployer,
-      artifact: artifacts.GatewayProvider,
+      artifact: Artifact_GatewayProvider,
       args: [owner ?? deployer, batchGatewayURLs],
     })
+
+    return true;
   },
   {
     id: 'BatchGatewayProvider v1.0.0',

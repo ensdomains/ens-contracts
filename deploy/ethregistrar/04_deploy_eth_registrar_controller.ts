@@ -1,4 +1,13 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
+import type { Abi_DefaultReverseRegistrar } from 'generated/abis/DefaultReverseRegistrar.js'
+import type { Abi_ENSRegistry } from 'generated/abis/ENSRegistry.js'
+import type { Abi_ExponentialPremiumPriceOracle } from 'generated/abis/ExponentialPremiumPriceOracle.js'
+import { Abi_IETHRegistrarController } from 'generated/abis/IETHRegistrarController.js'
+import type { Abi_RegistrarSecurityController } from 'generated/abis/RegistrarSecurityController.js'
+import type { Abi_ReverseRegistrar } from 'generated/abis/ReverseRegistrar.js'
+import { Artifact_ETHRegistrarController } from 'generated/artifacts/ETHRegistrarController.js'
+import { Artifact_OwnedResolver } from 'generated/artifacts/OwnedResolver.js'
 import { namehash, zeroAddress } from 'viem'
 import { createInterfaceId } from '../../test/fixtures/createInterfaceId.js'
 
@@ -10,29 +19,30 @@ export default deployScript(
     read,
     namedAccounts,
     network,
+    tags,
     registerUnwrappedNames,
   }) => {
     const { deployer, owner } = namedAccounts
 
-    const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
-    const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
-    >('BaseRegistrarImplementation')
-    const registrarSecurityController = get<
-      (typeof artifacts.RegistrarSecurityController)['abi']
-    >('RegistrarSecurityController')
-    const priceOracle = get<
-      (typeof artifacts.ExponentialPremiumPriceOracle)['abi']
-    >('ExponentialPremiumPriceOracle')
+    const registry = get<Abi_ENSRegistry>('ENSRegistry')
+    const registrar = get<Abi_BaseRegistrarImplementation>(
+      'BaseRegistrarImplementation',
+    )
+    const registrarSecurityController = get<Abi_RegistrarSecurityController>(
+      'RegistrarSecurityController',
+    )
+    const priceOracle = get<Abi_ExponentialPremiumPriceOracle>(
+      'ExponentialPremiumPriceOracle',
+    )
     const reverseRegistrar =
-      get<(typeof artifacts.ReverseRegistrar)['abi']>('ReverseRegistrar')
-    const defaultReverseRegistrar = get<
-      (typeof artifacts.DefaultReverseRegistrar)['abi']
-    >('DefaultReverseRegistrar')
+      get<Abi_ReverseRegistrar>('ReverseRegistrar')
+    const defaultReverseRegistrar = get<Abi_DefaultReverseRegistrar>(
+      'DefaultReverseRegistrar',
+    )
 
     const controller = await deploy('ETHRegistrarController', {
       account: deployer,
-      artifact: artifacts.ETHRegistrarController,
+      artifact: Artifact_ETHRegistrarController,
       args: [
         registrar.address,
         priceOracle.address,
@@ -59,7 +69,7 @@ export default deployScript(
     }
 
     // Only attempt to make controller etc changes directly on testnets
-    if (network.name === 'mainnet' && !network.tags?.tenderly) return
+    if (network.chain.id === 1 && !tags?.tenderly) return
 
     // Add controller to BaseRegistrarImplementation
     console.log(
@@ -92,8 +102,7 @@ export default deployScript(
     })
 
     // Set interface on resolver
-    const artifact = artifacts.IETHRegistrarController
-    const interfaceId = createInterfaceId(artifact.abi)
+    const interfaceId = createInterfaceId(Abi_IETHRegistrarController)
 
     const resolver = await read(registry, {
       functionName: 'resolver',
@@ -110,7 +119,7 @@ export default deployScript(
       `  - Setting ETHRegistrarController interface ID ${interfaceId} on .eth resolver`,
     )
     await write(
-      { ...artifacts.OwnedResolver, address: resolver },
+      { ...Artifact_OwnedResolver, address: resolver },
       {
         functionName: 'setInterface',
         args: [namehash('eth'), interfaceId, controller.address],
@@ -122,6 +131,8 @@ export default deployScript(
       console.log('  - Running registerUnwrappedNames hook')
       await registerUnwrappedNames()
     }
+
+    return true;
   },
   {
     id: 'ETHRegistrarController v3.0.0',
@@ -134,7 +145,7 @@ export default deployScript(
       'ReverseRegistrar',
       'DefaultReverseRegistrar',
       'NameWrapper',
-      'OwnedResolver',
+      'EthOwnedResolver',
     ],
   },
 )

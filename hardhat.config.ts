@@ -46,6 +46,12 @@ const config = {
       chainId: 11155111,
       accounts: realAccounts,
     },
+    'sepolia-dev': {
+      type: 'http',
+      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      chainId: 11155111,
+      accounts: [configVariable('DEV_DEPLOYER_KEY'), configVariable('DEV_DEPLOYER_KEY')],
+    },
     holesky: {
       type: 'http',
       url: `https://holesky.gateway.tenderly.co`,
@@ -116,10 +122,11 @@ const config = {
     ],
   },
   generateTypedArtifacts: {
-    destinations: {
-      js: ['./generated/artifacts.js'],
-      ts: ['./generated/artifacts.ts'],
-    },
+    destinations: [
+      {
+        mode: "typescript",
+      },
+    ],
   },
   paths: {
     sources: {

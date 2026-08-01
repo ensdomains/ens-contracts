@@ -1,4 +1,5 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_ExtendedDNSResolver } from 'generated/artifacts/ExtendedDNSResolver.js'
 
 export default deployScript(
   async ({ deploy, namedAccounts }) => {
@@ -7,9 +8,11 @@ export default deployScript(
     // Deploy ExtendedDNSResolver
     await deploy('ExtendedDNSResolver', {
       account: deployer,
-      artifact: artifacts.ExtendedDNSResolver,
+      artifact: Artifact_ExtendedDNSResolver,
       args: [],
     })
+
+    return true;
   },
   {
     id: 'ExtendedDNSResolver v1.0.0',

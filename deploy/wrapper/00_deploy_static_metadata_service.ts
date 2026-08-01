@@ -1,13 +1,14 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_StaticMetadataService } from 'generated/artifacts/StaticMetadataService.js'
 
 export default deployScript(
-  async ({ deploy, namedAccounts, network }) => {
+  async ({ deploy, namedAccounts, network, name }) => {
     const { deployer } = namedAccounts
 
     let metadataHost =
       process.env.METADATA_HOST || 'ens-metadata-service.appspot.com'
 
-    if (network.name === 'localhost') {
+    if (name === 'localhost') {
       metadataHost = 'http://localhost:8080'
     }
 
@@ -15,7 +16,7 @@ export default deployScript(
 
     await deploy('StaticMetadataService', {
       account: deployer,
-      artifact: artifacts.StaticMetadataService,
+      artifact: Artifact_StaticMetadataService,
       args: [metadataUrl],
     })
 

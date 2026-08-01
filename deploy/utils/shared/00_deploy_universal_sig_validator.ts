@@ -1,4 +1,5 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import { Artifact_UniversalSigValidator } from 'generated/artifacts/UniversalSigValidator.js'
 import { type Hex } from 'viem'
 
 const usvAddress = '0x164af34fAF9879394370C7f09064127C043A35E9'
@@ -7,9 +8,8 @@ export default deployScript(
   async ({
     tx,
     namedAccounts: { deployer },
-    network,
     viem,
-    savePendingExecution,
+    broadcastExecution,
   }) => {
     const publicClient = viem.publicClient
 
@@ -28,7 +28,7 @@ export default deployScript(
       // 100k gas @ 100 gwei
       const minBalance = 10n ** 16n // 0.01 ETH
       console.log(`  - Transferring balance for DDP deployment`)
-      const balanceTransferHash = await tx({
+      await tx({
         // signer address for ddp deployment tx
         to: '0x3fab184622dc19b6109349b94811493bf2a45362',
         value: minBalance,
@@ -36,22 +36,17 @@ export default deployScript(
       })
 
       console.log(`  - Deploying DDP`)
-      const ddpDeployHash = await publicClient.sendRawTransaction({
-        serializedTransaction:
-          '0xf8a58085174876e800830186a08080b853604580600e600039806000f350fe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf31ba02222222222222222222222222222222222222222222222222222222222222222a02222222222222222222222222222222222222222222222222222222222222222',
-      })
-      await savePendingExecution({
-        transaction: {
-          hash: ddpDeployHash,
-        },
-        type: 'execution',
+      await broadcastExecution({
+        type: 'raw',
+        from: '0x3fab184622dc19b6109349b94811493bf2a45362',
+        raw: '0xf8a58085174876e800830186a08080b853604580600e600039806000f350fe7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf31ba02222222222222222222222222222222222222222222222222222222222222222a02222222222222222222222222222222222222222222222222222222222222222',
       })
       console.log(
         `  - Deterministic Deployment Proxy deployed at ${ddpAddress}`,
       )
     }
 
-    const usvArtifact = artifacts.UniversalSigValidator
+    const usvArtifact = Artifact_UniversalSigValidator
     const usvBytecode = usvArtifact.bytecode as Hex
 
     console.log(`  - Deploying UniversalSigValidator`)

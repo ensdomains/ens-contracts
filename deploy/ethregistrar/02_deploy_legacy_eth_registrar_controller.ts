@@ -1,4 +1,8 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
+import type { Abi_BaseRegistrarImplementation } from 'generated/abis/BaseRegistrarImplementation.js'
+import type { Abi_ExponentialPremiumPriceOracle } from 'generated/abis/ExponentialPremiumPriceOracle.js'
+import type { Abi_RegistrarSecurityController } from 'generated/abis/RegistrarSecurityController.js'
+import type { Artifact } from 'rocketh/types'
 import type { Abi } from 'viem'
 import legacyArtifactRaw from '../../deployments/archive/ETHRegistrarController_mainnet_9380471.sol/ETHRegistrarController_mainnet_9380471.json'
 
@@ -6,7 +10,7 @@ const legacyArtifact = {
   ...legacyArtifactRaw,
   metadata: '{}',
   abi: legacyArtifactRaw.abi as Abi,
-}
+} as Artifact<Abi>
 
 export default deployScript(
   async ({
@@ -19,13 +23,13 @@ export default deployScript(
     const { deployer, owner } = namedAccounts
 
     const registrar = get<
-      (typeof artifacts.BaseRegistrarImplementation)['abi']
+      Abi_BaseRegistrarImplementation
     >('BaseRegistrarImplementation')
     const registrarSecurityController = get<
-      (typeof artifacts.RegistrarSecurityController)['abi']
+      Abi_RegistrarSecurityController
     >('RegistrarSecurityController')
     const priceOracle = get<
-      (typeof artifacts.ExponentialPremiumPriceOracle)['abi']
+      Abi_ExponentialPremiumPriceOracle
     >('ExponentialPremiumPriceOracle')
 
     const controller = await deploy('LegacyETHRegistrarController', {
@@ -47,6 +51,8 @@ export default deployScript(
       console.log('  - Running registerLegacyNames hook')
       await registerLegacyNames()
     }
+
+    return true;
   },
   {
     id: 'ETHRegistrarController v1.0.0',

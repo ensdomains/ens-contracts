@@ -1,6 +1,8 @@
-import { artifacts, deployScript } from '@rocketh'
+import { deployScript } from '@rocketh'
 import packet from 'dns-packet'
-import type { Hex } from 'viem'
+import type { Abi_DNSSECImpl } from 'generated/abis/DNSSECImpl.js'
+import { Artifact_DNSSECImpl } from 'generated/artifacts/DNSSECImpl.js'
+import { getAddress, type Hex } from 'viem'
 
 const realAnchors = [
   {
@@ -57,7 +59,7 @@ function encodeAnchors(anchors: any[]): Hex {
 }
 
 export default deployScript(
-  async ({ deploy, get, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, execute: write, read, namedAccounts, tags }) => {
     const { deployer } = namedAccounts
 
     const anchors = realAnchors.slice()
@@ -72,7 +74,7 @@ export default deployScript(
       2: 'SHA256Digest',
     }
 
-    if (network.tags?.test) {
+    if (tags?.test) {
       anchors.push(dummyAnchor)
       algorithms[253] = 'DummyAlgorithm'
       algorithms[254] = 'DummyAlgorithm'
@@ -81,14 +83,22 @@ export default deployScript(
 
     await deploy('DNSSECImpl', {
       account: deployer,
-      artifact: artifacts.DNSSECImpl,
+      artifact: Artifact_DNSSECImpl,
       args: [encodeAnchors(anchors)],
     })
 
-    const dnssec = get('DNSSECImpl')
+    const dnssec = get<Abi_DNSSECImpl>('DNSSECImpl')
 
     for (const [id, contractName] of Object.entries(algorithms)) {
       const algorithm = get(contractName)
+      const currentAlgorithm = await read(dnssec, {
+        functionName: 'algorithms',
+        args: [parseInt(id)],
+      })
+      if (getAddress(currentAlgorithm) === getAddress(algorithm.address)) {
+        console.log(`  - Algorithm ${id} is already set to ${contractName}`)
+        continue
+      }
       console.log(`  - Setting algorithm ${id}: ${contractName}`)
       await write(dnssec, {
         functionName: 'setAlgorithm',
@@ -100,6 +110,14 @@ export default deployScript(
     // Set up digests
     for (const [id, contractName] of Object.entries(digests)) {
       const digest = get(contractName)
+      const currentDigest = await read(dnssec, {
+        functionName: 'digests',
+        args: [parseInt(id)],
+      })
+      if (getAddress(currentDigest) === getAddress(digest.address)) {
+        console.log(`  - Digest ${id} is already set to ${contractName}`)
+        continue
+      }
       console.log(`  - Setting digest ${id}: ${contractName}`)
       await write(dnssec, {
         functionName: 'setDigest',

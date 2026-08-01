@@ -1,0 +1,541 @@
+{
+  "address": "0x075703fd8f8ef6b1e8e593dacab2dd702fc28196",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "contract ENS",
+          "name": "ensAddr",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "controller",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        }
+      ],
+      "name": "ControllerChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "contract NameResolver",
+          "name": "resolver",
+          "type": "address"
+        }
+      ],
+      "name": "DefaultResolverChanged",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "previousOwner",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "OwnershipTransferred",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        },
+        {
+          "indexed": true,
+          "internalType": "bytes32",
+          "name": "node",
+          "type": "bytes32"
+        }
+      ],
+      "name": "ReverseClaimed",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        }
+      ],
+      "name": "claim",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "resolver",
+          "type": "address"
+        }
+      ],
+      "name": "claimForAddr",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "resolver",
+          "type": "address"
+        }
+      ],
+      "name": "claimWithResolver",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "controllers",
+      "outputs": [
+        {
+          "internalType": "bool",
+          "name": "",
+          "type": "bool"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "defaultResolver",
+      "outputs": [
+        {
+          "internalType": "contract NameResolver",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "ens",
+      "outputs": [
+        {
+          "internalType": "contract ENS",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        }
+      ],
+      "name": "node",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "owner",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "renounceOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "controller",
+          "type": "address"
+        },
+        {
+          "internalType": "bool",
+          "name": "enabled",
+          "type": "bool"
+        }
+      ],
+      "name": "setController",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "resolver",
+          "type": "address"
+        }
+      ],
+      "name": "setDefaultResolver",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "name": "setName",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "addr",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "owner",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "resolver",
+          "type": "address"
+        },
+        {
+          "internalType": "string",
+          "name": "name",
+          "type": "string"
+        }
+      ],
+      "name": "setNameForAddr",
+      "outputs": [
+        {
+          "internalType": "bytes32",
+          "name": "",
+          "type": "bytes32"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "newOwner",
+          "type": "address"
+        }
+      ],
+      "name": "transferOwnership",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "contractName": "ReverseRegistrar",
+  "sourceName": "contracts/reverseRegistrar/ReverseRegistrar.sol",
+  "bytecode": "0x60a060405234801561001057600080fd5b5060405161119938038061119983398101604081905261002f916101b4565b6100383361014c565b6001600160a01b03811660808190526040516302571be360e01b81527f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e26004820152600091906302571be390602401602060405180830381865afa1580156100a4573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906100c891906101b4565b90506001600160a01b0381161561014557604051630f41a04d60e11b81523360048201526001600160a01b03821690631e83409a906024016020604051808303816000875af115801561011f573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061014391906101d8565b505b50506101f1565b600080546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b6001600160a01b03811681146101b157600080fd5b50565b6000602082840312156101c657600080fd5b81516101d18161019c565b9392505050565b6000602082840312156101ea57600080fd5b5051919050565b608051610f7f61021a6000396000818161012d0152818161033e01526105890152610f7f6000f3fe608060405234801561001057600080fd5b50600436106100ea5760003560e01c80638da5cb5b1161008c578063c66485b211610066578063c66485b214610208578063da8c229e1461021b578063e0dba60f1461024e578063f2fde38b1461026157600080fd5b80638da5cb5b146101c4578063bffbe61c146101e2578063c47f0027146101f557600080fd5b806365669631116100c85780636566963114610174578063715018a6146101875780637a806d6b14610191578063828eab0e146101a457600080fd5b80630f5a5466146100ef5780631e83409a146101155780633f15457f14610128575b600080fd5b6101026100fd366004610c12565b610274565b6040519081526020015b60405180910390f35b610102610123366004610c4b565b610288565b61014f7f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff909116815260200161010c565b610102610182366004610c68565b6102b7565b61018f6105f0565b005b61010261019f366004610dae565b610604565b60025461014f9073ffffffffffffffffffffffffffffffffffffffff1681565b60005473ffffffffffffffffffffffffffffffffffffffff1661014f565b6101026101f0366004610c4b565b6106a5565b610102610203366004610e23565b610700565b61018f610216366004610c4b565b61072a565b61023e610229366004610c4b565b60016020526000908152604090205460ff1681565b604051901515815260200161010c565b61018f61025c366004610e6e565b610844565b61018f61026f366004610c4b565b6108d6565b60006102813384846102b7565b9392505050565b6002546000906102b1903390849073ffffffffffffffffffffffffffffffffffffffff166102b7565b92915050565b60008373ffffffffffffffffffffffffffffffffffffffff81163314806102ed57503360009081526001602052604090205460ff165b806103a957506040517fe985e9c500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff82811660048301523360248301527f0000000000000000000000000000000000000000000000000000000000000000169063e985e9c590604401602060405180830381865afa158015610385573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103a99190610e9c565b806103b857506103b88161098d565b61046f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152605b60248201527f526576657273655265676973747261723a2043616c6c6572206973206e6f742060448201527f6120636f6e74726f6c6c6572206f7220617574686f726973656420627920616460648201527f6472657373206f7220746865206164647265737320697473656c660000000000608482015260a4015b60405180910390fd5b600061047a86610a3e565b604080517f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e26020808301919091528183018490528251808303840181526060909201928390528151910120919250819073ffffffffffffffffffffffffffffffffffffffff8916907f6ada868dd3058cf77a48a74489fd7963688e5464b2b0fa957ace976243270e9290600090a36040517f5ef2c7f00000000000000000000000000000000000000000000000000000000081527f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e260048201526024810183905273ffffffffffffffffffffffffffffffffffffffff87811660448301528681166064830152600060848301527f00000000000000000000000000000000000000000000000000000000000000001690635ef2c7f09060a401600060405180830381600087803b1580156105cd57600080fd5b505af11580156105e1573d6000803e3d6000fd5b50929998505050505050505050565b6105f8610afa565b6106026000610b7b565b565b6000806106128686866102b7565b6040517f7737221300000000000000000000000000000000000000000000000000000000815290915073ffffffffffffffffffffffffffffffffffffffff8516906377372213906106699084908790600401610eb9565b600060405180830381600087803b15801561068357600080fd5b505af1158015610697573d6000803e3d6000fd5b509298975050505050505050565b60007f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e26106d183610a3e565b604080516020810193909352820152606001604051602081830303815290604052805190602001209050919050565b6002546000906102b1903390819073ffffffffffffffffffffffffffffffffffffffff1685610604565b610732610afa565b73ffffffffffffffffffffffffffffffffffffffff81166107d5576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603060248201527f526576657273655265676973747261723a205265736f6c76657220616464726560448201527f7373206d757374206e6f742062652030000000000000000000000000000000006064820152608401610466565b600280547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff83169081179091556040517feae17a84d9eb83d8c8eb317f9e7d64857bc363fa51674d996c023f4340c577cf90600090a250565b61084c610afa565b73ffffffffffffffffffffffffffffffffffffffff821660008181526001602090815260409182902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff001685151590811790915591519182527f4c97694570a07277810af7e5669ffd5f6a2d6b74b6e9a274b8b870fd5114cf87910160405180910390a25050565b6108de610afa565b73ffffffffffffffffffffffffffffffffffffffff8116610981576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f64647265737300000000000000000000000000000000000000000000000000006064820152608401610466565b61098a81610b7b565b50565b60008173ffffffffffffffffffffffffffffffffffffffff16638da5cb5b6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610a14575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0168201909252610a1191810190610f2c565b60015b610a2057506000919050565b73ffffffffffffffffffffffffffffffffffffffff16331492915050565b600060285b8015610aee577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600f84161a81536010909204917fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600f84161a8153601083049250610a43565b50506028600020919050565b60005473ffffffffffffffffffffffffffffffffffffffff163314610602576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152606401610466565b6000805473ffffffffffffffffffffffffffffffffffffffff8381167fffffffffffffffffffffffff0000000000000000000000000000000000000000831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b73ffffffffffffffffffffffffffffffffffffffff8116811461098a57600080fd5b60008060408385031215610c2557600080fd5b8235610c3081610bf0565b91506020830135610c4081610bf0565b809150509250929050565b600060208284031215610c5d57600080fd5b813561028181610bf0565b600080600060608486031215610c7d57600080fd5b8335610c8881610bf0565b92506020840135610c9881610bf0565b91506040840135610ca881610bf0565b809150509250925092565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600082601f830112610cf357600080fd5b813567ffffffffffffffff811115610d0d57610d0d610cb3565b6040517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0603f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f8501160116810181811067ffffffffffffffff82111715610d7957610d79610cb3565b604052818152838201602001851015610d9157600080fd5b816020850160208301376000918101602001919091529392505050565b60008060008060808587031215610dc457600080fd5b8435610dcf81610bf0565b93506020850135610ddf81610bf0565b92506040850135610def81610bf0565b9150606085013567ffffffffffffffff811115610e0b57600080fd5b610e1787828801610ce2565b91505092959194509250565b600060208284031215610e3557600080fd5b813567ffffffffffffffff811115610e4c57600080fd5b610e5884828501610ce2565b949350505050565b801515811461098a57600080fd5b60008060408385031215610e8157600080fd5b8235610e8c81610bf0565b91506020830135610c4081610e60565b600060208284031215610eae57600080fd5b815161028181610e60565b828152604060208201526000825180604084015260005b81811015610eed5760208186018101516060868401015201610ed0565b5060006060828501015260607fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f8301168401019150509392505050565b600060208284031215610f3e57600080fd5b815161028181610bf056fea2646970667358221220ffa2da93664a067cb12464d34f551bffbe591fedba1524d94ecde426edaf6b6e64736f6c634300081a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b50600436106100ea5760003560e01c80638da5cb5b1161008c578063c66485b211610066578063c66485b214610208578063da8c229e1461021b578063e0dba60f1461024e578063f2fde38b1461026157600080fd5b80638da5cb5b146101c4578063bffbe61c146101e2578063c47f0027146101f557600080fd5b806365669631116100c85780636566963114610174578063715018a6146101875780637a806d6b14610191578063828eab0e146101a457600080fd5b80630f5a5466146100ef5780631e83409a146101155780633f15457f14610128575b600080fd5b6101026100fd366004610c12565b610274565b6040519081526020015b60405180910390f35b610102610123366004610c4b565b610288565b61014f7f000000000000000000000000000000000000000000000000000000000000000081565b60405173ffffffffffffffffffffffffffffffffffffffff909116815260200161010c565b610102610182366004610c68565b6102b7565b61018f6105f0565b005b61010261019f366004610dae565b610604565b60025461014f9073ffffffffffffffffffffffffffffffffffffffff1681565b60005473ffffffffffffffffffffffffffffffffffffffff1661014f565b6101026101f0366004610c4b565b6106a5565b610102610203366004610e23565b610700565b61018f610216366004610c4b565b61072a565b61023e610229366004610c4b565b60016020526000908152604090205460ff1681565b604051901515815260200161010c565b61018f61025c366004610e6e565b610844565b61018f61026f366004610c4b565b6108d6565b60006102813384846102b7565b9392505050565b6002546000906102b1903390849073ffffffffffffffffffffffffffffffffffffffff166102b7565b92915050565b60008373ffffffffffffffffffffffffffffffffffffffff81163314806102ed57503360009081526001602052604090205460ff165b806103a957506040517fe985e9c500000000000000000000000000000000000000000000000000000000815273ffffffffffffffffffffffffffffffffffffffff82811660048301523360248301527f0000000000000000000000000000000000000000000000000000000000000000169063e985e9c590604401602060405180830381865afa158015610385573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906103a99190610e9c565b806103b857506103b88161098d565b61046f576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152605b60248201527f526576657273655265676973747261723a2043616c6c6572206973206e6f742060448201527f6120636f6e74726f6c6c6572206f7220617574686f726973656420627920616460648201527f6472657373206f7220746865206164647265737320697473656c660000000000608482015260a4015b60405180910390fd5b600061047a86610a3e565b604080517f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e26020808301919091528183018490528251808303840181526060909201928390528151910120919250819073ffffffffffffffffffffffffffffffffffffffff8916907f6ada868dd3058cf77a48a74489fd7963688e5464b2b0fa957ace976243270e9290600090a36040517f5ef2c7f00000000000000000000000000000000000000000000000000000000081527f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e260048201526024810183905273ffffffffffffffffffffffffffffffffffffffff87811660448301528681166064830152600060848301527f00000000000000000000000000000000000000000000000000000000000000001690635ef2c7f09060a401600060405180830381600087803b1580156105cd57600080fd5b505af11580156105e1573d6000803e3d6000fd5b50929998505050505050505050565b6105f8610afa565b6106026000610b7b565b565b6000806106128686866102b7565b6040517f7737221300000000000000000000000000000000000000000000000000000000815290915073ffffffffffffffffffffffffffffffffffffffff8516906377372213906106699084908790600401610eb9565b600060405180830381600087803b15801561068357600080fd5b505af1158015610697573d6000803e3d6000fd5b509298975050505050505050565b60007f91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e26106d183610a3e565b604080516020810193909352820152606001604051602081830303815290604052805190602001209050919050565b6002546000906102b1903390819073ffffffffffffffffffffffffffffffffffffffff1685610604565b610732610afa565b73ffffffffffffffffffffffffffffffffffffffff81166107d5576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152603060248201527f526576657273655265676973747261723a205265736f6c76657220616464726560448201527f7373206d757374206e6f742062652030000000000000000000000000000000006064820152608401610466565b600280547fffffffffffffffffffffffff00000000000000000000000000000000000000001673ffffffffffffffffffffffffffffffffffffffff83169081179091556040517feae17a84d9eb83d8c8eb317f9e7d64857bc363fa51674d996c023f4340c577cf90600090a250565b61084c610afa565b73ffffffffffffffffffffffffffffffffffffffff821660008181526001602090815260409182902080547fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff001685151590811790915591519182527f4c97694570a07277810af7e5669ffd5f6a2d6b74b6e9a274b8b870fd5114cf87910160405180910390a25050565b6108de610afa565b73ffffffffffffffffffffffffffffffffffffffff8116610981576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820152602660248201527f4f776e61626c653a206e6577206f776e657220697320746865207a65726f206160448201527f64647265737300000000000000000000000000000000000000000000000000006064820152608401610466565b61098a81610b7b565b50565b60008173ffffffffffffffffffffffffffffffffffffffff16638da5cb5b6040518163ffffffff1660e01b8152600401602060405180830381865afa925050508015610a14575060408051601f3d9081017fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0168201909252610a1191810190610f2c565b60015b610a2057506000919050565b73ffffffffffffffffffffffffffffffffffffffff16331492915050565b600060285b8015610aee577fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600f84161a81536010909204917fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff017f3031323334353637383961626364656600000000000000000000000000000000600f84161a8153601083049250610a43565b50506028600020919050565b60005473ffffffffffffffffffffffffffffffffffffffff163314610602576040517f08c379a000000000000000000000000000000000000000000000000000000000815260206004820181905260248201527f4f776e61626c653a2063616c6c6572206973206e6f7420746865206f776e65726044820152606401610466565b6000805473ffffffffffffffffffffffffffffffffffffffff8381167fffffffffffffffffffffffff0000000000000000000000000000000000000000831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b73ffffffffffffffffffffffffffffffffffffffff8116811461098a57600080fd5b60008060408385031215610c2557600080fd5b8235610c3081610bf0565b91506020830135610c4081610bf0565b809150509250929050565b600060208284031215610c5d57600080fd5b813561028181610bf0565b600080600060608486031215610c7d57600080fd5b8335610c8881610bf0565b92506020840135610c9881610bf0565b91506040840135610ca881610bf0565b809150509250925092565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052604160045260246000fd5b600082601f830112610cf357600080fd5b813567ffffffffffffffff811115610d0d57610d0d610cb3565b6040517fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0603f7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f8501160116810181811067ffffffffffffffff82111715610d7957610d79610cb3565b604052818152838201602001851015610d9157600080fd5b816020850160208301376000918101602001919091529392505050565b60008060008060808587031215610dc457600080fd5b8435610dcf81610bf0565b93506020850135610ddf81610bf0565b92506040850135610def81610bf0565b9150606085013567ffffffffffffffff811115610e0b57600080fd5b610e1787828801610ce2565b91505092959194509250565b600060208284031215610e3557600080fd5b813567ffffffffffffffff811115610e4c57600080fd5b610e5884828501610ce2565b949350505050565b801515811461098a57600080fd5b60008060408385031215610e8157600080fd5b8235610e8c81610bf0565b91506020830135610c4081610e60565b600060208284031215610eae57600080fd5b815161028181610e60565b828152604060208201526000825180604084015260005b81811015610eed5760208186018101516060868401015201610ed0565b5060006060828501015260607fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe0601f8301168401019150509392505050565b600060208284031215610f3e57600080fd5b815161028181610bf056fea2646970667358221220ffa2da93664a067cb12464d34f551bffbe591fedba1524d94ecde426edaf6b6e64736f6c634300081a0033",
+  "linkReferences": {},
+  "deployedLinkReferences": {},
+  "immutableReferences": {
+    "26340": [
+      {
+        "length": 32,
+        "start": 301
+      },
+      {
+        "length": 32,
+        "start": 830
+      },
+      {
+        "length": 32,
+        "start": 1417
+      }
+    ]
+  },
+  "inputSourceName": "project/contracts/reverseRegistrar/ReverseRegistrar.sol",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {
+      "claim(address)": {
+        "details": "Transfers ownership of the reverse ENS record associated with the      calling account.",
+        "params": {
+          "owner": "The address to set as the owner of the reverse record in ENS."
+        },
+        "returns": {
+          "_0": "The ENS node hash of the reverse record."
+        }
+      },
+      "claimForAddr(address,address,address)": {
+        "details": "Transfers ownership of the reverse ENS record associated with the      calling account.",
+        "params": {
+          "addr": "The reverse record to set",
+          "owner": "The address to set as the owner of the reverse record in ENS.",
+          "resolver": "The resolver of the reverse node"
+        },
+        "returns": {
+          "_0": "The ENS node hash of the reverse record."
+        }
+      },
+      "claimWithResolver(address,address)": {
+        "details": "Transfers ownership of the reverse ENS record associated with the      calling account.",
+        "params": {
+          "owner": "The address to set as the owner of the reverse record in ENS.",
+          "resolver": "The address of the resolver to set; 0 to leave unchanged."
+        },
+        "returns": {
+          "_0": "The ENS node hash of the reverse record."
+        }
+      },
+      "constructor": {
+        "details": "Constructor",
+        "params": {
+          "ensAddr": "The address of the ENS registry."
+        }
+      },
+      "node(address)": {
+        "details": "Returns the node hash for a given account's reverse records.",
+        "params": {
+          "addr": "The address to hash"
+        },
+        "returns": {
+          "_0": "The ENS node hash."
+        }
+      },
+      "owner()": {
+        "details": "Returns the address of the current owner."
+      },
+      "renounceOwnership()": {
+        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+      },
+      "setName(string)": {
+        "details": "Sets the `name()` record for the reverse ENS record associated with the calling account. First updates the resolver to the default reverse resolver if necessary.",
+        "params": {
+          "name": "The name to set for this address."
+        },
+        "returns": {
+          "_0": "The ENS node hash of the reverse record."
+        }
+      },
+      "setNameForAddr(address,address,address,string)": {
+        "details": "Sets the `name()` record for the reverse ENS record associated with the account provided. Updates the resolver to a designated resolver Only callable by controllers and authorised users",
+        "params": {
+          "addr": "The reverse record to set",
+          "name": "The name to set for this address.",
+          "owner": "The owner of the reverse node",
+          "resolver": "The resolver of the reverse node"
+        },
+        "returns": {
+          "_0": "The ENS node hash of the reverse record."
+        }
+      },
+      "transferOwnership(address)": {
+        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+      }
+    },
+    "version": 1
+  },
+  "evm": {
+    "gasEstimates": {
+      "creation": {
+        "codeDepositCost": "793400",
+        "executionCost": "infinite",
+        "totalCost": "infinite"
+      },
+      "external": {
+        "claim(address)": "infinite",
+        "claimForAddr(address,address,address)": "infinite",
+        "claimWithResolver(address,address)": "infinite",
+        "controllers(address)": "2557",
+        "defaultResolver()": "2402",
+        "ens()": "infinite",
+        "node(address)": "infinite",
+        "owner()": "2330",
+        "renounceOwnership()": "infinite",
+        "setController(address,bool)": "infinite",
+        "setDefaultResolver(address)": "27862",
+        "setName(string)": "infinite",
+        "setNameForAddr(address,address,address,string)": "infinite",
+        "transferOwnership(address)": "infinite"
+      },
+      "internal": {
+        "ownsContract(address)": "infinite",
+        "sha3HexAddress(address)": "infinite"
+      }
+    }
+  },
+  "metadata": "{\"compiler\":{\"version\":\"0.8.26+commit.8a97fa7a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"contract ENS\",\"name\":\"ensAddr\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"controller\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"bool\",\"name\":\"enabled\",\"type\":\"bool\"}],\"name\":\"ControllerChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"contract NameResolver\",\"name\":\"resolver\",\"type\":\"address\"}],\"name\":\"DefaultResolverChanged\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"bytes32\",\"name\":\"node\",\"type\":\"bytes32\"}],\"name\":\"ReverseClaimed\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"claim\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"resolver\",\"type\":\"address\"}],\"name\":\"claimForAddr\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"resolver\",\"type\":\"address\"}],\"name\":\"claimWithResolver\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"controllers\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"defaultResolver\",\"outputs\":[{\"internalType\":\"contract NameResolver\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"ens\",\"outputs\":[{\"internalType\":\"contract ENS\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"}],\"name\":\"node\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"controller\",\"type\":\"address\"},{\"internalType\":\"bool\",\"name\":\"enabled\",\"type\":\"bool\"}],\"name\":\"setController\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"resolver\",\"type\":\"address\"}],\"name\":\"setDefaultResolver\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"}],\"name\":\"setName\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"addr\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"resolver\",\"type\":\"address\"},{\"internalType\":\"string\",\"name\":\"name\",\"type\":\"string\"}],\"name\":\"setNameForAddr\",\"outputs\":[{\"internalType\":\"bytes32\",\"name\":\"\",\"type\":\"bytes32\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{\"claim(address)\":{\"details\":\"Transfers ownership of the reverse ENS record associated with the      calling account.\",\"params\":{\"owner\":\"The address to set as the owner of the reverse record in ENS.\"},\"returns\":{\"_0\":\"The ENS node hash of the reverse record.\"}},\"claimForAddr(address,address,address)\":{\"details\":\"Transfers ownership of the reverse ENS record associated with the      calling account.\",\"params\":{\"addr\":\"The reverse record to set\",\"owner\":\"The address to set as the owner of the reverse record in ENS.\",\"resolver\":\"The resolver of the reverse node\"},\"returns\":{\"_0\":\"The ENS node hash of the reverse record.\"}},\"claimWithResolver(address,address)\":{\"details\":\"Transfers ownership of the reverse ENS record associated with the      calling account.\",\"params\":{\"owner\":\"The address to set as the owner of the reverse record in ENS.\",\"resolver\":\"The address of the resolver to set; 0 to leave unchanged.\"},\"returns\":{\"_0\":\"The ENS node hash of the reverse record.\"}},\"constructor\":{\"details\":\"Constructor\",\"params\":{\"ensAddr\":\"The address of the ENS registry.\"}},\"node(address)\":{\"details\":\"Returns the node hash for a given account's reverse records.\",\"params\":{\"addr\":\"The address to hash\"},\"returns\":{\"_0\":\"The ENS node hash.\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"setName(string)\":{\"details\":\"Sets the `name()` record for the reverse ENS record associated with the calling account. First updates the resolver to the default reverse resolver if necessary.\",\"params\":{\"name\":\"The name to set for this address.\"},\"returns\":{\"_0\":\"The ENS node hash of the reverse record.\"}},\"setNameForAddr(address,address,address,string)\":{\"details\":\"Sets the `name()` record for the reverse ENS record associated with the account provided. Updates the resolver to a designated resolver Only callable by controllers and authorised users\",\"params\":{\"addr\":\"The reverse record to set\",\"name\":\"The name to set for this address.\",\"owner\":\"The owner of the reverse node\",\"resolver\":\"The resolver of the reverse node\"},\"returns\":{\"_0\":\"The ENS node hash of the reverse record.\"}},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"project/contracts/reverseRegistrar/ReverseRegistrar.sol\":\"ReverseRegistrar\"},\"evmVersion\":\"paris\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000000},\"remappings\":[\"project/:@ensdomains/buffer/=npm/@ensdomains/buffer@0.1.3/\",\"project/:@ensdomains/solsha1/=npm/@ensdomains/solsha1@0.0.3/\",\"project/:@openzeppelin/contracts-v5/=npm/@openzeppelin/contracts@5.1.0/\",\"project/:@openzeppelin/contracts/=npm/@openzeppelin/contracts@4.9.3/\",\"project/:@unruggable/gateways/=npm/@unruggable/gateways@1.3.0/contracts/\"]},\"sources\":{\"npm/@openzeppelin/contracts@4.9.3/access/Ownable.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.9.0) (access/Ownable.sol)\\n\\npragma solidity ^0.8.0;\\n\\nimport \\\"../utils/Context.sol\\\";\\n\\n/**\\n * @dev Contract module which provides a basic access control mechanism, where\\n * there is an account (an owner) that can be granted exclusive access to\\n * specific functions.\\n *\\n * By default, the owner account will be the one that deploys the contract. This\\n * can later be changed with {transferOwnership}.\\n *\\n * This module is used through inheritance. It will make available the modifier\\n * `onlyOwner`, which can be applied to your functions to restrict their use to\\n * the owner.\\n */\\nabstract contract Ownable is Context {\\n    address private _owner;\\n\\n    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);\\n\\n    /**\\n     * @dev Initializes the contract setting the deployer as the initial owner.\\n     */\\n    constructor() {\\n        _transferOwnership(_msgSender());\\n    }\\n\\n    /**\\n     * @dev Throws if called by any account other than the owner.\\n     */\\n    modifier onlyOwner() {\\n        _checkOwner();\\n        _;\\n    }\\n\\n    /**\\n     * @dev Returns the address of the current owner.\\n     */\\n    function owner() public view virtual returns (address) {\\n        return _owner;\\n    }\\n\\n    /**\\n     * @dev Throws if the sender is not the owner.\\n     */\\n    function _checkOwner() internal view virtual {\\n        require(owner() == _msgSender(), \\\"Ownable: caller is not the owner\\\");\\n    }\\n\\n    /**\\n     * @dev Leaves the contract without owner. It will not be possible to call\\n     * `onlyOwner` functions. Can only be called by the current owner.\\n     *\\n     * NOTE: Renouncing ownership will leave the contract without an owner,\\n     * thereby disabling any functionality that is only available to the owner.\\n     */\\n    function renounceOwnership() public virtual onlyOwner {\\n        _transferOwnership(address(0));\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Can only be called by the current owner.\\n     */\\n    function transferOwnership(address newOwner) public virtual onlyOwner {\\n        require(newOwner != address(0), \\\"Ownable: new owner is the zero address\\\");\\n        _transferOwnership(newOwner);\\n    }\\n\\n    /**\\n     * @dev Transfers ownership of the contract to a new account (`newOwner`).\\n     * Internal function without access restriction.\\n     */\\n    function _transferOwnership(address newOwner) internal virtual {\\n        address oldOwner = _owner;\\n        _owner = newOwner;\\n        emit OwnershipTransferred(oldOwner, newOwner);\\n    }\\n}\\n\",\"keccak256\":\"0xba43b97fba0d32eb4254f6a5a297b39a19a247082a02d6e69349e071e2946218\",\"license\":\"MIT\"},\"npm/@openzeppelin/contracts@4.9.3/utils/Context.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts v4.4.1 (utils/Context.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Provides information about the current execution context, including the\\n * sender of the transaction and its data. While these are generally available\\n * via msg.sender and msg.data, they should not be accessed in such a direct\\n * manner, since when dealing with meta-transactions the account sending and\\n * paying for execution may not be the actual sender (as far as an application\\n * is concerned).\\n *\\n * This contract is only required for intermediate, library-like contracts.\\n */\\nabstract contract Context {\\n    function _msgSender() internal view virtual returns (address) {\\n        return msg.sender;\\n    }\\n\\n    function _msgData() internal view virtual returns (bytes calldata) {\\n        return msg.data;\\n    }\\n}\\n\",\"keccak256\":\"0xe2e337e6dde9ef6b680e07338c493ebea1b5fd09b43424112868e9cc1706bca7\",\"license\":\"MIT\"},\"project/contracts/registry/ENS.sol\":{\"content\":\"//SPDX-License-Identifier: MIT\\npragma solidity >=0.8.4;\\n\\ninterface ENS {\\n    // Logged when the owner of a node assigns a new owner to a subnode.\\n    event NewOwner(bytes32 indexed node, bytes32 indexed label, address owner);\\n\\n    // Logged when the owner of a node transfers ownership to a new account.\\n    event Transfer(bytes32 indexed node, address owner);\\n\\n    // Logged when the resolver for a node changes.\\n    event NewResolver(bytes32 indexed node, address resolver);\\n\\n    // Logged when the TTL of a node changes\\n    event NewTTL(bytes32 indexed node, uint64 ttl);\\n\\n    // Logged when an operator is added or removed.\\n    event ApprovalForAll(\\n        address indexed owner,\\n        address indexed operator,\\n        bool approved\\n    );\\n\\n    function setRecord(\\n        bytes32 node,\\n        address owner,\\n        address resolver,\\n        uint64 ttl\\n    ) external;\\n\\n    function setSubnodeRecord(\\n        bytes32 node,\\n        bytes32 label,\\n        address owner,\\n        address resolver,\\n        uint64 ttl\\n    ) external;\\n\\n    function setSubnodeOwner(\\n        bytes32 node,\\n        bytes32 label,\\n        address owner\\n    ) external returns (bytes32);\\n\\n    function setResolver(bytes32 node, address resolver) external;\\n\\n    function setOwner(bytes32 node, address owner) external;\\n\\n    function setTTL(bytes32 node, uint64 ttl) external;\\n\\n    function setApprovalForAll(address operator, bool approved) external;\\n\\n    function owner(bytes32 node) external view returns (address);\\n\\n    function resolver(bytes32 node) external view returns (address);\\n\\n    function ttl(bytes32 node) external view returns (uint64);\\n\\n    function recordExists(bytes32 node) external view returns (bool);\\n\\n    function isApprovedForAll(\\n        address owner,\\n        address operator\\n    ) external view returns (bool);\\n}\\n\",\"keccak256\":\"0x8e208b44d5dbf22552fe72d79b45c640855b84fbc9ee21f4c3bb4bfe81cbe8db\",\"license\":\"MIT\"},\"project/contracts/reverseRegistrar/IReverseRegistrar.sol\":{\"content\":\"pragma solidity >=0.8.4;\\n\\ninterface IReverseRegistrar {\\n    function setDefaultResolver(address resolver) external;\\n\\n    function claim(address owner) external returns (bytes32);\\n\\n    function claimForAddr(\\n        address addr,\\n        address owner,\\n        address resolver\\n    ) external returns (bytes32);\\n\\n    function claimWithResolver(\\n        address owner,\\n        address resolver\\n    ) external returns (bytes32);\\n\\n    function setName(string memory name) external returns (bytes32);\\n\\n    function setNameForAddr(\\n        address addr,\\n        address owner,\\n        address resolver,\\n        string memory name\\n    ) external returns (bytes32);\\n\\n    function node(address addr) external pure returns (bytes32);\\n}\\n\",\"keccak256\":\"0x83adfcf6da72b1bcd1e3ac387afe5fc7fdf7f2ac28b7601544d2ca4b9d45d159\"},\"project/contracts/reverseRegistrar/ReverseRegistrar.sol\":{\"content\":\"pragma solidity >=0.8.4;\\n\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\n\\nimport \\\"../registry/ENS.sol\\\";\\nimport \\\"./IReverseRegistrar.sol\\\";\\nimport \\\"../root/Controllable.sol\\\";\\n\\nabstract contract NameResolver {\\n    function setName(bytes32 node, string memory name) public virtual;\\n}\\n\\nbytes32 constant lookup = 0x3031323334353637383961626364656600000000000000000000000000000000;\\n\\nbytes32 constant ADDR_REVERSE_NODE = 0x91d1777781884d03a6757a803996e38de2a42967fb37eeaca72729271025a9e2;\\n\\n// namehash('addr.reverse')\\n\\ncontract ReverseRegistrar is Ownable, Controllable, IReverseRegistrar {\\n    ENS public immutable ens;\\n    NameResolver public defaultResolver;\\n\\n    event ReverseClaimed(address indexed addr, bytes32 indexed node);\\n    event DefaultResolverChanged(NameResolver indexed resolver);\\n\\n    /// @dev Constructor\\n    /// @param ensAddr The address of the ENS registry.\\n    constructor(ENS ensAddr) {\\n        ens = ensAddr;\\n\\n        // Assign ownership of the reverse record to our deployer\\n        ReverseRegistrar oldRegistrar = ReverseRegistrar(\\n            ensAddr.owner(ADDR_REVERSE_NODE)\\n        );\\n        if (address(oldRegistrar) != address(0x0)) {\\n            oldRegistrar.claim(msg.sender);\\n        }\\n    }\\n\\n    modifier authorised(address addr) {\\n        require(\\n            addr == msg.sender ||\\n                controllers[msg.sender] ||\\n                ens.isApprovedForAll(addr, msg.sender) ||\\n                ownsContract(addr),\\n            \\\"ReverseRegistrar: Caller is not a controller or authorised by address or the address itself\\\"\\n        );\\n        _;\\n    }\\n\\n    function setDefaultResolver(address resolver) public override onlyOwner {\\n        require(\\n            address(resolver) != address(0),\\n            \\\"ReverseRegistrar: Resolver address must not be 0\\\"\\n        );\\n        defaultResolver = NameResolver(resolver);\\n        emit DefaultResolverChanged(NameResolver(resolver));\\n    }\\n\\n    /// @dev Transfers ownership of the reverse ENS record associated with the\\n    ///      calling account.\\n    /// @param owner The address to set as the owner of the reverse record in ENS.\\n    /// @return The ENS node hash of the reverse record.\\n    function claim(address owner) public override returns (bytes32) {\\n        return claimForAddr(msg.sender, owner, address(defaultResolver));\\n    }\\n\\n    /// @dev Transfers ownership of the reverse ENS record associated with the\\n    ///      calling account.\\n    /// @param addr The reverse record to set\\n    /// @param owner The address to set as the owner of the reverse record in ENS.\\n    /// @param resolver The resolver of the reverse node\\n    /// @return The ENS node hash of the reverse record.\\n    function claimForAddr(\\n        address addr,\\n        address owner,\\n        address resolver\\n    ) public override authorised(addr) returns (bytes32) {\\n        bytes32 labelHash = sha3HexAddress(addr);\\n        bytes32 reverseNode = keccak256(\\n            abi.encodePacked(ADDR_REVERSE_NODE, labelHash)\\n        );\\n        emit ReverseClaimed(addr, reverseNode);\\n        ens.setSubnodeRecord(ADDR_REVERSE_NODE, labelHash, owner, resolver, 0);\\n        return reverseNode;\\n    }\\n\\n    /// @dev Transfers ownership of the reverse ENS record associated with the\\n    ///      calling account.\\n    /// @param owner The address to set as the owner of the reverse record in ENS.\\n    /// @param resolver The address of the resolver to set; 0 to leave unchanged.\\n    /// @return The ENS node hash of the reverse record.\\n    function claimWithResolver(\\n        address owner,\\n        address resolver\\n    ) public override returns (bytes32) {\\n        return claimForAddr(msg.sender, owner, resolver);\\n    }\\n\\n    /// @dev Sets the `name()` record for the reverse ENS record associated with\\n    /// the calling account. First updates the resolver to the default reverse\\n    /// resolver if necessary.\\n    /// @param name The name to set for this address.\\n    /// @return The ENS node hash of the reverse record.\\n    function setName(string memory name) public override returns (bytes32) {\\n        return\\n            setNameForAddr(\\n                msg.sender,\\n                msg.sender,\\n                address(defaultResolver),\\n                name\\n            );\\n    }\\n\\n    /// @dev Sets the `name()` record for the reverse ENS record associated with\\n    /// the account provided. Updates the resolver to a designated resolver\\n    /// Only callable by controllers and authorised users\\n    /// @param addr The reverse record to set\\n    /// @param owner The owner of the reverse node\\n    /// @param resolver The resolver of the reverse node\\n    /// @param name The name to set for this address.\\n    /// @return The ENS node hash of the reverse record.\\n    function setNameForAddr(\\n        address addr,\\n        address owner,\\n        address resolver,\\n        string memory name\\n    ) public override returns (bytes32) {\\n        bytes32 node = claimForAddr(addr, owner, resolver);\\n        NameResolver(resolver).setName(node, name);\\n        return node;\\n    }\\n\\n    /// @dev Returns the node hash for a given account's reverse records.\\n    /// @param addr The address to hash\\n    /// @return The ENS node hash.\\n    function node(address addr) public pure override returns (bytes32) {\\n        return\\n            keccak256(\\n                abi.encodePacked(ADDR_REVERSE_NODE, sha3HexAddress(addr))\\n            );\\n    }\\n\\n    /// @dev An optimised function to compute the sha3 of the lower-case\\n    ///      hexadecimal representation of an Ethereum address.\\n    /// @param addr The address to hash\\n    /// @return ret The SHA3 hash of the lower-case hexadecimal encoding of the\\n    ///         input address.\\n    function sha3HexAddress(address addr) private pure returns (bytes32 ret) {\\n        assembly {\\n            for {\\n                let i := 40\\n            } gt(i, 0) {} {\\n                i := sub(i, 1)\\n                mstore8(i, byte(and(addr, 0xf), lookup))\\n                addr := div(addr, 0x10)\\n                i := sub(i, 1)\\n                mstore8(i, byte(and(addr, 0xf), lookup))\\n                addr := div(addr, 0x10)\\n            }\\n\\n            ret := keccak256(0, 40)\\n        }\\n    }\\n\\n    function ownsContract(address addr) internal view returns (bool) {\\n        try Ownable(addr).owner() returns (address owner) {\\n            return owner == msg.sender;\\n        } catch {\\n            return false;\\n        }\\n    }\\n}\\n\",\"keccak256\":\"0xf87029a1dad705b9d5a0f4f2503727570b1e9500e8866f36ad7877a69c17bd8f\"},\"project/contracts/root/Controllable.sol\":{\"content\":\"pragma solidity ^0.8.4;\\n\\nimport \\\"@openzeppelin/contracts/access/Ownable.sol\\\";\\n\\ncontract Controllable is Ownable {\\n    mapping(address => bool) public controllers;\\n\\n    event ControllerChanged(address indexed controller, bool enabled);\\n\\n    modifier onlyController() {\\n        require(\\n            controllers[msg.sender],\\n            \\\"Controllable: Caller is not a controller\\\"\\n        );\\n        _;\\n    }\\n\\n    function setController(address controller, bool enabled) public onlyOwner {\\n        controllers[controller] = enabled;\\n        emit ControllerChanged(controller, enabled);\\n    }\\n}\\n\",\"keccak256\":\"0xb19b8c0fafe9ca2b4bf8aaafee486fa31437672e1e1977bdf84bfe03464969db\"}},\"version\":1}",
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 446,
+        "contract": "project/contracts/reverseRegistrar/ReverseRegistrar.sol:ReverseRegistrar",
+        "label": "_owner",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 27968,
+        "contract": "project/contracts/reverseRegistrar/ReverseRegistrar.sol:ReverseRegistrar",
+        "label": "controllers",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_mapping(t_address,t_bool)"
+      },
+      {
+        "astId": 26343,
+        "contract": "project/contracts/reverseRegistrar/ReverseRegistrar.sol:ReverseRegistrar",
+        "label": "defaultResolver",
+        "offset": 0,
+        "slot": "2",
+        "type": "t_contract(NameResolver)26325"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_bool": {
+        "encoding": "inplace",
+        "label": "bool",
+        "numberOfBytes": "1"
+      },
+      "t_contract(NameResolver)26325": {
+        "encoding": "inplace",
+        "label": "contract NameResolver",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_bool)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => bool)",
+        "numberOfBytes": "32",
+        "value": "t_bool"
+      }
+    }
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "argsData": "0x0000000000000000000000007e89b563f936c68c31a360840eb7f9a4aacaf014",
+  "transaction": {
+    "nonce": "0x177f",
+    "hash": "0xc29e40734303f9d1a4a14a9a9ad6224cf580d6f721be5997b8bef7039d8e7cb4",
+    "origin": "0xffffffffff52d316b7bd028358089bc8066b8f80"
+  },
+  "receipt": {
+    "blockHash": "0x1b8eb2757fd30367c94c01130be01e7b1717b426466a41761f0b12b1fc8c36a8",
+    "blockNumber": "0x9fa460",
+    "transactionIndex": "0x24"
+  }
+}
