@@ -5,6 +5,7 @@ import "./IBaseRegistrar.sol";
 import "./IMetadataRenderer.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import {SignatureChecker} from "@openzeppelin/contracts/utils/cryptography/SignatureChecker.sol";
 
 /// @dev Notified when a 2LD is re-registered, so subname ownership/generation
 ///      state (kept by the SubnameRegistrar) can be invalidated. See
@@ -216,6 +217,118 @@ contract BaseRegistrarImplementation is
     // Sets the SubnameRegistrar notified on re-registration; 0 disables.
     function setSubnameHook(address hook) external onlyOwner {
         subnameHook = hook;
+    }
+
+    /// ------------------------------------------------------------------
+    /// Sponsored transfer (EIP-712)
+    ///
+    /// Lets an owner move a name by signing rather than by paying gas, so a
+    /// relayer can submit on their behalf. The relayer pays gas and nothing
+    /// else: it cannot choose the recipient, cannot replay, and cannot act
+    /// after the deadline. No standing approval is granted — each signature
+    /// authorises exactly one transfer.
+    /// ------------------------------------------------------------------
+
+    bytes32 private constant _EIP712_DOMAIN_TYPEHASH =
+        keccak256(
+            "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+        );
+    bytes32 private constant _EIP712_NAME = keccak256("SimplexNames");
+    bytes32 private constant _EIP712_VERSION = keccak256("1");
+    bytes32 public constant TRANSFER_TYPEHASH =
+        keccak256(
+            "TransferName(address from,address to,uint256 tokenId,uint256 nonce,uint256 deadline)"
+        );
+
+    /// @dev One counter per signer, consumed in order, so a signature cannot be
+    ///      replayed and two intents cannot be reordered.
+    mapping(address => uint256) public nonces;
+
+    /// @dev ERC-5564 announcement. Carries the sender's ephemeral public key so
+    ///      the recipient can rediscover a stealth destination from their seed
+    ///      alone — without it, a gift is findable only from a message, and a
+    ///      restored device has no messages. Emitted only when the sender opts
+    ///      in, so an ordinary transfer costs nothing extra.
+    event StealthNameTransfer(
+        address indexed to,
+        bytes ephemeralPubKey,
+        bytes1 viewTag,
+        uint256 tokenId
+    );
+
+    error TransferToSelf();
+    error SignatureExpired();
+    error InvalidNonce();
+    error InvalidSignature();
+    error NotNameOwner();
+
+    function DOMAIN_SEPARATOR() public view returns (bytes32) {
+        return
+            keccak256(
+                abi.encode(
+                    _EIP712_DOMAIN_TYPEHASH,
+                    _EIP712_NAME,
+                    _EIP712_VERSION,
+                    block.chainid,
+                    address(this)
+                )
+            );
+    }
+
+    /// @param ephemeralPubKey Compressed secp256k1 point, or empty for no
+    ///        announcement. Deliberately outside the signed struct: it steers
+    ///        discovery, not ownership, so a relayer that drops or corrupts it
+    ///        costs the recipient a rescan, never the name.
+    function transferWithSig(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 nonce,
+        uint256 deadline,
+        bytes calldata sig,
+        bytes calldata ephemeralPubKey,
+        bytes1 viewTag
+    ) external {
+        // Without this a holder could self-transfer in a loop and emit
+        // announcements for the price of gas alone, so every recipient's
+        // recovery scan would grow without bound. One line is what keeps the
+        // announcement set proportional to real gifts.
+        if (to == from) revert TransferToSelf();
+        if (block.timestamp > deadline) revert SignatureExpired();
+        if (nonce != nonces[from]) revert InvalidNonce();
+        // Grace-aware ownerOf reverts once expired, so a lapsed name cannot be
+        // moved out from under the person about to re-register it.
+        if (ownerOf(tokenId) != from) revert NotNameOwner();
+
+        bytes32 digest = keccak256(
+            abi.encodePacked(
+                "\x19\x01",
+                DOMAIN_SEPARATOR(),
+                keccak256(
+                    abi.encode(
+                        TRANSFER_TYPEHASH,
+                        from,
+                        to,
+                        tokenId,
+                        nonce,
+                        deadline
+                    )
+                )
+            )
+        );
+        if (!SignatureChecker.isValidSignatureNow(from, digest, sig))
+            revert InvalidSignature();
+
+        unchecked {
+            nonces[from] = nonce + 1;
+        }
+        // _transfer, not a raw write: the auto-reclaim hook below must fire so
+        // the registry node and its subnames follow the token.
+        _transfer(from, to, tokenId);
+
+        if (ephemeralPubKey.length != 0) {
+            emit StealthNameTransfer(to, ephemeralPubKey, viewTag, tokenId);
+        }
     }
 
     /// @dev Auto-reclaim: an NFT transfer re-points the 2LD's ENS registry node
