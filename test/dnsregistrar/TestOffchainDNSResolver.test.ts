@@ -314,6 +314,25 @@ describe('OffchainDNSResolver', () => {
     ).toBeRevertedWithCustomError('CouldNotResolve')
   })
 
+  it('rejects TXT records that point to non-contract resolver addresses', async () => {
+    const { doDnsResolveCallback, publicResolverAbi } = await loadFixture()
+
+    const name = 'test.test'
+    const calldata = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'addr',
+      args: [namehash(name)],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${accounts[1].address}`],
+        calldata,
+      }),
+    ).toBeRevertedWithCustomError('CouldNotResolve')
+  })
+
   it('handles calls to resolveCallback() where the valid TXT record is not the first', async () => {
     const { ownedResolver, doDnsResolveCallback, publicResolverAbi } =
       await loadFixture()
@@ -333,6 +352,32 @@ describe('OffchainDNSResolver', () => {
       doDnsResolveCallback({
         name,
         texts: ['foo', `ENS1 ${ownedResolver.address}`],
+        calldata,
+      }),
+    ).resolves.toEqual(
+      encodeAbiParameters([{ type: 'address' }], [testAddress]),
+    )
+  })
+
+  it('skips non-contract resolver addresses and uses the next valid TXT record', async () => {
+    const { ownedResolver, doDnsResolveCallback, publicResolverAbi } =
+      await loadFixture()
+
+    const name = 'test.test'
+    const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
+
+    await ownedResolver.write.setAddr([namehash(name), testAddress])
+
+    const calldata = encodeFunctionData({
+      abi: publicResolverAbi,
+      functionName: 'addr',
+      args: [namehash(name)],
+    })
+
+    await expect(
+      doDnsResolveCallback({
+        name,
+        texts: [`ENS1 ${accounts[1].address}`, `ENS1 ${ownedResolver.address}`],
         calldata,
       }),
     ).resolves.toEqual(
