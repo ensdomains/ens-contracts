@@ -1,6 +1,7 @@
 import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import type { Fixture } from '@nomicfoundation/hardhat-network-helpers/types'
 import hre from 'hardhat'
+import type { DefaultChainType } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash, zeroAddress, zeroHash } from 'viem'
 
 import { DAY } from '../fixtures/constants.js'
@@ -51,8 +52,9 @@ const connection = await hre.network.connect()
 async function nameWrapperFixture() {
   return deployNameWrapperWithUtils(connection)
 }
-const loadFixture = async <T>(fixture: Fixture<T>): Promise<T> =>
-  connection.networkHelpers.loadFixture(fixture)
+const loadFixture = async <T>(
+  fixture: Fixture<T, DefaultChainType>,
+): Promise<T> => connection.networkHelpers.loadFixture(fixture)
 const loadNameWrapperFixture = async () => loadFixture(nameWrapperFixture)
 
 describe('NameWrapper', () => {

@@ -1,5 +1,5 @@
 import type { Fixture } from '@nomicfoundation/hardhat-network-helpers/types'
-import type { NetworkConnection } from 'hardhat/types/network'
+import type { DefaultChainType, NetworkConnection } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
 
 import { DAY, FUSES } from '../fixtures/constants.js'
@@ -56,8 +56,9 @@ export const shouldRespectConstraints = (connection: NetworkConnection) => {
     return { ...initial, accounts, publicClient, testClient }
   }
 
-  const loadFixture = async <T>(fixture: Fixture<T>): Promise<T> =>
-    connection.networkHelpers.loadFixture(fixture)
+  const loadFixture = async <T>(
+    fixture: Fixture<T, DefaultChainType>,
+  ): Promise<T> => connection.networkHelpers.loadFixture(fixture)
 
   // Reusable state setup
   const setupState = ({

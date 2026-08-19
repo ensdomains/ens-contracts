@@ -29,11 +29,11 @@
   "devDependencies": {
     "@ensdomains/address-encoder": "1.1.2",
     "@ensdomains/dnsprovejs": "^0.5.1",
-    "@ensdomains/hardhat-chai-matchers-viem": "^0.1.14",
+    "@ensdomains/hardhat-chai-matchers-viem": "^0.1.16",
     "@namestone/ezccip": "^0.1.1",
-    "@nomicfoundation/hardhat-keystore": "^3.0.0",
-    "@nomicfoundation/hardhat-network-helpers": "^3.0.0",
-    "@nomicfoundation/hardhat-viem": "^3.0.0",
+    "@nomicfoundation/hardhat-keystore": "^3.0.13",
+    "@nomicfoundation/hardhat-network-helpers": "^3.0.11",
+    "@nomicfoundation/hardhat-viem": "^3.0.9",
     "@rocketh/deploy": "0.14.0",
     "@rocketh/read-execute": "0.14.0",
     "@rocketh/verifier": "0.14.5",
@@ -48,7 +48,7 @@
     "chai": "^5.1.1",
     "dotenv": "^16.4.5",
     "ethers": "^6.15.0",
-    "hardhat": "3.1.4",
+    "hardhat": "3.13.0",
     "hardhat-deploy": "^2.0.0-next.35",
     "husky": "^9.1.7",
     "prettier": "^2.6.2",
@@ -56,7 +56,7 @@
     "rocketh": "0.14.5",
     "ts-node": "^10.9.2",
     "typescript": "5.9.2",
-    "viem": "2.33.3",
+    "viem": "2.47.6",
     "vitest": "^3.2.3"
   },
   "dependencies": {
@@ -70,7 +70,7 @@
     "glob": "^11.0.3"
   },
   "resolutions": {
-    "hardhat": "3.1.4"
+    "hardhat": "3.13.0"
   },
   "directories": {
     "test": "test"

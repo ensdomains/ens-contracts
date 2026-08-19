@@ -2,7 +2,7 @@ import type { ContractReturnType } from '@ensdomains/hardhat-chai-matchers-viem'
 import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import type { Fixture } from '@nomicfoundation/hardhat-network-helpers/types'
 import type { ArtifactMap } from 'hardhat/types/artifacts'
-import type { NetworkConnection } from 'hardhat/types/network'
+import type { DefaultChainType, NetworkConnection } from 'hardhat/types/network'
 import {
   getAddress,
   zeroAddress,
@@ -75,8 +75,9 @@ export const shouldBehaveLikeErc1155 = <
       contract: ERC1155Contract
     }
 
-  const loadFixture = async <T>(fixture: Fixture<T>): Promise<T> =>
-    connection.networkHelpers.loadFixture(fixture)
+  const loadFixture = async <T>(
+    fixture: Fixture<T, DefaultChainType>,
+  ): Promise<T> => connection.networkHelpers.loadFixture(fixture)
 
   describe('like an ERC1155', () => {
     describe('balanceOf', () => {
