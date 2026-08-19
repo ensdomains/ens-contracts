@@ -2,7 +2,7 @@ import type { Abi, AbiFunction } from 'abitype'
 import hre from 'hardhat'
 import type { Artifact, ArtifactMap } from 'hardhat/types/artifacts'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 export async function runSolidityTests<N extends keyof ArtifactMap>(name: N) {
   const artifact: Artifact = await hre.artifacts.readArtifact(name)

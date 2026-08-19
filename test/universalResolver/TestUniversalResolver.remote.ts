@@ -7,7 +7,7 @@ import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
 
 // $ bun run test:remote
 
-const connection = await hre.network.connect('mainnetFork')
+const connection = await hre.network.create('mainnetFork')
 
 async function fixture() {
   const [owner] = await connection.viem.getWalletClients()
