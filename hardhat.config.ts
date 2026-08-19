@@ -7,6 +7,7 @@ import HardhatKeystore from '@nomicfoundation/hardhat-keystore'
 import HardhatNetworkHelpersPlugin from '@nomicfoundation/hardhat-network-helpers'
 import HardhatViem from '@nomicfoundation/hardhat-viem'
 import HardhatDeploy from 'hardhat-deploy'
+import HardhatIgnoreWarnings from 'hardhat-ignore-warnings'
 
 const realAccounts = [
   configVariable('DEPLOYER_KEY'),
@@ -123,6 +124,19 @@ const config = defineConfig({
       '@openzeppelin/contracts/token/ERC1155/IERC1155.sol',
     ],
   },
+  warnings: {
+    // Long-standing warnings in legacy contracts that cannot change
+    // (deployed, or vendored). Other warning types still surface.
+    '*': {
+      license: 'off',
+      shadowing: 'off',
+      'shadowing-builtin': 'off',
+      'unused-param': 'off',
+      'func-mutability': 'off',
+      2462: 'off', // constructor visibility is ignored (solc >= 0.7)
+      5815: 'off', // interface functions are implicitly "virtual"
+    },
+  },
   generateTypedArtifacts: {
     destinations: {
       js: ['./generated/artifacts.js'],
@@ -140,6 +154,7 @@ const config = defineConfig({
     HardhatViem,
     HardhatDeploy,
     HardhatKeystore,
+    HardhatIgnoreWarnings,
   ],
   tasks: [
     task('accounts', 'Prints the list of accounts')
