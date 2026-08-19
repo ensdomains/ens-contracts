@@ -41,7 +41,6 @@
     "@safe-global/api-kit": "^2.5.6",
     "@safe-global/protocol-kit": "5.2.13",
     "@safe-global/safe-core-sdk-types": "^5.1.0",
-    "@types/mocha": "^9.1.1",
     "@types/node": "^18.0.0",
     "@viem/anvil": "^0.0.10",
     "abitype": "^1.0.8",
@@ -54,7 +53,6 @@
     "prettier": "^2.6.2",
     "prettier-plugin-solidity": "^1.0.0-beta.24",
     "rocketh": "0.14.5",
-    "ts-node": "^10.9.2",
     "typescript": "5.9.2",
     "viem": "2.47.6",
     "vitest": "^3.2.3"
