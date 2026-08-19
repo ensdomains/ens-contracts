@@ -4,7 +4,7 @@
   "description": "ENS contracts",
   "type": "module",
   "scripts": {
-    "compile": "hardhat compile",
+    "compile": "hardhat build",
     "test": "bun run compile && NODE_OPTIONS=\"--disable-warning=ExperimentalWarning\" vitest run",
     "test:remote": "TEST_REMOTE=1 bun run test ./test/**/Test*.remote.ts",
     "test:parallel": "bun run test ./test/**/Test*.ts --sequence.concurrent",
@@ -13,7 +13,7 @@
     "l2:deploy": "bun run hh deploy --tags l2",
     "interfaces": "bun run compile --quiet && bun ./scripts/interfaces.ts",
     "lint": "bun run hh check",
-    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat compile && tsc",
+    "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat build && tsc",
     "format": "prettier --write .",
     "prepublishOnly": "bun run build",
     "pub": "npm publish --access public",

@@ -1,4 +1,4 @@
-import { configVariable, task, type HardhatUserConfig } from 'hardhat/config'
+import { configVariable, defineConfig, task } from 'hardhat/config'
 
 import dotenv from 'dotenv'
 
@@ -13,6 +13,13 @@ const realAccounts = [
   configVariable('OWNER_KEY'),
 ]
 
+// Resolved lazily by Hardhat, so a missing INFURA_API_KEY surfaces as a config
+// error naming the variable instead of a 401 from a `.../v3/undefined` URL.
+const infuraUrl = (subdomain: string) =>
+  configVariable('INFURA_API_KEY', {
+    format: `https://${subdomain}.infura.io/v3/{variable}`,
+  })
+
 import { arbitrum, optimism } from 'viem/chains'
 
 dotenv.config({ debug: false })
@@ -20,7 +27,7 @@ dotenv.config({ debug: false })
 // circular dependency shared with actions
 export const archivedDeploymentPath = './deployments/archive'
 
-const config = {
+const config = defineConfig({
   networks: {
     hardhat: {
       type: 'edr-simulated',
@@ -28,11 +35,12 @@ const config = {
     },
     mainnetFork: {
       type: 'edr-simulated',
+      chainType: 'l1',
       allowUnlimitedContractSize: false,
       chainId: 1,
       forking: {
         enabled: true,
-        url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+        url: infuraUrl('mainnet'),
       },
     },
     localhost: {
@@ -42,7 +50,7 @@ const config = {
     },
     sepolia: {
       type: 'http',
-      url: `https://sepolia.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: infuraUrl('sepolia'),
       chainId: 11155111,
       accounts: realAccounts,
     },
@@ -54,7 +62,7 @@ const config = {
     },
     mainnet: {
       type: 'http',
-      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      url: infuraUrl('mainnet'),
       chainId: 1,
       accounts: realAccounts,
     },
@@ -167,7 +175,7 @@ const config = {
       .setAction(() => import('./tasks/seed.js'))
       .build(),
   ],
-} satisfies HardhatUserConfig
+})
 
 // safe's pkgs set addressType to string for some reason
 declare module 'abitype' {
