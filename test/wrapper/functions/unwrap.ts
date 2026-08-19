@@ -50,7 +50,8 @@ export const unwrapTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Will not allow previous owner to unwrap name when name expires', async () => {
-      const { nameWrapper, accounts, testClient, actions } = await loadFixture()
+      const { nameWrapper, accounts, actions, networkHelpers } =
+        await loadFixture()
 
       const parentLabel = 'unwrapped'
       const parentName = `${parentLabel}.eth`
@@ -69,10 +70,7 @@ export const unwrapTests = (loadFixture: LoadNameWrapperFixture) =>
         expiry: MAX_EXPIRY,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(GRACE_PERIOD + 1n * DAY + 1n)
 
       await expect(
         nameWrapper.write.unwrap([
@@ -348,7 +346,7 @@ export const unwrapTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Will allow to unwrap with PCC/CU burned if expired and then extended without PCC/CU', async () => {
-      const { ensRegistry, nameWrapper, accounts, testClient, actions } =
+      const { ensRegistry, nameWrapper, accounts, actions, networkHelpers } =
         await loadFixture()
 
       const parentLabel = 'awesome'
@@ -386,8 +384,7 @@ export const unwrapTests = (loadFixture: LoadNameWrapperFixture) =>
 
       await expectOwnerOf(childName).on(ensRegistry).toBe(nameWrapper)
 
-      await testClient.increaseTime({ seconds: Number(2n * DAY) })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(2n * DAY)
 
       await expect(
         nameWrapper.write.unwrap([

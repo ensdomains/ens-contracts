@@ -48,7 +48,7 @@ import { upgradeTests } from './functions/upgrade.js'
 import { wrapTests } from './functions/wrap.js'
 import { wrapETH2LDTests } from './functions/wrapETH2LD.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 async function nameWrapperFixture() {
   return deployNameWrapperWithUtils(connection)
 }
@@ -405,8 +405,7 @@ describe('NameWrapper', () => {
       })
 
       // move .eth name to expired and be within grace period
-      await testClient.increaseTime({ seconds: Number(2n * DAY) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(2n * DAY)
 
       const timestamp = await publicClient.getBlock().then((b) => b.timestamp)
 
@@ -707,10 +706,9 @@ describe('NameWrapper', () => {
       })
 
       // wait the ETH2LD expired and re-register to the hacker themselves
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(
+        GRACE_PERIOD + 1n * DAY + 1n,
+      )
 
       // XXX: note that at this step, the hackler should use the current .eth
       // registrar to directly register `sub1.eth` to himself, without wrapping
@@ -830,10 +828,9 @@ describe('NameWrapper', () => {
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(
+        GRACE_PERIOD + 1n * DAY + 1n,
+      )
 
       await expect(
         nameWrapper.write.safeTransferFrom([
@@ -857,10 +854,9 @@ describe('NameWrapper', () => {
       })
       await nameWrapper.write.setApprovalForAll([accounts[2].address, true])
 
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(
+        GRACE_PERIOD + 1n * DAY + 1n,
+      )
 
       await expect(
         nameWrapper.write.safeTransferFrom([
@@ -898,8 +894,7 @@ describe('NameWrapper', () => {
         expiry: 3600n + timestamp,
       })
 
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       await expect(
         nameWrapper.write.safeTransferFrom([
@@ -926,8 +921,7 @@ describe('NameWrapper', () => {
         nameWrapper.read.balanceOf([accounts[0].address, toNameId(name)]),
       ).resolves.toEqual(1n)
 
-      await testClient.increaseTime({ seconds: Number(86401n + GRACE_PERIOD) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(86401n + GRACE_PERIOD)
 
       await expect(
         nameWrapper.read.balanceOf([accounts[0].address, toNameId(name)]),
@@ -954,8 +948,7 @@ describe('NameWrapper', () => {
       })
 
       // Let it expire
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       // Mint it again, without PCC
       const timestamp2 = await publicClient.getBlock().then((b) => b.timestamp)
@@ -1022,10 +1015,9 @@ describe('NameWrapper', () => {
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[2])
 
       // wait the ETH2LD expired and re-register to the hacker themselves
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(
+        GRACE_PERIOD + 1n * DAY + 1n,
+      )
 
       // XXX: note that at this step, the hacker should use the current .eth
       // registrar to directly register `sub1.eth` to themselves, without wrapping
@@ -1087,10 +1079,9 @@ describe('NameWrapper', () => {
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
       // expired but in grace period
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(
+        GRACE_PERIOD + 1n * DAY + 1n,
+      )
 
       await expectOwnerOf(name).on(nameWrapper).toBe(zeroAccount)
       await expectOwnerOf(label).on(baseRegistrar).toBe(nameWrapper)

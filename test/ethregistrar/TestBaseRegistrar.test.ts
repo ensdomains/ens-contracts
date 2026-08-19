@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { labelhash, namehash, zeroAddress, zeroHash } from 'viem'
 import { toLabelId } from '../fixtures/utils.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const publicClient = await connection.viem.getPublicClient()
 const [ownerClient, controllerClient, registrantClient, otherClient] =
   await connection.viem.getWalletClients()
@@ -226,10 +226,8 @@ describe('BaseRegistrar', () => {
 
   it('should not permit transfer or reclaim during the grace period', async () => {
     const { baseRegistrar } = await loadFixtureWithRegistration()
-    const testClient = await connection.viem.getTestClient()
 
-    await testClient.increaseTime({ seconds: 86400 + 3600 })
-    await testClient.mine({ blocks: 1 })
+    await connection.networkHelpers.time.increase(86400 + 3600)
 
     await expect(
       baseRegistrar.write.transferFrom(
@@ -252,10 +250,8 @@ describe('BaseRegistrar', () => {
 
   it('should allow renewal during the grace period', async () => {
     const { baseRegistrar } = await loadFixtureWithRegistration()
-    const testClient = await connection.viem.getTestClient()
 
-    await testClient.increaseTime({ seconds: 86400 + 3600 })
-    await testClient.mine({ blocks: 1 })
+    await connection.networkHelpers.time.increase(86400 + 3600)
 
     await baseRegistrar.write.renew([toLabelId('newname'), 86400n], {
       account: controllerAccount,
@@ -264,14 +260,12 @@ describe('BaseRegistrar', () => {
 
   it('should allow registration of an expired domain', async () => {
     const { baseRegistrar } = await loadFixtureWithRegistration()
-    const testClient = await connection.viem.getTestClient()
 
     const gracePeriod = await baseRegistrar.read.GRACE_PERIOD()
 
-    await testClient.increaseTime({
-      seconds: 86400 + Number(gracePeriod) + 3600,
-    })
-    await testClient.mine({ blocks: 1 })
+    await connection.networkHelpers.time.increase(
+      86400 + Number(gracePeriod) + 3600,
+    )
 
     await expect(
       baseRegistrar.read.ownerOf([toLabelId('newname')]),

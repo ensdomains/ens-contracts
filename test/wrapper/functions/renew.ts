@@ -78,8 +78,7 @@ export const renewTests = (
     })
 
     it('Renewing name less than required to unexpire it still has original owner/fuses', async () => {
-      const { nameWrapper, accounts, testClient, publicClient } =
-        await loadFixture()
+      const { nameWrapper, accounts, publicClient } = await loadFixture()
 
       await nameWrapper.write.registerAndWrapETH2LD([
         label,
@@ -89,8 +88,7 @@ export const renewTests = (
         CANNOT_UNWRAP | CANNOT_SET_RESOLVER,
       ])
 
-      await testClient.increaseTime({ seconds: Number(DAY * 2n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY * 2n)
 
       const [, , expiryBefore] = await nameWrapper.read.getData([
         toNameId(name),
