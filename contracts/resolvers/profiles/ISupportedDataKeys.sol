@@ -6,5 +6,7 @@ interface ISupportedDataKeys {
     /// @notice For a specific `node`, get an array of supported data keys.
     /// @param node The node (namehash).
     /// @return The keys for which we have associated data.
-    function supportedDataKeys(bytes32 node) external view returns (string[] memory);
+    function supportedDataKeys(
+        bytes32 node
+    ) external view returns (string[] memory);
 }

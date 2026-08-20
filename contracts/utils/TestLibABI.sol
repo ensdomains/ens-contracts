@@ -33,15 +33,15 @@ contract TestLibABI {
     }
 
     function test_tryDecodeBytes_truncated() external pure {
-		for (uint256 n; n < 512; ++n) {
-			bytes memory v = abi.encode(randomBytes(n));
-			for (uint256 i; i < v.length; ++i) {
-				assembly {
-					mstore(v, i)
-				}
-				(bool ok, ) = LibABI.tryDecodeBytes(v);
-				require(!ok);
-			}
-		}
+        for (uint256 n; n < 512; ++n) {
+            bytes memory v = abi.encode(randomBytes(n));
+            for (uint256 i; i < v.length; ++i) {
+                assembly {
+                    mstore(v, i)
+                }
+                (bool ok, ) = LibABI.tryDecodeBytes(v);
+                require(!ok);
+            }
+        }
     }
 }

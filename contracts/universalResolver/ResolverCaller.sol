@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ERC165Checker
-} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
@@ -12,9 +10,7 @@ import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 // resolver profiles
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
-import {
-    IExtendedDNSResolver
-} from "../resolvers/profiles/IExtendedDNSResolver.sol";
+import {IExtendedDNSResolver} from "../resolvers/profiles/IExtendedDNSResolver.sol";
 import {IMulticallable} from "../resolvers/IMulticallable.sol";
 
 abstract contract ResolverCaller is CCIPBatcher {
@@ -37,9 +33,9 @@ abstract contract ResolverCaller is CCIPBatcher {
     ///   If the calldata is `multicall()` it is disassembled, called separately, and reassembled.
     ///
     /// @dev Reverts `UnreachableName` if resolver is not a contract.
-	///      This function never returns normally.
-	///      The return type is necessary to define the result of the callback.
-	///      Call this function externally or with `ccipRead()` to intercept the response.
+    ///      This function never returns normally.
+    ///      The return type is necessary to define the result of the callback.
+    ///      Call this function externally or with `ccipRead()` to intercept the response.
     /// @param resolver The resolver to call.
     /// @param name The DNS-encoded ENS name.
     /// @param data The calldata for the resolution.

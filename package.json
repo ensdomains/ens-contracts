@@ -12,7 +12,7 @@
     "test:deploy": "bun ./scripts/deploy-test.ts",
     "l2:deploy": "bun run hh deploy --tags l2",
     "interfaces": "bun run compile --quiet && bun ./scripts/interfaces.ts",
-    "lint": "bun run hh check",
+    "lint": "prettier --check .",
     "build": "rm -rf ./build/deploy ./build/hardhat.config.js && hardhat build && tsc",
     "format": "prettier --write .",
     "prepublishOnly": "bun run build",

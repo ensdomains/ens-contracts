@@ -197,7 +197,10 @@ abstract contract CCIPBatcher is CCIPReader {
     /// @param lookups Array of completed lookups.
     /// @param wrapped If `true`, successful responses are unwrapped as `bytes`.
     /// @return arr Array of call responses.
-    function _toResponseArray(Lookup[] memory lookups, bool wrapped) internal pure returns (bytes[] memory arr) {
+    function _toResponseArray(
+        Lookup[] memory lookups,
+        bool wrapped
+    ) internal pure returns (bytes[] memory arr) {
         arr = new bytes[](lookups.length);
         for (uint256 i; i < lookups.length; ++i) {
             Lookup memory lu = lookups[i];
@@ -208,11 +211,11 @@ abstract contract CCIPBatcher is CCIPReader {
                 }
             } else if (v.length != 0) {
                 // force pad error response to length mod 32 == 4
-                // prevents unverified data from passing as valid response 
+                // prevents unverified data from passing as valid response
                 unchecked {
                     uint256 pad = (4 - v.length) & 31;
                     if (pad > 0) {
-                        v = abi.encodePacked(v, new bytes(pad)); 
+                        v = abi.encodePacked(v, new bytes(pad));
                     }
                 }
             }
