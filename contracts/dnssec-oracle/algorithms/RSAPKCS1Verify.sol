@@ -11,7 +11,8 @@ library RSAPKCS1Verify {
     bytes constant SHA1_DIGEST_INFO = hex"3021300906052b0e03021a05000414";
 
     /// @dev PKCS#1 v1.5 DigestInfo prefix for SHA-256
-    bytes constant SHA256_DIGEST_INFO = hex"3031300d060960864801650304020105000420";
+    bytes constant SHA256_DIGEST_INFO =
+        hex"3031300d060960864801650304020105000420";
 
     /// @dev Verifies an RSA signature with PKCS#1 v1.5 padding for SHA-1
     function verifySHA1(
@@ -20,7 +21,12 @@ library RSAPKCS1Verify {
         bytes memory sig,
         bytes20 hash
     ) internal view returns (bool) {
-        (bool ok, bytes memory result) = recoverAndVerify(modulus, exponent, sig, SHA1_DIGEST_INFO);
+        (bool ok, bytes memory result) = recoverAndVerify(
+            modulus,
+            exponent,
+            sig,
+            SHA1_DIGEST_INFO
+        );
         return ok && hash == result.readBytes20(result.length - 20);
     }
 
@@ -31,7 +37,12 @@ library RSAPKCS1Verify {
         bytes memory sig,
         bytes32 hash
     ) internal view returns (bool) {
-        (bool ok, bytes memory result) = recoverAndVerify(modulus, exponent, sig, SHA256_DIGEST_INFO);
+        (bool ok, bytes memory result) = recoverAndVerify(
+            modulus,
+            exponent,
+            sig,
+            SHA256_DIGEST_INFO
+        );
         return ok && hash == result.readBytes32(result.length - 32);
     }
 
@@ -44,7 +55,11 @@ library RSAPKCS1Verify {
         bytes memory sig,
         bytes memory digestInfo
     ) private view returns (bool, bytes memory) {
-        (bool ok, bytes memory result) = RSAVerify.rsarecover(modulus, exponent, sig);
+        (bool ok, bytes memory result) = RSAVerify.rsarecover(
+            modulus,
+            exponent,
+            sig
+        );
         if (!ok || result.length != modulus.length) {
             return (false, result);
         }

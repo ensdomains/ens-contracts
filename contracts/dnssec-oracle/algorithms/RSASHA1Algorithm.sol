@@ -33,6 +33,7 @@ contract RSASHA1Algorithm is Algorithm {
             );
         }
 
-        return RSAPKCS1Verify.verifySHA1(modulus, exponent, sig, SHA1.sha1(data));
+        return
+            RSAPKCS1Verify.verifySHA1(modulus, exponent, sig, SHA1.sha1(data));
     }
 }

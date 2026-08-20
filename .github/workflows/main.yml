@@ -6,6 +6,26 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Bun 1.2.3
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.2.3
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      - run: bun install --frozen-lockfile
+
+      - name: Run lint
+        run: bun run lint
+
   wiki_address_check:
     runs-on: ubuntu-latest
     steps:

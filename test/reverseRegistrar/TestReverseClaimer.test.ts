@@ -4,7 +4,7 @@ import { labelhash, namehash, zeroHash } from 'viem'
 import { getReverseName } from '../fixtures/ensip19.js'
 import { getAccounts } from '../fixtures/utils.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {

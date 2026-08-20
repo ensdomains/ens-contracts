@@ -37,4 +37,3 @@ library P256Precompile {
         }
     }
 }
-

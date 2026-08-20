@@ -39,7 +39,7 @@ type GetNodeFunctions<
     : never
 }
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const { abi: publicResolverAbi } = await hre.artifacts.readArtifact(
   'PublicResolver',
 )
