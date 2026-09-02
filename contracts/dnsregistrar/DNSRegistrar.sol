@@ -27,12 +27,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     address public immutable previousRegistrar;
     address public immutable resolver;
     // A mapping of the most recent signatures seen for each claimed domain.
-    mapping(bytes32 => uint32) public inceptions;
+    mapping(bytes name => uint32 time) public inceptions;
 
     error NoOwnerRecordFound();
     error PermissionDenied(address caller, address owner);
     error PreconditionNotMet();
-    error StaleProof();
+    error StaleProof(bytes name, uint32 lastTime, uint32 time);
     error InvalidPublicSuffix(bytes name);
 
     struct OwnerRecord {
@@ -128,7 +128,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
     ) internal returns (bytes32 parentNode, bytes32 labelHash, address addr) {
-        (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
+        RRUtils.SignedSet[] memory sss = oracle.verifyRRSet(input);
 
         // Get the first label
         uint256 labelLen = name.readUint8(0);
@@ -142,14 +142,26 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         // Make sure the parent name is enabled
         parentNode = enableNode(parentName);
 
-        bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
-        if (!RRUtils.serialNumberGte(inception, inceptions[node])) {
-            revert StaleProof();
+        uint32 inception;
+        for (uint256 i; i < sss.length; ++i) {
+            bytes memory ancestor = sss[i].name;
+            uint32 last = inceptions[ancestor];
+            inception = sss[i].inception;
+            if (!RRUtils.serialNumberGte(inception, last)) {
+                revert StaleProof(ancestor, last, inception);
+            }
+            inceptions[ancestor] = inception;
         }
-        inceptions[node] = inception;
+
+        bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
 
         bool found;
-        (addr, found) = DNSClaimChecker.getOwnerAddress(name, data);
+        if (sss.length > 0) {
+            (addr, found) = DNSClaimChecker.getOwnerAddress(
+                name,
+                sss[sss.length - 1].data
+            );
+        }
         if (!found) {
             revert NoOwnerRecordFound();
         }
