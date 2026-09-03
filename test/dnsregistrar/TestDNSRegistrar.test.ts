@@ -55,6 +55,7 @@ async function fixture() {
     dnssec.address,
     suffixes.address,
     ensRegistry.address,
+    inception // rootInception
   ])
 
   await root.write.setController([dnsRegistrar.address, true])
@@ -184,6 +185,21 @@ describe('DNSRegistrar', () => {
 
     await expect(
       dnsRegistrar.write.proveAndClaim([dnsEncodeName('foo.test'), newProof]),
+    ).toBeRevertedWithCustomError('StaleProof')
+  })
+
+  it('rejects proofs with earlier ancestor inceptions', async () => {
+    const { dnsRegistrar } = await loadFixture()
+
+    const proof = [
+      hexEncodeSignedSet(rootKeys({ expiration, inception: inception - 1 })), // wrong
+      hexEncodeSignedSet(
+        testRrset({ name: 'foo.test', address: accounts[0].address }),
+      ),
+    ]
+
+    await expect(
+      dnsRegistrar.write.proveAndClaim([dnsEncodeName('foo.test'), proof]),
     ).toBeRevertedWithCustomError('StaleProof')
   })
 
@@ -318,6 +334,7 @@ describe('DNSRegistrar', () => {
     ).toBeRevertedWithCustomError('NoOwnerRecordFound')
   })
 
+
   describe('unrelated proof', () => {
     async function fixtureWithTestTld() {
       const { dnssec } = await loadFixture()
@@ -346,6 +363,7 @@ describe('DNSRegistrar', () => {
           dnssec.address,
           suffixes.address,
           ensRegistry.address,
+          inception
         ],
       )
 

@@ -25,6 +25,7 @@ export default deployScript(
         dnssec.address,
         publicSuffixList.address,
         registry.address,
+        Math.floor(Date.now() / 1000) // rootInception
       ],
     })
 

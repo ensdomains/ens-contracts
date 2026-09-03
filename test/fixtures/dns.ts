@@ -17,8 +17,8 @@ export const hexEncodeSignedSet = ({
 }
 
 export const validityPeriod = 2419200
-export const expiration = Date.now() / 1000 - 15 * 60 + validityPeriod
-export const inception = Date.now() / 1000 - 15 * 60
+export const inception = Math.floor(Date.now() / 1000 - 15 * 60);
+export const expiration = inception + validityPeriod
 export const rrsetWithTexts = ({
   name,
   texts,

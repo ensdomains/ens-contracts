@@ -55,7 +55,8 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         address _resolver,
         DNSSEC _dnssec,
         PublicSuffixList _suffixes,
-        ENS _ens
+        ENS _ens,
+        uint32 rootInception
     ) {
         previousRegistrar = _previousRegistrar;
         resolver = _resolver;
@@ -63,6 +64,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         suffixes = _suffixes;
         emit NewPublicSuffixList(address(suffixes));
         ens = _ens;
+        inceptions[hex"00"] = rootInception;
     }
 
     /// @dev This contract's owner-only functions can be invoked by the owner of the ENS root.
