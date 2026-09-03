@@ -85,10 +85,9 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         );
 
         RRUtils.SignedSet[] memory sss = oracle.verifyRRSet(rrsets);
+        bytes memory data = sss[sss.length - 1].data;
         for (
-            RRUtils.RRIterator memory iter = sss[sss.length - 1]
-                .data
-                .iterateRRs(0);
+            RRUtils.RRIterator memory iter = data.iterateRRs(0);
             !iter.done();
             iter.next()
         ) {

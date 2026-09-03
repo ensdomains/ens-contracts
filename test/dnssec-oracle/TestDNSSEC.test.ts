@@ -90,7 +90,7 @@ describe('DNSSEC', () => {
     const sets = test_rrsets.map(([, rrset, sig]) => ({ rrset, sig }))
 
     const sss = (await dnssec.read.verifyRRSet([
-      test_rrsets.map(([, rrset, sig]) => ({ rrset, sig })),
+      sets,
       TEST_RRSET_TIMESTAMP,
     ])) as ReadContractReturnType<
       (typeof dnssec)['abi'],
@@ -99,7 +99,7 @@ describe('DNSSEC', () => {
     >
 
     expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
-      test_rrsets.map(([, rrset, sig]) =>
+      sets.map(({ rrset, sig }) =>
         SignedSet.fromWire(
           Buffer.from(rrset.slice(2), 'hex'),
           Buffer.from(sig.slice(2), 'hex'),
