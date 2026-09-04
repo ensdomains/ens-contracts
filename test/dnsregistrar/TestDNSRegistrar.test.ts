@@ -46,7 +46,7 @@ async function fixture() {
   )
 
   await suffixes.write.addPublicSuffixes([
-    [dnsEncodeName('test'), dnsEncodeName('com'), dnsEncodeName('co.nz')],
+    [dnsEncodeName('test'), dnsEncodeName('co.nz')],
   ])
 
   const dnsRegistrar = await connection.viem.deployContract('DNSRegistrar', [

@@ -24,7 +24,7 @@ export default deployScript(
         resolver.address,
         dnssec.address,
         publicSuffixList.address,
-        registry.address
+        registry.address.
       ],
     })
 
