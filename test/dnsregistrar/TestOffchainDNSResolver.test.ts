@@ -75,7 +75,6 @@ async function fixture() {
     dnssec.address,
     suffixes.address,
     ensRegistry.address,
-    inception, // rootInception
   ])
 
   await root.write.setController([dnsRegistrar.address, true])

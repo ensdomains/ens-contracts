@@ -27,8 +27,8 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     PublicSuffixList public suffixes;
     address public immutable previousRegistrar;
     address public immutable resolver;
-    // A mapping of the most recent signatures seen for each claimed domain.
-    mapping(bytes32 node => uint32 time) public inceptions;
+    // A mapping of the most recent signatures seen for each type of each claimed domain.
+    mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time)) _inceptions;
 
     error NoOwnerRecordFound();
     error PermissionDenied(address caller, address owner);
@@ -53,6 +53,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     event InceptionUpdated(
         bytes32 indexed node,
         bytes dnsname,
+        uint16 indexed dnstype,
         uint32 inception
     );
 
@@ -61,8 +62,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         address _resolver,
         DNSSEC _dnssec,
         PublicSuffixList _suffixes,
-        ENS _ens,
-        uint32 rootInception
+        ENS _ens
     ) {
         previousRegistrar = _previousRegistrar;
         resolver = _resolver;
@@ -70,7 +70,6 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         suffixes = _suffixes;
         emit NewPublicSuffixList(address(suffixes));
         ens = _ens;
-        inceptions[bytes32(0)] = rootInception;
     }
 
     /// @dev This contract's owner-only functions can be invoked by the owner of the ENS root.
@@ -132,6 +131,25 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
+    function inceptionForType(
+        bytes32 node,
+        uint16 typeCovered
+    ) public view returns (uint32 inception) {
+        inception = _inceptions[node][typeCovered];
+        if (
+            inception == 0 &&
+            typeCovered == RRUtils.DNSTYPE_TXT &&
+            previousRegistrar != address(0)
+        ) {
+            inception = DNSRegistrar(previousRegistrar).inceptions(node);
+        }
+    }
+
+    /// @notice Backwards-compatible getter for claim inception.
+    function inceptions(bytes32 node) external view returns (uint32) {
+        return inceptionForType(node, RRUtils.DNSTYPE_TXT);
+    }
+
     function _claim(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
@@ -145,21 +163,15 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         // Make sure the parent name is enabled
         parentNode = enableNode(name.substring(offset, name.length - offset));
 
-        uint32 inception;
-        bytes32 node;
         for (uint256 i; i < sss.length; ++i) {
-            bytes memory ancestor = sss[i].name;
-            if (i > 0) {
-                (bytes32 label, ) = NameCoder.readLabel(ancestor, 0);
-                node = NameCoder.namehash(node, label);
+            RRUtils.SignedSet memory ss = sss[i];
+            bytes32 node = NameCoder.namehash(ss.name, 0);
+            uint32 last = inceptionForType(node, ss.typeCovered);
+            if (!RRUtils.serialNumberGte(ss.inception, last)) {
+                revert StaleProof(sss[i].name, last, ss.inception);
             }
-            uint32 last = inceptions[node];
-            inception = sss[i].inception;
-            if (!RRUtils.serialNumberGte(inception, last)) {
-                revert StaleProof(ancestor, last, inception);
-            }
-            inceptions[node] = inception;
-            emit InceptionUpdated(node, ancestor, inception);
+            _inceptions[node][ss.typeCovered] = ss.inception;
+            emit InceptionUpdated(node, ss.name, ss.typeCovered, ss.inception);
         }
 
         bool found;
@@ -173,7 +185,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             revert NoOwnerRecordFound();
         }
 
-        emit Claim(node, addr, name, inception);
+        emit Claim(
+            NameCoder.namehash(parentNode, labelHash),
+            addr,
+            name,
+            sss[sss.length - 1].inception
+        );
     }
 
     function enableNode(bytes memory domain) public returns (bytes32 node) {

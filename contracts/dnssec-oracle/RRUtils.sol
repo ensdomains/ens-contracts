@@ -62,6 +62,8 @@ library RRUtils {
         return count;
     }
 
+    uint16 constant CLASS_INET = 1;
+
     uint256 constant RRSIG_TYPE = 0;
     uint256 constant RRSIG_ALGORITHM = 2;
     uint256 constant RRSIG_LABELS = 3;
@@ -70,6 +72,10 @@ library RRUtils {
     uint256 constant RRSIG_INCEPTION = 12;
     uint256 constant RRSIG_KEY_TAG = 16;
     uint256 constant RRSIG_SIGNER_NAME = 18;
+
+    uint16 constant DNSTYPE_TXT = 16;
+    uint16 constant DNSTYPE_DS = 43;
+    uint16 constant DNSTYPE_DNSKEY = 48;
 
     struct SignedSet {
         uint16 typeCovered;

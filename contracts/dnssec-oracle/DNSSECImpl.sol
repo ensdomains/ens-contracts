@@ -26,9 +26,6 @@ contract DNSSECImpl is DNSSEC, Owned {
 
     uint16 constant DNSCLASS_IN = 1;
 
-    uint16 constant DNSTYPE_DS = 43;
-    uint16 constant DNSTYPE_DNSKEY = 48;
-
     uint256 constant DNSKEY_FLAG_ZONEKEY = 0x100;
 
     error InvalidLabelCount(bytes name, uint256 labelsExpected);
@@ -205,9 +202,9 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         RRUtils.RRIterator memory proofRR = proof.iterateRRs(0);
         // Check the proof
-        if (proofRR.dnstype == DNSTYPE_DS) {
+        if (proofRR.dnstype == RRUtils.DNSTYPE_DS) {
             verifyWithDS(rrset, data, proofRR);
-        } else if (proofRR.dnstype == DNSTYPE_DNSKEY) {
+        } else if (proofRR.dnstype == RRUtils.DNSTYPE_DNSKEY) {
             verifyWithKnownKey(rrset, data, proofRR);
         } else {
             revert InvalidProofType(proofRR.dnstype);
@@ -301,7 +298,7 @@ contract DNSSECImpl is DNSSEC, Owned {
             !iter.done();
             iter.next()
         ) {
-            if (iter.dnstype != DNSTYPE_DNSKEY) {
+            if (iter.dnstype != RRUtils.DNSTYPE_DNSKEY) {
                 revert InvalidProofType(iter.dnstype);
             }
 
