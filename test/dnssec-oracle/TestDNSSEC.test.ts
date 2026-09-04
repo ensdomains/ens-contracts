@@ -89,7 +89,7 @@ describe('DNSSEC', () => {
 
     const sets = test_rrsets.map(([, rrset, sig]) => ({ rrset, sig }))
 
-    const [rrs] = (await dnssec.read.verifyRRSet([
+    const sss = (await dnssec.read.verifyRRSet([
       sets,
       TEST_RRSET_TIMESTAMP,
     ])) as ReadContractReturnType<
@@ -98,13 +98,16 @@ describe('DNSSEC', () => {
       [typeof sets, bigint]
     >
 
-    const [, data, sig] = test_rrsets[test_rrsets.length - 1]
-    const expected = SignedSet.fromWire(
-      Buffer.from(data.slice(2), 'hex'),
-      Buffer.from(sig.slice(2), 'hex'),
+    expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
+      sets.map(({ rrset, sig }) =>
+        SignedSet.fromWire(
+          Buffer.from(rrset.slice(2), 'hex'),
+          Buffer.from(sig.slice(2), 'hex'),
+        )
+          .toWire(false)
+          .toString('hex'),
+      ),
     )
-
-    expect(rrs.slice(2)).toEqual(expected.toWire(false).toString('hex'))
   })
 
   it('should have a default algorithm and digest set', async () => {

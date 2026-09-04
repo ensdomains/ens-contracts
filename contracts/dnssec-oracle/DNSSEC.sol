@@ -2,6 +2,8 @@
 pragma solidity ^0.8.4;
 pragma experimental ABIEncoderV2;
 
+import {RRUtils} from "./RRUtils.sol";
+
 abstract contract DNSSEC {
     bytes public anchors;
 
@@ -15,10 +17,10 @@ abstract contract DNSSEC {
 
     function verifyRRSet(
         RRSetWithSignature[] memory input
-    ) external view virtual returns (bytes memory rrs, uint32 inception);
+    ) external view virtual returns (RRUtils.SignedSet[] memory);
 
     function verifyRRSet(
         RRSetWithSignature[] memory input,
-        uint256 now
-    ) public view virtual returns (bytes memory rrs, uint32 inception);
+        uint256 currentTime
+    ) public view virtual returns (RRUtils.SignedSet[] memory);
 }

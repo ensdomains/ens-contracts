@@ -187,6 +187,32 @@ describe('DNSRegistrar', () => {
     ).toBeRevertedWithCustomError('StaleProof')
   })
 
+  it('rejects proofs with earlier ancestor inceptions', async () => {
+    const { dnsRegistrar } = await loadFixture()
+    const name = dnsEncodeName('foo.test')
+
+    const proof = [
+      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(
+        testRrset({ name: 'foo.test', address: accounts[0].address }),
+      ),
+    ]
+
+    await dnsRegistrar.write.proveAndClaim([name, proof])
+
+    const oldInception = inception - 1 // wrong
+    const oldProof = [
+      hexEncodeSignedSet(rootKeys({ expiration, inception: oldInception })), // wrong
+      hexEncodeSignedSet(
+        testRrset({ name: 'foo.test', address: accounts[0].address }),
+      ),
+    ]
+
+    await expect(dnsRegistrar.write.proveAndClaim([name, oldProof]))
+      .toBeRevertedWithCustomError('StaleProof')
+      .withArgs(['0x00', inception, oldInception])
+  })
+
   it('does not allow updates with stale records', async () => {
     const { dnsRegistrar, dnssec } = await loadFixture()
 

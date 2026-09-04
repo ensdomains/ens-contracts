@@ -13,6 +13,7 @@ import "../utils/BytesUtils.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
 import "./IDNSRegistrar.sol";
+import {NameCoder} from "../utils/NameCoder.sol";
 
 /// @dev An ENS registrar that allows the owner of a DNS name to claim the
 ///      corresponding name in ENS.
@@ -26,13 +27,13 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     PublicSuffixList public suffixes;
     address public immutable previousRegistrar;
     address public immutable resolver;
-    // A mapping of the most recent signatures seen for each claimed domain.
-    mapping(bytes32 => uint32) public inceptions;
+    // A mapping of the most recent signatures seen for each type of each claimed domain.
+    mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time)) _inceptions;
 
     error NoOwnerRecordFound();
     error PermissionDenied(address caller, address owner);
     error PreconditionNotMet();
-    error StaleProof();
+    error StaleProof(bytes name, uint32 lastTime, uint32 time);
     error InvalidPublicSuffix(bytes name);
 
     struct OwnerRecord {
@@ -49,6 +50,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         uint32 inception
     );
     event NewPublicSuffixList(address suffixes);
+    event InceptionUpdated(
+        bytes32 indexed node,
+        bytes dnsname,
+        uint16 indexed dnstype,
+        uint32 inception
+    );
 
     constructor(
         address _previousRegistrar,
@@ -110,7 +117,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             if (resolver == address(0)) {
                 revert PreconditionNotMet();
             }
-            bytes32 node = keccak256(abi.encodePacked(rootNode, labelHash));
+            bytes32 node = NameCoder.namehash(rootNode, labelHash);
             // Set the resolver record
             AddrResolver(resolver).setAddr(node, addr);
         }
@@ -124,37 +131,68 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
+    function inceptionForType(
+        bytes32 node,
+        uint16 typeCovered
+    ) public view returns (uint32 inception) {
+        inception = _inceptions[node][typeCovered];
+        if (
+            inception == 0 &&
+            typeCovered == RRUtils.DNSTYPE_TXT &&
+            previousRegistrar != address(0)
+        ) {
+            inception = DNSRegistrar(previousRegistrar).inceptions(node);
+        }
+    }
+
+    /// @notice Backwards-compatible getter for claim inception.
+    function inceptions(bytes32 node) external view returns (uint32) {
+        return inceptionForType(node, RRUtils.DNSTYPE_TXT);
+    }
+
     function _claim(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
     ) internal returns (bytes32 parentNode, bytes32 labelHash, address addr) {
-        (bytes memory data, uint32 inception) = oracle.verifyRRSet(input);
+        RRUtils.SignedSet[] memory sss = oracle.verifyRRSet(input);
 
         // Get the first label
-        uint256 labelLen = name.readUint8(0);
-        labelHash = name.keccak(1, labelLen);
-
-        bytes memory parentName = name.substring(
-            labelLen + 1,
-            name.length - labelLen - 1
-        );
+        uint256 offset;
+        (labelHash, offset) = NameCoder.readLabel(name, 0);
 
         // Make sure the parent name is enabled
-        parentNode = enableNode(parentName);
+        parentNode = enableNode(name.substring(offset, name.length - offset));
 
-        bytes32 node = keccak256(abi.encodePacked(parentNode, labelHash));
-        if (!RRUtils.serialNumberGte(inception, inceptions[node])) {
-            revert StaleProof();
+        for (uint256 i; i < sss.length; ++i) {
+            RRUtils.SignedSet memory ss = sss[i];
+            bytes32 node = NameCoder.namehash(ss.name, 0);
+            uint32 last = inceptionForType(node, ss.typeCovered);
+            if (ss.inception != last) {
+                if (!RRUtils.serialNumberGte(ss.inception, last)) {
+                    revert StaleProof(ss.name, last, ss.inception);
+                }
+                _inceptions[node][ss.typeCovered] = ss.inception;
+                emit InceptionUpdated(node, ss.name, ss.typeCovered, ss.inception);
+            }
         }
-        inceptions[node] = inception;
 
         bool found;
-        (addr, found) = DNSClaimChecker.getOwnerAddress(name, data);
+        if (sss.length > 0) {
+            (addr, found) = DNSClaimChecker.getOwnerAddress(
+                name,
+                sss[sss.length - 1].data
+            );
+        }
         if (!found) {
             revert NoOwnerRecordFound();
         }
 
-        emit Claim(node, addr, name, inception);
+        emit Claim(
+            NameCoder.namehash(parentNode, labelHash),
+            addr,
+            name,
+            sss[sss.length - 1].inception
+        );
     }
 
     function enableNode(bytes memory domain) public returns (bytes32 node) {
@@ -169,24 +207,22 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         bytes memory domain,
         uint256 offset
     ) internal returns (bytes32 node) {
-        uint256 len = domain.readUint8(offset);
-        if (len == 0) {
+        (bytes32 labelHash, uint256 next) = NameCoder.readLabel(domain, offset);
+        if (labelHash == bytes32(0)) {
             return bytes32(0);
         }
-
-        bytes32 parentNode = _enableNode(domain, offset + len + 1);
-        bytes32 label = domain.keccak(offset + 1, len);
-        node = keccak256(abi.encodePacked(parentNode, label));
+        bytes32 parentNode = _enableNode(domain, next);
+        node = NameCoder.namehash(parentNode, labelHash);
         address owner = ens.owner(node);
         if (owner == address(0) || owner == previousRegistrar) {
             if (parentNode == bytes32(0)) {
                 Root root = Root(ens.owner(bytes32(0)));
-                root.setSubnodeOwner(label, address(this));
+                root.setSubnodeOwner(labelHash, address(this));
                 ens.setResolver(node, resolver);
             } else {
                 ens.setSubnodeRecord(
                     parentNode,
-                    label,
+                    labelHash,
                     address(this),
                     resolver,
                     0
