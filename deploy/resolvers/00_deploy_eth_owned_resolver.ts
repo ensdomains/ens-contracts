@@ -1,7 +1,7 @@
 import { artifacts, deployScript } from '@rocketh'
 
 export default deployScript(
-  async ({ deploy, get, execute: write, namedAccounts }) => {
+  async ({ deploy, get, read, execute: write, namedAccounts }) => {
     const { deployer, owner } = namedAccounts
 
     // Deploy OwnedResolver
@@ -27,11 +27,32 @@ export default deployScript(
     >('BaseRegistrarImplementation')
 
     console.log(`  - Setting resolver for .eth to ${ethOwnedResolver.address}`)
-    await write(registrar, {
-      functionName: 'setResolver',
-      args: [ethOwnedResolver.address],
-      account: owner,
-    })
+    // `00_setup_base_registrar` may already have transferred the registrar to
+    // RegistrarSecurityController, which is then the only account the registrar
+    // accepts a resolver change from. Nothing orders the two scripts, so route
+    // through the controller when it holds the registrar; the direct call still
+    // applies when `owner` does.
+    const registrarOwner = (await read(registrar, {
+      functionName: 'owner',
+    })) as `0x${string}`
+    const securityController = get<
+      (typeof artifacts.RegistrarSecurityController)['abi']
+    >('RegistrarSecurityController')
+    if (
+      registrarOwner.toLowerCase() === securityController.address.toLowerCase()
+    ) {
+      await write(securityController, {
+        functionName: 'setRegistrarResolver',
+        args: [ethOwnedResolver.address],
+        account: owner,
+      })
+    } else {
+      await write(registrar, {
+        functionName: 'setResolver',
+        args: [ethOwnedResolver.address],
+        account: owner,
+      })
+    }
   },
   {
     id: 'EthOwnedResolver v1.0.0',
