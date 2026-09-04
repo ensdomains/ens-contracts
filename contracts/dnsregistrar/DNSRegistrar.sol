@@ -167,11 +167,13 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             RRUtils.SignedSet memory ss = sss[i];
             bytes32 node = NameCoder.namehash(ss.name, 0);
             uint32 last = inceptionForType(node, ss.typeCovered);
-            if (!RRUtils.serialNumberGte(ss.inception, last)) {
-                revert StaleProof(sss[i].name, last, ss.inception);
+            if (ss.inception != last) {
+                if (!RRUtils.serialNumberGte(ss.inception, last)) {
+                    revert StaleProof(ss.name, last, ss.inception);
+                }
+                _inceptions[node][ss.typeCovered] = ss.inception;
+                emit InceptionUpdated(node, ss.name, ss.typeCovered, ss.inception);
             }
-            _inceptions[node][ss.typeCovered] = ss.inception;
-            emit InceptionUpdated(node, ss.name, ss.typeCovered, ss.inception);
         }
 
         bool found;
