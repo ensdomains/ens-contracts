@@ -50,7 +50,7 @@ async function fixture() {
   ])
 
   const dnsRegistrar = await connection.viem.deployContract('DNSRegistrar', [
-    zeroAddress, // Previous registrar
+    [], // Previous registrars
     zeroAddress, // Resolver
     dnssec.address,
     suffixes.address,
@@ -81,6 +81,110 @@ describe('DNSRegistrar', () => {
     await expect(dnsRegistrar.read.ens()).resolves.toEqualAddress(
       ensRegistry.address,
     )
+  })
+
+  it('has backwards compatible inceptions() getter', async () => {
+    const { dnsRegistrar } = await loadFixture()
+    const name = 'foo.co.nz'
+    await dnsRegistrar.write.proveAndClaim([
+      dnsEncodeName(name),
+      [
+        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
+      ],
+    ])
+    await expect(
+      dnsRegistrar.read.inceptions([namehash(name)]),
+      'old'
+    ).resolves.toStrictEqual(inception)
+    await expect(
+      dnsRegistrar.read.inceptionForType([namehash(`_ens.${name}`), 16]),
+      'new',
+    ).resolves.toStrictEqual(inception)
+  })
+
+  it('supports multiple old registrars', async () => {
+    const { dnsRegistrar, ensRegistry, dnssec, suffixes, root } =
+      await loadFixture()
+    const name1 = 'foo.co.nz'
+    const name2 = 'bar.co.nz'
+    // claim name1
+    await dnsRegistrar.write.proveAndClaim([
+      dnsEncodeName(name1),
+      [
+        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(
+          testRrset({ name: name1, address: accounts[0].address }),
+        ),
+      ],
+    ])
+    // activate registrar #2
+    const dnsRegistrar2 = await connection.viem.deployContract('DNSRegistrar', [
+      [dnsRegistrar.address],
+      zeroAddress,
+      dnssec.address,
+      suffixes.address,
+      ensRegistry.address,
+    ])
+    await root.write.setController([dnsRegistrar2.address, true])
+    // claim name2
+    await dnsRegistrar2.write.proveAndClaim([
+      dnsEncodeName(name2),
+      [
+        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(
+          testRrset({ name: name2, address: accounts[0].address }),
+        ),
+      ],
+    ])
+    // activate registrar #3
+    const dnsRegistrar3 = await connection.viem.deployContract('DNSRegistrar', [
+      [dnsRegistrar.address, dnsRegistrar2.address],
+      zeroAddress,
+      dnssec.address,
+      suffixes.address,
+      ensRegistry.address,
+    ])
+    await root.write.setController([dnsRegistrar3.address, true])
+    // claim name1 and name2
+    await dnsRegistrar3.write.proveAndClaim([
+      dnsEncodeName(name1),
+      [
+        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(
+          testRrset({ name: name1, address: accounts[0].address }),
+        ),
+      ],
+    ])
+    await dnsRegistrar3.write.proveAndClaim([
+      dnsEncodeName(name2),
+      [
+        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(
+          testRrset({ name: name2, address: accounts[0].address }),
+        ),
+      ],
+    ])
+  })
+
+  it('allows anyone to claim without ownership', async () => {
+    const { dnsRegistrar, ensRegistry } = await loadFixture()
+
+    const proof = [
+      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(
+        testRrset({ name: 'foo.test', address: accounts[0].address }),
+      ),
+    ]
+
+    await dnsRegistrar.write.proveAndClaimWithoutRegistration(
+      [dnsEncodeName('foo.test'), proof],
+      { account: accounts[1] },
+    )
+
+    await expect(
+      ensRegistry.read.owner([namehash('foo.test')]),
+    ).resolves.toEqualAddress(zeroAddress)
   })
 
   it('allows anyone to claim on behalf of the owner of an ENS name', async () => {
@@ -210,7 +314,7 @@ describe('DNSRegistrar', () => {
 
     await expect(dnsRegistrar.write.proveAndClaim([name, oldProof]))
       .toBeRevertedWithCustomError('StaleProof')
-      .withArgs(['0x00', inception, oldInception])
+      .withArgs([dnsEncodeName(''), /*dnskey*/ 48, inception, oldInception])
   })
 
   it('does not allow updates with stale records', async () => {
@@ -367,7 +471,7 @@ describe('DNSRegistrar', () => {
       const dnsRegistrar = await connection.viem.deployContract(
         'DNSRegistrar',
         [
-          zeroAddress, // Previous registrar
+          [], // Previous registrars
           zeroAddress, // Resolver
           dnssec.address,
           suffixes.address,

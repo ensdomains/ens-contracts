@@ -1,5 +1,4 @@
 //SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
@@ -28,12 +27,19 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     address public immutable previousRegistrar;
     address public immutable resolver;
     // A mapping of the most recent signatures seen for each type of each claimed domain.
-    mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time)) _inceptions;
+    mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time))
+        internal _inceptions;
+    mapping(address registrar => bool was) public wasRegistrar;
 
     error NoOwnerRecordFound();
     error PermissionDenied(address caller, address owner);
     error PreconditionNotMet();
-    error StaleProof(bytes name, uint32 lastTime, uint32 time);
+    error StaleProof(
+        bytes name,
+        uint16 typeCovered,
+        uint32 lastTime,
+        uint32 time
+    );
     error InvalidPublicSuffix(bytes name);
 
     struct OwnerRecord {
@@ -58,13 +64,18 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     );
 
     constructor(
-        address _previousRegistrar,
+        address[] memory previousRegistrars,
         address _resolver,
         DNSSEC _dnssec,
         PublicSuffixList _suffixes,
         ENS _ens
     ) {
-        previousRegistrar = _previousRegistrar;
+        address last;
+        for (uint256 i; i < previousRegistrars.length; ++i) {
+            last = previousRegistrars[i];
+            wasRegistrar[last] = true;
+        }
+        previousRegistrar = last;
         resolver = _resolver;
         oracle = _dnssec;
         suffixes = _suffixes;
@@ -85,9 +96,17 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         emit NewPublicSuffixList(address(suffixes));
     }
 
-    /// @dev Submits proofs to the DNSSEC oracle, then claims a name using those proofs.
-    /// @param name The name to claim, in DNS wire format.
+    /// @notice Verify proofs with DNSSEC oracle, claim the name, but registry not updated.
+    /// @param name DNS-encoded name to claim.
     /// @param input A chain of signed DNS RRSETs ending with a text record.
+    function proveAndClaimWithoutRegistration(
+        bytes memory name,
+        DNSSEC.RRSetWithSignature[] memory input
+    ) external {
+        _claim(name, input);
+    }
+
+    /// @inheritdoc IDNSRegistrar
     function proveAndClaim(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
@@ -99,10 +118,11 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         ens.setSubnodeOwner(rootNode, labelHash, addr);
     }
 
+    /// @inheritdoc IDNSRegistrar
     function proveAndClaimWithResolver(
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input,
-        address resolver,
+        address _resolver,
         address addr
     ) public override {
         (bytes32 rootNode, bytes32 labelHash, address owner) = _claim(
@@ -112,14 +132,14 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         if (msg.sender != owner) {
             revert PermissionDenied(msg.sender, owner);
         }
-        ens.setSubnodeRecord(rootNode, labelHash, owner, resolver, 0);
+        ens.setSubnodeRecord(rootNode, labelHash, owner, _resolver, 0);
         if (addr != address(0)) {
-            if (resolver == address(0)) {
+            if (_resolver == address(0)) {
                 revert PreconditionNotMet();
             }
             bytes32 node = NameCoder.namehash(rootNode, labelHash);
             // Set the resolver record
-            AddrResolver(resolver).setAddr(node, addr);
+            AddrResolver(_resolver).setAddr(node, addr);
         }
     }
 
@@ -131,23 +151,24 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
+    /// @notice Get the latest claim inception.
+    /// @param node Namehash of the name to query.
+    /// @param typeCovered DNS resource record type.
+    /// @return Inception time, in seconds.
     function inceptionForType(
         bytes32 node,
         uint16 typeCovered
-    ) public view returns (uint32 inception) {
-        inception = _inceptions[node][typeCovered];
-        if (
-            inception == 0 &&
-            typeCovered == RRUtils.DNSTYPE_TXT &&
-            previousRegistrar != address(0)
-        ) {
-            inception = DNSRegistrar(previousRegistrar).inceptions(node);
-        }
+    ) public view returns (uint32) {
+        return _inceptions[node][typeCovered];
     }
 
     /// @notice Backwards-compatible getter for claim inception.
-    function inceptions(bytes32 node) external view returns (uint32) {
-        return inceptionForType(node, RRUtils.DNSTYPE_TXT);
+    function inceptions(bytes32 node) external view returns (uint32 inception) {
+        return
+            inceptionForType(
+                NameCoder.namehash(node, keccak256("_ens")),
+                RRUtils.DNSTYPE_TXT
+            );
     }
 
     function _claim(
@@ -169,10 +190,20 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             uint32 last = inceptionForType(node, ss.typeCovered);
             if (ss.inception != last) {
                 if (!RRUtils.serialNumberGte(ss.inception, last)) {
-                    revert StaleProof(ss.name, last, ss.inception);
+                    revert StaleProof(
+                        ss.name,
+                        ss.typeCovered,
+                        last,
+                        ss.inception
+                    );
                 }
                 _inceptions[node][ss.typeCovered] = ss.inception;
-                emit InceptionUpdated(node, ss.name, ss.typeCovered, ss.inception);
+                emit InceptionUpdated(
+                    node,
+                    ss.name,
+                    ss.typeCovered,
+                    ss.inception
+                );
             }
         }
 
@@ -214,7 +245,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         bytes32 parentNode = _enableNode(domain, next);
         node = NameCoder.namehash(parentNode, labelHash);
         address owner = ens.owner(node);
-        if (owner == address(0) || owner == previousRegistrar) {
+        if (owner == address(0) || wasRegistrar[owner]) {
             if (parentNode == bytes32(0)) {
                 Root root = Root(ens.owner(bytes32(0)));
                 root.setSubnodeOwner(labelHash, address(this));

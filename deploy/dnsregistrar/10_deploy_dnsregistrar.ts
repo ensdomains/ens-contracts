@@ -2,7 +2,7 @@ import { artifacts, deployScript } from '@rocketh'
 import { getAddress, zeroAddress, type Address } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts }) => {
+  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts, network }) => {
     const { deployer, owner } = namedAccounts
 
     const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
@@ -10,17 +10,37 @@ export default deployScript(
     const resolver = get<(typeof artifacts.OffchainDNSResolver)['abi']>(
       'OffchainDNSResolver',
     )
-    const oldregistrar = getOrNull('DNSRegistrar')
     const root = get<(typeof artifacts.Root)['abi']>('Root')
     const publicSuffixList = get<
       (typeof artifacts.SimplePublicSuffixList)['abi']
     >('SimplePublicSuffixList')
 
+    console.log('  - Searching for old registrars...');
+    let oldRegistrarAddress: Address | undefined = getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')?.address;
+    const previousRegistrars: Address[] = [];
+    if (oldRegistrarAddress) {
+      while (true) {
+        previousRegistrars.push(oldRegistrarAddress);
+        try {
+          oldRegistrarAddress = await read({
+            address: oldRegistrarAddress,
+            abi: artifacts.DNSRegistrar.abi
+          }, {
+            functionName: 'previousRegistrar'
+          });
+          if (oldRegistrarAddress === zeroAddress) break;
+        } catch {
+          break
+        }
+      }
+    }
+    console.table(oldRegistrarAddress);
+  
     const dnsRegistrar = await deploy('DNSRegistrar', {
       account: deployer,
       artifact: artifacts.DNSRegistrar,
       args: [
-        oldregistrar?.address || zeroAddress,
+        previousRegistrars,
         resolver.address,
         dnssec.address,
         publicSuffixList.address,

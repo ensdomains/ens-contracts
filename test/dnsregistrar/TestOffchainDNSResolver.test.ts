@@ -57,9 +57,7 @@ async function fixture() {
   const offchainDnsResolver = await connection.viem.deployContract(
     'OffchainDNSResolver',
     [ensRegistry.address, dnssec.address, OFFCHAIN_GATEWAY],
-    {
-      client: { public: publicClientWithoutCcipRead },
-    },
+    { client: { public: publicClientWithoutCcipRead } },
   )
   const ownedResolver = await connection.viem.deployContract(
     'OwnedResolver',
@@ -70,7 +68,7 @@ async function fixture() {
     [offchainDnsResolver.address],
   )
   const dnsRegistrar = await connection.viem.deployContract('DNSRegistrar', [
-    zeroAddress, // Previous registrar
+    [], // Previous registrars
     offchainDnsResolver.address,
     dnssec.address,
     suffixes.address,
