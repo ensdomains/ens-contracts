@@ -162,7 +162,7 @@ abstract contract CCIPBatcher is CCIPReader {
                     if (failures[expected]) {
                         lu.flags |= FLAG_DONE | FLAG_BATCH_ERROR;
                         if (!_isSafeBatchGatewayError(bytes4(v))) {
-                            v = abi.encodeWithSelector(UnsafeBatchGatewayResponse.selector, v);
+                            v = abi.encodeWithSelector(UnsafeBatchGatewayResponse.selector, v); // wrap unless safe
                         }
                     } else {
                         EIP3668.Params memory p = decodeOffchainLookup(lu.data);
@@ -201,7 +201,7 @@ abstract contract CCIPBatcher is CCIPReader {
 
     /// @dev Determine if the batch gateway error is safe to propagate.
     function _isSafeBatchGatewayError(bytes4 selector) internal view virtual returns (bool) {
-        return selector == 0x08c379a0;
+        return selector == 0x08c379a0; // Error(string)
     }
 
     /// @dev Safely collapse `Lookup[]` into `bytes[]`.
