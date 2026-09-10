@@ -21,6 +21,8 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using Buffer for Buffer.buffer;
     using RRUtils for *;
 
+    bytes32 constant LABELHASH_PREFIX = keccak256("_ens");
+
     ENS public immutable ens;
     DNSSEC public immutable oracle;
     PublicSuffixList public suffixes;
@@ -151,23 +153,20 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             interfaceID == type(IDNSRegistrar).interfaceId;
     }
 
-    /// @notice Get the latest claim inception.
-    /// @param node Namehash of the name to query.
-    /// @param typeCovered DNS resource record type.
-    /// @return Inception time, in seconds.
-    function inceptionForType(
-        bytes32 node,
+    /// @inheritdoc IDNSRegistrar
+    function getInception(
+        bytes calldata name,
         uint16 typeCovered
-    ) public view returns (uint32) {
-        return _inceptions[node][typeCovered];
+    ) public view returns (uint32 inception) {
+        (, inception) = _inceptionForType(name, typeCovered);
     }
 
-    /// @notice Backwards-compatible getter for claim inception.
+    /// @inheritdoc IDNSRegistrar
     function inceptions(bytes32 node) external view returns (uint32 inception) {
         return
-            inceptionForType(
-                NameCoder.namehash(node, keccak256("_ens")),
-                RRUtils.DNSTYPE_TXT
+            _inceptionWithFallback(
+                node,
+                NameCoder.namehash(node, LABELHASH_PREFIX)
             );
     }
 
@@ -186,8 +185,10 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
 
         for (uint256 i; i < sss.length; ++i) {
             RRUtils.SignedSet memory ss = sss[i];
-            bytes32 node = NameCoder.namehash(ss.name, 0);
-            uint32 last = inceptionForType(node, ss.typeCovered);
+            (bytes32 node, uint32 last) = _inceptionForType(
+                ss.name,
+                ss.typeCovered
+            );
             if (ss.inception != last) {
                 if (!RRUtils.serialNumberGte(ss.inception, last)) {
                     revert StaleProof(
@@ -263,5 +264,33 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             revert PreconditionNotMet();
         }
         return node;
+    }
+
+    /// @dev Determine the last inception time for record type.
+    function _inceptionForType(
+        bytes memory name,
+        uint16 typeCovered
+    ) internal view returns (bytes32 node, uint32 inception) {
+        (bytes32 labelHash, uint256 offset) = NameCoder.readLabel(name, 0);
+        bytes32 parentNode;
+        if (labelHash != bytes32(0)) {
+            parentNode = NameCoder.namehash(name, offset);
+            node = NameCoder.namehash(parentNode, labelHash);
+        }
+        inception = typeCovered == RRUtils.DNSTYPE_TXT &&
+            labelHash == LABELHASH_PREFIX
+            ? _inceptionWithFallback(parentNode, node)
+            : _inceptions[node][typeCovered];
+    }
+
+    /// @dev Determine the last inception time of a TXT record.
+    function _inceptionWithFallback(
+        bytes32 parentNode,
+        bytes32 node
+    ) internal view returns (uint32 inception) {
+        inception = _inceptions[node][RRUtils.DNSTYPE_TXT];
+        if (inception == 0 && previousRegistrar != address(0)) {
+            inception = DNSRegistrar(previousRegistrar).inceptions(parentNode);
+        }
     }
 }

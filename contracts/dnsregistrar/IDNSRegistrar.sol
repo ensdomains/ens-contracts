@@ -23,4 +23,18 @@ interface IDNSRegistrar {
         address resolver,
         address addr
     ) external;
+
+    /// @notice Get the latest inception time of a claim by record type.
+    /// @dev `getInception("_ens.{domain}", 16) == inception(namehash(domain))`.
+    /// @param name DNS-encoded name to query.
+    /// @param typeCovered DNS resource record type.
+    /// @return Inception time, in seconds.
+    function getInception(
+        bytes calldata name,
+        uint16 typeCovered
+    ) external view returns (uint32);
+
+    /// @notice Get the latest inception time of a claim.
+    /// @dev Corresponds to the TXT record of "_ens.{domain}".
+    function inceptions(bytes32 node) external view returns (uint32);
 }

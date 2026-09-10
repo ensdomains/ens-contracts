@@ -98,7 +98,7 @@ describe('DNSRegistrar', () => {
       'old'
     ).resolves.toStrictEqual(inception)
     await expect(
-      dnsRegistrar.read.inceptionForType([namehash(`_ens.${name}`), 16]),
+      dnsRegistrar.read.getInception([dnsEncodeName(`_ens.${name}`), 16]),
       'new',
     ).resolves.toStrictEqual(inception)
   })
