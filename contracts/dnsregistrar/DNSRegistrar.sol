@@ -98,16 +98,6 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         emit NewPublicSuffixList(address(suffixes));
     }
 
-    /// @notice Verify proofs with DNSSEC oracle, claim the name, but registry not updated.
-    /// @param name DNS-encoded name to claim.
-    /// @param input A chain of signed DNS RRSETs ending with a text record.
-    function proveAndClaimWithoutRegistration(
-        bytes memory name,
-        DNSSEC.RRSetWithSignature[] memory input
-    ) external {
-        _claim(name, input);
-    }
-
     /// @inheritdoc IDNSRegistrar
     function proveAndClaim(
         bytes memory name,

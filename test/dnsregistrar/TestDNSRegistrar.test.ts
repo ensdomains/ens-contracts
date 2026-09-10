@@ -167,26 +167,6 @@ describe('DNSRegistrar', () => {
     ])
   })
 
-  it('allows anyone to claim without ownership', async () => {
-    const { dnsRegistrar, ensRegistry } = await loadFixture()
-
-    const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
-      hexEncodeSignedSet(
-        testRrset({ name: 'foo.test', address: accounts[0].address }),
-      ),
-    ]
-
-    await dnsRegistrar.write.proveAndClaimWithoutRegistration(
-      [dnsEncodeName('foo.test'), proof],
-      { account: accounts[1] },
-    )
-
-    await expect(
-      ensRegistry.read.owner([namehash('foo.test')]),
-    ).resolves.toEqualAddress(zeroAddress)
-  })
-
   it('allows anyone to claim on behalf of the owner of an ENS name', async () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
