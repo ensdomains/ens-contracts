@@ -2,7 +2,9 @@
 pragma solidity ^0.8.17;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {
+    ERC165Checker
+} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 import {CCIPBatcher, CCIPReader} from "../ccipRead/CCIPBatcher.sol";
@@ -425,5 +427,12 @@ abstract contract AbstractUniversalResolver is
         } else {
             revert ResolverError(v);
         }
+    }
+
+    /// @inheritdoc CCIPBatcher
+    function _isSafeBatchGatewayError(bytes4 selector) internal view override returns (bool) {
+        return
+            selector == IUniversalResolver.HttpError.selector ||
+            super._isSafeBatchGatewayError(selector);
     }
 }
