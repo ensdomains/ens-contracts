@@ -1,16 +1,17 @@
 import { shouldSupportInterfaces } from '@ensdomains/hardhat-chai-matchers-viem/behaviour'
 import hre from 'hardhat'
 import {
+  encodeAbiParameters,
   encodeErrorResult,
-  keccak256,
+  type Hex,
   namehash,
+  offchainLookupAbiItem,
   parseAbi,
   toBytes,
   toFunctionSelector,
-  toHex,
   zeroAddress,
 } from 'viem'
-import { createServer } from 'node:http'
+import { createServer, type Server } from 'node:http'
 
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { expectVar } from '../fixtures/expectVar.js'
@@ -220,9 +221,7 @@ describe('UniversalResolver', () => {
           ])
           await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
           await F.Shapeshift1.write.setOffchain([true])
-          await F.Shapeshift1.write.setRevertURL([
-            `http://localhost:${(http.address() as any).port}`,
-          ])
+          await F.Shapeshift1.write.setRevertURL([getServerURL(http)])
           await expect(
             F.UniversalResolver.read.resolveWithGateways([
               dnsEncodeName(testName),
@@ -237,6 +236,91 @@ describe('UniversalResolver', () => {
         }
       })
     }
+
+    describe('batch gateway reverts', () => {
+      async function withMaliciousBatchGateway(
+        data: Hex,
+        exec: (F: Awaited<ReturnType<typeof loadFixture>>) => Promise<void>,
+      ) {
+        const http = createServer((_, res) => {
+          res.writeHead(200, { 'content-type': 'application/json' }).end(
+            JSON.stringify({
+              data: encodeAbiParameters(
+                [{ type: 'bool[]' }, { type: 'bytes[]' }],
+                [[true], [data]],
+              ),
+            }),
+          )
+        })
+        try {
+          await new Promise<void>((ful) => http.listen(undefined, ful))
+          const F = await loadFixture()
+          await F.takeControl(testName)
+          await F.ENSRegistry.write.setResolver([
+            namehash(testName),
+            F.Shapeshift1.address,
+          ])
+          await F.batchGatewayProvider.write.setGateways([[getServerURL(http)]])
+          await F.Shapeshift1.write.setOffchain([true])
+          await F.Shapeshift1.write.setResponse([dummyCalldata, dummyCalldata])
+          await exec(F)
+        } finally {
+          http.close()
+        }
+      }
+
+      it('safe: Error', async () => {
+        const message = 'test'
+        const data = encodeErrorResult({
+          abi: parseAbi(['error Error(string)']),
+          args: [message],
+        })
+        await withMaliciousBatchGateway(data, async (F) =>
+          expect(
+            F.UniversalResolver.read.resolve([
+              dnsEncodeName(testName),
+              dummyCalldata,
+            ]),
+          ).toBeRevertedWithString(message),
+        )
+      })
+
+      it('safe: HttpError', async () => {
+        const status = 200
+        const message = 'test'
+        const data = encodeErrorResult({
+          abi: parseAbi(['error HttpError(uint16,string)']),
+          args: [status, message],
+        })
+        await withMaliciousBatchGateway(data, async (F) =>
+          expect(
+            F.UniversalResolver.read.resolve([
+              dnsEncodeName(testName),
+              dummyCalldata,
+            ]),
+          )
+            .toBeRevertedWithCustomError('HttpError')
+            .withArgs([status, message]),
+        )
+      })
+
+      it('unsafe', async () => {
+        const data = encodeErrorResult({
+          abi: [offchainLookupAbiItem],
+          args: [zeroAddress, [], '0x', dummyCalldata, '0x'],
+        })
+        await withMaliciousBatchGateway(data, async (F) =>
+          expect(
+            F.UniversalResolver.read.resolve([
+              dnsEncodeName(testName),
+              dummyCalldata,
+            ]),
+          )
+            .toBeRevertedWithCustomError('UnsafeBatchGatewayResponse')
+            .withArgs([data]),
+        )
+      })
+    })
 
     it('unsupported revert', async () => {
       const F = await loadFixture()
@@ -912,3 +996,7 @@ describe('UniversalResolver', () => {
     })
   })
 })
+
+function getServerURL(http: Server) {
+  return `http://localhost:${(http.address() as any).port}`
+}
