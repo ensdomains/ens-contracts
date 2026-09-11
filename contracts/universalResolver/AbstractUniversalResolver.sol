@@ -428,11 +428,4 @@ abstract contract AbstractUniversalResolver is
             revert ResolverError(v);
         }
     }
-
-    /// @inheritdoc CCIPBatcher
-    function _isSafeBatchGatewayError(bytes4 selector) internal view override returns (bool) {
-        return
-            selector == IUniversalResolver.HttpError.selector ||
-            super._isSafeBatchGatewayError(selector);
-    }
 }
