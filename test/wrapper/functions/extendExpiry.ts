@@ -697,7 +697,7 @@ export const extendExpiryTests = (
     })
 
     it('Does not allow .eth 2LD owner to set expiry on child if the .eth 2LD is expired but grace period has not ended', async () => {
-      const { baseRegistrar, nameWrapper, testClient, actions, accounts } =
+      const { baseRegistrar, nameWrapper, actions, accounts } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -724,8 +724,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry + GRACE_PERIOD - 3600n)
 
       // Fast forward until the 2LD expires
-      await testClient.increaseTime({ seconds: Number(DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY + 1n)
 
       await expect(
         nameWrapper.write.extendExpiry([
@@ -739,7 +738,7 @@ export const extendExpiryTests = (
     })
 
     it('Allows child owner to set expiry if parent .eth 2LD is expired but grace period has not ended', async () => {
-      const { baseRegistrar, nameWrapper, testClient, actions, accounts } =
+      const { baseRegistrar, nameWrapper, actions, accounts } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -768,8 +767,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry + GRACE_PERIOD - 3600n)
 
       // Fast forward until the 2LD expires
-      await testClient.increaseTime({ seconds: Number(DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY + 1n)
 
       await nameWrapper.write.extendExpiry(
         [namehash(name), labelhash(sublabel), MAX_EXPIRY],
@@ -787,7 +785,7 @@ export const extendExpiryTests = (
     })
 
     it('Does not allow child owner to set expiry if Emancipated child name has expired', async () => {
-      const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
+      const { nameWrapper, actions, accounts, baseRegistrar } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -814,8 +812,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry - DAY + 3600n)
 
       // Fast forward until the child name expires
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       await expect(
         nameWrapper.write.extendExpiry(
@@ -826,7 +823,7 @@ export const extendExpiryTests = (
     })
 
     it('Does not allow child owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
-      const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
+      const { nameWrapper, actions, accounts, baseRegistrar } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -853,8 +850,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry - DAY + 3600n)
 
       // Fast forward until the child name expires
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       await expect(
         nameWrapper.write.extendExpiry(
@@ -867,7 +863,7 @@ export const extendExpiryTests = (
     })
 
     it('Does not allow parent owner to set expiry if Emancipated child name has expired', async () => {
-      const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
+      const { nameWrapper, actions, accounts, baseRegistrar } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -894,8 +890,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry - DAY + 3600n)
 
       // Fast forward until the child name expires
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       await expect(
         nameWrapper.write.extendExpiry([
@@ -907,7 +902,7 @@ export const extendExpiryTests = (
     })
 
     it('Allows parent owner to set expiry if non-Emancipated child name has reached its expiry', async () => {
-      const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
+      const { nameWrapper, actions, accounts, baseRegistrar } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -934,8 +929,7 @@ export const extendExpiryTests = (
       expect(initialExpiry).toEqual(parentExpiry - DAY + 3600n)
 
       // Fast forward until the child name expires
-      await testClient.increaseTime({ seconds: 3601 })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(3601)
 
       await nameWrapper.write.extendExpiry([
         namehash(name),
@@ -977,7 +971,7 @@ export const extendExpiryTests = (
     })
 
     it('Does not allow extendExpiry() to be called on unregistered names (expired w/ PCC burnt)', async () => {
-      const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
+      const { baseRegistrar, nameWrapper, accounts, actions } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -999,8 +993,7 @@ export const extendExpiryTests = (
       })
 
       // Advance time so the subdomain expires, but not the parent
-      await testClient.increaseTime({ seconds: Number(5n * DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(5n * DAY + 1n)
 
       // extendExpiry() on the unregistered name will be reverted
       await expect(
@@ -1013,7 +1006,7 @@ export const extendExpiryTests = (
     })
 
     it('Allow extendExpiry() to be called on wrapped names', async () => {
-      const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
+      const { baseRegistrar, nameWrapper, accounts, actions } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -1035,8 +1028,7 @@ export const extendExpiryTests = (
       })
 
       // Advance time so the subdomain expires, but not the parent
-      await testClient.increaseTime({ seconds: Number(5n * DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(5n * DAY + 1n)
 
       await nameWrapper.write.extendExpiry([
         namehash(name),

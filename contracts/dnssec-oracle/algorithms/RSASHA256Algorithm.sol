@@ -32,6 +32,7 @@ contract RSASHA256Algorithm is Algorithm {
             );
         }
 
-        return RSAPKCS1Verify.verifySHA256(modulus, exponent, sig, sha256(data));
+        return
+            RSAPKCS1Verify.verifySHA256(modulus, exponent, sig, sha256(data));
     }
 }

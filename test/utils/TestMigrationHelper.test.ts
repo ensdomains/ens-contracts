@@ -9,7 +9,7 @@ import {
   zeroHash,
 } from 'viem'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const publicClient = await connection.viem.getPublicClient()
 const [ownerClient, registrantClient, otherClient] =
   await connection.viem.getWalletClients()

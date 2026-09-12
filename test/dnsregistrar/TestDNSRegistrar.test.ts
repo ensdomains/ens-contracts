@@ -12,7 +12,7 @@ import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
 import { getAccounts } from '../fixtures/utils.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {

@@ -7,12 +7,11 @@ import "./ISupportedDataKeys.sol";
 /// @notice Mixin implementing the optional ISupportedDataKeys interface for ENSIP-24.
 ///     Use alongside the DataResolver.sol, and call _addSupportedKey() within the _afterSetData()
 ///     hook to register a key as being supported.
-abstract contract SupportedDataKeys is
-    ISupportedDataKeys,
-    ResolverBase
-{
-    mapping(uint64 => mapping(bytes32 node => string[] keys)) private versionable_supportedDataKeysStore;
-    mapping(uint64 => mapping(bytes32 node => mapping(string key => bool))) private versionable_keyExists;
+abstract contract SupportedDataKeys is ISupportedDataKeys, ResolverBase {
+    mapping(uint64 => mapping(bytes32 node => string[] keys))
+        private versionable_supportedDataKeysStore;
+    mapping(uint64 => mapping(bytes32 node => mapping(string key => bool)))
+        private versionable_keyExists;
 
     /// @notice For a specific `node`, get an array of supported data keys.
     /// @param node The node (namehash).
@@ -24,7 +23,10 @@ abstract contract SupportedDataKeys is
     }
 
     /// @dev Call this to register a key as supported.
-    function _addSupportedKey(bytes32 node, string memory key) internal virtual {
+    function _addSupportedKey(
+        bytes32 node,
+        string memory key
+    ) internal virtual {
         uint64 version = recordVersions[node];
         if (!versionable_keyExists[version][node][key]) {
             versionable_supportedDataKeysStore[version][node].push(key);

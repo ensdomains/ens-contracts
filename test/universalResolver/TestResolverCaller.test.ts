@@ -9,7 +9,7 @@ import {
   makeResolutions,
 } from '../utils/resolutions.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   const resolverCaller = await connection.viem.deployContract(
@@ -33,9 +33,14 @@ async function fixture() {
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
-      for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
+      for (const type of [
+        'extended',
+        'extendedDNS',
+        'immediate',
+        'old',
+      ] as const) {
         for (const feature of [false, true]) {
-          if (type === 'old' && (offchain || feature)) continue;
+          if (type === 'old' && (offchain || feature)) continue
           let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'

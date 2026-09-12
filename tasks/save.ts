@@ -33,7 +33,7 @@ const taskSave: NewTaskActionFunction<SaveArgs> = async (
   //   description:
   //     '(Optional) The fully qualified name of the contract (e.g. contracts/resolvers/PublicResolver.sol:PublicResolver)',
   // })
-  const { networkName } = await hre.network.connect()
+  const { networkName } = await hre.network.create()
   const network = networkName
 
   const artifactReference = fullName || contract

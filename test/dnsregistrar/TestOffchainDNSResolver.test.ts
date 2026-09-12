@@ -26,7 +26,7 @@ import { getAccounts } from '../fixtures/utils.js'
 
 const OFFCHAIN_GATEWAY = 'https://localhost:8000/query'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {

@@ -27,7 +27,7 @@ const coinTypes = [
   0x1_8000_0123n, // 33 bits
 ]
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   return connection.viem.deployContract('TestENSIP19')

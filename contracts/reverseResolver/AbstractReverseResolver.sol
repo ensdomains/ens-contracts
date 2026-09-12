@@ -1,9 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.17;
 
-import {
-    ERC165
-} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
+import {ERC165} from "@openzeppelin/contracts-v5/utils/introspection/ERC165.sol";
 import {IExtendedResolver} from "../resolvers/profiles/IExtendedResolver.sol";
 import {IAddressResolver} from "../resolvers/profiles/IAddressResolver.sol";
 import {IAddrResolver} from "../resolvers/profiles/IAddrResolver.sol";

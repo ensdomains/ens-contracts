@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { describe, it, expect } from 'vitest'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 const URLS = ['a', 'ab', 'abc']
 

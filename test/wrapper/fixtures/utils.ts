@@ -257,6 +257,7 @@ export async function deployNameWrapperWithUtils(
     accounts,
     testClient,
     publicClient,
+    networkHelpers: connection.networkHelpers,
   }
 }
 export type NameWrapperWithUtilsFixture = Awaited<

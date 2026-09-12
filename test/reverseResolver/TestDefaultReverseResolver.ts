@@ -15,7 +15,7 @@ import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 const testName = 'test.eth'
 const coinTypes = [COIN_TYPE_ETH, COIN_TYPE_DEFAULT, 0n, 1n]
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 async function fixture() {
