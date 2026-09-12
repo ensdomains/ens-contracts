@@ -1,17 +1,18 @@
 import type { Hex } from 'viem'
 
+export const CHAIN_ID_ETH = 1
 export const COIN_TYPE_ETH = 60n
 export const COIN_TYPE_DEFAULT = 1n << 31n
 
 export function coinTypeFromChain(chain: number) {
-  if (chain === 1) return COIN_TYPE_ETH
+  if (chain === CHAIN_ID_ETH) return COIN_TYPE_ETH
   if ((chain & Number(COIN_TYPE_DEFAULT - 1n)) !== chain)
     throw new Error(`invalid chain: ${chain}`)
   return BigInt(chain) | COIN_TYPE_DEFAULT
 }
 
 export function chainFromCoinType(coinType: bigint): number {
-  if (coinType == COIN_TYPE_ETH) return 1
+  if (coinType === COIN_TYPE_ETH) return CHAIN_ID_ETH
   coinType ^= COIN_TYPE_DEFAULT
   return coinType >= 0 && coinType < COIN_TYPE_DEFAULT ? Number(coinType) : 0
 }
@@ -28,9 +29,9 @@ export function shortCoin(coinType: bigint) {
 
 export function getReverseNamespace(coinType: bigint) {
   return `${
-    coinType == COIN_TYPE_ETH
+    coinType === COIN_TYPE_ETH
       ? 'addr'
-      : coinType == COIN_TYPE_DEFAULT
+      : coinType === COIN_TYPE_DEFAULT
       ? 'default'
       : coinType.toString(16)
   }.reverse`

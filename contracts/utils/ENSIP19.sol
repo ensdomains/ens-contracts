@@ -14,15 +14,15 @@ string constant SLUG_DEFAULT = "default"; // <=> COIN_TYPE_DEFAULT
 string constant TLD_REVERSE = "reverse";
 
 /// @dev Library for generating reverse names according to ENSIP-19.
-/// https://docs.ens.domains/ensip/19
+///      https://docs.ens.domains/ensip/19
 library ENSIP19 {
-    /// @dev The supplied address was `0x`.
+    /// @dev The supplied address was null.
     ///      Error selector: `0x7138356f`
     error EmptyAddress();
 
-    /// @dev Extract Chain ID from `coinType`.
+    /// @dev Extract chain ID from coin type.
     /// @param coinType The coin type.
-    /// @return The Chain ID or 0 if non-EVM Chain.
+    /// @return The chain ID or 0 if non-EVM Chain.
     function chainFromCoinType(
         uint256 coinType
     ) internal pure returns (uint32) {
@@ -31,15 +31,22 @@ library ENSIP19 {
         return uint32(coinType < COIN_TYPE_DEFAULT ? coinType : 0);
     }
 
-    /// @dev Determine if Coin Type is for an EVM address.
+    /// @dev Derive coin type from chain ID.
+    /// @param chainId The chain ID.
+    /// @return The coin type or 0 if non-EVM Chain.
+    function coinTypeFromChain(uint32 chainId) internal pure returns (uint256) {
+        return chainId == CHAIN_ID_ETH ? COIN_TYPE_ETH : COIN_TYPE_DEFAULT + chainId;
+    }
+
+    /// @dev Determine if coin type is for an EVM address.
     /// @param coinType The coin type.
     /// @return True if coin type represents an EVM address.
     function isEVMCoinType(uint256 coinType) internal pure returns (bool) {
         return coinType == COIN_TYPE_DEFAULT || chainFromCoinType(coinType) > 0;
     }
 
-    /// @dev Generate Reverse Name from Address + Coin Type.
-    ///      Reverts `EmptyAddress` if `addressBytes` is `0x`.
+    /// @dev Generate reverse name from address + coin type.
+    ///      Reverts `EmptyAddress` if `addressBytes` is null.
     /// @param addressBytes The input address.
     /// @param coinType The coin type.
     /// @return The ENS reverse name, eg. `1234abcd.addr.reverse`.
@@ -66,7 +73,7 @@ library ENSIP19 {
             );
     }
 
-    /// @dev Parse Reverse Name into Address + Coin Type.
+    /// @dev Parse reverse name into address + coin type.
     ///      Matches: `/^[0-9a-fA-F]+\.([0-9a-f]{1,64}|addr|default)\.reverse$/`.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
@@ -83,7 +90,7 @@ library ENSIP19 {
         if (!valid) return ("", 0); // invalid namespace
     }
 
-    /// @dev Parse Reverse Namespace into Coin Type.
+    /// @dev Parse reverse namespace into coin type.
     ///      Matches: `/^([0-9a-f]{1,64}|addr|default)\.reverse$/`.
     ///      Reverts `DNSDecodingFailed`.
     /// @param name The DNS-encoded name.
