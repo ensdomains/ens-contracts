@@ -2,9 +2,8 @@ import hre from 'hardhat'
 import { labelhash, namehash, zeroAddress, zeroHash, type Address } from 'viem'
 
 import {
-  expiration,
   hexEncodeSignedSet,
-  inception,
+  INCEPTION,
   rootKeys,
   testRrset,
 } from '../fixtures/dns.js'
@@ -89,18 +88,18 @@ describe('DNSRegistrar', () => {
     await dnsRegistrar.write.proveAndClaim([
       dnsEncodeName(name),
       [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
       ],
     ])
     await expect(
       dnsRegistrar.read.inceptions([namehash(name)]),
-      'old'
-    ).resolves.toStrictEqual(inception)
+      'old',
+    ).resolves.toStrictEqual(INCEPTION)
     await expect(
       dnsRegistrar.read.getInception([dnsEncodeName(`_ens.${name}`), 16]),
       'new',
-    ).resolves.toStrictEqual(inception)
+    ).resolves.toStrictEqual(INCEPTION)
   })
 
   it('supports multiple old registrars', async () => {
@@ -112,7 +111,7 @@ describe('DNSRegistrar', () => {
     await dnsRegistrar.write.proveAndClaim([
       dnsEncodeName(name1),
       [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: name1, address: accounts[0].address }),
         ),
@@ -131,7 +130,7 @@ describe('DNSRegistrar', () => {
     await dnsRegistrar2.write.proveAndClaim([
       dnsEncodeName(name2),
       [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: name2, address: accounts[0].address }),
         ),
@@ -150,7 +149,7 @@ describe('DNSRegistrar', () => {
     await dnsRegistrar3.write.proveAndClaim([
       dnsEncodeName(name1),
       [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: name1, address: accounts[0].address }),
         ),
@@ -159,7 +158,7 @@ describe('DNSRegistrar', () => {
     await dnsRegistrar3.write.proveAndClaim([
       dnsEncodeName(name2),
       [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: name2, address: accounts[0].address }),
         ),
@@ -171,7 +170,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -190,7 +189,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.co.nz', address: accounts[0].address }),
       ),
@@ -207,7 +206,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -240,7 +239,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -260,7 +259,7 @@ describe('DNSRegistrar', () => {
           ...newRrset.sig,
           data: {
             ...newRrset.sig.data,
-            inception: inception - 3600,
+            inception: INCEPTION - 3600,
           },
         },
       }),
@@ -273,28 +272,40 @@ describe('DNSRegistrar', () => {
 
   it('rejects proofs with earlier ancestor inceptions', async () => {
     const { dnsRegistrar } = await loadFixture()
-    const name = dnsEncodeName('foo.test')
+    const name = 'foo.test'
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
-      hexEncodeSignedSet(
-        testRrset({ name: 'foo.test', address: accounts[0].address }),
-      ),
+      hexEncodeSignedSet(rootKeys()),
+      hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
     ]
+    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof])
 
-    await dnsRegistrar.write.proveAndClaim([name, proof])
-
-    const oldInception = inception - 1 // wrong
-    const oldProof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception: oldInception })), // wrong
-      hexEncodeSignedSet(
-        testRrset({ name: 'foo.test', address: accounts[0].address }),
-      ),
+    const oldInception = INCEPTION - 1 // wrong
+    const oldProof1 = [
+      hexEncodeSignedSet(rootKeys({ inception: oldInception })),
+      hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
     ]
-
-    await expect(dnsRegistrar.write.proveAndClaim([name, oldProof]))
+    await expect(
+      dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof1]),
+    )
       .toBeRevertedWithCustomError('StaleProof')
-      .withArgs([dnsEncodeName(''), /*dnskey*/ 48, inception, oldInception])
+      .withArgs([dnsEncodeName(''), 48, INCEPTION, oldInception])
+
+    const oldProof2 = [
+      hexEncodeSignedSet(rootKeys()),
+      hexEncodeSignedSet(
+        testRrset({
+          name,
+          address: accounts[0].address,
+          inception: oldInception,
+        }),
+      ),
+    ]
+    await expect(
+      dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof2]),
+    )
+      .toBeRevertedWithCustomError('StaleProof')
+      .withArgs([dnsEncodeName(`_ens.${name}`), 16, INCEPTION, oldInception])
   })
 
   it('does not allow updates with stale records', async () => {
@@ -305,7 +316,7 @@ describe('DNSRegistrar', () => {
       address: accounts[0].address,
     })
     const newProof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         ...rrset,
         sig: {
@@ -331,7 +342,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -356,7 +367,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[1].address }),
       ),
@@ -382,7 +393,7 @@ describe('DNSRegistrar', () => {
     await publicResolver.write.setApprovalForAll([dnsRegistrar.address, true])
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -404,7 +415,7 @@ describe('DNSRegistrar', () => {
     const { dnsRegistrar } = await loadFixture()
 
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(
         testRrset({ name: 'foo.test', address: accounts[0].address }),
       ),
@@ -473,7 +484,7 @@ describe('DNSRegistrar', () => {
 
       // Build sample proof for a DNS record with name `alice.test` that alice owns
       const proofForAliceDotTest = [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: 'alice.test', address: alice.address }),
         ),
@@ -506,7 +517,7 @@ describe('DNSRegistrar', () => {
 
       // Build sample proof for a DNS record with name `alice.test` that alice owns
       const proofForAliceDotTest = [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: 'alice.test', address: alice.address }),
         ),
@@ -523,7 +534,7 @@ describe('DNSRegistrar', () => {
 
       // Build sample proof for a DNS record with name `bob.test` that bob owns
       const proofForBobDotTest = [
-        hexEncodeSignedSet(rootKeys({ expiration, inception })),
+        hexEncodeSignedSet(rootKeys()),
         hexEncodeSignedSet(
           testRrset({ name: 'bob.test', address: bob.address }),
         ),

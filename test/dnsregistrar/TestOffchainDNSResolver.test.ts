@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import {
-  Address,
+  type Address,
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
@@ -8,15 +8,12 @@ import {
   namehash,
   parseAbiParameters,
   toFunctionSelector,
-  zeroAddress,
   zeroHash,
   type Hex,
 } from 'viem'
 
 import {
-  expiration,
   hexEncodeSignedSet,
-  inception,
   rootKeys,
   rrsetWithTexts,
 } from '../fixtures/dns.js'
@@ -95,7 +92,7 @@ async function fixture() {
     calldata: Hex
   }) => {
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(rrsetWithTexts({ name, texts })),
     ]
     const response = encodeAbiParameters(
