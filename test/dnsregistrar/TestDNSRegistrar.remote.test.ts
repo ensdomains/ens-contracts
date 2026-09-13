@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 
-import { type Hex, namehash, zeroAddress } from 'viem'
+import { type Hex, namehash, parseEventLogs, zeroAddress } from 'viem'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 
@@ -91,7 +91,11 @@ describe('DNSRegistrar (Remote)', () => {
 
   // names imported and not expired
   describe('replay claims', () => {
-    const CLAIMS: { name: string; rrsets: { rrset: Hex; sig: Hex }[] }[] = [
+    const CLAIMS: {
+      name: string
+      rrsets: { rrset: Hex; sig: Hex }[]
+      events: { eventName: string; args: object; topics: Hex[]; data: Hex }[]
+    }[] = [
       {
         name: 'clinicalagent.io',
         rrsets: [
@@ -126,15 +130,114 @@ describe('DNSRegistrar (Remote)', () => {
             sig: '0x8749a9505325e129bf55eaee6a943faab1f39d4dde4edc8ef9b13f05bf1acc1ddff371cf62ab885b0308c826bccb84111beefbc6acdcae28323099bae816bc98',
           },
         ],
+        events: [
+          {
+            eventName: 'InceptionUpdated',
+            args: {
+              node: '0x0000000000000000000000000000000000000000000000000000000000000000',
+              dnstype: 48,
+              dnsname: '0x00',
+              inception: 1788912000,
+            },
+            topics: [
+              '0x31588ec50fa3691506f14570a6e100e2143dc77c4ce5b805ed775af60b12c9fc',
+              '0x0000000000000000000000000000000000000000000000000000000000000000',
+              '0x0000000000000000000000000000000000000000000000000000000000000030',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006aa0a18000000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000000',
+          },
+          {
+            eventName: 'InceptionUpdated',
+            args: {
+              node: '0xb2b692c69df4aa3b0a24634d20a3ba1b44c3299d09d6c4377577e20b09e68395',
+              dnstype: 43,
+              dnsname: '0x02696f00',
+              inception: 1789052400,
+            },
+            topics: [
+              '0x31588ec50fa3691506f14570a6e100e2143dc77c4ce5b805ed775af60b12c9fc',
+              '0xb2b692c69df4aa3b0a24634d20a3ba1b44c3299d09d6c4377577e20b09e68395',
+              '0x000000000000000000000000000000000000000000000000000000000000002b',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006aa2c5f0000000000000000000000000000000000000000000000000000000000000000402696f0000000000000000000000000000000000000000000000000000000000',
+          },
+          {
+            eventName: 'InceptionUpdated',
+            args: {
+              node: '0xb2b692c69df4aa3b0a24634d20a3ba1b44c3299d09d6c4377577e20b09e68395',
+              dnstype: 48,
+              dnsname: '0x02696f00',
+              inception: 1788965145,
+            },
+            topics: [
+              '0x31588ec50fa3691506f14570a6e100e2143dc77c4ce5b805ed775af60b12c9fc',
+              '0xb2b692c69df4aa3b0a24634d20a3ba1b44c3299d09d6c4377577e20b09e68395',
+              '0x0000000000000000000000000000000000000000000000000000000000000030',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006aa17119000000000000000000000000000000000000000000000000000000000000000402696f0000000000000000000000000000000000000000000000000000000000',
+          },
+          {
+            eventName: 'InceptionUpdated',
+            args: {
+              node: '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              dnstype: 43,
+              dnsname: '0x0d636c696e6963616c6167656e7402696f00',
+              inception: 1788965145,
+            },
+            topics: [
+              '0x31588ec50fa3691506f14570a6e100e2143dc77c4ce5b805ed775af60b12c9fc',
+              '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              '0x000000000000000000000000000000000000000000000000000000000000002b',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006aa1711900000000000000000000000000000000000000000000000000000000000000120d636c696e6963616c6167656e7402696f000000000000000000000000000000',
+          },
+          {
+            eventName: 'InceptionUpdated',
+            args: {
+              node: '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              dnstype: 48,
+              dnsname: '0x0d636c696e6963616c6167656e7402696f00',
+              inception: 1788393600,
+            },
+            topics: [
+              '0x31588ec50fa3691506f14570a6e100e2143dc77c4ce5b805ed775af60b12c9fc',
+              '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              '0x0000000000000000000000000000000000000000000000000000000000000030',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006a98b88000000000000000000000000000000000000000000000000000000000000000120d636c696e6963616c6167656e7402696f000000000000000000000000000000',
+          },
+          {
+            eventName: 'Claim',
+            args: {
+              node: '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              owner: '0x4e56cdc3C0BF18f9fCE525C0D7d526c240855c0B',
+              dnsname: '0x0d636c696e6963616c6167656e7402696f00',
+              inception: 1788393600,
+            },
+            topics: [
+              '0x87db02a0e483e2818060eddcbb3488ce44e35aff49a70d92c2aa6c8046cf01e2',
+              '0x6f79d7d43a76408c585b1d015281f6a49f4f3c9100ecca28f21a1cfa4536ce30',
+              '0x0000000000000000000000004e56cdc3c0bf18f9fce525c0d7d526c240855c0b',
+            ],
+            data: '0x0000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000006a98b88000000000000000000000000000000000000000000000000000000000000000120d636c696e6963616c6167656e7402696f000000000000000000000000000000',
+          },
+        ],
       },
     ]
     for (const x of CLAIMS) {
       it(x.name, async () => {
         const F = await loadFixture()
-        await F.newRegistrar.write.proveAndClaim([
+        const hash = await F.newRegistrar.write.proveAndClaim([
           dnsEncodeName(x.name),
           x.rrsets,
         ])
+        const publicClient = await connection.viem.getPublicClient()
+        const receipt = await publicClient.waitForTransactionReceipt({ hash })
+        const logs = parseEventLogs({
+          abi: F.newRegistrar.abi,
+          logs: receipt.logs,
+        })
+        expect(logs).toMatchObject(x.events)
       })
     }
   })
