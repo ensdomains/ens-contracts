@@ -32,7 +32,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     // A mapping of the most recent signatures seen for each type of each claimed domain.
     mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time))
         internal _inceptions;
-    /// @dev Deteremine whether a registrar was a previous DNSRegistrar deployment.
+    /// @dev A mapping to check if registrar was a previous DNSRegistrar deployment.
     mapping(address registrar => bool was) public wasRegistrar;
 
     error NoOwnerRecordFound();
@@ -187,8 +187,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         parentNode = enableNode(name.substring(offset, name.length - offset));
 
         // ensure every inception in the chain not before the stored inception
+        RRUtils.SignedSet memory ss;
         for (uint256 i; i < sss.length; ++i) {
-            RRUtils.SignedSet memory ss = sss[i];
+            ss = sss[i];
             (bytes32 node, uint32 last) = _inceptionForType(
                 ss.name,
                 ss.typeCovered
@@ -212,14 +213,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             }
         }
 
-        // the last proof must correspond to the _ens.{name} TXT record
+        // last proof must correspond to the _ens.{name} TXT record
         bool found;
-        if (sss.length > 0) {
-            (addr, found) = DNSClaimChecker.getOwnerAddress(
-                name,
-                sss[sss.length - 1].data
-            );
-        }
+        (addr, found) = DNSClaimChecker.getOwnerAddress(name, ss.data);
         if (!found) {
             revert NoOwnerRecordFound();
         }
@@ -228,7 +224,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             NameCoder.namehash(parentNode, labelHash),
             addr,
             name,
-            sss[sss.length - 1].inception
+            ss.inception
         );
     }
 
@@ -289,6 +285,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     }
 
     /// @dev Determine the last inception time for `_ens.{name}` TXT.
+    ///      Checks previous registrar if value is unset.
     /// @param parentNode Namehash of `name`.
     /// @param node Namehash of `_ens.{name}`.
     function _inceptionWithFallback(
