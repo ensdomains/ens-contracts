@@ -18,9 +18,6 @@ import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 
 error InvalidOperation();
 
-uint16 constant CLASS_INET = 1;
-uint16 constant TYPE_TXT = 16;
-
 contract OffchainDNSResolver is IExtendedResolver, IERC165 {
     using RRUtils for *;
     using Address for address;
@@ -84,7 +81,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             (DNSSEC.RRSetWithSignature[])
         );
 
-        (bytes memory data, ) = oracle.verifyRRSet(rrsets);
+        RRUtils.SignedSet[] memory sss = oracle.verifyRRSet(rrsets);
+        bytes memory data = sss[sss.length - 1].data;
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
             !iter.done();
@@ -94,8 +92,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             bytes memory rrname = RRUtils.readName(iter.data, iter.offset);
             if (
                 !rrname.equals(name) ||
-                iter.class != CLASS_INET ||
-                iter.dnstype != TYPE_TXT
+                iter.class != RRUtils.CLASS_INET ||
+                iter.dnstype != RRUtils.DNSTYPE_TXT
             ) {
                 continue;
             }
@@ -288,7 +286,7 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         revert OffchainLookup(
             address(this),
             urls,
-            abi.encodeCall(IDNSGateway.resolve, (name, TYPE_TXT)),
+            abi.encodeCall(IDNSGateway.resolve, (name, RRUtils.DNSTYPE_TXT)),
             OffchainDNSResolver.resolveCallback.selector,
             abi.encode(name, data, bytes4(0))
         );

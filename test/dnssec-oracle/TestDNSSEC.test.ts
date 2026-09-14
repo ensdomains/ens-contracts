@@ -8,9 +8,9 @@ import {
 } from 'viem'
 
 import {
-  expiration,
+  EXPIRATION,
   hexEncodeSignedSet,
-  inception,
+  INCEPTION,
   rootKeys,
 } from '../fixtures/dns.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
@@ -89,7 +89,7 @@ describe('DNSSEC', () => {
 
     const sets = test_rrsets.map(([, rrset, sig]) => ({ rrset, sig }))
 
-    const [rrs] = (await dnssec.read.verifyRRSet([
+    const sss = (await dnssec.read.verifyRRSet([
       sets,
       TEST_RRSET_TIMESTAMP,
     ])) as ReadContractReturnType<
@@ -98,13 +98,16 @@ describe('DNSSEC', () => {
       [typeof sets, bigint]
     >
 
-    const [, data, sig] = test_rrsets[test_rrsets.length - 1]
-    const expected = SignedSet.fromWire(
-      Buffer.from(data.slice(2), 'hex'),
-      Buffer.from(sig.slice(2), 'hex'),
+    expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
+      sets.map(({ rrset, sig }) =>
+        SignedSet.fromWire(
+          Buffer.from(rrset.slice(2), 'hex'),
+          Buffer.from(sig.slice(2), 'hex'),
+        )
+          .toWire(false)
+          .toString('hex'),
+      ),
     )
-
-    expect(rrs.slice(2)).toEqual(expected.toWire(false).toString('hex'))
   })
 
   it('should have a default algorithm and digest set', async () => {
@@ -147,7 +150,7 @@ describe('DNSSEC', () => {
   it('should reject signatures with non-matching algorithms', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       rrs: baseKeys.rrs.map((rr) => ({
@@ -164,7 +167,7 @@ describe('DNSSEC', () => {
   it('should reject signatures with non-matching keytags', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       rrs: [
@@ -191,7 +194,7 @@ describe('DNSSEC', () => {
   it('should accept odd-length public keys', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       rrs: [
@@ -215,7 +218,7 @@ describe('DNSSEC', () => {
   it('should reject signatures by keys without the ZK bit set', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       rrs: [
@@ -242,7 +245,7 @@ describe('DNSSEC', () => {
   it('should accept a root DNSKEY', async () => {
     const { dnssec } = await loadFixture()
 
-    const keys = rootKeys({ expiration, inception })
+    const keys = rootKeys()
 
     await expect(
       dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
@@ -253,7 +256,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'test',
@@ -266,8 +269,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -292,7 +295,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'net',
@@ -305,8 +308,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -333,7 +336,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'net',
@@ -346,8 +349,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -374,7 +377,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'net',
@@ -387,8 +390,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 2,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -415,7 +418,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'test',
@@ -428,8 +431,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: 'com',
             signature: new Buffer([]),
@@ -456,7 +459,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'xample',
@@ -469,8 +472,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -502,8 +505,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 2,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: 'xample',
             signature: new Buffer([]),
@@ -530,7 +533,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'test',
@@ -543,8 +546,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -576,8 +579,8 @@ describe('DNSSEC', () => {
             algorithm: 250,
             labels: 2,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1275,
             signersName: 'test',
             signature: new Buffer([]),
@@ -603,7 +606,7 @@ describe('DNSSEC', () => {
   it('should reject entries with expirations in the past', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       sig: {
@@ -623,7 +626,7 @@ describe('DNSSEC', () => {
   it('should reject entries with inceptions in the future', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys({ expiration, inception })
+    const baseKeys = rootKeys()
     const keys = {
       ...baseKeys,
       sig: {
@@ -662,7 +665,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'test',
@@ -675,8 +678,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -709,8 +712,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: 'foo',
             signature: new Buffer([]),
@@ -741,7 +744,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
 
     const set = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet({
         sig: {
           name: 'test',
@@ -754,8 +757,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: '.',
             signature: new Buffer([]),
@@ -788,8 +791,8 @@ describe('DNSSEC', () => {
             algorithm: 253,
             labels: 1,
             originalTTL: 3600,
-            expiration,
-            inception,
+            expiration: EXPIRATION,
+            inception: INCEPTION,
             keyTag: 1278,
             signersName: 'test',
             signature: new Buffer([]),

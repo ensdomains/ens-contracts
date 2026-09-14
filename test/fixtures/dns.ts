@@ -17,8 +17,8 @@ export const hexEncodeSignedSet = ({
 }
 
 export const validityPeriod = 2419200
-export const expiration = Date.now() / 1000 - 15 * 60 + validityPeriod
-export const inception = Date.now() / 1000 - 15 * 60
+export const INCEPTION = Math.floor(Date.now() / 1000 - 15 * 60)
+export const EXPIRATION = INCEPTION + validityPeriod
 export const rrsetWithTexts = ({
   name,
   texts,
@@ -38,8 +38,8 @@ export const rrsetWithTexts = ({
         algorithm: 253,
         labels: name.split('.').length,
         originalTTL: 3600,
-        expiration,
-        inception,
+        expiration: EXPIRATION,
+        inception: INCEPTION,
         keyTag: 1278,
         signersName: '.',
         signature: new Buffer([]),
@@ -61,9 +61,11 @@ export const rrsetWithTexts = ({
 export const testRrset = ({
   name,
   address,
+  inception = INCEPTION,
 }: {
   name: string
   address: Address
+  inception?: number
 }) =>
   ({
     sig: {
@@ -77,7 +79,7 @@ export const testRrset = ({
         algorithm: 253,
         labels: name.split('.').length + 1,
         originalTTL: 3600,
-        expiration,
+        expiration: EXPIRATION,
         inception,
         keyTag: 1278,
         signersName: '.',
@@ -96,12 +98,12 @@ export const testRrset = ({
   } as const)
 
 export const rootKeys = ({
-  expiration,
-  inception,
+  expiration = EXPIRATION,
+  inception = INCEPTION,
 }: {
-  expiration: number
-  inception: number
-}) => {
+  expiration?: number
+  inception?: number
+} = {}) => {
   var name = '.'
   var sig = {
     name: '.',
