@@ -21,6 +21,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     using Buffer for Buffer.buffer;
     using RRUtils for *;
 
+    /// @dev Precomputed labelhash of "_ens".
     bytes32 constant LABELHASH_PREFIX = keccak256("_ens");
 
     ENS public immutable ens;
@@ -31,6 +32,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     // A mapping of the most recent signatures seen for each type of each claimed domain.
     mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time))
         internal _inceptions;
+    /// @dev Deteremine whether a registrar was a previous DNSRegistrar deployment.
     mapping(address registrar => bool was) public wasRegistrar;
 
     error NoOwnerRecordFound();
@@ -58,13 +60,24 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         uint32 inception
     );
     event NewPublicSuffixList(address suffixes);
+
+    /// @notice A claim updated a stored inception.
+    /// @param node Namehash of the name.
+    /// @param name DNS-encoded name.
+    /// @param typeCovered DNS resource record type.
+    /// @param inception Inception time, in seconds.
     event InceptionUpdated(
         bytes32 indexed node,
-        bytes dnsname,
-        uint16 indexed dnstype,
+        bytes name,
+        uint16 indexed typeCovered,
         uint32 inception
     );
 
+    /// @param previousRegistrars Addresses of previous DNSRegistrars. The first must be null or implement `inceptions(bytes32)`.
+    /// @param _resolver Gasless DNSSEC resolver.
+    /// @param _dnssec Shared DNSSEC implementation.
+    /// @param _suffixes Shared PublicSuffixList implementation.
+    /// @param _ens ENSv1 root registry.
     constructor(
         address[] memory previousRegistrars,
         address _resolver,
@@ -72,12 +85,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         PublicSuffixList _suffixes,
         ENS _ens
     ) {
-        address last;
-        for (uint256 i; i < previousRegistrars.length; ++i) {
-            last = previousRegistrars[i];
-            wasRegistrar[last] = true;
+        if (previousRegistrars.length > 0) {
+            previousRegistrar = previousRegistrars[0]; // remember the latest
+            for (uint256 i; i < previousRegistrars.length; ++i) {
+                wasRegistrar[previousRegistrars[i]] = true;
+            }
         }
-        previousRegistrar = last;
         resolver = _resolver;
         oracle = _dnssec;
         suffixes = _suffixes;
@@ -173,6 +186,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         // Make sure the parent name is enabled
         parentNode = enableNode(name.substring(offset, name.length - offset));
 
+        // ensure every inception in the chain not before the stored inception
         for (uint256 i; i < sss.length; ++i) {
             RRUtils.SignedSet memory ss = sss[i];
             (bytes32 node, uint32 last) = _inceptionForType(
@@ -198,6 +212,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             }
         }
 
+        // the last proof must correspond to the _ens.{name} TXT record
         bool found;
         if (sss.length > 0) {
             (addr, found) = DNSClaimChecker.getOwnerAddress(
@@ -273,7 +288,9 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
             : _inceptions[node][typeCovered];
     }
 
-    /// @dev Determine the last inception time of a TXT record.
+    /// @dev Determine the last inception time for `_ens.{name}` TXT.
+    /// @param parentNode Namehash of `name`.
+    /// @param node Namehash of `_ens.{name}`.
     function _inceptionWithFallback(
         bytes32 parentNode,
         bytes32 node

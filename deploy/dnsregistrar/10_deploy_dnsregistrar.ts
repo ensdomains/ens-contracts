@@ -2,7 +2,7 @@ import { artifacts, deployScript } from '@rocketh'
 import { getAddress, zeroAddress, type Address } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts, network }) => {
+  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts }) => {
     const { deployer, owner } = namedAccounts
 
     const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
@@ -15,32 +15,37 @@ export default deployScript(
       (typeof artifacts.SimplePublicSuffixList)['abi']
     >('SimplePublicSuffixList')
 
-    console.log('  - Searching for old registrars...');
-    let oldRegistrarAddress: Address | undefined = getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')?.address;
-    const previousRegistrars: Address[] = [];
+    console.log('  - Searching for old registrars...')
+    let oldRegistrarAddress: Address | undefined =
+      getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')?.address
+    const oldRegistrars: Address[] = []
     if (oldRegistrarAddress) {
       while (true) {
-        previousRegistrars.push(oldRegistrarAddress);
+        oldRegistrars.push(oldRegistrarAddress)
         try {
-          oldRegistrarAddress = await read({
-            address: oldRegistrarAddress,
-            abi: artifacts.DNSRegistrar.abi
-          }, {
-            functionName: 'previousRegistrar'
-          });
-          if (oldRegistrarAddress === zeroAddress) break;
+          oldRegistrarAddress = await read(
+            {
+              address: oldRegistrarAddress,
+              abi: artifacts.DNSRegistrar.abi,
+            },
+            { functionName: 'previousRegistrar' },
+          )
+          if (oldRegistrarAddress === zeroAddress) break
         } catch {
           break
         }
       }
     }
-    console.table(oldRegistrarAddress);
-  
+    console.log(`  - Found ${oldRegistrars.length} old registrars`)
+    if (oldRegistrars.length) {
+      console.table(oldRegistrars)
+    }
+
     const dnsRegistrar = await deploy('DNSRegistrar', {
       account: deployer,
       artifact: artifacts.DNSRegistrar,
       args: [
-        previousRegistrars,
+        oldRegistrars,
         resolver.address,
         dnssec.address,
         publicSuffixList.address,
