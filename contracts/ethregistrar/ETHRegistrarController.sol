@@ -340,8 +340,12 @@ contract ETHRegistrarController is
             registration.referrer
         );
 
-        if (msg.value > totalPrice)
-            payable(msg.sender).transfer(msg.value - totalPrice);
+        if (msg.value > totalPrice) {
+            (bool success, ) = payable(msg.sender).call{
+                value: msg.value - totalPrice
+            }("");
+            require(success);
+        }
     }
 
     /// @notice Renews a name.
@@ -367,13 +371,20 @@ contract ETHRegistrarController is
 
         emit NameRenewed(label, labelhash, price.base, expires, referrer);
 
-        if (msg.value > price.base)
-            payable(msg.sender).transfer(msg.value - price.base);
+        if (msg.value > price.base) {
+            (bool success, ) = payable(msg.sender).call{
+                value: msg.value - price.base
+            }("");
+            require(success);
+        }
     }
 
     /// @notice Withdraws the balance of the contract to the owner.
     function withdraw() public {
-        payable(owner()).transfer(address(this).balance);
+        (bool success, ) = payable(owner()).call{
+            value: address(this).balance
+        }("");
+        require(success);
     }
 
     /// @inheritdoc IERC165
