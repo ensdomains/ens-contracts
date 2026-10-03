@@ -16,7 +16,8 @@ import {
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
 import { fetchDNSSECOracleRRSets } from '../fixtures/dnssecOracle.js'
 import { getAccounts } from '../fixtures/utils.js'
-import { realAnchors } from '../fixtures/anchors.js'
+import { encodeAnchors, realAnchors } from '../fixtures/anchors.js'
+import { a } from 'vitest/dist/chunks/suite.d.FvehnV49.js'
 
 const TEST_RRSET_TIMESTAMP = 1552658805n
 
@@ -137,6 +138,8 @@ describe('DNSSEC', () => {
         account: accounts[1],
       }),
     ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+
+    await expect(dnssec.write.setAnchors(['0x'])).not.toBeReverted()
   })
 
   it('should only allow the owner to set digests', async () => {
@@ -147,6 +150,8 @@ describe('DNSSEC', () => {
         account: accounts[1],
       }),
     ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+
+    await expect(dnssec.write.setDigest([1, dnssec.address])).not.toBeReverted()
   })
 
   it('should only allow the owner to set algorithms', async () => {
@@ -157,6 +162,10 @@ describe('DNSSEC', () => {
         account: accounts[1],
       }),
     ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+
+    await expect(
+      dnssec.write.setAlgorithm([1, dnssec.address]),
+    ).not.toBeReverted()
   })
 
   it('should reject signatures with non-matching algorithms', async () => {
@@ -859,35 +868,39 @@ describe('DNSSEC', () => {
       },
     ] as const
 
-    async function dnssecWithKeyTag(keyTag: number) {
-      const { dnssec } = await dnssecFixture(
-        connection,
-        realAnchors.filter((x) => x.data.keyTag === keyTag),
-      )
-      return dnssec
-    }
-
-    // this should fail without 38696 but instead fails without 20326
-    await expect(
-      (await dnssecWithKeyTag(38696)).read.verifyRRSet([rrsets]),
-    ).toBeReverted()
-    await expect(
-      (await dnssecWithKeyTag(20326)).read.verifyRRSet([rrsets]),
-    ).not.toBeReverted()
+    const { dnssec } = await loadFixture()
+    // this should fail without 38696
+    await dnssec.write.setAnchors([
+      encodeAnchors(realAnchors.filter((x) => x.data.keyTag === 38696)),
+    ])
+    await expect(dnssec.read.verifyRRSet([rrsets])).toBeReverted()
+    // but instead fails without 20326
+    await dnssec.write.setAnchors([
+      encodeAnchors(realAnchors.filter((x) => x.data.keyTag === 20326)),
+    ])
+    await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
   })
 
   describe('Cloudflare Test Cases', () => {
     // https://dnstest.dev/
-    // https://dnstest.dev/ksk-2024/
-
     for (const name of [
       'valid.alg13.dnstest.dev',
-      //'root-key-sentinel-is-ta-38696.dnstest.dev', // 20261003: empty response from oracle
+      'invalid.alg13.dnstest.dev',
+      'expired.alg13.dnstest.dev',
+      'invalid-dnskey.alg13.dnstest.dev',
+      'expired-dnskey.alg13.dnstest.dev',
+      // 'root-key-sentinel-is-ta-38696.dnstest.dev', // 20261003: empty response from oracle
     ]) {
       it(name, async () => {
         const { dnssec } = await loadFixture()
         const rrsets = await fetchDNSSECOracleRRSets(name)
-        await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
+        if (/(invalid|expired)/.test(name)) {
+          if (rrsets.length) {
+            await expect(dnssec.read.verifyRRSet([rrsets])).toBeReverted()
+          }
+        } else {
+          await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
+        }
       })
     }
   })
