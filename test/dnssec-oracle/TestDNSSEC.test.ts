@@ -14,6 +14,7 @@ import {
   rootKeys,
 } from '../fixtures/dns.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
+import { fetchDNSSECOracleRRSets } from '../fixtures/dnssecOracle.js'
 import { getAccounts } from '../fixtures/utils.js'
 
 const TEST_RRSET_TIMESTAMP = 1552658805n
@@ -825,5 +826,21 @@ describe('DNSSEC', () => {
     ]
 
     await expect(dnssec.read.verifyRRSet([set])).not.toBeReverted()
+  })
+
+  describe('Cloudflare Test Cases', () => {
+    // https://dnstest.dev/
+    // https://dnstest.dev/ksk-2024/
+
+    for (const name of [
+      'valid.alg13.dnstest.dev',
+      //'root-key-sentinel-is-ta-38696.dnstest.dev', // 20261003: empty response from oracle
+    ]) {
+      it(name, async () => {
+        const { dnssec } = await loadFixture()
+        const rrsets = await fetchDNSSECOracleRRSets(name)
+        await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
+      })
+    }
   })
 })

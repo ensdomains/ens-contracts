@@ -1,5 +1,4 @@
 import packet from 'dns-packet'
-import type { Hex } from 'viem'
 
 // https://data.iana.org/root-anchors/root-anchors.xml
 export const realAnchors: packet.Ds[] = [
@@ -50,8 +49,8 @@ export const dummyAnchor: packet.Ds = {
   },
 }
 
-export function encodeAnchors(anchors: packet.Ds[]): Hex {
+export function encodeAnchors(anchors: packet.Ds[]) {
   return `0x${Buffer.concat(
     anchors.map((x) => packet.answer.encode(x)),
-  ).toString('hex')}`
+  ).toString('hex')}` as const
 }
