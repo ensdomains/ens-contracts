@@ -127,6 +127,16 @@ describe('DNSSEC', () => {
     )
   })
 
+  it('should only allow the owner to set anchors', async () => {
+    const { dnssec } = await loadFixture()
+
+    await expect(
+      dnssec.write.setAnchors(['0x'], {
+        account: accounts[1],
+      }),
+    ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
+  })
+
   it('should only allow the owner to set digests', async () => {
     const { dnssec } = await loadFixture()
 
@@ -134,7 +144,7 @@ describe('DNSSEC', () => {
       dnssec.write.setDigest([1, accounts[1].address], {
         account: accounts[1],
       }),
-    ).toBeRevertedWithoutReason()
+    ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
   })
 
   it('should only allow the owner to set algorithms', async () => {
@@ -144,7 +154,7 @@ describe('DNSSEC', () => {
       dnssec.write.setAlgorithm([1, accounts[1].address], {
         account: accounts[1],
       }),
-    ).toBeRevertedWithoutReason()
+    ).toBeRevertedWithCustomError('OwnableUnauthorizedAccount')
   })
 
   it('should reject signatures with non-matching algorithms', async () => {

@@ -2,8 +2,10 @@ import { artifacts, deployScript } from '@rocketh'
 import packet from 'dns-packet'
 import type { Hex } from 'viem'
 
-const realAnchors = [
+// https://data.iana.org/root-anchors/root-anchors.xml
+const realAnchors: packet.Ds[] = [
   {
+    // <KeyDigest id="Kjqmt7v" validFrom="2010-07-15T00:00:00+00:00" validUntil="2019-01-11T00:00:00+00:00">
     name: '.',
     type: 'DS',
     class: 'IN',
@@ -19,6 +21,7 @@ const realAnchors = [
     },
   },
   {
+    // <KeyDigest id="Klajeyz" validFrom="2017-02-02T00:00:00+00:00">
     name: '.',
     type: 'DS',
     class: 'IN',
@@ -33,9 +36,25 @@ const realAnchors = [
       ),
     },
   },
+  {
+    // KeyDigest id="Kmyv6jo" validFrom="2024-07-18T00:00:00+00:00"
+    name: '.',
+    type: "DS",
+    class: 'in',
+    ttl: 3600,
+    data: {
+      keyTag: 38696,
+      algorithm: 8,
+      digestType: 2,
+      digest: Buffer.from(
+        '683D2D0ACB8C9B712A1948B27F741219298D0A450D612C483AF444A4C0FB2B16',
+        'hex'
+      )
+    }
+  }
 ]
 
-const dummyAnchor = {
+const dummyAnchor: packet.Ds = {
   name: '.',
   type: 'DS',
   class: 'IN',
@@ -48,7 +67,7 @@ const dummyAnchor = {
   },
 }
 
-function encodeAnchors(anchors: any[]): Hex {
+function encodeAnchors(anchors: packet.Ds[]): Hex {
   return `0x${anchors
     .map((anchor) => {
       return packet.answer.encode(anchor).toString('hex')

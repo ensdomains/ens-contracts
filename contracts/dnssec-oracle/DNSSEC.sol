@@ -1,6 +1,5 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
-pragma experimental ABIEncoderV2;
 
 import {RRUtils} from "./RRUtils.sol";
 
@@ -12,6 +11,7 @@ abstract contract DNSSEC {
         bytes sig;
     }
 
+    event AnchorsUpdated(bytes);
     event AlgorithmUpdated(uint8 id, address addr);
     event DigestUpdated(uint8 id, address addr);
 

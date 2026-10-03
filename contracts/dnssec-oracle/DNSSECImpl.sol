@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
-pragma experimental ABIEncoderV2;
 
-import "./Owned.sol";
+import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 import "./RRUtils.sol";
 import "./DNSSEC.sol";
 import "./algorithms/Algorithm.sol";
@@ -19,14 +18,10 @@ import "@ensdomains/buffer/contracts/Buffer.sol";
  *       - Canonical form of names is not checked; in ENS this is done on the frontend, so submitting
  *         proofs with non-canonical names will only result in registering unresolvable ENS names.
  */
-contract DNSSECImpl is DNSSEC, Owned {
+contract DNSSECImpl is DNSSEC, Ownable {
     using Buffer for Buffer.buffer;
     using BytesUtils for bytes;
     using RRUtils for *;
-
-    uint16 constant DNSCLASS_IN = 1;
-
-    uint256 constant DNSKEY_FLAG_ZONEKEY = 0x100;
 
     error InvalidLabelCount(bytes name, uint256 labelsExpected);
     error SignatureNotValidYet(uint32 inception, uint32 now);
@@ -44,31 +39,40 @@ contract DNSSECImpl is DNSSEC, Owned {
 
     /// @dev Constructor.
     /// @param _anchors The binary format RR entries for the root DS records.
-    constructor(bytes memory _anchors) {
+    constructor(bytes memory _anchors) Ownable(msg.sender) {
         // Insert the 'trust anchors' - the key hashes that start the chain
         // of trust for all other records.
         anchors = _anchors;
+        emit AnchorsUpdated(_anchors);
     }
 
-    /// @dev Sets the contract address for a signature verification algorithm.
-    ///      Callable only by the owner.
+    /// @notice Sets the root anchors.
+    ///         Callable only by the owner.
+    /// @param _anchors The new anchors.
+    function setAnchors(bytes calldata _anchors) external onlyOwner {
+        anchors = _anchors;
+        emit AnchorsUpdated(_anchors);
+    }
+
+    /// @notice Sets the contract address for a signature verification algorithm.
+    ///         Callable only by the owner.
     /// @param id The algorithm ID
     /// @param algo The address of the algorithm contract.
-    function setAlgorithm(uint8 id, Algorithm algo) public owner_only {
+    function setAlgorithm(uint8 id, Algorithm algo) external onlyOwner {
         algorithms[id] = algo;
         emit AlgorithmUpdated(id, address(algo));
     }
 
-    /// @dev Sets the contract address for a digest verification algorithm.
-    ///      Callable only by the owner.
+    /// @notice Sets the contract address for a digest verification algorithm.
+    ///         Callable only by the owner.
     /// @param id The digest ID
     /// @param digest The address of the digest contract.
-    function setDigest(uint8 id, Digest digest) public owner_only {
+    function setDigest(uint8 id, Digest digest) external onlyOwner {
         digests[id] = digest;
         emit DigestUpdated(id, address(digest));
     }
 
-    /// @dev Convenience for `verifyRRSet(input, block.timestamp)`.
+    /// @notice Convenience for `verifyRRSet(input, block.timestamp)`.
     /// @param input A list of signed RRSets.
     /// @return Array of signed sets.
     function verifyRRSet(
@@ -77,8 +81,8 @@ contract DNSSECImpl is DNSSEC, Owned {
         return verifyRRSet(input, uint32(block.timestamp));
     }
 
-    /// @dev Takes a chain of signed DNS records, verifies them, and returns the array of signed sets.
-    ///      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
+    /// @notice Takes a chain of signed DNS records, verifies them, and returns the array of signed sets.
+    ///         Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
     /// @param input A list of signed RRSets.
     /// @param currentTime The Unix timestamp to validate the records at.
     /// @return sss Array of signed sets.
@@ -157,7 +161,7 @@ contract DNSSECImpl is DNSSEC, Owned {
             iter.next()
         ) {
             // We only support class IN (Internet)
-            if (iter.class != DNSCLASS_IN) {
+            if (iter.class != RRUtils.CLASS_INET) {
                 revert InvalidClass(iter.class);
             }
 
@@ -271,7 +275,7 @@ contract DNSSECImpl is DNSSEC, Owned {
         // o The matching DNSKEY RR MUST be present in the zone's apex DNSKEY
         //   RRset, and MUST have the Zone Flag bit (DNSKEY RDATA Flag bit 7)
         //   set.
-        if (dnskey.flags & DNSKEY_FLAG_ZONEKEY == 0) {
+        if (dnskey.flags & RRUtils.DNSKEY_FLAG_ZONEKEY == 0) {
             return false;
         }
 
