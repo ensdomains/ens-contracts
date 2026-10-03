@@ -5,22 +5,6 @@ import type { Hex } from 'viem'
 // https://data.iana.org/root-anchors/root-anchors.xml
 const realAnchors: packet.Ds[] = [
   {
-    // <KeyDigest id="Kjqmt7v" validFrom="2010-07-15T00:00:00+00:00" validUntil="2019-01-11T00:00:00+00:00">
-    name: '.',
-    type: 'DS',
-    class: 'IN',
-    ttl: 3600,
-    data: {
-      keyTag: 19036,
-      algorithm: 8,
-      digestType: 2,
-      digest: Buffer.from(
-        '49AAC11D7B6F6446702E54A1607371607A1A41855200FD2CE1CDDE32F24E8FB5',
-        'hex',
-      ),
-    },
-  },
-  {
     // <KeyDigest id="Klajeyz" validFrom="2017-02-02T00:00:00+00:00">
     name: '.',
     type: 'DS',
