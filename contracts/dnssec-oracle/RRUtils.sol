@@ -77,6 +77,8 @@ library RRUtils {
     uint16 constant DNSTYPE_DS = 43;
     uint16 constant DNSTYPE_DNSKEY = 48;
 
+    uint256 constant DNSKEY_FLAG_ZONEKEY = 0x100;
+
     struct SignedSet {
         uint16 typeCovered;
         uint8 algorithm;

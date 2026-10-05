@@ -1,9 +1,12 @@
 import type { NetworkConnection } from 'hardhat/types/network'
-import { encodedAnchors } from './anchors.js'
+import { encodeAnchors, realAnchors, dummyAnchor } from './anchors.js'
 
-export async function dnssecFixture(connection: NetworkConnection) {
+export async function dnssecFixture(
+  connection: NetworkConnection,
+  anchors = [...realAnchors, dummyAnchor],
+) {
   const dnssec = await connection.viem.deployContract('DNSSECImpl', [
-    encodedAnchors,
+    encodeAnchors(anchors),
   ])
 
   const rsasha256Algorithm = await connection.viem.deployContract(
