@@ -16,8 +16,7 @@ import {
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
 import { fetchDNSSECOracleRRSets } from '../fixtures/dnssecOracle.js'
 import { getAccounts } from '../fixtures/utils.js'
-import { encodeAnchors, realAnchors } from '../fixtures/anchors.js'
-import { a } from 'vitest/dist/chunks/suite.d.FvehnV49.js'
+import { encodeAnchors, REAL_ANCHORS } from '../fixtures/anchors.js'
 
 const TEST_RRSET_TIMESTAMP = 1552658805n
 
@@ -871,12 +870,12 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
     // this should fail without 38696
     await dnssec.write.setAnchors([
-      encodeAnchors(realAnchors.filter((x) => x.data.keyTag === 38696)),
+      encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 38696)),
     ])
     await expect(dnssec.read.verifyRRSet([rrsets])).toBeReverted()
     // but instead fails without 20326
     await dnssec.write.setAnchors([
-      encodeAnchors(realAnchors.filter((x) => x.data.keyTag === 20326)),
+      encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 20326)),
     ])
     await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
   })

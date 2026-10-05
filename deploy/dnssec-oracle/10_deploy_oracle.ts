@@ -1,15 +1,15 @@
 import { artifacts, deployScript } from '@rocketh'
 import {
   encodeAnchors,
-  realAnchors,
-  dummyAnchor,
+  REAL_ANCHORS,
+  DUMMY_ANCHORS,
 } from '../../test/fixtures/anchors.js'
 
 export default deployScript(
   async ({ deploy, get, execute: write, namedAccounts, network }) => {
     const { deployer } = namedAccounts
 
-    const anchors = realAnchors.slice()
+    const anchors = REAL_ANCHORS.slice()
     const algorithms: Record<number, string> = {
       5: 'RSASHA1Algorithm',
       7: 'RSASHA1Algorithm',
@@ -22,7 +22,7 @@ export default deployScript(
     }
 
     if (network.tags?.test) {
-      anchors.push(dummyAnchor)
+      anchors.push(DUMMY_ANCHORS)
       algorithms[253] = 'DummyAlgorithm'
       algorithms[254] = 'DummyAlgorithm'
       digests[253] = 'DummyDigest'

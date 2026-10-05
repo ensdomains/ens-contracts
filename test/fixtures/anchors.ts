@@ -1,7 +1,7 @@
 import packet from 'dns-packet'
 
 // https://data.iana.org/root-anchors/root-anchors.xml
-export const realAnchors: packet.Ds[] = [
+export const REAL_ANCHORS: packet.Ds[] = [
   {
     // <KeyDigest id="Klajeyz" validFrom="2017-02-02T00:00:00+00:00">
     name: '.',
@@ -36,7 +36,7 @@ export const realAnchors: packet.Ds[] = [
   },
 ]
 
-export const dummyAnchor: packet.Ds = {
+export const DUMMY_ANCHORS: packet.Ds = {
   name: '.',
   type: 'DS',
   class: 'IN',
