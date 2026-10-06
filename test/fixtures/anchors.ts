@@ -22,7 +22,7 @@ export const REAL_ANCHORS: packet.Ds[] = [
     // KeyDigest id="Kmyv6jo" validFrom="2024-07-18T00:00:00+00:00"
     name: '.',
     type: 'DS',
-    class: 'in',
+    class: 'IN',
     ttl: 3600,
     data: {
       keyTag: 38696,

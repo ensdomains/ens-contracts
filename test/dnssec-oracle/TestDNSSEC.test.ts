@@ -1,11 +1,6 @@
 import { SignedSet } from '@ensdomains/dnsprovejs'
 import hre from 'hardhat'
-import {
-  stringToHex,
-  zeroAddress,
-  type Hex,
-  type ReadContractReturnType,
-} from 'viem'
+import { stringToHex, type Hex } from 'viem'
 
 import {
   EXPIRATION,
@@ -13,10 +8,10 @@ import {
   INCEPTION,
   rootKeys,
 } from '../fixtures/dns.js'
+import { encodeAnchors, REAL_ANCHORS } from '../fixtures/anchors.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
 import { fetchDNSSECOracleRRSets } from '../fixtures/dnssecOracle.js'
 import { getAccounts } from '../fixtures/utils.js'
-import { encodeAnchors, REAL_ANCHORS } from '../fixtures/anchors.js'
 
 const TEST_RRSET_TIMESTAMP = 1552658805n
 
@@ -91,14 +86,7 @@ describe('DNSSEC', () => {
 
     const sets = test_rrsets.map(([, rrset, sig]) => ({ rrset, sig }))
 
-    const sss = (await dnssec.read.verifyRRSet([
-      sets,
-      TEST_RRSET_TIMESTAMP,
-    ])) as ReadContractReturnType<
-      (typeof dnssec)['abi'],
-      'verifyRRSet',
-      [typeof sets, bigint]
-    >
+    const sss = await dnssec.read.verifyRRSetAt([sets, TEST_RRSET_TIMESTAMP])
 
     expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
       sets.map(({ rrset, sig }) =>
@@ -112,20 +100,22 @@ describe('DNSSEC', () => {
     )
   })
 
-  it('should have a default algorithm and digest set', async () => {
-    const { dnssec } = await loadFixture()
-
-    await expect(dnssec.read.algorithms([8])).not.resolves.toEqualAddress(
-      zeroAddress,
+  it('should have a default anchors, algorithms, and digests', async () => {
+    const F = await loadFixture()
+    await expect(F.dnssec.read.anchors()).resolves.toStrictEqual(
+      encodeAnchors(F.anchors),
     )
-    await expect(dnssec.read.algorithms([253])).not.resolves.toEqualAddress(
-      zeroAddress,
+    await expect(F.dnssec.read.algorithms([8])).resolves.toEqualAddress(
+      F.rsasha256Algorithm.address,
     )
-    await expect(dnssec.read.digests([2])).not.resolves.toEqualAddress(
-      zeroAddress,
+    await expect(F.dnssec.read.algorithms([253])).resolves.toEqualAddress(
+      F.dummyAlgorithm.address,
     )
-    await expect(dnssec.read.digests([253])).not.resolves.toEqualAddress(
-      zeroAddress,
+    await expect(F.dnssec.read.digests([2])).resolves.toEqualAddress(
+      F.sha256Digest.address,
+    )
+    await expect(F.dnssec.read.digests([253])).resolves.toEqualAddress(
+      F.dummyDigest.address,
     )
   })
 
@@ -167,6 +157,13 @@ describe('DNSSEC', () => {
     ).not.toBeReverted()
   })
 
+  it('should reject empty signatures', async () => {
+    const { dnssec } = await loadFixture()
+    await expect(dnssec.read.verifyRRSetNow([[]])).toBeRevertedWithCustomError(
+      'InvalidRRSet',
+    )
+  })
+
   it('should reject signatures with non-matching algorithms', async () => {
     const { dnssec } = await loadFixture()
 
@@ -180,447 +177,437 @@ describe('DNSSEC', () => {
     }
 
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)]]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should reject signatures with non-matching keytags', async () => {
     const { dnssec } = await loadFixture()
-
-    const baseKeys = rootKeys()
-    const keys = {
-      ...baseKeys,
-      rrs: [
-        {
-          name: '.',
-          type: 'DNSKEY',
-          class: 'IN',
-          ttl: 3600,
-          data: {
-            flags: 0x0101,
-            protocol: 3,
-            algorithm: 253,
-            key: Buffer.from('1112', 'hex'),
-          },
-        },
-      ],
-    } as const
-
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet({
+            ...rootKeys(),
+            rrs: [
+              {
+                name: '.',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0101,
+                  algorithm: 253,
+                  key: Buffer.from('1112', 'hex'),
+                },
+              },
+            ],
+          }),
+        ],
+      ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should accept odd-length public keys', async () => {
     const { dnssec } = await loadFixture()
-
-    const baseKeys = rootKeys()
-    const keys = {
-      ...baseKeys,
-      rrs: [
-        {
-          name: '.',
-          type: 'DNSKEY',
-          data: {
-            flags: 257,
-            algorithm: 253,
-            key: Buffer.from('00', 'hex'),
-          },
-        },
-      ],
-    } as const
-
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet({
+            ...rootKeys(),
+            rrs: [
+              {
+                name: '.',
+                type: 'DNSKEY',
+                data: {
+                  flags: 257,
+                  algorithm: 253,
+                  key: Buffer.from('00', 'hex'),
+                },
+              },
+            ],
+          }),
+        ],
+      ]),
     ).not.toBeReverted()
   })
 
   it('should reject signatures by keys without the ZK bit set', async () => {
     const { dnssec } = await loadFixture()
-
-    const baseKeys = rootKeys()
-    const keys = {
-      ...baseKeys,
-      rrs: [
-        {
-          name: '.',
-          type: 'DNSKEY',
-          class: 'IN',
-          ttl: 3600,
-          data: {
-            flags: 0x0001,
-            protocol: 3,
-            algorithm: 253,
-            key: Buffer.from('1211', 'hex'),
-          },
-        },
-      ],
-    } as const
-
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet({
+            ...rootKeys(),
+            rrs: [
+              {
+                name: '.',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0001,
+                  algorithm: 253,
+                  key: Buffer.from('1211', 'hex'),
+                },
+              },
+            ],
+          }),
+        ],
+      ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should accept a root DNSKEY', async () => {
     const { dnssec } = await loadFixture()
-
-    const keys = rootKeys()
-
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rootKeys())]]),
     ).not.toBeReverted()
   })
 
   it('should accept a signed rrset', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('test', 'ascii')],
-          },
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'test',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('test', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).not.toBeReverted()
+      ]),
+    ).not.toBeReverted()
   })
 
   it('should reject signatures with non-IN classes', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'net',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'CH',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'net',
-            type: 'TXT',
-            class: 'CH',
-            ttl: 3600,
-            data: [Buffer.from('foo', 'ascii')],
-          },
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'net',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'CH',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'net',
+                type: 'TXT',
+                class: 'CH',
+                ttl: 3600,
+                data: [Buffer.from('foo', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'InvalidClass',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('InvalidClass')
   })
 
   it('should reject signatures with the wrong type covered', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'net',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DS',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'net',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('foo', 'ascii')],
-          },
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'net',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DS',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'net',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('foo', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'SignatureTypeMismatch',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('SignatureTypeMismatch')
   })
 
   it('should reject signatures with too many labels', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'net',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 253,
-            labels: 2,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'net',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('foo', 'ascii')],
-          },
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'net',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 253,
+                labels: 2,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'net',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('foo', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'InvalidLabelCount',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('InvalidLabelCount')
   })
 
   it('should reject signatures with invalid signer names', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: 'com',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('test', 'ascii')],
-          },
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: 'com',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'test',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('test', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'InvalidSignerName',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('InvalidSignerName')
   })
 
   it('should reject signatures with invalid signer names (2)', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'xample',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DNSKEY',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'xample',
-            type: 'DNSKEY',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              flags: 0x0101,
-              algorithm: 253,
-              key: Buffer.from('0000', 'hex'),
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'xample',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DNSKEY',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
             },
-          },
+            rrs: [
+              {
+                name: 'xample',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0101,
+                  algorithm: 253,
+                  key: Buffer.from('0000', 'hex'),
+                },
+              },
+            ],
+          }),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test.e\x06xample',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 253,
+                labels: 2,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: 'xample',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'test.e\x06xample',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('Test', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test.e\x06xample',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 253,
-            labels: 2,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: 'xample',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test.e\x06xample',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('Test', 'ascii')],
-          },
-        ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'InvalidSignerName',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('InvalidSignerName')
   })
 
   it('should reject signatures with unknown algorithms', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DNSKEY',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'DNSKEY',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              flags: 0x0101,
-              algorithm: 250,
-              key: Buffer.from('0000', 'hex'),
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DNSKEY',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
             },
-          },
+            rrs: [
+              {
+                name: 'test',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0101,
+                  algorithm: 250,
+                  key: Buffer.from('0000', 'hex'),
+                },
+              },
+            ],
+          }),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test.test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'TXT',
+                algorithm: 250,
+                labels: 2,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1275,
+                signersName: 'test',
+                signature: Buffer.from([]),
+              },
+            },
+            rrs: [
+              {
+                name: 'test.test',
+                type: 'TXT',
+                class: 'IN',
+                ttl: 3600,
+                data: [Buffer.from('Test', 'ascii')],
+              },
+            ],
+          }),
         ],
-      }),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test.test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'TXT',
-            algorithm: 250,
-            labels: 2,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1275,
-            signersName: 'test',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test.test',
-            type: 'TXT',
-            class: 'IN',
-            ttl: 3600,
-            data: [Buffer.from('Test', 'ascii')],
-          },
-        ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'NoMatchingProof',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should reject entries with expirations in the past', async () => {
@@ -639,7 +626,7 @@ describe('DNSSEC', () => {
     }
 
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)]]),
     ).toBeRevertedWithCustomError('SignatureExpired')
   })
 
@@ -659,182 +646,175 @@ describe('DNSSEC', () => {
     }
 
     await expect(
-      dnssec.read.verifyRRSet([[hexEncodeSignedSet(keys)]]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)]]),
     ).toBeRevertedWithCustomError('SignatureNotValidYet')
   })
 
   it('should reject invalid RSA signatures', async () => {
     const { dnssec } = await loadFixture()
 
-    const sig = test_rrsets[0][2]
+    const [, rrset, sig0] = test_rrsets[0]
+    const sig = `${sig0.slice(0, -2)}ff` as Hex // wrong
 
     await expect(
-      dnssec.read.verifyRRSet([
-        [
-          {
-            rrset: test_rrsets[0][1],
-            sig: `${sig.slice(0, sig.length - 2)}FF` as Hex,
-          },
-        ],
-        TEST_RRSET_TIMESTAMP,
-      ]),
+      dnssec.read.verifyRRSetAt([[{ rrset, sig }], TEST_RRSET_TIMESTAMP]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should reject DS proofs with the wrong name', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DS',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'DS',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
-              algorithm: 253,
-              digestType: 253,
-              digest: new Buffer('', 'hex'),
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DS',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
             },
-          },
-        ],
-      }),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'foo',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DNSKEY',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: 'foo',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'foo',
-            type: 'DNSKEY',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              flags: 0x0101,
-              algorithm: 253,
-              key: Buffer.from('0000', 'hex'),
+            rrs: [
+              {
+                name: 'test',
+                type: 'DS',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
+                  algorithm: 253,
+                  digestType: 253,
+                  digest: new Buffer('', 'hex'),
+                },
+              },
+            ],
+          }),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'foo',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DNSKEY',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: 'foo',
+                signature: Buffer.from([]),
+              },
             },
-          },
+            rrs: [
+              {
+                name: 'foo',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0101,
+                  algorithm: 253,
+                  key: Buffer.from('0000', 'hex'),
+                },
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).toBeRevertedWithCustomError(
-      'ProofNameMismatch',
-    )
+      ]),
+    ).toBeRevertedWithCustomError('ProofNameMismatch')
   })
 
   it('should accept a self-signed set using DS records', async () => {
     const { dnssec } = await loadFixture()
-
-    const set = [
-      hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DS',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: '.',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'DS',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
-              algorithm: 253,
-              digestType: 253,
-              digest: new Buffer('', 'hex'),
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DS',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: '.',
+                signature: Buffer.from([]),
+              },
             },
-          },
-        ],
-      }),
-      hexEncodeSignedSet({
-        sig: {
-          name: 'test',
-          type: 'RRSIG',
-          ttl: 0,
-          class: 'IN',
-          flush: false,
-          data: {
-            typeCovered: 'DNSKEY',
-            algorithm: 253,
-            labels: 1,
-            originalTTL: 3600,
-            expiration: EXPIRATION,
-            inception: INCEPTION,
-            keyTag: 1278,
-            signersName: 'test',
-            signature: new Buffer([]),
-          },
-        },
-        rrs: [
-          {
-            name: 'test',
-            type: 'DNSKEY',
-            class: 'IN',
-            ttl: 3600,
-            data: {
-              flags: 0x0101,
-              algorithm: 253,
-              key: Buffer.from('0000', 'hex'),
+            rrs: [
+              {
+                name: 'test',
+                type: 'DS',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  keyTag: 1278, // Empty body, flags == 0x0101, algorithm = 253, body = 0x0000
+                  algorithm: 253,
+                  digestType: 253,
+                  digest: Buffer.from([]),
+                },
+              },
+            ],
+          }),
+          hexEncodeSignedSet({
+            sig: {
+              name: 'test',
+              type: 'RRSIG',
+              ttl: 0,
+              class: 'IN',
+              flush: false,
+              data: {
+                typeCovered: 'DNSKEY',
+                algorithm: 253,
+                labels: 1,
+                originalTTL: 3600,
+                expiration: EXPIRATION,
+                inception: INCEPTION,
+                keyTag: 1278,
+                signersName: 'test',
+                signature: Buffer.from([]),
+              },
             },
-          },
+            rrs: [
+              {
+                name: 'test',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags: 0x0101,
+                  algorithm: 253,
+                  key: Buffer.from('0000', 'hex'),
+                },
+              },
+            ],
+          }),
         ],
-      }),
-    ]
-
-    await expect(dnssec.read.verifyRRSet([set])).not.toBeReverted()
+      ]),
+    ).not.toBeReverted()
   })
 
   it('new root key: 38696', async () => {
@@ -872,33 +852,35 @@ describe('DNSSEC', () => {
     await dnssec.write.setAnchors([
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 38696)),
     ])
-    await expect(dnssec.read.verifyRRSet([rrsets])).toBeReverted()
+    await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
     // but instead fails without 20326
     await dnssec.write.setAnchors([
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 20326)),
     ])
-    await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
+    await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
   })
 
   describe('Cloudflare Test Cases', () => {
     // https://dnstest.dev/
     for (const name of [
+      // pass
       'valid.alg13.dnstest.dev',
+      //'root-key-sentinel-is-ta-38696.dnstest.dev', // 20261003: empty response from oracle
+      // fail
       'invalid.alg13.dnstest.dev',
       'expired.alg13.dnstest.dev',
       'invalid-dnskey.alg13.dnstest.dev',
       'expired-dnskey.alg13.dnstest.dev',
-      // 'root-key-sentinel-is-ta-38696.dnstest.dev', // 20261003: empty response from oracle
     ]) {
       it(name, async () => {
         const { dnssec } = await loadFixture()
         const rrsets = await fetchDNSSECOracleRRSets(name)
         if (/(invalid|expired)/.test(name)) {
           if (rrsets.length) {
-            await expect(dnssec.read.verifyRRSet([rrsets])).toBeReverted()
+            await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
           }
         } else {
-          await expect(dnssec.read.verifyRRSet([rrsets])).not.toBeReverted()
+          await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
         }
       })
     }

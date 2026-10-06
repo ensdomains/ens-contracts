@@ -72,24 +72,41 @@ contract DNSSECImpl is DNSSEC, Ownable {
         emit DigestUpdated(id, address(digest));
     }
 
-    /// @notice Convenience for `verifyRRSet(input, block.timestamp)`.
-    /// @param input A list of signed RRSets.
-    /// @return Array of signed sets.
+    /// @inheritdoc DNSSEC
     function verifyRRSet(
         RRSetWithSignature[] memory input
-    ) external view virtual override returns (RRUtils.SignedSet[] memory) {
+    ) public view override returns (bytes memory, uint32) {
         return verifyRRSet(input, uint32(block.timestamp));
     }
 
-    /// @notice Takes a chain of signed DNS records, verifies them, and returns the array of signed sets.
-    ///         Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
-    /// @param input A list of signed RRSets.
-    /// @param currentTime The Unix timestamp to validate the records at.
-    /// @return sss Array of signed sets.
+    /// @inheritdoc DNSSEC
     function verifyRRSet(
         RRSetWithSignature[] memory input,
         uint256 currentTime
-    ) public view virtual override returns (RRUtils.SignedSet[] memory sss) {
+    ) public view override returns (bytes memory, uint32) {
+        if (input.length == 0) {
+            return (anchors, 0); // instead of revert InvalidRRSet
+        }
+        RRUtils.SignedSet[] memory sss = verifyRRSetAt(input, currentTime);
+        RRUtils.SignedSet memory ss = sss[sss.length - 1];
+        return (ss.data, ss.inception);
+    }
+
+    /// @inheritdoc DNSSEC
+    function verifyRRSetNow(
+        RRSetWithSignature[] memory input
+    ) public view override returns (RRUtils.SignedSet[] memory) {
+        return verifyRRSetAt(input, uint32(block.timestamp));
+    }
+
+    /// @inheritdoc DNSSEC
+    function verifyRRSetAt(
+        RRSetWithSignature[] memory input,
+        uint256 currentTime
+    ) public view override returns (RRUtils.SignedSet[] memory sss) {
+        if (input.length == 0) {
+            revert InvalidRRSet();
+        }
         bytes memory proof = anchors;
         sss = new RRUtils.SignedSet[](input.length);
         for (uint256 i; i < input.length; ++i) {

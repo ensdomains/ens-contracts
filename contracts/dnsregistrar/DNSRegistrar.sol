@@ -73,7 +73,7 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         uint32 inception
     );
 
-    /// @param previousRegistrars Addresses of previous DNSRegistrars. The first must be null or implement `inceptions(bytes32)`.
+    /// @param previousRegistrars Addresses of previous DNSRegistrars. The first should the prior DNSRegistrar.
     /// @param _resolver Gasless DNSSEC resolver.
     /// @param _dnssec Shared DNSSEC implementation.
     /// @param _suffixes Shared PublicSuffixList implementation.
@@ -177,7 +177,12 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         bytes memory name,
         DNSSEC.RRSetWithSignature[] memory input
     ) internal returns (bytes32 parentNode, bytes32 labelHash, address addr) {
-        RRUtils.SignedSet[] memory sss = oracle.verifyRRSet(input);
+        // early terminate if empty, otherwise DNSSEC reverts InvalidRRSet
+        if (input.length == 0) {
+            revert NoOwnerRecordFound();
+        }
+
+        RRUtils.SignedSet[] memory sss = oracle.verifyRRSetNow(input);
 
         // Get the first label
         uint256 offset;
@@ -294,7 +299,11 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     ) internal view returns (uint32 inception) {
         inception = _inceptions[node][RRUtils.DNSTYPE_TXT];
         if (inception == 0 && previousRegistrar != address(0)) {
-            inception = DNSRegistrar(previousRegistrar).inceptions(parentNode);
+            try DNSRegistrar(previousRegistrar).inceptions(parentNode) returns (
+                uint32 t
+            ) {
+                inception = t;
+            } catch {}
         }
     }
 }

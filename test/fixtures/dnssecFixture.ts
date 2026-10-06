@@ -42,5 +42,15 @@ export async function dnssecFixture(
   // dummy
   await dnssec.write.setDigest([253, dummyDigest.address])
 
-  return { dnssec }
+  return {
+    dnssec,
+    anchors,
+    rsasha1Algorithm,
+    rsasha256Algorithm,
+    p256Sha256Algorithm,
+    dummyAlgorithm,
+    sha1Digest,
+    sha256Digest,
+    dummyDigest,
+  }
 }
