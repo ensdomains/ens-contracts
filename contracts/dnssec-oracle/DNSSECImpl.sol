@@ -73,33 +73,6 @@ contract DNSSECImpl is DNSSEC, Ownable {
     }
 
     /// @inheritdoc DNSSEC
-    function verifyRRSet(
-        RRSetWithSignature[] memory input
-    ) public view override returns (bytes memory, uint32) {
-        return verifyRRSet(input, uint32(block.timestamp));
-    }
-
-    /// @inheritdoc DNSSEC
-    function verifyRRSet(
-        RRSetWithSignature[] memory input,
-        uint256 currentTime
-    ) public view override returns (bytes memory, uint32) {
-        if (input.length == 0) {
-            return (anchors, 0); // instead of revert InvalidRRSet
-        }
-        RRUtils.SignedSet[] memory sss = verifyRRSetAt(input, currentTime);
-        RRUtils.SignedSet memory ss = sss[sss.length - 1];
-        return (ss.data, ss.inception);
-    }
-
-    /// @inheritdoc DNSSEC
-    function verifyRRSetNow(
-        RRSetWithSignature[] memory input
-    ) public view override returns (RRUtils.SignedSet[] memory) {
-        return verifyRRSetAt(input, uint32(block.timestamp));
-    }
-
-    /// @inheritdoc DNSSEC
     function verifyRRSetAt(
         RRSetWithSignature[] memory input,
         uint256 currentTime
