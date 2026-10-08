@@ -53,35 +53,37 @@ export default deployScript(
       return state
     }
 
-    const suffixes = await Promise.all(
-      fetchedSuffixes.filter(async (suffix) => {
-        if (!suffix.match(/^[a-z0-9]+$/)) return
-        if (allowUnsafe) {
-          return true // skip checks for test networks
-        }
-        const owner = await read(registry, {
-          functionName: 'owner',
-          args: [namehash(suffix)],
-        })
-        if (getAddress(owner) === getAddress(dnsRegistrar.address)) {
-          console.warn(`  - Skipping .${suffix}; already registrar`)
-          return
-        }
-        const isPublicSuffix = await read(publicSuffixList, {
-          functionName: 'isPublicSuffix',
-          args: [dnsEncodeName(suffix)],
-        })
-        if (!isPublicSuffix) {
-          console.warn(`  - Skipping .${suffix}; not in the PSL`)
-          return
-        }
-        if (!(await shouldReplace(owner))) {
-          console.warn(`  - Skipping .${suffix}; not previous registrar`)
-          return
-        }
-        return true
-      }),
-    )
+    const suffixes = (
+      await Promise.all(
+        fetchedSuffixes.map(async (suffix) => {
+          if (!suffix.match(/^[a-z0-9]+$/)) return
+          if (allowUnsafe) {
+            return suffix // skip checks for test networks
+          }
+          const owner = await read(registry, {
+            functionName: 'owner',
+            args: [namehash(suffix)],
+          })
+          if (getAddress(owner) === getAddress(dnsRegistrar.address)) {
+            console.warn(`  - Skipping .${suffix}; already registrar`)
+            return
+          }
+          const isPublicSuffix = await read(publicSuffixList, {
+            functionName: 'isPublicSuffix',
+            args: [dnsEncodeName(suffix)],
+          })
+          if (!isPublicSuffix) {
+            console.warn(`  - Skipping .${suffix}; not in the PSL`)
+            return
+          }
+          if (!(await shouldReplace(owner))) {
+            console.warn(`  - Skipping .${suffix}; not previous registrar`)
+            return
+          }
+          return suffix
+        }),
+      )
+    ).filter((x): x is string => !!x)
     console.log(`  - Processing ${suffixes.length} public suffixes`)
 
     const batchAmount = allowUnsafe ? 1000 : 25
