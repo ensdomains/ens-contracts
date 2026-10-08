@@ -38,19 +38,23 @@ export default deployScript(
       network.tags?.allow_unsafe ||
       (network.tags?.test && !config.saveDeployments)
 
-    const shouldReplaceCache = new Map<Address, Boolean>()
-    shouldReplaceCache.set(zeroAddress, true)
+    const shouldReplaceCache = new Map<Address, Promise<boolean>>()
+    shouldReplaceCache.set(zeroAddress, Promise.resolve(true))
+    shouldReplaceCache.set(
+      getAddress(dnsRegistrar.address),
+      Promise.resolve(false),
+    )
     async function shouldReplace(owner: Address) {
       owner = getAddress(owner)
-      if (shouldReplaceCache.has(owner)) {
-        return shouldReplaceCache.get(owner)
+      let p = shouldReplaceCache.get(owner)
+      if (!p) {
+        p = read(dnsRegistrar, {
+          functionName: 'wasRegistrar',
+          args: [owner],
+        })
+        shouldReplaceCache.set(owner, p)
       }
-      const state = await read(dnsRegistrar, {
-        functionName: 'wasRegistrar',
-        args: [owner],
-      })
-      shouldReplaceCache.set(owner, state)
-      return state
+      return p
     }
 
     const suffixes = (
@@ -60,14 +64,6 @@ export default deployScript(
           if (allowUnsafe) {
             return suffix // skip checks for test networks
           }
-          const owner = await read(registry, {
-            functionName: 'owner',
-            args: [namehash(suffix)],
-          })
-          if (getAddress(owner) === getAddress(dnsRegistrar.address)) {
-            console.warn(`  - Skipping .${suffix}; already registrar`)
-            return
-          }
           const isPublicSuffix = await read(publicSuffixList, {
             functionName: 'isPublicSuffix',
             args: [dnsEncodeName(suffix)],
@@ -76,8 +72,12 @@ export default deployScript(
             console.warn(`  - Skipping .${suffix}; not in the PSL`)
             return
           }
+          const owner = await read(registry, {
+            functionName: 'owner',
+            args: [namehash(suffix)],
+          })
           if (!(await shouldReplace(owner))) {
-            console.warn(`  - Skipping .${suffix}; not previous registrar`)
+            console.warn(`  - Skipping .${suffix}; not a registrar`)
             return
           }
           return suffix
