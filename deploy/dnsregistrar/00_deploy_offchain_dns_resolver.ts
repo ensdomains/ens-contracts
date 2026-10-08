@@ -1,4 +1,5 @@
 import { artifacts, deployScript } from '@rocketh'
+import { DNSSEC_ORACLE_URL } from '../../test/fixtures/dnssecOracle.js'
 
 export default deployScript(
   async ({ deploy, get, namedAccounts }) => {
@@ -10,11 +11,7 @@ export default deployScript(
     await deploy('OffchainDNSResolver', {
       account: deployer,
       artifact: artifacts.OffchainDNSResolver,
-      args: [
-        registry.address,
-        dnssec.address,
-        'https://dnssec-oracle.ens.domains/',
-      ],
+      args: [registry.address, dnssec.address, DNSSEC_ORACLE_URL],
     })
   },
   {

@@ -1,10 +1,11 @@
 import { artifacts, deployScript } from '@rocketh'
 import {
   encodeFunctionData,
+  getAddress,
   namehash,
   parseAbi,
+  zeroAddress,
   type Address,
-  type Hex,
 } from 'viem'
 import { dnsEncodeName } from '../../test/fixtures/dnsEncodeName.js'
 import { fetchPublicSuffixes } from './05_deploy_public_suffix_list.js'
@@ -24,15 +25,7 @@ const multicallAbi = parseAbi([
 ])
 
 export default deployScript(
-  async ({
-    get,
-    read,
-    tx,
-    namedAccounts: { deployer },
-    network,
-    config,
-    savePendingExecution,
-  }) => {
+  async ({ get, read, tx, namedAccounts: { deployer }, network, config }) => {
     const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
     const publicSuffixList = get<
       (typeof artifacts.SimplePublicSuffixList)['abi']
@@ -45,59 +38,52 @@ export default deployScript(
       network.tags?.allow_unsafe ||
       (network.tags?.test && !config.saveDeployments)
 
-    let suffixes = await Promise.all(
-      fetchedSuffixes.map(async (suffix) => {
-        if (!suffix.match(/^[a-z0-9]+$/)) return null
-
-        const node = namehash(suffix)
-        const encodedSuffix = dnsEncodeName(suffix)
-
-        const returnData = {
-          target: dnsRegistrar.address,
-          callData: encodeFunctionData({
-            abi: dnsRegistrar.abi,
-            functionName: 'enableNode',
-            args: [encodedSuffix],
-          }),
-        }
-
-        // Skip owner checks for test networks
-        if (allowUnsafe) return returnData
-
-        const owner = await read(registry, {
-          functionName: 'owner',
-          args: [node],
-        })
-        if (owner === dnsRegistrar.address) {
-          console.warn(`  - Skipping .${suffix}; already owned`)
-          return null
-        }
-
-        const isPublicSuffix = await read(publicSuffixList, {
-          functionName: 'isPublicSuffix',
-          args: [encodedSuffix],
-        })
-
-        if (!isPublicSuffix) {
-          console.warn(`  - Skipping .${suffix}; not in the PSL`)
-          return null
-        }
-
-        return {
-          target: dnsRegistrar.address,
-          callData: encodeFunctionData({
-            abi: dnsRegistrar.abi,
-            functionName: 'enableNode',
-            args: [encodedSuffix],
-          }),
-        }
-      }),
-    ).then((suffixes) =>
-      suffixes.filter(
-        (suffix): suffix is { target: Address; callData: Hex } =>
-          suffix !== null,
-      ),
+    const shouldReplaceCache = new Map<Address, Promise<boolean>>()
+    shouldReplaceCache.set(zeroAddress, Promise.resolve(true))
+    shouldReplaceCache.set(
+      getAddress(dnsRegistrar.address),
+      Promise.resolve(false),
     )
+    async function shouldReplace(owner: Address) {
+      owner = getAddress(owner)
+      let p = shouldReplaceCache.get(owner)
+      if (!p) {
+        p = read(dnsRegistrar, {
+          functionName: 'wasRegistrar',
+          args: [owner],
+        })
+        shouldReplaceCache.set(owner, p)
+      }
+      return p
+    }
+
+    const suffixes = (
+      await Promise.all(
+        fetchedSuffixes.map(async (suffix) => {
+          if (!suffix.match(/^[a-z0-9]+$/)) return
+          if (allowUnsafe) {
+            return suffix // skip checks for test networks
+          }
+          const isPublicSuffix = await read(publicSuffixList, {
+            functionName: 'isPublicSuffix',
+            args: [dnsEncodeName(suffix)],
+          })
+          if (!isPublicSuffix) {
+            console.warn(`  - Skipping .${suffix}; not in the PSL`)
+            return
+          }
+          const owner = await read(registry, {
+            functionName: 'owner',
+            args: [namehash(suffix)],
+          })
+          if (!(await shouldReplace(owner))) {
+            console.warn(`  - Skipping .${suffix}; not a registrar`)
+            return
+          }
+          return suffix
+        }),
+      )
+    ).filter((x): x is string => !!x)
     console.log(`  - Processing ${suffixes.length} public suffixes`)
 
     const batchAmount = allowUnsafe ? 1000 : 25
@@ -105,14 +91,22 @@ export default deployScript(
     // Send all transactions in batches
     for (let i = 0; i < suffixes.length; i += batchAmount) {
       const batch = suffixes.slice(i, i + batchAmount)
-
       console.log(`  - Enabling ${batch.length} suffixes`)
       await tx({
         to: multicallAddress,
         data: encodeFunctionData({
           abi: multicallAbi,
           functionName: 'aggregate',
-          args: [batch],
+          args: [
+            batch.map((suffix) => ({
+              target: dnsRegistrar.address,
+              callData: encodeFunctionData({
+                abi: dnsRegistrar.abi,
+                functionName: 'enableNode',
+                args: [dnsEncodeName(suffix)],
+              }),
+            })),
+          ],
         }),
         gas: allowUnsafe ? 28000000n : undefined,
         account: deployer,

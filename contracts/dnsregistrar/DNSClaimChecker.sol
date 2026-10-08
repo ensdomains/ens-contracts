@@ -13,9 +13,6 @@ library DNSClaimChecker {
     using RRUtils for *;
     using Buffer for Buffer.buffer;
 
-    uint16 constant CLASS_INET = 1;
-    uint16 constant TYPE_TXT = 16;
-
     function getOwnerAddress(
         bytes memory name,
         bytes memory data

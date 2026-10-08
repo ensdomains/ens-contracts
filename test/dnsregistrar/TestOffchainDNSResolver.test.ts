@@ -1,6 +1,6 @@
 import hre from 'hardhat'
 import {
-  Address,
+  type Address,
   encodeAbiParameters,
   encodeFunctionData,
   getAddress,
@@ -8,15 +8,12 @@ import {
   namehash,
   parseAbiParameters,
   toFunctionSelector,
-  zeroAddress,
   zeroHash,
   type Hex,
 } from 'viem'
 
 import {
-  expiration,
   hexEncodeSignedSet,
-  inception,
   rootKeys,
   rrsetWithTexts,
 } from '../fixtures/dns.js'
@@ -57,9 +54,7 @@ async function fixture() {
   const offchainDnsResolver = await connection.viem.deployContract(
     'OffchainDNSResolver',
     [ensRegistry.address, dnssec.address, OFFCHAIN_GATEWAY],
-    {
-      client: { public: publicClientWithoutCcipRead },
-    },
+    { client: { public: publicClientWithoutCcipRead } },
   )
   const ownedResolver = await connection.viem.deployContract(
     'OwnedResolver',
@@ -70,7 +65,7 @@ async function fixture() {
     [offchainDnsResolver.address],
   )
   const dnsRegistrar = await connection.viem.deployContract('DNSRegistrar', [
-    zeroAddress, // Previous registrar
+    [], // Previous registrars
     offchainDnsResolver.address,
     dnssec.address,
     suffixes.address,
@@ -97,7 +92,7 @@ async function fixture() {
     calldata: Hex
   }) => {
     const proof = [
-      hexEncodeSignedSet(rootKeys({ expiration, inception })),
+      hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(rrsetWithTexts({ name, texts })),
     ]
     const response = encodeAbiParameters(

@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
-pragma experimental ABIEncoderV2;
 
-import "./Owned.sol";
+import {Ownable} from "@openzeppelin/contracts-v5/access/Ownable.sol";
 import "./RRUtils.sol";
 import "./DNSSEC.sol";
 import "./algorithms/Algorithm.sol";
@@ -19,17 +18,10 @@ import "@ensdomains/buffer/contracts/Buffer.sol";
  *       - Canonical form of names is not checked; in ENS this is done on the frontend, so submitting
  *         proofs with non-canonical names will only result in registering unresolvable ENS names.
  */
-contract DNSSECImpl is DNSSEC, Owned {
+contract DNSSECImpl is DNSSEC, Ownable {
     using Buffer for Buffer.buffer;
     using BytesUtils for bytes;
     using RRUtils for *;
-
-    uint16 constant DNSCLASS_IN = 1;
-
-    uint16 constant DNSTYPE_DS = 43;
-    uint16 constant DNSTYPE_DNSKEY = 48;
-
-    uint256 constant DNSKEY_FLAG_ZONEKEY = 0x100;
 
     error InvalidLabelCount(bytes name, uint256 labelsExpected);
     error SignatureNotValidYet(uint32 inception, uint32 now);
@@ -47,74 +39,58 @@ contract DNSSECImpl is DNSSEC, Owned {
 
     /// @dev Constructor.
     /// @param _anchors The binary format RR entries for the root DS records.
-    constructor(bytes memory _anchors) {
+    constructor(bytes memory _anchors) Ownable(msg.sender) {
         // Insert the 'trust anchors' - the key hashes that start the chain
         // of trust for all other records.
         anchors = _anchors;
+        emit AnchorsUpdated(_anchors);
     }
 
-    /// @dev Sets the contract address for a signature verification algorithm.
-    ///      Callable only by the owner.
+    /// @notice Sets the root anchors.
+    ///         Callable only by the owner.
+    /// @param _anchors The new anchors.
+    function setAnchors(bytes calldata _anchors) external onlyOwner {
+        anchors = _anchors;
+        emit AnchorsUpdated(_anchors);
+    }
+
+    /// @notice Sets the contract address for a signature verification algorithm.
+    ///         Callable only by the owner.
     /// @param id The algorithm ID
     /// @param algo The address of the algorithm contract.
-    function setAlgorithm(uint8 id, Algorithm algo) public owner_only {
+    function setAlgorithm(uint8 id, Algorithm algo) external onlyOwner {
         algorithms[id] = algo;
         emit AlgorithmUpdated(id, address(algo));
     }
 
-    /// @dev Sets the contract address for a digest verification algorithm.
-    ///      Callable only by the owner.
+    /// @notice Sets the contract address for a digest verification algorithm.
+    ///         Callable only by the owner.
     /// @param id The digest ID
     /// @param digest The address of the digest contract.
-    function setDigest(uint8 id, Digest digest) public owner_only {
+    function setDigest(uint8 id, Digest digest) external onlyOwner {
         digests[id] = digest;
         emit DigestUpdated(id, address(digest));
     }
 
-    /// @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
-    ///      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
-    /// @param input A list of signed RRSets.
-    /// @return rrs The RRData from the last RRSet in the chain.
-    /// @return inception The inception time of the signed record set.
-    function verifyRRSet(
-        RRSetWithSignature[] memory input
-    )
-        external
-        view
-        virtual
-        override
-        returns (bytes memory rrs, uint32 inception)
-    {
-        return verifyRRSet(input, block.timestamp);
-    }
-
-    /// @dev Takes a chain of signed DNS records, verifies them, and returns the data from the last record set in the chain.
-    ///      Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
-    /// @param input A list of signed RRSets.
-    /// @param now The Unix timestamp to validate the records at.
-    /// @return rrs The RRData from the last RRSet in the chain.
-    /// @return inception The inception time of the signed record set.
-    function verifyRRSet(
+    /// @inheritdoc DNSSEC
+    function verifyRRSetAt(
         RRSetWithSignature[] memory input,
-        uint256 now
-    )
-        public
-        view
-        virtual
-        override
-        returns (bytes memory rrs, uint32 inception)
-    {
+        uint256 currentTime
+    ) public view override returns (RRUtils.SignedSet[] memory sss) {
+        if (input.length == 0) {
+            revert InvalidRRSet();
+        }
         bytes memory proof = anchors;
-        for (uint256 i = 0; i < input.length; i++) {
-            RRUtils.SignedSet memory rrset = validateSignedSet(
+        sss = new RRUtils.SignedSet[](input.length);
+        for (uint256 i; i < input.length; ++i) {
+            RRUtils.SignedSet memory ss = validateSignedSet(
                 input[i],
                 proof,
-                now
+                uint32(currentTime)
             );
-            proof = rrset.data;
-            inception = rrset.inception;
+            proof = ss.data;
+            sss[i] = ss;
         }
-        return (proof, inception);
     }
 
     /// @dev Validates an RRSet against the already trusted RR provided in `proof`.
@@ -124,11 +100,11 @@ contract DNSSECImpl is DNSSEC, Owned {
     ///        data, followed by a series of canonicalised RR records that the signature
     ///        applies to.
     /// @param proof The DNSKEY or DS to validate the signature against.
-    /// @param now The current timestamp.
+    /// @param currentTime The current timestamp.
     function validateSignedSet(
         RRSetWithSignature memory input,
         bytes memory proof,
-        uint256 now
+        uint32 currentTime
     ) internal view returns (RRUtils.SignedSet memory rrset) {
         rrset = input.rrset.readSignedSet();
 
@@ -145,14 +121,14 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         // o  The validator's notion of the current time MUST be less than or
         //    equal to the time listed in the RRSIG RR's Expiration field.
-        if (!RRUtils.serialNumberGte(rrset.expiration, uint32(now))) {
-            revert SignatureExpired(rrset.expiration, uint32(now));
+        if (!RRUtils.serialNumberGte(rrset.expiration, currentTime)) {
+            revert SignatureExpired(rrset.expiration, currentTime);
         }
 
         // o  The validator's notion of the current time MUST be greater than or
         //    equal to the time listed in the RRSIG RR's Inception field.
-        if (!RRUtils.serialNumberGte(uint32(now), rrset.inception)) {
-            revert SignatureNotValidYet(rrset.inception, uint32(now));
+        if (!RRUtils.serialNumberGte(currentTime, rrset.inception)) {
+            revert SignatureNotValidYet(rrset.inception, currentTime);
         }
 
         // Validate the signature
@@ -175,7 +151,7 @@ contract DNSSECImpl is DNSSEC, Owned {
             iter.next()
         ) {
             // We only support class IN (Internet)
-            if (iter.class != DNSCLASS_IN) {
+            if (iter.class != RRUtils.CLASS_INET) {
                 revert InvalidClass(iter.class);
             }
 
@@ -220,9 +196,9 @@ contract DNSSECImpl is DNSSEC, Owned {
 
         RRUtils.RRIterator memory proofRR = proof.iterateRRs(0);
         // Check the proof
-        if (proofRR.dnstype == DNSTYPE_DS) {
+        if (proofRR.dnstype == RRUtils.DNSTYPE_DS) {
             verifyWithDS(rrset, data, proofRR);
-        } else if (proofRR.dnstype == DNSTYPE_DNSKEY) {
+        } else if (proofRR.dnstype == RRUtils.DNSTYPE_DNSKEY) {
             verifyWithKnownKey(rrset, data, proofRR);
         } else {
             revert InvalidProofType(proofRR.dnstype);
@@ -289,7 +265,7 @@ contract DNSSECImpl is DNSSEC, Owned {
         // o The matching DNSKEY RR MUST be present in the zone's apex DNSKEY
         //   RRset, and MUST have the Zone Flag bit (DNSKEY RDATA Flag bit 7)
         //   set.
-        if (dnskey.flags & DNSKEY_FLAG_ZONEKEY == 0) {
+        if (dnskey.flags & RRUtils.DNSKEY_FLAG_ZONEKEY == 0) {
             return false;
         }
 
@@ -316,7 +292,7 @@ contract DNSSECImpl is DNSSEC, Owned {
             !iter.done();
             iter.next()
         ) {
-            if (iter.dnstype != DNSTYPE_DNSKEY) {
+            if (iter.dnstype != RRUtils.DNSTYPE_DNSKEY) {
                 revert InvalidProofType(iter.dnstype);
             }
 
