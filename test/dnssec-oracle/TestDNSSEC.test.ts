@@ -849,28 +849,41 @@ describe('DNSSEC', () => {
     ] as const
 
     const { dnssec } = await loadFixture()
+
+    await expect(
+      dnssec.read.verifyRRSetNow([rrsets]),
+      'both',
+    ).resolves.toBeDefined()
+
     await dnssec.write.setAnchors([
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 38696)),
     ])
-    await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
+    await expect(
+      dnssec.read.verifyRRSetNow([rrsets]),
+      '38696',
+    ).resolves.toBeDefined()
+
     await dnssec.write.setAnchors([
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 20326)),
     ])
-    await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
+    await expect(
+      dnssec.read.verifyRRSetNow([rrsets]),
+      '20326',
+    ).rejects.toThrow()
   })
 
-  describe.only('Cloudflare Test Cases', () => {
+  describe('Cloudflare Test Cases', () => {
     // https://dnstest.dev/
     for (const name of [
       // pass
       'alg13.dnstest.dev',
       'valid.alg13.dnstest.dev',
-      // fail (note: some due to no A record)
+      //'root-key-sentinel-is-ta-38696.dnstest.dev', // passes with A, see above
+      // fail (note: some due to no TXT record)
       'invalid.alg13.dnstest.dev',
       'expired.alg13.dnstest.dev',
       'invalid-dnskey.alg13.dnstest.dev',
       'expired-dnskey.alg13.dnstest.dev',
-      'root-key-sentinel-is-ta-38696.dnstest.dev',
       'root-key-sentinel-not-ta-20326.dnstest.dev',
       'root-key-sentinel-not-ta-38696.dnstest.dev',
     ]) {
