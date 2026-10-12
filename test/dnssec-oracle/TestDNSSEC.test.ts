@@ -818,9 +818,8 @@ describe('DNSSEC', () => {
   })
 
   it('new root key: 38696', async () => {
-    // pulled from https://github.com/ensdomains/dnsprovejs/ for "root-key-sentinel-is-ta-38696.dnstest.dev"
-    // 20261003: doesn't work
-    // 20261011: works
+    // pulled from https://github.com/ensdomains/dnsprovejs/ using:
+    // `await DNSProver.create('https://cloudflare-dns.com/dns-query').queryWithProof('A', 'root-key-sentinel-is-ta-38696.dnstest.dev');`
     const rrsets = [
       {
         rrset:
@@ -860,22 +859,25 @@ describe('DNSSEC', () => {
     await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
   })
 
-  describe('Cloudflare Test Cases', () => {
+  describe.only('Cloudflare Test Cases', () => {
     // https://dnstest.dev/
     for (const name of [
-      // pass (20261011: currently bad response from oracle)
-      //'valid.alg13.dnstest.dev',
-      //'root-key-sentinel-is-ta-38696.dnstest.dev',
-      // fail
+      // pass
+      'alg13.dnstest.dev',
+      'valid.alg13.dnstest.dev',
+      // fail (note: some due to no A record)
       'invalid.alg13.dnstest.dev',
       'expired.alg13.dnstest.dev',
       'invalid-dnskey.alg13.dnstest.dev',
       'expired-dnskey.alg13.dnstest.dev',
+      'root-key-sentinel-is-ta-38696.dnstest.dev',
+      'root-key-sentinel-not-ta-20326.dnstest.dev',
+      'root-key-sentinel-not-ta-38696.dnstest.dev',
     ]) {
       it(name, async () => {
         const { dnssec } = await loadFixture()
         const rrsets = await fetchDNSSECOracleRRSets(name)
-        if (/(invalid|expired)/.test(name)) {
+        if (/(invalid|expired|sentinel)/.test(name)) {
           await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
         } else {
           await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
