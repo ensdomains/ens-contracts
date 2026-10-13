@@ -36,12 +36,6 @@ library NameCoder {
     ///      Error selector: `0x9a4c3e3b`
     error DNSEncodingFailed(string ens);
 
-    /// @dev The `name` did not end with `suffix`.
-    ///
-    /// @param name The DNS-encoded name.
-    /// @param suffix The DNS-encoded suffix.
-    error NoSuffixMatch(bytes name, bytes suffix);
-
     /// @dev Read the `size` of the label at `offset`.
     ///      If `size = 0`, it must be the end of `name` (no junk at end).
     ///      Reverts `DNSDecodingFailed`.
