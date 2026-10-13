@@ -1,5 +1,11 @@
 import hre from 'hardhat'
-import { encodeErrorResult, toFunctionSelector } from 'viem'
+import {
+  encodeErrorResult,
+  encodeFunctionData,
+  encodeFunctionResult,
+  toFunctionSelector,
+  zeroHash,
+} from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 import { FEATURES } from '../utils/features.js'
@@ -27,6 +33,21 @@ async function fixture() {
   return {
     resolverCaller,
     ssResolver,
+    createMaliciousOffchainLookup,
+  }
+  function createMaliciousOffchainLookup() {
+    return encodeErrorResult({
+      abi: ssResolver.abi,
+      errorName: 'OffchainLookup',
+      args: [
+        resolverCaller.address, // top level
+        // resolveDirectImmediateCallback(response, extraData) will return response
+        [`data:application/json,{"data":"0xBAAD"}`], // response
+        '0x', // callData (ignored) by data url
+        toFunctionSelector('resolveDirectImmediateCallback(bytes,bytes)'),
+        '0x', // extraData (ignored)
+      ],
+    })
   }
 }
 
@@ -86,6 +107,69 @@ describe('ResolverCaller', () => {
     }
   }
 
+  describe('Untrusted External Call Guards', () => {
+    // all other external calls are trusted:
+    // - ENSRegistry.resolver()
+    // - DNSSEC.verifyRRSet()
+    // - ChainReverseResolver.fetch()
+
+    it('supportsInterface()', async () => {
+      const F = await connection.networkHelpers.loadFixture(fixture)
+      const resolver = await connection.viem.deployContract(
+        'MockERC165RevertingResolver',
+        [F.createMaliciousOffchainLookup()],
+      )
+      await expect(
+        F.resolverCaller.read.callResolver([
+          resolver.address,
+          '0x00',
+          encodeFunctionData({
+            abi: resolver.abi,
+            functionName: 'addr',
+            args: [zeroHash],
+          }),
+          false,
+          '0x',
+          ['x-batch-gateway:true'],
+        ]),
+      ).resolves.toStrictEqual(
+        encodeFunctionResult({
+          abi: resolver.abi,
+          functionName: 'addr',
+          result: resolver.address,
+        }),
+      )
+    })
+
+    it('supportsFeature()', async () => {
+      const F = await connection.networkHelpers.loadFixture(fixture)
+      const resolver = await connection.viem.deployContract(
+        'MockERC7996RevertingResolver',
+        [F.createMaliciousOffchainLookup()],
+      )
+      await expect(
+        F.resolverCaller.read.callResolver([
+          resolver.address,
+          '0x00',
+          encodeFunctionData({
+            abi: resolver.abi,
+            functionName: 'addr',
+            args: [zeroHash],
+          }),
+          false,
+          '0x',
+          ['x-batch-gateway:true'],
+        ]),
+      ).resolves.toStrictEqual(
+        encodeFunctionResult({
+          abi: resolver.abi,
+          functionName: 'addr',
+          result: resolver.address,
+        }),
+      )
+    })
+  })
+
   describe('InvalidOffchainLookup', () => {
     for (const offchain of [false, true]) {
       for (const direct of [true, false]) {
@@ -93,25 +177,12 @@ describe('ResolverCaller', () => {
           offchain ? 'callback' : 'call'
         }`, async () => {
           const F = await connection.networkHelpers.loadFixture(fixture)
-          const callData = '0x12345678' // arbitrary
           await F.ssResolver.write.setOffchain([offchain])
           await F.ssResolver.write.setFeature(['0x00000000', direct]) // any feature will enable ERC-7996
+          const callData = '0x12345678' // arbitrary
           await F.ssResolver.write.setResponse([
             callData,
-            encodeErrorResult({
-              abi: F.ssResolver.abi,
-              errorName: 'OffchainLookup',
-              args: [
-                F.resolverCaller.address, // top level
-                // resolveDirectImmediateCallback(response, extraData) will return response
-                [`data:application/json,{"data":"0xBAAD"}`], // response
-                '0x', // callData (ignored) by data url
-                toFunctionSelector(
-                  'resolveDirectImmediateCallback(bytes,bytes)',
-                ),
-                '0x', // extraData (ignored)
-              ],
-            }),
+            F.createMaliciousOffchainLookup(),
           ])
           await expect(
             F.resolverCaller.read.callResolver([
