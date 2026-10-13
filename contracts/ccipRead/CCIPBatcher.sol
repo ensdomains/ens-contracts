@@ -115,11 +115,16 @@ abstract contract CCIPBatcher is CCIPReader {
             Lookup memory lu = batch.lookups[i];
             if ((lu.flags & FLAG_DONE) == 0) {
                 EIP3668.Params memory p = decodeOffchainLookup(lu.data);
-                requests[count++] = IBatchGateway.Request(
-                    p.sender,
-                    p.urls,
-                    p.callData
-                );
+                if (lu.target != p.sender) {
+                    lu.flags |= FLAG_DONE | FLAG_CALL_ERROR;
+                    lu.data = abi.encodeWithSelector(InvalidOffchainLookup.selector);
+                } else {
+                    requests[count++] = IBatchGateway.Request(
+                        p.sender,
+                        p.urls,
+                        p.callData
+                    );
+                }
             }
         }
         if (count > 0) {

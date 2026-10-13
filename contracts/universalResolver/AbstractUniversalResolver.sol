@@ -11,6 +11,7 @@ import {NameCoder} from "../utils/NameCoder.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {ENSIP19, COIN_TYPE_ETH, COIN_TYPE_DEFAULT} from "../utils/ENSIP19.sol";
 import {IERC7996} from "../utils/IERC7996.sol";
+import {ERC7996Checker} from "../utils/ERC7996Checker.sol";
 import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 // resolver profiles
@@ -295,7 +296,8 @@ abstract contract AbstractUniversalResolver is
             ) &&
             (!multi ||
                 (info.extended &&
-                    IERC7996(info.resolver).supportsFeature(
+                    ERC7996Checker.supportsFeatureUnchecked(
+                        info.resolver,
                         ResolverFeatures.RESOLVE_MULTICALL
                     )))
         ) {

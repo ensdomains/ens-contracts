@@ -1,5 +1,5 @@
 import hre from 'hardhat'
-import { describe, it } from 'vitest'
+import { encodeErrorResult, toFunctionSelector } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 import { FEATURES } from '../utils/features.js'
@@ -33,9 +33,14 @@ async function fixture() {
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
-      for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
+      for (const type of [
+        'extended',
+        'extendedDNS',
+        'immediate',
+        'old',
+      ] as const) {
         for (const feature of [false, true]) {
-          if (type === 'old' && (offchain || feature)) continue;
+          if (type === 'old' && (offchain || feature)) continue
           let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
@@ -80,4 +85,46 @@ describe('ResolverCaller', () => {
       }
     }
   }
+
+  describe('InvalidOffchainLookup', () => {
+    for (const offchain of [false, true]) {
+      for (const direct of [true, false]) {
+        it(`${direct ? 'CCIPReader' : 'CCIPBatcher'} during ${
+          offchain ? 'callback' : 'call'
+        }`, async () => {
+          const F = await connection.networkHelpers.loadFixture(fixture)
+          const callData = '0x12345678' // arbitrary
+          await F.ssResolver.write.setOffchain([offchain])
+          await F.ssResolver.write.setFeature(['0x00000000', direct]) // any feature will enable ERC-7996
+          await F.ssResolver.write.setResponse([
+            callData,
+            encodeErrorResult({
+              abi: F.ssResolver.abi,
+              errorName: 'OffchainLookup',
+              args: [
+                F.resolverCaller.address, // top level
+                // resolveDirectImmediateCallback(response, extraData) will return response
+                [`data:application/json,{"data":"0xBAAD"}`], // response
+                '0x', // callData (ignored) by data url
+                toFunctionSelector(
+                  'resolveDirectImmediateCallback(bytes,bytes)',
+                ),
+                '0x', // extraData (ignored)
+              ],
+            }),
+          ])
+          await expect(
+            F.resolverCaller.read.callResolver([
+              F.ssResolver.address,
+              '0x00',
+              callData,
+              false,
+              '0x',
+              ['x-batch-gateway:true'],
+            ]),
+          ).toBeRevertedWithCustomError('InvalidOffchainLookup')
+        })
+      }
+    }
+  })
 })

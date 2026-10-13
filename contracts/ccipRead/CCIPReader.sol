@@ -24,6 +24,10 @@ contract CCIPReader {
     /// @dev Special-purpose value for identity callback: `f(x) = x`.
     bytes4 constant IDENTITY_FUNCTION = bytes4(0);
 
+    /// @notice The sender of the `OffchainLookup` was unexpected.
+    /// @dev Error selector: `0x8f2df4ed`
+    error InvalidOffchainLookup();
+
     /// @dev The gas limit for calling functions on unsafe contracts.
     uint256 immutable unsafeCallGas;
 
@@ -46,8 +50,10 @@ contract CCIPReader {
         ccipRead(target, call, IDENTITY_FUNCTION, IDENTITY_FUNCTION, "");
     }
 
-    /// @dev Performs a CCIP-Read and handles internal recursion.
-    ///      Reverts `OffchainLookup` if necessary.
+    /// @dev Call a function that may require CCIP-Read and handle internal recursion.
+    ///      Warning: External calls during call and callback must be guarded for unexpected OffchainLookup reverts.
+    ///      Reverts `InvalidOffchainLookup` if `target` did not handle internal recursion.
+    ///      Reverts `OffchainLookup` if `target` required CCIP-Read.
     ///      Use `IDENTITY_FUNCTION` as the callback function selector for return/revert behavior.
     /// @param target The contract address.
     /// @param call The calldata to `staticcall()` on `target`.
@@ -73,25 +79,26 @@ contract CCIPReader {
             // We decode the response error into a tuple
             // tuples allow flexibility noting stack too deep constraints
             EIP3668.Params memory p = decodeOffchainLookup(v);
-            if (p.sender == target) {
-                // We then wrap the error data in an `OffchainLookup` sent/'owned' by this contract
-                revert OffchainLookup(
-                    address(this),
-                    p.urls,
-                    p.callData,
-                    this.ccipReadCallback.selector,
-                    abi.encode(
-                        Context(
-                            target,
-                            p.callbackFunction,
-                            p.extraData,
-                            successCallbackFunction,
-                            failureCallbackFunction,
-                            extraData
-                        )
-                    )
-                );
+            if (p.sender != target) {
+                revert InvalidOffchainLookup(); // terminate immediately instead of bubbling
             }
+            // We then wrap the error data in an `OffchainLookup` sent/'owned' by this contract
+            revert OffchainLookup(
+                address(this),
+                p.urls,
+                p.callData,
+                this.ccipReadCallback.selector,
+                abi.encode(
+                    Context(
+                        target,
+                        p.callbackFunction,
+                        p.extraData,
+                        successCallbackFunction,
+                        failureCallbackFunction,
+                        extraData
+                    )
+                )
+            );
         }
         // IF we have gotten here, the 'real' target does not revert with an `OffchainLookup` error
         // figure out what callback to call
