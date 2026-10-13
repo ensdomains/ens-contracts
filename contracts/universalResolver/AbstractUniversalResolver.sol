@@ -2,7 +2,9 @@
 pragma solidity ^0.8.17;
 
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import {
+    ERC165Checker
+} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import {IUniversalResolver} from "./IUniversalResolver.sol";
 import {CCIPBatcher, CCIPReader} from "../ccipRead/CCIPBatcher.sol";
@@ -111,7 +113,9 @@ abstract contract AbstractUniversalResolver is
     ) public view returns (bytes memory result, address resolver) {
         result;
         resolver;
-        ResolverInfo memory info = requireResolver(name);
+        ResolverInfo memory info = _requireResolverRejectingOffchainLookup(
+            name
+        );
         _callResolver(
             info,
             data,
@@ -198,7 +202,7 @@ abstract contract AbstractUniversalResolver is
         resolver;
         reverseResolver;
         // https://docs.ens.domains/ensip/19
-        ResolverInfo memory info = requireResolver(
+        ResolverInfo memory info = _requireResolverRejectingOffchainLookup(
             NameCoder.encode(ENSIP19.reverseName(lookupAddress, coinType)) // reverts EmptyAddress
         );
         _callResolver(
@@ -224,7 +228,9 @@ abstract contract AbstractUniversalResolver is
         if (bytes(primary).length == 0) {
             return ("", address(0), args.resolver);
         }
-        ResolverInfo memory info = requireResolver(NameCoder.encode(primary));
+        ResolverInfo memory info = _requireResolverRejectingOffchainLookup(
+            NameCoder.encode(primary)
+        );
         _callResolver(
             info,
             args.coinType == COIN_TYPE_ETH
@@ -415,6 +421,20 @@ abstract contract AbstractUniversalResolver is
             address(this),
             abi.encodeWithSelector(callbackFunction, answer, extraData_)
         );
+    }
+
+    /// @dev Same as `requireResolver()` but prevents `OffchainLookup` revert.
+    function _requireResolverRejectingOffchainLookup(
+        bytes memory name
+    ) internal view returns (ResolverInfo memory) {
+        return
+            abi.decode(
+                callRejectingOffchainLookup(
+                    address(this),
+                    abi.encodeCall(this.requireResolver, (name))
+                ),
+                (ResolverInfo)
+            );
     }
 
     /// @dev Propagate the revert from the resolver.

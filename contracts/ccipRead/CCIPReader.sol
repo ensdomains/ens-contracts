@@ -56,13 +56,13 @@ contract CCIPReader {
     ///      Reverts `OffchainLookup` if `target` required CCIP-Read.
     ///      Use `IDENTITY_FUNCTION` as the callback function selector for return/revert behavior.
     /// @param target The contract address.
-    /// @param call The calldata to `staticcall()` on `target`.
+    /// @param data The calldata to `staticcall()` on `target`.
     /// @param successCallbackFunction The function selector of callback on success.
     /// @param failureCallbackFunction The function selector of callback on failure.
     /// @param extraData The contextual data relayed to callback function.
     function ccipRead(
         address target,
-        bytes memory call,
+        bytes memory data,
         bytes4 successCallbackFunction,
         bytes4 failureCallbackFunction,
         bytes memory extraData
@@ -72,7 +72,7 @@ contract CCIPReader {
         (bool ok, bytes memory v) = safeCall(
             detectEIP140(target),
             target,
-            call
+            data
         );
         // IF the function reverted with an `OffchainLookup`
         if (!ok && bytes4(v) == OffchainLookup.selector) {
@@ -177,10 +177,27 @@ contract CCIPReader {
     function safeCall(
         bool safe,
         address target,
-        bytes memory call
+        bytes memory data
     ) internal view returns (bool ok, bytes memory v) {
         (ok, v) = target.staticcall{gas: safe ? gasleft() : unsafeCallGas}(
-            call
+            data
         );
+    }
+
+    /// @dev Perform a call and prevent `OffchainLookup` revert.
+    function callRejectingOffchainLookup(
+        address target,
+        bytes memory data
+    ) internal view returns (bytes memory) {
+        (bool ok, bytes memory v) = target.staticcall{gas: gasleft()}(data);
+        if (ok) {
+            return v;
+        } else if (bytes4(v) == OffchainLookup.selector) {
+            revert InvalidOffchainLookup();
+        } else {
+            assembly {
+                revert(add(v, 32), mload(v))
+            }
+        }
     }
 }

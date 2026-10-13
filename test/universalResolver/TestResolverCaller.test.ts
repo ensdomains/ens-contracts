@@ -37,7 +37,7 @@ async function fixture() {
   }
   function createMaliciousOffchainLookup() {
     return encodeErrorResult({
-      abi: ssResolver.abi,
+      abi: resolverCaller.abi,
       errorName: 'OffchainLookup',
       args: [
         resolverCaller.address, // top level
@@ -50,6 +50,8 @@ async function fixture() {
     })
   }
 }
+
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
@@ -66,7 +68,7 @@ describe('ResolverCaller', () => {
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
           it(title, async () => {
-            const F = await connection.networkHelpers.loadFixture(fixture)
+            const F = await loadFixture()
             const kp: KnownProfile = {
               name: 'test.eth',
               addresses: [
@@ -109,20 +111,20 @@ describe('ResolverCaller', () => {
 
   describe('Untrusted External Call Guards', () => {
     // all other external calls are trusted:
-    // - ENSRegistry.resolver()
-    // - DNSSEC.verifyRRSet()
-    // - ChainReverseResolver.fetch()
+    // - UniversalResolver => findResolver => ENSRegistry.resolver()
+    // - OffchainDNSResolver => resolve() => DNSSEC.verifyRRSet()
+    // - ChainReverseResolver => resolve() => GatewayFetchTarget.fetch()
 
     it('supportsInterface()', async () => {
-      const F = await connection.networkHelpers.loadFixture(fixture)
+      const F = await loadFixture()
       const resolver = await connection.viem.deployContract(
-        'MockERC165RevertingResolver',
+        'MockRevertingERC165Resolver',
         [F.createMaliciousOffchainLookup()],
       )
       await expect(
         F.resolverCaller.read.callResolver([
           resolver.address,
-          '0x00',
+          dnsEncodeName(''), // arbitrary
           encodeFunctionData({
             abi: resolver.abi,
             functionName: 'addr',
@@ -142,15 +144,15 @@ describe('ResolverCaller', () => {
     })
 
     it('supportsFeature()', async () => {
-      const F = await connection.networkHelpers.loadFixture(fixture)
+      const F = await loadFixture()
       const resolver = await connection.viem.deployContract(
-        'MockERC7996RevertingResolver',
+        'MockRevertingERC7996Resolver',
         [F.createMaliciousOffchainLookup()],
       )
       await expect(
         F.resolverCaller.read.callResolver([
           resolver.address,
-          '0x00',
+          dnsEncodeName(''), // arbitrary
           encodeFunctionData({
             abi: resolver.abi,
             functionName: 'addr',
@@ -176,7 +178,7 @@ describe('ResolverCaller', () => {
         it(`${direct ? 'CCIPReader' : 'CCIPBatcher'} during ${
           offchain ? 'callback' : 'call'
         }`, async () => {
-          const F = await connection.networkHelpers.loadFixture(fixture)
+          const F = await loadFixture()
           await F.ssResolver.write.setOffchain([offchain])
           await F.ssResolver.write.setFeature(['0x00000000', direct]) // any feature will enable ERC-7996
           const callData = '0x12345678' // arbitrary
