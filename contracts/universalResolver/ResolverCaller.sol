@@ -8,6 +8,7 @@ import {
 import {CCIPBatcher} from "../ccipRead/CCIPBatcher.sol";
 import {BytesUtils} from "../utils/BytesUtils.sol";
 import {IERC7996} from "../utils/IERC7996.sol";
+import {ERC7996Checker} from "../utils/ERC7996Checker.sol";
 import {ResolverFeatures} from "../resolvers/ResolverFeatures.sol";
 
 // resolver profiles
@@ -37,9 +38,9 @@ abstract contract ResolverCaller is CCIPBatcher {
     ///   If the calldata is `multicall()` it is disassembled, called separately, and reassembled.
     ///
     /// @dev Reverts `UnreachableName` if resolver is not a contract.
-	///      This function never returns normally.
-	///      The return type is necessary to define the result of the callback.
-	///      Call this function externally or with `ccipRead()` to intercept the response.
+    ///      This function never returns normally.
+    ///      The return type is necessary to define the result of the callback.
+    ///      Call this function externally or with `ccipRead()` to intercept the response.
     /// @param resolver The resolver to call.
     /// @param name The DNS-encoded ENS name.
     /// @param data The calldata for the resolution.
@@ -75,7 +76,8 @@ abstract contract ResolverCaller is CCIPBatcher {
             ) &&
             (!multi ||
                 (extended &&
-                    IERC7996(resolver).supportsFeature(
+                    ERC7996Checker.supportsFeatureUnchecked(
+                        resolver,
                         ResolverFeatures.RESOLVE_MULTICALL
                     )))
         ) {

@@ -1,5 +1,11 @@
 import hre from 'hardhat'
-import { describe, it } from 'vitest'
+import {
+  encodeErrorResult,
+  encodeFunctionData,
+  encodeFunctionResult,
+  toFunctionSelector,
+  zeroHash,
+} from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { COIN_TYPE_ETH } from '../fixtures/ensip19.js'
 import { FEATURES } from '../utils/features.js'
@@ -27,20 +33,42 @@ async function fixture() {
   return {
     resolverCaller,
     ssResolver,
+    createMaliciousOffchainLookup,
+  }
+  function createMaliciousOffchainLookup() {
+    return encodeErrorResult({
+      abi: resolverCaller.abi,
+      errorName: 'OffchainLookup',
+      args: [
+        resolverCaller.address, // top level
+        // resolveDirectImmediateCallback(response, extraData) will return response
+        [`data:application/json,{"data":"0xBAAD"}`], // response
+        '0x', // callData (ignored) by data url
+        toFunctionSelector('resolveDirectImmediateCallback(bytes,bytes)'),
+        '0x', // extraData (ignored)
+      ],
+    })
   }
 }
+
+const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('ResolverCaller', () => {
   for (const multi of [false, true]) {
     for (const offchain of [false, true]) {
-      for (const type of ['extended', 'extendedDNS', 'immediate', 'old'] as const) {
+      for (const type of [
+        'extended',
+        'extendedDNS',
+        'immediate',
+        'old',
+      ] as const) {
         for (const feature of [false, true]) {
-          if (type === 'old' && (offchain || feature)) continue;
+          if (type === 'old' && (offchain || feature)) continue
           let title = `${offchain ? 'offchain' : 'onchain'} ${type}`
           if (multi) title += ' w/multicall'
           if (feature) title += ' w/feature'
           it(title, async () => {
-            const F = await connection.networkHelpers.loadFixture(fixture)
+            const F = await loadFixture()
             const kp: KnownProfile = {
               name: 'test.eth',
               addresses: [
@@ -80,4 +108,96 @@ describe('ResolverCaller', () => {
       }
     }
   }
+
+  describe('Untrusted External Call Guards', () => {
+    // all other external calls are trusted:
+    // - UniversalResolver => findResolver => ENSRegistry.resolver()
+    // - OffchainDNSResolver => resolve() => DNSSEC.verifyRRSet()
+    // - ChainReverseResolver => resolve() => GatewayFetchTarget.fetch()
+
+    it('supportsInterface()', async () => {
+      const F = await loadFixture()
+      const resolver = await connection.viem.deployContract(
+        'MockRevertingERC165Resolver',
+        [F.createMaliciousOffchainLookup()],
+      )
+      await expect(
+        F.resolverCaller.read.callResolver([
+          resolver.address,
+          dnsEncodeName(''), // arbitrary
+          encodeFunctionData({
+            abi: resolver.abi,
+            functionName: 'addr',
+            args: [zeroHash],
+          }),
+          false,
+          '0x',
+          ['x-batch-gateway:true'],
+        ]),
+      ).resolves.toStrictEqual(
+        encodeFunctionResult({
+          abi: resolver.abi,
+          functionName: 'addr',
+          result: resolver.address,
+        }),
+      )
+    })
+
+    it('supportsFeature()', async () => {
+      const F = await loadFixture()
+      const resolver = await connection.viem.deployContract(
+        'MockRevertingERC7996Resolver',
+        [F.createMaliciousOffchainLookup()],
+      )
+      await expect(
+        F.resolverCaller.read.callResolver([
+          resolver.address,
+          dnsEncodeName(''), // arbitrary
+          encodeFunctionData({
+            abi: resolver.abi,
+            functionName: 'addr',
+            args: [zeroHash],
+          }),
+          false,
+          '0x',
+          ['x-batch-gateway:true'],
+        ]),
+      ).resolves.toStrictEqual(
+        encodeFunctionResult({
+          abi: resolver.abi,
+          functionName: 'addr',
+          result: resolver.address,
+        }),
+      )
+    })
+  })
+
+  describe('InvalidOffchainLookup', () => {
+    for (const offchain of [false, true]) {
+      for (const direct of [true, false]) {
+        it(`${direct ? 'CCIPReader' : 'CCIPBatcher'} during ${
+          offchain ? 'callback' : 'call'
+        }`, async () => {
+          const F = await loadFixture()
+          await F.ssResolver.write.setOffchain([offchain])
+          await F.ssResolver.write.setFeature(['0x00000000', direct]) // any feature will enable ERC-7996
+          const callData = '0x12345678' // arbitrary
+          await F.ssResolver.write.setResponse([
+            callData,
+            F.createMaliciousOffchainLookup(),
+          ])
+          await expect(
+            F.resolverCaller.read.callResolver([
+              F.ssResolver.address,
+              '0x00',
+              callData,
+              false,
+              '0x',
+              ['x-batch-gateway:true'],
+            ]),
+          ).toBeRevertedWithCustomError('InvalidOffchainLookup')
+        })
+      }
+    }
+  })
 })
