@@ -29,6 +29,7 @@ library DNSClaimChecker {
             iter.next()
         ) {
             if (
+                iter.class == RRUtils.CLASS_INET &&
                 iter.dnstype == RRUtils.DNSTYPE_TXT &&
                 iter.name().compareNames(buf.buf) == 0
             ) {
