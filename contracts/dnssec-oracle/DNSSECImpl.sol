@@ -269,6 +269,15 @@ contract DNSSECImpl is DNSSEC, Ownable {
             return false;
         }
 
+        // https://www.rfc-editor.org/info/rfc5011/#section-2.4.3
+        // If this bit is set to '1', AND the resolver sees an RRSIG(DNSKEY)
+        // signed by the associated key, then the resolver MUST consider this
+        // key permanently invalid for all purposes except for validating the
+        // revocation.
+        if (dnskey.flags & RRUtils.DNSKEY_FLAG_REVOKE != 0) {
+            return false;
+        }
+
         Algorithm algorithm = algorithms[dnskey.algorithm];
         if (address(algorithm) == address(0)) {
             return false;
