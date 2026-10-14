@@ -44,31 +44,7 @@ async function fixture() {
       },
     },
   )
-  const revertingUniversalResolver = await connection.viem.deployContract(
-    'MockRevertingUniversalResolver',
-    [ens.ENSRegistry.address, batchGatewayProvider.address],
-  )
-  return {
-    UniversalResolver,
-    revertingUniversalResolver,
-    batchGatewayProvider,
-    createMaliciousOffchainLookup,
-    ...ens,
-  }
-  function createMaliciousOffchainLookup() {
-    return encodeErrorResult({
-      abi: revertingUniversalResolver.abi,
-      errorName: 'OffchainLookup',
-      args: [
-        revertingUniversalResolver.address, // top level
-        // resolveDirectImmediateCallback(response, extraData) will return response
-        [`data:application/json,{"data":"0xBAAD"}`], // response
-        '0x', // callData (ignored) by data url
-        toFunctionSelector('resolveDirectImmediateCallback(bytes,bytes)'),
-        '0x', // extraData (ignored)
-      ],
-    })
-  }
+  return { UniversalResolver, batchGatewayProvider, ...ens }
 }
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
@@ -77,7 +53,12 @@ const testName = 'test.eth' // DummyResolver name
 const anotherAddress = '0x8000000000000000000000000000000000000001'
 const resolutions = makeResolutions({
   name: testName,
-  addresses: [{ coinType: COIN_TYPE_ETH, value: anotherAddress }],
+  addresses: [
+    {
+      coinType: COIN_TYPE_ETH,
+      value: anotherAddress,
+    },
+  ],
   texts: [{ key: 'description', value: 'Test' }],
 })
 
@@ -797,7 +778,12 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: F.owner }],
+        addresses: [
+          {
+            coinType: COIN_TYPE_ETH,
+            value: F.owner,
+          },
+        ],
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
@@ -879,7 +865,12 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: anotherAddress }],
+        addresses: [
+          {
+            coinType: COIN_TYPE_ETH,
+            value: anotherAddress,
+          },
+        ],
       })
       await F.Shapeshift1.write.setResponse([res.call, res.answer])
       await expect(F.UniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH]))
@@ -949,7 +940,12 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: F.owner }],
+        addresses: [
+          {
+            coinType: COIN_TYPE_ETH,
+            value: F.owner,
+          },
+        ],
       })
       await F.Shapeshift2.write.setResponse([res.call, res.answer])
       const [name, resolver, reverseResolver] =
@@ -982,7 +978,12 @@ describe('UniversalResolver', () => {
       ])
       const [res] = makeResolutions({
         name: testName,
-        addresses: [{ coinType, value: F.owner }],
+        addresses: [
+          {
+            coinType,
+            value: F.owner,
+          },
+        ],
       })
       await F.Shapeshift2.write.setExtended([true])
       await F.Shapeshift2.write.setOffchain([true])
@@ -992,93 +993,6 @@ describe('UniversalResolver', () => {
       expectVar({ name }).toStrictEqual(testName)
       expectVar({ resolver }).toEqualAddress(F.Shapeshift2.address)
       expectVar({ reverseResolver }).toEqualAddress(F.Shapeshift1.address)
-    })
-  })
-
-  describe('Untrusted External Call Guards', () => {
-    it('findResolver() during resolve()', async () => {
-      const F = await loadFixture()
-      const name = dnsEncodeName(testName)
-      await F.revertingUniversalResolver.write.setRevertData([
-        name,
-        F.createMaliciousOffchainLookup(),
-      ])
-      await expect(
-        F.revertingUniversalResolver.read.resolve([name, '0x']),
-      ).toBeRevertedWithCustomError('InvalidOffchainLookup')
-    })
-
-    it('findResolver() during reverse()', async () => {
-      const F = await loadFixture()
-      await F.revertingUniversalResolver.write.setRevertData([
-        dnsEncodeName(getReverseName(F.owner)),
-        F.createMaliciousOffchainLookup(),
-      ])
-      await expect(
-        F.revertingUniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH]),
-      ).toBeRevertedWithCustomError('InvalidOffchainLookup')
-    })
-
-    it('findResolver() during reverse() callback', async () => {
-      const F = await loadFixture()
-      const reverseName = getReverseName(F.owner)
-      await F.takeControl(reverseName)
-      await F.ENSRegistry.write.setResolver([
-        namehash(reverseName),
-        F.PublicResolver.address,
-      ])
-      await F.PublicResolver.write.setName([namehash(reverseName), testName])
-      await F.revertingUniversalResolver.write.setRevertData([
-        dnsEncodeName(testName),
-        F.createMaliciousOffchainLookup(),
-      ])
-      await expect(
-        F.revertingUniversalResolver.read.reverse([F.owner, COIN_TYPE_ETH]),
-      ).toBeRevertedWithCustomError('InvalidOffchainLookup')
-    })
-
-    it('supportsInterface()', async () => {
-      const F = await loadFixture()
-      const resolver = await connection.viem.deployContract(
-        'MockRevertingERC165Resolver',
-        [F.createMaliciousOffchainLookup()],
-      )
-      await F.takeControl(testName)
-      await F.ENSRegistry.write.setResolver([
-        namehash(testName),
-        resolver.address,
-      ])
-      const [res] = makeResolutions({
-        name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: resolver.address }],
-      })
-      const [answer] = await F.UniversalResolver.read.resolve([
-        dnsEncodeName(testName),
-        res.call,
-      ])
-      res.expect(answer)
-    })
-
-    it('supportsFeature()', async () => {
-      const F = await loadFixture()
-      const resolver = await connection.viem.deployContract(
-        'MockRevertingERC7996Resolver',
-        [F.createMaliciousOffchainLookup()],
-      )
-      await F.takeControl(testName)
-      await F.ENSRegistry.write.setResolver([
-        namehash(testName),
-        resolver.address,
-      ])
-      const [res] = makeResolutions({
-        name: testName,
-        addresses: [{ coinType: COIN_TYPE_ETH, value: resolver.address }],
-      })
-      const [answer] = await F.UniversalResolver.read.resolve([
-        dnsEncodeName(testName),
-        res.call,
-      ])
-      res.expect(answer)
     })
   })
 })

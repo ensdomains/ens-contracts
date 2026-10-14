@@ -9,26 +9,19 @@ library ERC7996Checker {
     function supportsFeatureUnchecked(
         address target,
         bytes4 featureId
-    ) internal view returns (bool) {
-        bytes memory callData = abi.encodeCall(
-            IERC7996.supportsFeature,
-            (featureId)
-        );
-        bool success;
-        uint256 returnSize;
-        uint256 returnValue;
+    ) internal view returns (bool supported) {
+        // modified from: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v5.7/contracts/utils/introspection/ERC165Checker.sol#L130
+        bytes4 selector = IERC7996.supportsFeature.selector;
         assembly ("memory-safe") {
-            success := staticcall(
-                30000,
-                target,
-                add(callData, 0x20),
-                mload(callData),
-                0x00,
-                0x20
+            mstore(0x00, selector)
+            mstore(0x04, featureId)
+            supported := and(
+                staticcall(30000, target, 0x00, 0x24, 0x00, 0x20), // call was successful
+                and(
+                    gt(returndatasize(), 0x1F), // we have at least 32 bytes of returndata
+                    iszero(iszero(mload(0x00))) // the first 32 bytes of returndata are non-zero
+                )
             )
-            returnSize := returndatasize()
-            returnValue := mload(0x00)
         }
-        return success && returnSize >= 0x20 && returnValue > 0;
     }
 }
