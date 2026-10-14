@@ -2,14 +2,13 @@ import { SignedSet } from '@ensdomains/dnsprovejs'
 import type { Answer, Rrsig } from 'dns-packet'
 import { bytesToHex, type Address } from 'viem'
 
-export const hexEncodeSignedSet = ({
-  rrs,
-  sig,
-}: {
-  rrs: Answer[] | readonly Answer[]
+export type RRSet = {
+  rrs: Answer[]
   sig: Rrsig
-}) => {
-  const ss = new SignedSet(rrs as Answer[], sig)
+}
+
+export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
+  const ss = new SignedSet(rrs, sig)
   return {
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
@@ -25,7 +24,7 @@ export const rrsetWithTexts = ({
 }: {
   name: string
   texts: (string | { name: string; value: string })[]
-}) =>
+}): RRSet =>
   ({
     sig: {
       name,
@@ -42,10 +41,10 @@ export const rrsetWithTexts = ({
         inception: INCEPTION,
         keyTag: 1278,
         signersName: '.',
-        signature: new Buffer([]),
+        signature: Buffer.from([]),
       },
     },
-    rrs: texts.map(
+    rrs: texts.map<Answer>(
       (text) =>
         ({
           name: typeof text === 'string' ? name : text.name,
@@ -54,10 +53,10 @@ export const rrsetWithTexts = ({
           ttl: 3600,
           data: [
             Buffer.from(typeof text === 'string' ? text : text.value, 'ascii'),
-          ] as Buffer[],
-        } as const),
+          ],
+        }),
     ),
-  } as const)
+  })
 export const testRrset = ({
   name,
   address,
@@ -66,7 +65,7 @@ export const testRrset = ({
   name: string
   address: Address
   inception?: number
-}) =>
+}): RRSet =>
   ({
     sig: {
       name: 'test',
@@ -83,7 +82,7 @@ export const testRrset = ({
         inception,
         keyTag: 1278,
         signersName: '.',
-        signature: new Buffer([]),
+        signature: Buffer.from([]),
       },
     },
     rrs: [
@@ -92,10 +91,10 @@ export const testRrset = ({
         type: 'TXT',
         class: 'IN',
         ttl: 3600,
-        data: [Buffer.from(`a=${address}`, 'ascii')] as Buffer[],
+        data: [Buffer.from(`a=${address}`, 'ascii')],
       },
     ],
-  } as const)
+  })
 
 export const rootKeys = ({
   expiration = EXPIRATION,
@@ -104,9 +103,9 @@ export const rootKeys = ({
   expiration?: number
   inception?: number
 } = {}) => {
-  var name = '.'
-  var sig = {
-    name: '.',
+  const name = '.'
+  const sig: Rrsig = {
+    name,
     type: 'RRSIG',
     ttl: 0,
     class: 'IN',
@@ -119,28 +118,27 @@ export const rootKeys = ({
       expiration,
       inception,
       keyTag: 1278,
-      signersName: '.',
-      signature: new Buffer([]),
+      signersName: name,
+      signature: Buffer.from([]),
     },
-  } as const
-
-  var rrs = [
+  }
+  const rrs: Answer[] = [
     {
-      name: '.',
+      name,
       type: 'DNSKEY',
       class: 'IN',
       ttl: 3600,
       data: { flags: 0, algorithm: 253, key: Buffer.from('0000', 'hex') },
     },
     {
-      name: '.',
+      name,
       type: 'DNSKEY',
       class: 'IN',
       ttl: 3600,
       data: { flags: 0, algorithm: 253, key: Buffer.from('1112', 'hex') },
     },
     {
-      name: '.',
+      name,
       type: 'DNSKEY',
       class: 'IN',
       ttl: 3600,
@@ -150,6 +148,6 @@ export const rootKeys = ({
         key: Buffer.from('0000', 'hex'),
       },
     },
-  ] as const
+  ]
   return { name, sig, rrs }
 }

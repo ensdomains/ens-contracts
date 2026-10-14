@@ -439,6 +439,25 @@ describe('DNSRegistrar', () => {
     ).toBeRevertedWithCustomError('NoOwnerRecordFound')
   })
 
+  it('cannot claim name without TXT record', async () => {
+    const { dnsRegistrar } = await loadFixture()
+    const { address } = accounts[0]
+    const rrset = testRrset({ name: 'foo.test', address })
+     // change TXT to A
+    rrset.sig.data.typeCovered = 'A';
+    rrset.rrs[0] = {
+      type: 'A',
+      name: rrset.rrs[0].name,
+      data: `a=${address}`,
+    };
+    await expect(
+      dnsRegistrar.write.proveAndClaim([
+        dnsEncodeName('foo.test'),
+        [hexEncodeSignedSet(rootKeys()), hexEncodeSignedSet(rrset)],
+      ]),
+    ).toBeRevertedWithCustomError('NoOwnerRecordFound')
+  })
+
   describe('unrelated proof', () => {
     async function fixtureWithTestTld() {
       const { dnssec } = await loadFixture()

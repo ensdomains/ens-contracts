@@ -16,7 +16,7 @@ library DNSClaimChecker {
     function getOwnerAddress(
         bytes memory name,
         bytes memory data
-    ) internal pure returns (address, bool) {
+    ) internal pure returns (address addr, bool found) {
         // Add "_ens." to the front of the name.
         Buffer.buffer memory buf;
         buf.init(name.length + 5);
@@ -25,39 +25,33 @@ library DNSClaimChecker {
 
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
-            !iter.done();
+            !found && !iter.done();
             iter.next()
         ) {
-            if (iter.name().compareNames(buf.buf) != 0) continue;
-            bool found;
-            address addr;
-            (addr, found) = parseRR(data, iter.rdataOffset, iter.nextOffset);
-            if (found) {
-                return (addr, true);
+            if (
+                iter.dnstype == RRUtils.DNSTYPE_TXT &&
+                iter.name().compareNames(buf.buf) == 0
+            ) {
+                (addr, found) = parseRR(
+                    data,
+                    iter.rdataOffset,
+                    iter.nextOffset
+                );
             }
         }
-
-        return (address(0x0), false);
     }
 
     function parseRR(
         bytes memory rdata,
         uint256 idx,
         uint256 endIdx
-    ) internal pure returns (address, bool) {
-        while (idx < endIdx) {
+    ) internal pure returns (address addr, bool found) {
+        while (!found && idx < endIdx) {
             uint256 len = rdata.readUint8(idx);
             idx += 1;
-
-            bool found;
-            address addr;
             (addr, found) = parseString(rdata, idx, len);
-
-            if (found) return (addr, true);
             idx += len;
         }
-
-        return (address(0x0), false);
     }
 
     function parseString(
