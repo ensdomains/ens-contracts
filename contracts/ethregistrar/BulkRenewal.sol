@@ -70,7 +70,10 @@ contract BulkRenewal is IBulkRenewal {
             }
         }
         // Send any excess funds back
-        payable(msg.sender).transfer(address(this).balance);
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        require(success);
     }
 
     function supportsInterface(
