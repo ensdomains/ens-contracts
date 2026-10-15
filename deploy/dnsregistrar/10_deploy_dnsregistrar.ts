@@ -10,17 +10,42 @@ export default deployScript(
     const resolver = get<(typeof artifacts.OffchainDNSResolver)['abi']>(
       'OffchainDNSResolver',
     )
-    const oldregistrar = getOrNull('DNSRegistrar')
     const root = get<(typeof artifacts.Root)['abi']>('Root')
     const publicSuffixList = get<
       (typeof artifacts.SimplePublicSuffixList)['abi']
     >('SimplePublicSuffixList')
 
+    console.log('  - Searching for old registrars...')
+    let oldRegistrarAddress: Address | undefined =
+      getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')?.address
+    const oldRegistrars: Address[] = []
+    if (oldRegistrarAddress) {
+      while (true) {
+        oldRegistrars.push(oldRegistrarAddress)
+        try {
+          oldRegistrarAddress = await read(
+            {
+              address: oldRegistrarAddress,
+              abi: artifacts.DNSRegistrar.abi,
+            },
+            { functionName: 'previousRegistrar' },
+          )
+          if (oldRegistrarAddress === zeroAddress) break
+        } catch {
+          break
+        }
+      }
+    }
+    console.log(`  - Found ${oldRegistrars.length} old registrars`)
+    if (oldRegistrars.length) {
+      console.table(oldRegistrars)
+    }
+
     const dnsRegistrar = await deploy('DNSRegistrar', {
       account: deployer,
       artifact: artifacts.DNSRegistrar,
       args: [
-        oldregistrar?.address || zeroAddress,
+        oldRegistrars,
         resolver.address,
         dnssec.address,
         publicSuffixList.address,

@@ -5,7 +5,7 @@ import { getReverseNamespace } from '../fixtures/ensip19.js'
 import { ENS_REGISTRY, KNOWN_PRIMARIES, KNOWN_RESOLUTIONS } from './mainnet.js'
 import { bundleCalls, makeResolutions } from '../utils/resolutions.js'
 
-// $ bun run test:remote
+// $ TEST_REMOTE=1 bun run test test/universalResolver/TestUniversalResolver.remote.ts
 
 const connection = await hre.network.connect('mainnetFork')
 
