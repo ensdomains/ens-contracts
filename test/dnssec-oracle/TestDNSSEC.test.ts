@@ -3,6 +3,7 @@ import hre from 'hardhat'
 import { stringToHex, type Hex } from 'viem'
 
 import {
+  DNSKEY_FLAGS,
   EXPIRATION,
   hexEncodeSignedSet,
   INCEPTION,
@@ -195,7 +196,7 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0101,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 253,
                   key: Buffer.from('1112', 'hex'),
                 },
@@ -219,7 +220,7 @@ describe('DNSSEC', () => {
                 name: '.',
                 type: 'DNSKEY',
                 data: {
-                  flags: 257,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 253,
                   key: Buffer.from('00', 'hex'),
                 },
@@ -231,7 +232,7 @@ describe('DNSSEC', () => {
     ).not.toBeReverted()
   })
 
-  it('should reject signatures by keys without the ZK bit set', async () => {
+  it('should reject signatures by keys without the ZONE KEY bit set', async () => {
     const { dnssec } = await loadFixture()
     await expect(
       dnssec.read.verifyRRSetNow([
@@ -245,7 +246,36 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0001,
+                  flags: DNSKEY_FLAGS.SEP,
+                  algorithm: 253,
+                  key: Buffer.from('1211', 'hex'),
+                },
+              },
+            ],
+          }),
+        ],
+      ]),
+    ).toBeRevertedWithCustomError('NoMatchingProof')
+  })
+
+  it('should reject signatures by keys with the REVOKE bit set', async () => {
+    const { dnssec } = await loadFixture()
+    await expect(
+      dnssec.read.verifyRRSetNow([
+        [
+          hexEncodeSignedSet({
+            ...rootKeys(),
+            rrs: [
+              {
+                name: '.',
+                type: 'DNSKEY',
+                class: 'IN',
+                ttl: 3600,
+                data: {
+                  flags:
+                    DNSKEY_FLAGS.SEP |
+                    DNSKEY_FLAGS.ZONE_KEY |
+                    DNSKEY_FLAGS.REVOKE,
                   algorithm: 253,
                   key: Buffer.from('1211', 'hex'),
                 },
@@ -496,7 +526,7 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0101,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 253,
                   key: Buffer.from('0000', 'hex'),
                 },
@@ -569,7 +599,7 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0101,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 250,
                   key: Buffer.from('0000', 'hex'),
                 },
@@ -727,7 +757,7 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0101,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 253,
                   key: Buffer.from('0000', 'hex'),
                 },
@@ -805,7 +835,7 @@ describe('DNSSEC', () => {
                 class: 'IN',
                 ttl: 3600,
                 data: {
-                  flags: 0x0101,
+                  flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
                   algorithm: 253,
                   key: Buffer.from('0000', 'hex'),
                 },

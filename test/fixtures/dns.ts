@@ -7,6 +7,13 @@ export type RRSet = {
   sig: Rrsig
 }
 
+// see: RRUtils.sol
+export const DNSKEY_FLAGS = {
+  SEP: 1, /////////// 1 << (15 - 15)
+  REVOKE: 0x80, ///// 1 << (15 - 8)
+  ZONE_KEY: 0x100, // 1 << (15 - 7)
+} as const
+
 export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   const ss = new SignedSet(rrs, sig)
   return {
@@ -24,39 +31,33 @@ export const rrsetWithTexts = ({
 }: {
   name: string
   texts: (string | { name: string; value: string })[]
-}): RRSet =>
-  ({
-    sig: {
-      name,
-      type: 'RRSIG',
-      ttl: 0,
-      class: 'IN',
-      flush: false,
-      data: {
-        typeCovered: 'TXT',
-        algorithm: 253,
-        labels: name.split('.').length,
-        originalTTL: 3600,
-        expiration: EXPIRATION,
-        inception: INCEPTION,
-        keyTag: 1278,
-        signersName: '.',
-        signature: Buffer.from([]),
-      },
+}): RRSet => ({
+  sig: {
+    name,
+    type: 'RRSIG',
+    ttl: 0,
+    class: 'IN',
+    flush: false,
+    data: {
+      typeCovered: 'TXT',
+      algorithm: 253,
+      labels: name.split('.').length,
+      originalTTL: 3600,
+      expiration: EXPIRATION,
+      inception: INCEPTION,
+      keyTag: 1278,
+      signersName: '.',
+      signature: Buffer.from([]),
     },
-    rrs: texts.map<Answer>(
-      (text) =>
-        ({
-          name: typeof text === 'string' ? name : text.name,
-          type: 'TXT',
-          class: 'IN',
-          ttl: 3600,
-          data: [
-            Buffer.from(typeof text === 'string' ? text : text.value, 'ascii'),
-          ],
-        }),
-    ),
-  })
+  },
+  rrs: texts.map<Answer>((text) => ({
+    name: typeof text === 'string' ? name : text.name,
+    type: 'TXT',
+    class: 'IN',
+    ttl: 3600,
+    data: [Buffer.from(typeof text === 'string' ? text : text.value, 'ascii')],
+  })),
+})
 export const testRrset = ({
   name,
   address,
@@ -65,36 +66,35 @@ export const testRrset = ({
   name: string
   address: Address
   inception?: number
-}): RRSet =>
-  ({
-    sig: {
-      name: 'test',
-      type: 'RRSIG',
-      ttl: 0,
-      class: 'IN',
-      flush: false,
-      data: {
-        typeCovered: 'TXT',
-        algorithm: 253,
-        labels: name.split('.').length + 1,
-        originalTTL: 3600,
-        expiration: EXPIRATION,
-        inception,
-        keyTag: 1278,
-        signersName: '.',
-        signature: Buffer.from([]),
-      },
+}): RRSet => ({
+  sig: {
+    name: 'test',
+    type: 'RRSIG',
+    ttl: 0,
+    class: 'IN',
+    flush: false,
+    data: {
+      typeCovered: 'TXT',
+      algorithm: 253,
+      labels: name.split('.').length + 1,
+      originalTTL: 3600,
+      expiration: EXPIRATION,
+      inception,
+      keyTag: 1278,
+      signersName: '.',
+      signature: Buffer.from([]),
     },
-    rrs: [
-      {
-        name: `_ens.${name}`,
-        type: 'TXT',
-        class: 'IN',
-        ttl: 3600,
-        data: [Buffer.from(`a=${address}`, 'ascii')],
-      },
-    ],
-  })
+  },
+  rrs: [
+    {
+      name: `_ens.${name}`,
+      type: 'TXT',
+      class: 'IN',
+      ttl: 3600,
+      data: [Buffer.from(`a=${address}`, 'ascii')],
+    },
+  ],
+})
 
 export const rootKeys = ({
   expiration = EXPIRATION,
@@ -143,7 +143,7 @@ export const rootKeys = ({
       class: 'IN',
       ttl: 3600,
       data: {
-        flags: 0x0101,
+        flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
         algorithm: 253,
         key: Buffer.from('0000', 'hex'),
       },

@@ -77,10 +77,11 @@ library RRUtils {
     uint16 constant DNSTYPE_DS = 43;
     uint16 constant DNSTYPE_DNSKEY = 48;
 
+    // note: these bits defined relative to the MSB and flags is 16 bits
     // https://www.rfc-editor.org/info/rfc4034/#section-2.1
-    uint256 constant DNSKEY_FLAG_ZONEKEY = 1 << 8; // "bit 7" => 2^8
+    uint256 constant DNSKEY_FLAG_ZONEKEY = 1 << (15 - 7); // "bit 7"
     // https://www.rfc-editor.org/info/rfc5011/#section-7
-    uint256 constant DNSKEY_FLAG_REVOKE = 1 << 9; // "bit 8" => 2^9
+    uint256 constant DNSKEY_FLAG_REVOKE = 1 << (15 - 8); // "bit 8"
 
     struct SignedSet {
         uint16 typeCovered;
