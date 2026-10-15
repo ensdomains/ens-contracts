@@ -100,7 +100,7 @@ async function fixture() {
     ])
   }
 
-  return { ensRegistry, baseRegistrar, bulkRenewal }
+  return { ensRegistry, baseRegistrar, bulkRenewal, dummyOracle }
 }
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
@@ -139,5 +139,25 @@ describe('BulkRenewal', () => {
     await expect(
       publicClient.getBalance({ address: bulkRenewal.address }),
     ).resolves.toEqual(0n)
+  })
+
+  it('should revert rather than silently wrap when the total overflows uint256', async () => {
+    const { bulkRenewal, dummyOracle } = await loadFixture()
+
+    // The price is sourced from the registrar's oracle, which is not fully
+    // under the contract's control. If it reports an inflated ETH price, a
+    // large duration makes each name's rent price exceed 2**255 wei, so the
+    // sum of just two names overflows uint256. rentPrice must revert with an
+    // arithmetic-overflow panic (0x11) instead of silently wrapping.
+    //
+    // With ethPrice = 1 wei and price5Letter = 1, StablePriceOracle returns
+    // base = price5Letter * duration * 1e8 / 1 = duration * 1e8 for a 5+
+    // char name. duration just above 2**255 / 1e8 yields base > 2**255.
+    await dummyOracle.write.set([1n])
+
+    const duration = (2n ** 255n) / 100000000n + 1n
+    await expect(
+      bulkRenewal.read.rentPrice([['test1', 'test2'], duration]),
+    ).toBeRevertedWithPanic(0x11n)
   })
 })
