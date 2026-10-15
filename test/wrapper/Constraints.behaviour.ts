@@ -1,5 +1,5 @@
 import type { Fixture } from '@nomicfoundation/hardhat-network-helpers/types'
-import type { NetworkConnection } from 'hardhat/types/network'
+import type { DefaultChainType, NetworkConnection } from 'hardhat/types/network'
 import { getAddress, labelhash, namehash, zeroAddress } from 'viem'
 
 import { DAY, FUSES } from '../fixtures/constants.js'
@@ -46,18 +46,18 @@ export const shouldRespectConstraints = (connection: NetworkConnection) => {
     const initial = await deployNameWrapperFixture(connection)
     const accounts = await getAccounts(connection)
     const publicClient = await connection.viem.getPublicClient()
-    const testClient = await connection.viem.getTestClient()
 
     await initial.baseRegistrar.write.setApprovalForAll([
       initial.nameWrapper.address,
       true,
     ])
 
-    return { ...initial, accounts, publicClient, testClient }
+    return { ...initial, accounts, publicClient }
   }
 
-  const loadFixture = async <T>(fixture: Fixture<T>): Promise<T> =>
-    connection.networkHelpers.loadFixture(fixture)
+  const loadFixture = async <T>(
+    fixture: Fixture<T, DefaultChainType>,
+  ): Promise<T> => connection.networkHelpers.loadFixture(fixture)
 
   // Reusable state setup
   const setupState = ({
@@ -956,8 +956,7 @@ export const shouldRespectConstraints = (connection: NetworkConnection) => {
     expectedFuses,
   }: BaseTestParameters & { expectedFuses: number }) => {
     it('Owner resets to 0 after expiry', async () => {
-      const { nameWrapper, accounts, publicClient, testClient } =
-        await loadFixture(fixture)
+      const { nameWrapper, accounts, publicClient } = await loadFixture(fixture)
 
       const [ownerBefore, fusesBefore, expiryBefore] =
         await nameWrapper.read.getData([childNodeId])
@@ -970,8 +969,7 @@ export const shouldRespectConstraints = (connection: NetworkConnection) => {
       expect(expiryBefore).toBeGreaterThan(timestampBefore)
 
       // force expiry
-      await testClient.increaseTime({ seconds: Number(2n * DAY) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(2n * DAY)
 
       const [ownerAfter, fusesAfter, expiryAfter] =
         await nameWrapper.read.getData([childNodeId])

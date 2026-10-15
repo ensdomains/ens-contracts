@@ -11,7 +11,7 @@ function getReverseNodeHash(addr: Address) {
   return namehash(`${addr.slice(2).toLowerCase()}.${reverseNamespace}`)
 }
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   const accounts = await connection.viem

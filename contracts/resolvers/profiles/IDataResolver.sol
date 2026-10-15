@@ -5,12 +5,12 @@ pragma solidity >=0.8.4;
 interface IDataResolver {
     /// @notice For a specific `node`, the data associated with a `key` has changed.
     event DataChanged(
-        bytes32 indexed node, 
+        bytes32 indexed node,
         string indexed indexedKey,
-        string key, 
+        string key,
         bytes indexed indexedData
     );
-    
+
     /// @notice For a specific `node`, get the data associated with the key, `key`.
     /// @param node The node (namehash) for which data is being fetched.
     /// @param key The key.

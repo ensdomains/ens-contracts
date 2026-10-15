@@ -11,7 +11,7 @@ import { KnownProfile, makeResolutions } from '../utils/resolutions.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { deployDefaultReverseFixture } from '../fixtures/deployDefaultReverseFixture.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 async function fixture() {

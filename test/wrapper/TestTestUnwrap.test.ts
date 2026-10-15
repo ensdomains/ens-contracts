@@ -5,7 +5,7 @@ import { DAY, FUSES } from '../fixtures/constants.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { getAccounts, toTokenId } from '../fixtures/utils.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {

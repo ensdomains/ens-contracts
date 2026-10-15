@@ -24,7 +24,7 @@ const GRACE_PERIOD = 90n * DAY
 
 const labelId = (label: string) => hexToBigInt(labelhash(label))
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const publicClient = await connection.viem.getPublicClient()
 const [ownerClient, registrantClient, otherClient] =
   await connection.viem.getWalletClients()

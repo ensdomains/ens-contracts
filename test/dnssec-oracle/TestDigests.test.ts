@@ -3,7 +3,7 @@ import { stringToHex } from 'viem'
 
 import { digests } from './fixtures/digests.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 digests.forEach((testcase) => {
   async function fixture() {

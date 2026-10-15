@@ -101,7 +101,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Can re-wrap a name that was wrapped has already expired on the .eth registrar', async () => {
-      const { baseRegistrar, nameWrapper, accounts, testClient, actions } =
+      const { baseRegistrar, nameWrapper, accounts, actions, networkHelpers } =
         await loadFixture()
 
       await actions.register({
@@ -117,10 +117,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
         resolver: zeroAddress,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(DAY * GRACE_PERIOD + DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY * GRACE_PERIOD + DAY + 1n)
 
       await expect(
         baseRegistrar.read.available([toLabelId(label)]),
@@ -190,7 +187,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Can re-wrap a name that was wrapped has already expired even if CANNOT_TRANSFER was burned', async () => {
-      const { baseRegistrar, nameWrapper, accounts, testClient, actions } =
+      const { baseRegistrar, nameWrapper, accounts, actions, networkHelpers } =
         await loadFixture()
 
       await actions.register({
@@ -206,10 +203,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
         resolver: zeroAddress,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(DAY * GRACE_PERIOD + DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY * GRACE_PERIOD + DAY + 1n)
 
       await expect(
         baseRegistrar.read.available([toLabelId(label)]),
@@ -263,7 +257,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('correctly reports fuses for a name that has expired and been rewrapped more permissively', async () => {
-      const { baseRegistrar, nameWrapper, accounts, testClient, actions } =
+      const { baseRegistrar, nameWrapper, accounts, actions, networkHelpers } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -291,10 +285,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
       expect(subFuses).toEqual(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
 
       // Fast forward until the 2LD expires
-      await testClient.increaseTime({
-        seconds: Number(DAY * GRACE_PERIOD + DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY * GRACE_PERIOD + DAY + 1n)
 
       // Register from another address
       await actions.registerSetupAndWrapName({
@@ -321,7 +312,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('correctly reports fuses for a name that has expired and been rewrapped more permissively with registerAndWrap()', async () => {
-      const { baseRegistrar, nameWrapper, accounts, testClient, actions } =
+      const { baseRegistrar, nameWrapper, accounts, actions, networkHelpers } =
         await loadFixture()
 
       await actions.registerSetupAndWrapName({
@@ -349,10 +340,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
       expect(subFuses).toEqual(PARENT_CANNOT_CONTROL | CANNOT_UNWRAP)
 
       // Fast forward until the 2LD expires
-      await testClient.increaseTime({
-        seconds: Number(DAY * GRACE_PERIOD + DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY * GRACE_PERIOD + DAY + 1n)
 
       // Register from another address with registerAndWrap()
       await baseRegistrar.write.addController([nameWrapper.address])
@@ -659,7 +647,8 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Allows fuse to be burned if CANNOT_UNWRAP has been burned, but resets to 0 if expired', async () => {
-      const { nameWrapper, accounts, testClient, actions } = await loadFixture()
+      const { nameWrapper, accounts, actions, networkHelpers } =
+        await loadFixture()
 
       await actions.register({
         label,
@@ -676,10 +665,7 @@ export const wrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
         resolver: zeroAddress,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(DAY + 1n + GRACE_PERIOD),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY + 1n + GRACE_PERIOD)
 
       const [, fuses] = await nameWrapper.read.getData([toNameId(name)])
       expect(fuses).toEqual(0)

@@ -3,12 +3,8 @@ pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC7996} from "../../utils/IERC7996.sol";
-import {
-    IExtendedResolver
-} from "../../resolvers/profiles/IExtendedResolver.sol";
-import {
-    IExtendedDNSResolver
-} from "../../resolvers/profiles/IExtendedDNSResolver.sol";
+import {IExtendedResolver} from "../../resolvers/profiles/IExtendedResolver.sol";
+import {IExtendedDNSResolver} from "../../resolvers/profiles/IExtendedDNSResolver.sol";
 import {IMulticallable} from "../../resolvers/IMulticallable.sol";
 import {OffchainLookup} from "../../ccipRead/EIP3668.sol";
 import {BytesUtils} from "../../utils/BytesUtils.sol";
