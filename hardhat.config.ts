@@ -125,6 +125,9 @@ const config = {
     sources: {
       solidity: ['./contracts'],
     },
+    tests: {
+      solidity: './test-sol',
+    },
   },
   plugins: [
     HardhatNetworkHelpersPlugin,
