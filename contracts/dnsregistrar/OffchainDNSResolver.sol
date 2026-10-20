@@ -106,8 +106,12 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
 
             // If we found a valid record, try to resolve it
             if (dnsresolver != address(0)) {
+                if (!dnsresolver.isContract()) {
+                    continue;
+                }
                 if (
-                    IERC165(dnsresolver).supportsInterface(
+                    supportsInterface(
+                        dnsresolver,
                         IExtendedDNSResolver.resolve.selector
                     )
                 ) {
@@ -122,7 +126,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
                             )
                         );
                 } else if (
-                    IERC165(dnsresolver).supportsInterface(
+                    supportsInterface(
+                        dnsresolver,
                         IExtendedResolver.resolve.selector
                     )
                 ) {
@@ -204,6 +209,16 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             }
         }
         return resolveName(nameOrAddress, idx, lastIdx);
+    }
+
+    function supportsInterface(
+        address resolver,
+        bytes4 interfaceId
+    ) internal view returns (bool) {
+        (bool ok, bytes memory ret) = resolver.staticcall(
+            abi.encodeCall(IERC165.supportsInterface, (interfaceId))
+        );
+        return ok && ret.length >= 32 && abi.decode(ret, (bool));
     }
 
     function resolveName(
