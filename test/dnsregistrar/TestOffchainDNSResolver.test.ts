@@ -10,6 +10,7 @@ import {
   toFunctionSelector,
   zeroHash,
   type Hex,
+  encodeErrorResult,
 } from 'viem'
 
 import {
@@ -48,6 +49,9 @@ async function fixture() {
     'MockOffchainResolver',
     [],
   )
+  const publicClientWithCcipRead = await connection.viem.getPublicClient({
+    ccipRead: undefined,
+  })
   const publicClientWithoutCcipRead = await connection.viem.getPublicClient({
     ccipRead: false,
   })
@@ -56,6 +60,11 @@ async function fixture() {
     [ensRegistry.address, dnssec.address, OFFCHAIN_GATEWAY],
     { client: { public: publicClientWithoutCcipRead } },
   )
+  const offchainDnsResolverWithCcipRead = await connection.viem.getContractAt(
+    'OffchainDNSResolver',
+    offchainDnsResolver.address,
+    { client: { public: publicClientWithCcipRead } },
+  )
   const ownedResolver = await connection.viem.deployContract(
     'OwnedResolver',
     [],
@@ -63,6 +72,9 @@ async function fixture() {
   const dummyResolver = await connection.viem.deployContract(
     'DummyNonCCIPAwareResolver',
     [offchainDnsResolver.address],
+  )
+  const ssResolver = await connection.viem.deployContract(
+    'DummyShapeshiftResolver',
   )
   const dnsRegistrar = await connection.viem.deployContract('DNSRegistrar', [
     [], // Previous registrars
@@ -86,10 +98,12 @@ async function fixture() {
     name,
     texts,
     calldata,
+    ccipRead,
   }: {
     name: string
     texts: string[]
     calldata: Hex
+    ccipRead?: boolean
   }) => {
     const proof = [
       hexEncodeSignedSet(rootKeys()),
@@ -113,7 +127,9 @@ async function fixture() {
       [dnsName, calldata, '0x00000000'],
     )
 
-    return offchainDnsResolver.read.resolveCallback([response, extraData])
+    return (
+      ccipRead ? offchainDnsResolverWithCcipRead : offchainDnsResolver
+    ).read.resolveCallback([response, extraData])
   }
 
   const doResolveCallback = ({
@@ -139,13 +155,52 @@ async function fixture() {
     suffixes,
     offchainResolver,
     offchainDnsResolver,
+    offchainDnsResolverWithCcipRead,
     ownedResolver,
     dummyResolver,
+    ssResolver,
     dnsRegistrar,
     publicResolverAbi,
     dnsGatewayAbi,
     doDnsResolveCallback,
     doResolveCallback,
+    createMaliciousOffchainLookup,
+  }
+
+  function createMaliciousOffchainLookup() {
+    // note: this can target **anything** so any identity-like function is usable
+    // eg. `DummyShapeshiftResolver.callback(*, v) = v`
+    return encodeErrorResult({
+      abi: offchainDnsResolver.abi,
+      errorName: 'OffchainLookup',
+      args: [
+        offchainDnsResolver.address, // top level
+        [`data:application/json,{"data":"0x"}`], // response (ignored)
+        '0x', // callData (ignored) by data url
+        toFunctionSelector('resolveCallback(bytes,bytes)'),
+        encodeAbiParameters(
+          [
+            { type: 'bytes', name: 'name' },
+            { type: 'bytes', name: 'query' },
+            { type: 'bytes4', name: 'selector' },
+          ],
+          [
+            '0x', // name (ignored)
+            encodeAbiParameters(
+              [
+                { type: 'bytes', name: 'targetData' },
+                { type: 'address', name: 'targetResolver' },
+              ],
+              [
+                '0xBAAD', // malicious response
+                ssResolver.address, // see: note
+              ],
+            ),
+            toFunctionSelector('callback(bytes,bytes)'), // != bytes4(0)
+          ],
+        ),
+      ],
+    })
   }
 }
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
@@ -282,12 +337,8 @@ describe('OffchainDNSResolver', () => {
   })
 
   it('rejects calls to resolveCallback() with an invalid TXT record', async () => {
-    const {
-      ownedResolver,
-      doDnsResolveCallback,
-      offchainDnsResolver,
-      publicResolverAbi,
-    } = await loadFixture()
+    const { ownedResolver, doDnsResolveCallback, publicResolverAbi } =
+      await loadFixture()
 
     const name = 'test.test'
     const testAddress = '0xfefeFEFeFEFEFEFEFeFefefefefeFEfEfefefEfe'
@@ -587,5 +638,55 @@ describe('OffchainDNSResolver', () => {
         calldata,
       }),
     ).toBeRevertedWithCustomError('InvalidOperation')
+  })
+
+  describe('Untrusted External Call Guards', () => {
+    it('addr() during parseRR()', async () => {
+      const F = await loadFixture()
+      const label = 'malicious' // arbitrary
+      await F.root.write.setSubnodeOwner([
+        labelhash('eth'),
+        accounts[0].address,
+      ])
+      await F.ensRegistry.write.setSubnodeRecord([
+        namehash('eth'),
+        labelhash(label),
+        accounts[0].address,
+        F.ssResolver.address,
+        0n,
+      ])
+      await F.ssResolver.write.setResponse([
+        encodeFunctionData({
+          abi: F.ownedResolver.abi,
+          functionName: 'addr',
+          args: [namehash(`${label}.eth`)],
+        }),
+        F.createMaliciousOffchainLookup(),
+      ])
+      await expect(
+        F.doDnsResolveCallback({
+          name: 'arbitrary',
+          texts: [`ENS1 ${label}.eth`],
+          calldata: '0x', // arbitrary
+          ccipRead: true,
+        }),
+      ).toBeRevertedWithCustomError('CouldNotResolve')
+    })
+
+    it('supportsInterface()', async () => {
+      const F = await loadFixture()
+      const resolver = await connection.viem.deployContract(
+        'MockRevertingERC165Resolver',
+        [F.createMaliciousOffchainLookup()],
+      )
+      await expect(
+        F.doDnsResolveCallback({
+          name: 'arbitrary',
+          texts: [`ENS1 ${resolver.address}`],
+          calldata: '0x', // arbitrary
+          ccipRead: true,
+        }),
+      ).toBeRevertedWithCustomError('CouldNotResolve')
+    })
   })
 })

@@ -2,7 +2,8 @@
 pragma solidity ^0.8.4;
 
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
-import {ERC165, IERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {ERC165Checker} from "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 
 import "../../contracts/resolvers/profiles/IAddrResolver.sol";
 import "../../contracts/resolvers/profiles/IExtendedResolver.sol";
@@ -18,7 +19,7 @@ import {LowLevelCallUtils} from "../utils/LowLevelCallUtils.sol";
 
 error InvalidOperation();
 
-contract OffchainDNSResolver is IExtendedResolver, IERC165 {
+contract OffchainDNSResolver is IExtendedResolver, ERC165 {
     using RRUtils for *;
     using Address for address;
     using BytesUtils for bytes;
@@ -38,8 +39,10 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
 
     function supportsInterface(
         bytes4 interfaceId
-    ) external pure override returns (bool) {
-        return interfaceId == type(IExtendedResolver).interfaceId;
+    ) public view override returns (bool) {
+        return
+            interfaceId == type(IExtendedResolver).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function resolve(
@@ -107,7 +110,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
             // If we found a valid record, try to resolve it
             if (dnsresolver != address(0)) {
                 if (
-                    IERC165(dnsresolver).supportsInterface(
+                    ERC165Checker.supportsERC165InterfaceUnchecked(
+                        dnsresolver,
                         IExtendedDNSResolver.resolve.selector
                     )
                 ) {
@@ -122,7 +126,8 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
                             )
                         );
                 } else if (
-                    IERC165(dnsresolver).supportsInterface(
+                    ERC165Checker.supportsERC165InterfaceUnchecked(
+                        dnsresolver,
                         IExtendedResolver.resolve.selector
                     )
                 ) {
@@ -210,13 +215,14 @@ contract OffchainDNSResolver is IExtendedResolver, IERC165 {
         bytes memory name,
         uint256 idx,
         uint256 lastIdx
-    ) internal view returns (address) {
+    ) internal view returns (address addr) {
         bytes32 node = textNamehash(name, idx, lastIdx);
         address resolver = ens.resolver(node);
-        if (resolver == address(0)) {
-            return address(0);
+        if (resolver.code.length > 0) {
+            try IAddrResolver(resolver).addr(node) returns (address payable a) {
+                addr = a;
+            } catch {}
         }
-        return IAddrResolver(resolver).addr(node);
     }
 
     /// @dev Namehash function that operates on dot-separated names (not dns-encoded names)
