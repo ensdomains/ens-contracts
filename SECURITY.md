@@ -7,7 +7,6 @@
 Please report vulnerabilities through our bug bounty program on Immunefi:
 https://immunefi.com/bug-bounty/ens/
 
-If you cannot use Immunefi, email security@ens.domains.
 
 Please include:
 - Affected contract(s), commit hash, and network
