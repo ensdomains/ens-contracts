@@ -85,7 +85,7 @@ export default deployScript(
       }
     }
 
-    if (owner !== deployer) {
+    if (!isAddressEqual(owner, deployer)) {
       console.log('  - Transferring ownership to owner account')
       await write(dnssec, {
         functionName: 'transferOwnership',
