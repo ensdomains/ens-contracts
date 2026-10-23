@@ -4,6 +4,8 @@ import { stringToHex } from 'viem'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import {
   chainFromCoinType,
+  coinTypeFromChain,
+  CHAIN_ID_ETH,
   COIN_TYPE_ETH,
   COIN_TYPE_DEFAULT,
   getReverseName,
@@ -129,6 +131,18 @@ describe('ENSIP19', () => {
         await expect(
           F.read.chainFromCoinType([coinType]),
         ).resolves.toStrictEqual(chainFromCoinType(coinType))
+      })
+    }
+  })
+
+  describe('coinTypeFromChain()', () => {
+    for (const chainId of [0, CHAIN_ID_ETH, 8453]) {
+      const coinType = coinTypeFromChain(chainId);
+      it(shortCoin(coinType), async () => {
+        const F = await loadFixture()
+        await expect(
+          F.read.coinTypeFromChain([chainId]),
+        ).resolves.toStrictEqual(coinType)
       })
     }
   })
