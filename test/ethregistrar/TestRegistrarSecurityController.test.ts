@@ -4,7 +4,7 @@ import { labelhash, namehash, zeroHash } from 'viem'
 
 import { getAccounts } from '../fixtures/utils.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {
@@ -50,8 +50,7 @@ describe('RegistrarSecurityController', () => {
 
   describe('disableRegistrarController', () => {
     it('should remove controller access', async () => {
-      const { baseRegistrar, registrarSecurityController } =
-        await loadFixture()
+      const { baseRegistrar, registrarSecurityController } = await loadFixture()
       const controller = accounts[1].address
       const securityController = accounts[2]
 
@@ -187,5 +186,4 @@ describe('RegistrarSecurityController', () => {
       ).toBeRevertedWithString('Ownable: caller is not the owner')
     })
   })
-
 })

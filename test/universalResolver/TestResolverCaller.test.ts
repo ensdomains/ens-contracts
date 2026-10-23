@@ -15,7 +15,7 @@ import {
   makeResolutions,
 } from '../utils/resolutions.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   const resolverCaller = await connection.viem.deployContract(

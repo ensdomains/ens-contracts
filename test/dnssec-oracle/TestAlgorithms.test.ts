@@ -2,7 +2,7 @@ import hre from 'hardhat'
 
 import { algorithms } from './fixtures/algorithms.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 algorithms.forEach(([algo, vector]) => {
   async function fixture() {

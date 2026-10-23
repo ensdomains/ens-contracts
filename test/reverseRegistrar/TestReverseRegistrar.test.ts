@@ -15,7 +15,7 @@ function getReverseNodeHash(addr: Address) {
   return namehash(getReverseName(addr))
 }
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {
@@ -352,7 +352,7 @@ describe('ReverseRegistrar', () => {
         reverseRegistrar.write.setController([accounts[1].address, true], {
           account: accounts[1],
         }),
-      ).rejects.toThrow('Ownable: caller is not the owner')
+      ).toBeRevertedWithString('Ownable: caller is not the owner')
     })
   })
 })

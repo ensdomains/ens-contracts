@@ -8,7 +8,7 @@ import { sha256, toHex, concat } from 'viem'
  * for RSA keys with low exponent (e=3) due to proper PKCS#1 v1.5 validation.
  */
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 // ============================================================================
 // Crypto helpers (attack-specific, can't reuse from codebase)
@@ -23,7 +23,7 @@ function cubeRootMod2n(h: bigint, n = 256): bigint {
     const fx = (x ** 3n - h) % mod
     const fpx = (3n * x * x) % mod
     const fpxInv = modInverse(fpx, mod)
-    x = ((x - fx * fpxInv) % mod + mod) % mod
+    x = (((x - fx * fpxInv) % mod) + mod) % mod
   }
   return x
 }
@@ -56,7 +56,10 @@ function bigIntToBytes(n: bigint, len: number): Uint8Array {
 
 describe('RSA Signature Forgery (Bleichenbacher Attack)', () => {
   it('should reject forged signature for e=3 key', async () => {
-    const algorithm = await connection.viem.deployContract('RSASHA256Algorithm', [])
+    const algorithm = await connection.viem.deployContract(
+      'RSASHA256Algorithm',
+      [],
+    )
 
     // RSA key with e=3 (2048-bit modulus) - mimics .cc/.name KSK
     const modulusBytes = 256

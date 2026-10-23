@@ -215,7 +215,7 @@ export const approveTests = (
     })
 
     it('Does not allow approved accounts to extend expiry when expired', async () => {
-      const { nameWrapper, accounts, actions, testClient } = await loadFixture()
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
         parentName: name,
@@ -226,10 +226,7 @@ export const approveTests = (
       })
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
 
-      await testClient.increaseTime({
-        seconds: Number(2n * DAY),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(2n * DAY)
 
       await expect(
         nameWrapper.write.extendExpiry(
@@ -495,7 +492,7 @@ export const approveTests = (
     })
 
     it('Approval is cleared on re-registration and wrap of expired name', async () => {
-      const { nameWrapper, accounts, actions, testClient } = await loadFixture()
+      const { nameWrapper, accounts, actions } = await loadFixture()
 
       await nameWrapper.write.approve([accounts[1].address, toNameId(name)])
       await nameWrapper.write.setFuses([
@@ -506,10 +503,7 @@ export const approveTests = (
         nameWrapper.read.getApproved([toNameId(name)]),
       ).resolves.toEqualAddress(accounts[1].address)
 
-      await testClient.increaseTime({
-        seconds: Number(2n * DAY + GRACE_PERIOD),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(2n * DAY + GRACE_PERIOD)
 
       await expect(
         nameWrapper.read.getApproved([toNameId(name)]),

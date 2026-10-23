@@ -86,8 +86,6 @@ export const commitNameWithConnection =
       connection,
     )(params_)
     const args = getRegisterNameParameters(params)
-
-    const testClient = await connection.viem.getTestClient()
     const [deployer] = await connection.viem.getWalletClients()
 
     const commitmentHash = await ethRegistrarController.read.makeCommitment([
@@ -98,8 +96,7 @@ export const commitNameWithConnection =
     })
     const minCommitmentAge =
       await ethRegistrarController.read.minCommitmentAge()
-    await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
-    await testClient.mine({ blocks: 1 })
+    await connection.networkHelpers.time.increase(minCommitmentAge)
 
     return {
       params,
@@ -119,8 +116,6 @@ export const registerNameWithConnection =
     )(params_)
     const args = getRegisterNameParameters(params)
     const { label, duration } = params
-
-    const testClient = await connection.viem.getTestClient()
     const [deployer] = await connection.viem.getWalletClients()
     const commitmentHash = await ethRegistrarController.read.makeCommitment([
       args,
@@ -130,8 +125,7 @@ export const registerNameWithConnection =
     })
     const minCommitmentAge =
       await ethRegistrarController.read.minCommitmentAge()
-    await testClient.increaseTime({ seconds: Number(minCommitmentAge) })
-    await testClient.mine({ blocks: 1 })
+    await connection.networkHelpers.time.increase(minCommitmentAge)
 
     const price = (await ethRegistrarController.read.rentPrice([
       label,

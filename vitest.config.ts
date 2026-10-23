@@ -15,7 +15,7 @@ export default defineConfig({
     setupFiles: ['./test/setup.ts'],
   },
   esbuild: {
-    target: 'node22',
+    target: 'node24',
     format: 'esm',
   },
 })
