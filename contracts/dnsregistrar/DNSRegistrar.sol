@@ -17,7 +17,7 @@ import {NameCoder} from "../utils/NameCoder.sol";
 /// @dev An ENS registrar that allows the owner of a DNS name to claim the
 ///      corresponding name in ENS.
 ///
-/// Inception times are stored per name per record type with a hash of the data:
+/// Inception times are stored per name per type with a hash of the record data:
 ///     `uint256 hash := (uint256(keccak256(data)) << 32) + uint32(inception)`
 ///
 contract DNSRegistrar is ERC165, IDNSRegistrar {
@@ -158,7 +158,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
     ) public view override returns (bool) {
         return
             interfaceId == type(IDNSRegistrar).interfaceId ||
-            // Interface selector for prior interface.
+            // Interface selector from prior interface:
             // https://github.com/ensdomains/ens-contracts/blob/v1.7.0/contracts/dnsregistrar/IDNSRegistrar.sol
             interfaceId == 0x2f435428 ||
             super.supportsInterface(interfaceId);
@@ -168,9 +168,10 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
     function getInception(
         bytes calldata name,
         uint16 typeCovered
-    ) public view returns (uint32) {
+    ) public view returns (uint32 inception, bytes28 recordHash) {
         (, , uint256 hash) = _inceptionForType(name, typeCovered);
-        return uint32(hash);
+        inception = uint32(hash);
+        recordHash = bytes28(bytes32(hash));
     }
 
     /// @inheritdoc IDNSRegistrar
@@ -210,21 +211,24 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
                 ss.name,
                 ss.typeCovered
             );
+            uint256 hash = uint256(keccak256(ss.data) << 32) | ss.inception;
             uint32 lastInception = uint32(lastHash);
-            uint256 hash = uint256(keccak256(ss.data) << 32) | ss.inception; // TODO: data or input[i]
+            bool changed = ((lastHash ^ hash) >> 32) != 0;
             if (ss.inception == lastInception) {
-                if (lastHash != hash && !isLeaf && (hash >> 32) != 0) {
-                    // hash must be same (if not leaf or fallback)
+                // inception is unchanged: records must be the same if not leaf
+                if (changed && !isLeaf) {
                     revert DifferentProof(ss.name, ss.typeCovered);
                 }
             } else if (!RRUtils.serialNumberGte(ss.inception, lastInception)) {
-                // inception must be greater
-                revert StaleProof(
-                    ss.name,
-                    ss.typeCovered,
-                    lastInception,
-                    ss.inception
-                );
+                // inception is older: records must be the same
+                if (changed) {
+                    revert StaleProof(
+                        ss.name,
+                        ss.typeCovered,
+                        lastInception,
+                        ss.inception
+                    );
+                }
             } else {
                 _inceptions[node][ss.typeCovered] = hash;
                 emit InceptionUpdated(

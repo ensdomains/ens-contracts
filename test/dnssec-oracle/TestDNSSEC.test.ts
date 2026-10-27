@@ -873,20 +873,13 @@ describe('DNSSEC', () => {
     ).rejects.toThrow()
   })
 
-  describe('Cloudflare Test Cases', () => {
-    // https://dnstest.dev/
+  describe('Cloudflare Test Cases: https://dnstest.dev/', () => {
     describe('valid', () => {
       for (const name of ['alg13.dnstest.dev', 'valid.alg13.dnstest.dev']) {
         it(name, async () => {
           const { dnssec } = await loadFixture()
           const rrsets = await fetchDNSSECOracleRRSets(name)
-          if (/(invalid|expired|sentinel)/.test(name)) {
-            await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
-          } else {
-            await expect(
-              dnssec.read.verifyRRSetNow([rrsets]),
-            ).not.toBeReverted()
-          }
+          await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
         })
       }
     })
@@ -904,13 +897,7 @@ describe('DNSSEC', () => {
     //     it(name, async () => {
     //       const { dnssec } = await loadFixture()
     //       const rrsets = await fetchDNSSECOracleRRSets(name)
-    //       if (/(invalid|expired|sentinel)/.test(name)) {
-    //         await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
-    //       } else {
-    //         await expect(
-    //           dnssec.read.verifyRRSetNow([rrsets]),
-    //         ).not.toBeReverted()
-    //       }
+    //       await expect(dnssec.read.verifyRRSetNow([rrsets])).toBeReverted()
     //     })
     //   }
     // })

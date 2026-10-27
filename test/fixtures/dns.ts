@@ -1,6 +1,6 @@
 import { SignedSet } from '@ensdomains/dnsprovejs'
 import type { Answer, Rrsig } from 'dns-packet'
-import { bytesToHex, type Address } from 'viem'
+import { bytesToHex, type Hex, type Address, keccak256, slice } from 'viem'
 
 export type RRSet = {
   rrs: Answer[]
@@ -19,6 +19,7 @@ export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   return {
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
+    hash: slice(keccak256(ss.toWire(false)), 4),
   }
 }
 
@@ -99,9 +100,11 @@ export const testRrset = ({
 export const rootKeys = ({
   expiration = EXPIRATION,
   inception = INCEPTION,
+  dummyKey = '0x',
 }: {
   expiration?: number
   inception?: number
+  dummyKey?: Hex
 } = {}) => {
   const name = '.'
   const sig: Rrsig = {
@@ -128,14 +131,11 @@ export const rootKeys = ({
       type: 'DNSKEY',
       class: 'IN',
       ttl: 3600,
-      data: { flags: 0, algorithm: 253, key: Buffer.from('0000', 'hex') },
-    },
-    {
-      name,
-      type: 'DNSKEY',
-      class: 'IN',
-      ttl: 3600,
-      data: { flags: 0, algorithm: 253, key: Buffer.from('1112', 'hex') },
+      data: {
+        flags: 0,
+        algorithm: 253,
+        key: Buffer.from(dummyKey.slice(2), 'hex'),
+      },
     },
     {
       name,
