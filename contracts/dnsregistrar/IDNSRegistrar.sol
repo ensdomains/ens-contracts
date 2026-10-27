@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../dnssec-oracle/DNSSEC.sol";
+import {DNSSEC} from "../dnssec-oracle/DNSSEC.sol";
 
+/// @dev Interface selector: `0x195b83b3`
 interface IDNSRegistrar {
     /// @notice Verify proofs with DNSSEC oracle, claim the name, and call `setSubnodeOwner()`.
     /// @param name DNS-encoded name to claim.
