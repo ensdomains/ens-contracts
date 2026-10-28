@@ -1,8 +1,9 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "../dnssec-oracle/DNSSEC.sol";
+import {DNSSEC} from "../dnssec-oracle/DNSSEC.sol";
 
+/// @dev Interface selector: `0x195b83b3`
 interface IDNSRegistrar {
     /// @notice Verify proofs with DNSSEC oracle, claim the name, and call `setSubnodeOwner()`.
     /// @param name DNS-encoded name to claim.
@@ -28,11 +29,12 @@ interface IDNSRegistrar {
     /// @dev `getInception("_ens.{domain}", 16) == inception(namehash(domain))`.
     /// @param name DNS-encoded name to query.
     /// @param typeCovered DNS resource record type.
-    /// @return Inception time, in seconds.
+    /// @return inception Inception time, in seconds.
+    /// @return recordHash Hash of record data.
     function getInception(
         bytes calldata name,
         uint16 typeCovered
-    ) external view returns (uint32);
+    ) external view returns (uint32 inception, bytes28 recordHash);
 
     /// @notice Get the latest inception time of a claim.
     /// @dev Corresponds to the TXT record of "_ens.{domain}".
