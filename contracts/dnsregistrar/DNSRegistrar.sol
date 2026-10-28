@@ -169,7 +169,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
         bytes calldata name,
         uint16 typeCovered
     ) public view returns (uint32 inception, bytes28 recordHash) {
-        (, , uint256 hash) = _inceptionForType(name, typeCovered);
+        (, uint256 hash) = _inceptionForType(name, typeCovered);
         inception = uint32(hash);
         recordHash = bytes28(bytes32(hash));
     }
@@ -207,7 +207,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
         RRUtils.SignedSet memory ss;
         for (uint256 i; i < sss.length; ++i) {
             ss = sss[i];
-            (bytes32 node, bool isLeaf, uint256 lastHash) = _inceptionForType(
+            (bytes32 node, uint256 lastHash) = _inceptionForType(
                 ss.name,
                 ss.typeCovered
             );
@@ -216,7 +216,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
             bool changed = ((lastHash ^ hash) >> 32) != 0;
             if (ss.inception == lastInception) {
                 // inception is unchanged: records must be the same if not leaf
-                if (changed && !isLeaf) {
+                if (changed && i + 1 != sss.length) {
                     revert DifferentProof(ss.name, ss.typeCovered);
                 }
             } else if (!RRUtils.serialNumberGte(ss.inception, lastInception)) {
@@ -298,17 +298,15 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
     function _inceptionForType(
         bytes memory name,
         uint16 typeCovered
-    ) internal view returns (bytes32 node, bool isLeaf, uint256 inceptionHash) {
+    ) internal view returns (bytes32 node, uint256 inceptionHash) {
         (bytes32 labelHash, uint256 offset) = NameCoder.readLabel(name, 0);
         bytes32 parentNode;
         if (labelHash != bytes32(0)) {
             parentNode = NameCoder.namehash(name, offset);
             node = NameCoder.namehash(parentNode, labelHash);
         }
-        isLeaf =
-            typeCovered == RRUtils.DNSTYPE_TXT &&
-            labelHash == LABELHASH_PREFIX;
-        inceptionHash = isLeaf
+        inceptionHash = typeCovered == RRUtils.DNSTYPE_TXT &&
+            labelHash == LABELHASH_PREFIX
             ? _leafInceptionWithFallback(parentNode, node)
             : _inceptions[node][typeCovered];
     }
