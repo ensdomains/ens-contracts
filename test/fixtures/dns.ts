@@ -1,6 +1,8 @@
 import { SignedSet } from '@ensdomains/dnsprovejs'
+import { toType } from 'dns-packet/types'
+import packet from 'dns-packet';
 import type { Answer, Rrsig } from 'dns-packet'
-import { bytesToHex, type Hex, type Address, keccak256, slice } from 'viem'
+import { bytesToHex, type Hex, type Address, encodePacked, keccak256, toHex } from 'viem'
 
 export type RRSet = {
   rrs: Answer[]
@@ -17,10 +19,28 @@ export const DNSKEY_FLAGS = {
 export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   const ss = new SignedSet(rrs, sig)
   return {
+    ss,
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
-    hash: slice(keccak256(ss.toWire(false)), 4),
   }
+}
+
+// see: DNSClaimChecker.getDataHash()
+export function getDataHashFromSignedSet(ss: SignedSet<Answer>): Hex {
+  return toHex(ss.records.reduce((a, x) => {
+    const v = packet.record(x.type).encode(x.data).subarray(2)
+    return (
+      a ^
+      BigInt(
+        keccak256(
+          encodePacked(
+            ['uint16', 'uint16', 'bytes32'],
+            [toType(x.type), v.length, keccak256(v)],
+          ),
+        ),
+      )
+    )
+  }, 0n), {size: 32});
 }
 
 export const validityPeriod = 2419200

@@ -25,8 +25,8 @@ interface IDNSRegistrar {
         address addr
     ) external;
 
-    /// @notice Get the latest inception time of a claim by record type.
-    /// @dev `getInception("_ens.{domain}", 16) == inception(namehash(domain))`.
+    /// @notice Get the latest inception time and hash of a claim by record type.
+    /// @dev `recordHash` is computed from `bytes28(DNSClaimChecker.getDataHash())
     /// @param name DNS-encoded name to query.
     /// @param typeCovered DNS resource record type.
     /// @return inception Inception time, in seconds.
@@ -37,6 +37,7 @@ interface IDNSRegistrar {
     ) external view returns (uint32 inception, bytes28 recordHash);
 
     /// @notice Get the latest inception time of a claim.
-    /// @dev Corresponds to the TXT record of "_ens.{domain}".
+    /// @dev Corresponds to the TXT record of "_ens.{domain}".  The inception time from 
+    /// `getInception("_ens.{domain}", 16)` is equivalent to `inceptions(namehash(domain)`.
     function inceptions(bytes32 node) external view returns (uint32);
 }

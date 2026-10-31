@@ -211,9 +211,11 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
                 ss.name,
                 ss.typeCovered
             );
-            uint256 hash = uint256(keccak256(ss.data) << 32) | ss.inception;
-            uint32 lastInception = uint32(lastHash);
-            bool changed = ((lastHash ^ hash) >> 32) != 0;
+            uint32 lastInception = uint32(lastHash); // time is lower 4 bytes
+            uint256 hash = uint256(
+                bytes32(bytes28(DNSClaimChecker.getDataHash(ss.data))) // clear lower 4 bytes
+            ) | ss.inception; // replace with inception
+            bool changed = ((lastHash ^ hash) >> 32) != 0; // hash is upper 28 bytes
             if (ss.inception == lastInception) {
                 // inception is unchanged: records must be the same if not leaf
                 if (changed && i + 1 != sss.length) {

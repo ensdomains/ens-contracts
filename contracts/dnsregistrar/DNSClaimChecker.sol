@@ -13,6 +13,27 @@ library DNSClaimChecker {
     using RRUtils for *;
     using Buffer for Buffer.buffer;
 
+    /// @dev Compute order-independent hash of each `(dnstype, rrdata)`.
+    ///      Does not include `name` and `class` (assumed valid) and `ttl`.
+    function getDataHash(bytes memory data) internal pure returns (bytes32 hash) {
+        for (
+            RRUtils.RRIterator memory iter = data.iterateRRs(0);
+            !iter.done();
+            iter.next()
+        ) {
+            // valid rrs have same name
+            uint256 rdataSize = iter.nextOffset - iter.rdataOffset;
+            bytes32 rdataHash = data.keccak(iter.rdataOffset, rdataSize); // hash of rdata
+            // ignore (ttl, class) => (uint16 dnstype, uint16 rdataSize)
+            uint256 header = (uint256(iter.dnstype) << 16) | rdataSize; // 2+2 bytes
+            assembly {
+                mstore(0, header)
+                mstore(32, rdataHash)
+                hash := xor(hash, keccak256(28, 36))
+            }
+        }
+    }
+
     function getOwnerAddress(
         bytes memory name,
         bytes memory data

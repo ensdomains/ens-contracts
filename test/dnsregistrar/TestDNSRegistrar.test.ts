@@ -3,12 +3,14 @@ import {
   keccak256,
   labelhash,
   namehash,
+  slice,
   zeroAddress,
   zeroHash,
   type Address,
 } from 'viem'
 
 import {
+  getDataHashFromSignedSet,
   hexEncodeSignedSet,
   INCEPTION,
   rootKeys,
@@ -104,7 +106,7 @@ describe('DNSRegistrar', () => {
     await expect(
       dnsRegistrar.read.getInception([dnsEncodeName(`_ens.${name}`), 16]),
       'new',
-    ).resolves.toStrictEqual([INCEPTION, proof[1].hash])
+    ).resolves.toStrictEqual([INCEPTION, slice(getDataHashFromSignedSet(proof[1].ss), 0, 28)])
   })
 
   it('supports multiple old registrars', async () => {
