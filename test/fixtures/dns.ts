@@ -2,11 +2,25 @@ import { SignedSet } from '@ensdomains/dnsprovejs'
 import { toType } from 'dns-packet/types'
 import packet from 'dns-packet';
 import type { Answer, Rrsig } from 'dns-packet'
-import { bytesToHex, type Hex, type Address, encodePacked, keccak256, toHex } from 'viem'
+import { bytesToHex, type Hex, type Address, encodePacked, keccak256, toHex, slice, namehash } from 'viem'
+import { dnsEncodeName } from './dnsEncodeName.js';
 
 export type RRSet = {
   rrs: Answer[]
   sig: Rrsig
+}
+
+/// see: RRUtils.sol
+export const DNS_TYPES = {
+  TXT: 16,
+  DS: 43,
+  DNSKEY: 48,
+} as const;
+
+for (const [k, x] of Object.entries(DNS_TYPES)) {
+  if (toType(k) !== x) {
+    throw new Error(`DNS_TYPES: ${k} != ${x}`)
+  }
 }
 
 // see: RRUtils.sol
@@ -18,16 +32,28 @@ export const DNSKEY_FLAGS = {
 
 export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   const ss = new SignedSet(rrs, sig)
+  let {name} = ss.records[0]; // valid rrs have same name
+  if (name === '.') name = '';
   return {
-    ss,
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
+    event: {
+      node: namehash(name),
+      name: dnsEncodeName(name),
+      typeCovered: toType(sig.data.typeCovered),
+      inception: sig.data.inception,
+      hash: slice(getDataHashFromSignedSet(ss.records), 0, 28) // truncated
+    }
   }
 }
 
+export function leafName(name: string) {
+  return `_ens.${name}`;
+}
+
 // see: DNSClaimChecker.getDataHash()
-export function getDataHashFromSignedSet(ss: SignedSet<Answer>): Hex {
-  return toHex(ss.records.reduce((a, x) => {
+export function getDataHashFromSignedSet(records: Answer[]): Hex {
+  return toHex(records.reduce((a, x) => {
     const v = packet.record(x.type).encode(x.data).subarray(2)
     return (
       a ^
@@ -108,7 +134,7 @@ export const testRrset = ({
   },
   rrs: [
     {
-      name: `_ens.${name}`,
+      name: leafName(name),
       type: 'TXT',
       class: 'IN',
       ttl: 3600,

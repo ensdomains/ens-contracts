@@ -71,11 +71,13 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
     /// @param name DNS-encoded name.
     /// @param typeCovered DNS resource record type.
     /// @param inception Inception time, in seconds.
+    /// @param hash Hash of record data.
     event InceptionUpdated(
         bytes32 indexed node,
         bytes name,
         uint16 indexed typeCovered,
-        uint32 inception
+        uint32 inception,
+        bytes28 hash
     );
 
     /// @param previousRegistrars Addresses of previous DNSRegistrars. The first should the prior DNSRegistrar.
@@ -211,35 +213,36 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
                 ss.name,
                 ss.typeCovered
             );
-            uint32 lastInception = uint32(lastHash); // time is lower 4 bytes
+            uint32 lastInception = uint32(lastHash); // time is lower 4 bytes, hash is upper 28 bytes
             uint256 hash = uint256(
                 bytes32(bytes28(DNSClaimChecker.getDataHash(ss.data))) // clear lower 4 bytes
             ) | ss.inception; // replace with inception
-            bool changed = ((lastHash ^ hash) >> 32) != 0; // hash is upper 28 bytes
-            if (ss.inception == lastInception) {
-                // inception is unchanged: records must be the same if not leaf
-                if (changed && i + 1 != sss.length) {
-                    revert DifferentProof(ss.name, ss.typeCovered);
+            if (RRUtils.serialNumberGte(lastInception, ss.inception)) {
+                // inception is same or older
+                if (((lastHash ^ hash) >> 32) == 0) {
+                    continue; // unchanged, do not update
                 }
-            } else if (!RRUtils.serialNumberGte(ss.inception, lastInception)) {
-                // inception is older: records must be the same
-                if (changed) {
+                if (ss.inception != lastInception) {
+                    // inception is older
                     revert StaleProof(
                         ss.name,
                         ss.typeCovered,
                         lastInception,
                         ss.inception
                     );
+                } else if (i + 1 != sss.length) {
+                    // inception is same and not leaf
+                    revert DifferentProof(ss.name, ss.typeCovered);
                 }
-            } else {
-                _inceptions[node][ss.typeCovered] = hash;
-                emit InceptionUpdated(
-                    node,
-                    ss.name,
-                    ss.typeCovered,
-                    ss.inception
-                );
             }
+            _inceptions[node][ss.typeCovered] = hash;
+            emit InceptionUpdated(
+                node,
+                ss.name,
+                ss.typeCovered,
+                ss.inception,
+                bytes28(bytes32(hash))
+            );
         }
 
         // last proof must correspond to the _ens.{name} TXT record

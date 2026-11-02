@@ -13,6 +13,7 @@ import {
 } from 'viem'
 
 import {
+  DNS_TYPES,
   hexEncodeSignedSet,
   rootKeys,
   rrsetWithTexts,
@@ -170,7 +171,7 @@ describe('OffchainDNSResolver', () => {
     const gatewayCall = encodeFunctionData({
       abi: dnsGatewayAbi,
       functionName: 'resolve',
-      args: [dnsName, 16],
+      args: [dnsName, DNS_TYPES.TXT],
     })
 
     await expect(offchainDnsResolver.read.resolve([dnsName, callData]))

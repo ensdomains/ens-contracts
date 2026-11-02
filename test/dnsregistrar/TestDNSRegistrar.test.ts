@@ -1,18 +1,18 @@
 import hre from 'hardhat'
 import {
-  keccak256,
+  getAddress,
   labelhash,
   namehash,
-  slice,
   zeroAddress,
   zeroHash,
   type Address,
 } from 'viem'
 
 import {
-  getDataHashFromSignedSet,
+  DNS_TYPES,
   hexEncodeSignedSet,
   INCEPTION,
+  leafName,
   rootKeys,
   testRrset,
 } from '../fixtures/dns.js'
@@ -102,11 +102,14 @@ describe('DNSRegistrar', () => {
     await expect(
       dnsRegistrar.read.inceptions([namehash(name)]),
       'old',
-    ).resolves.toStrictEqual(INCEPTION)
+    ).resolves.toStrictEqual(proof[1].event.inception)
     await expect(
-      dnsRegistrar.read.getInception([dnsEncodeName(`_ens.${name}`), 16]),
+      dnsRegistrar.read.getInception([
+        dnsEncodeName(leafName(name)),
+        DNS_TYPES.TXT,
+      ]),
       'new',
-    ).resolves.toStrictEqual([INCEPTION, slice(getDataHashFromSignedSet(proof[1].ss), 0, 28)])
+    ).resolves.toStrictEqual([proof[1].event.inception, proof[1].event.hash])
   })
 
   it('supports multiple old registrars', async () => {
@@ -292,7 +295,11 @@ describe('DNSRegistrar', () => {
       hexEncodeSignedSet(rootKeys({ inception: oldInception })),
       proof[1],
     ]
-    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof1])
+    const tx1 = dnsRegistrar.write.proveAndClaim([
+      dnsEncodeName(name),
+      oldProof1,
+    ])
+    await expect(tx1).not.toEmitEvent('InceptionUpdated') // no change
 
     const oldProof2 = [
       proof[0],
@@ -304,27 +311,59 @@ describe('DNSRegistrar', () => {
         }),
       ),
     ]
-    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof2])
+    const tx2 = dnsRegistrar.write.proveAndClaim([
+      dnsEncodeName(name),
+      oldProof2,
+    ])
+    await expect(tx2).not.toEmitEvent('InceptionUpdated') // no change
   })
 
   it('accepts proofs with same leaf inception with different records', async () => {
     const { dnsRegistrar } = await loadFixture()
     const name = 'foo.test'
 
-    const proof = [
+    const proof1 = [
       hexEncodeSignedSet(rootKeys()),
       hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
     ]
-    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof])
+    const tx1 = dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof1])
 
-    const replaceProof = [
-      proof[0],
+    await expect(tx1).toEmitEvent('InceptionUpdated').withArgs(proof1[0].event)
+    await expect(tx1).toEmitEvent('InceptionUpdated').withArgs(proof1[1].event)
+
+    const proof2 = [
+      proof1[0],
       hexEncodeSignedSet(testRrset({ name, address: accounts[1].address })),
     ]
-    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), replaceProof])
+    const tx2 = dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof2])
+    await expect(tx2)
+      .not.toEmitEvent('InceptionUpdated')
+      .withArgs(proof2[0].event)
+    await expect(tx2).toEmitEvent('InceptionUpdated').withArgs(proof2[1].event)
   })
 
-  it('rejects proofs with earlier ancestor inceptions with different records', async () => {
+  it('rejects proofs with same ancestor inception with different records', async () => {
+    const { dnsRegistrar } = await loadFixture()
+    const name = 'foo.test'
+
+    const proof1 = [
+      hexEncodeSignedSet(rootKeys()),
+      hexEncodeSignedSet(testRrset({ name, address: accounts[0].address })),
+    ]
+    await dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof1])
+
+    const proof2 = [
+      hexEncodeSignedSet(rootKeys({ dummyKey: '0x01' })), // different record
+      proof1[1],
+    ]
+    await expect(
+      dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), proof2]),
+    )
+      .toBeRevertedWithCustomError('DifferentProof')
+      .withArgs([proof2[0].event.name, proof2[0].event.typeCovered])
+  })
+
+  it('rejects proofs with earlier ancestor inception with different records', async () => {
     const { dnsRegistrar } = await loadFixture()
     const name = 'foo.test'
 
@@ -345,7 +384,7 @@ describe('DNSRegistrar', () => {
       dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof1]),
     )
       .toBeRevertedWithCustomError('StaleProof')
-      .withArgs([dnsEncodeName(''), 48, INCEPTION, oldInception])
+      .withArgs([dnsEncodeName(''), DNS_TYPES.DNSKEY, INCEPTION, oldInception])
 
     const oldProof2 = [
       proof[0],
@@ -361,7 +400,12 @@ describe('DNSRegistrar', () => {
       dnsRegistrar.write.proveAndClaim([dnsEncodeName(name), oldProof2]),
     )
       .toBeRevertedWithCustomError('StaleProof')
-      .withArgs([dnsEncodeName(`_ens.${name}`), 16, INCEPTION, oldInception])
+      .withArgs([
+        dnsEncodeName(leafName(name)),
+        DNS_TYPES.TXT,
+        INCEPTION,
+        oldInception,
+      ])
   })
 
   it('does not allow updates with stale records', async () => {
@@ -397,19 +441,29 @@ describe('DNSRegistrar', () => {
   it('allows the owner to claim and set a resolver', async () => {
     const { dnsRegistrar, ensRegistry } = await loadFixture()
 
+    const name = 'foo.test'
+    const { address } = accounts[0]
     const proof = [
       hexEncodeSignedSet(rootKeys()),
-      hexEncodeSignedSet(
-        testRrset({ name: 'foo.test', address: accounts[0].address }),
-      ),
+      hexEncodeSignedSet(testRrset({ name, address })),
     ]
 
-    await dnsRegistrar.write.proveAndClaimWithResolver([
+    const tx = dnsRegistrar.write.proveAndClaimWithResolver([
       dnsEncodeName('foo.test'),
       proof,
       accounts[1].address,
       zeroAddress,
     ])
+    await expect(tx).toEmitEvent('InceptionUpdated').withArgs(proof[0].event)
+    await expect(tx).toEmitEvent('InceptionUpdated').withArgs(proof[1].event)
+    await expect(tx)
+      .toEmitEvent('Claim')
+      .withArgs({
+        node: namehash(name),
+        owner: getAddress(address),
+        dnsname: dnsEncodeName(name),
+        inception: proof[1].event.inception,
+      })
 
     await expect(
       ensRegistry.read.owner([namehash('foo.test')]),
