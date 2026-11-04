@@ -218,7 +218,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
     await expect(
       dnssec.read.verifyRRSetNow([
-        [hexEncodeSignedSet(rootRRSet({ keyData: '0x00' }))],
+        [hexEncodeSignedSet(rootRRSet({ dummyKeySize: 3 }))],
         false,
       ]),
     ).not.toBeReverted()

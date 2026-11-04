@@ -340,7 +340,7 @@ describe('DNSRegistrar', () => {
     const oldProof1 = [
       hexEncodeSignedSet(
         rootRRSet({
-          dummyKeySize: 1, // different
+          dummyKeySize: 2, // different
           inception: proof[0].event.inception - 1, // old
         }),
       ),
