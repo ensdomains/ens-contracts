@@ -1,9 +1,18 @@
 import { SignedSet } from '@ensdomains/dnsprovejs'
 import { toType } from 'dns-packet/types'
-import packet from 'dns-packet';
-import type { Answer, Rrsig } from 'dns-packet'
-import { bytesToHex, type Hex, type Address, encodePacked, keccak256, toHex, slice, namehash } from 'viem'
-import { dnsEncodeName } from './dnsEncodeName.js';
+import packet from 'dns-packet'
+import type { Answer, Dnskey, Rrsig } from 'dns-packet'
+import {
+  bytesToHex,
+  type Hex,
+  type Address,
+  encodePacked,
+  keccak256,
+  toHex,
+  slice,
+  namehash,
+} from 'viem'
+import { dnsEncodeName } from './dnsEncodeName.js'
 
 export type RRSet = {
   rrs: Answer[]
@@ -15,7 +24,7 @@ export const DNS_TYPES = {
   TXT: 16,
   DS: 43,
   DNSKEY: 48,
-} as const;
+} as const
 
 for (const [k, x] of Object.entries(DNS_TYPES)) {
   if (toType(k) !== x) {
@@ -32,8 +41,8 @@ export const DNSKEY_FLAGS = {
 
 export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   const ss = new SignedSet(rrs, sig)
-  let {name} = ss.records[0]; // valid rrs have same name
-  if (name === '.') name = '';
+  let { name } = ss.records[0] // valid rrs have same name
+  if (name === '.') name = ''
   return {
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
@@ -42,31 +51,44 @@ export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
       name: dnsEncodeName(name),
       typeCovered: toType(sig.data.typeCovered),
       inception: sig.data.inception,
-      hash: slice(getDataHashFromSignedSet(ss.records), 0, 28) // truncated
-    }
+      hash: slice(getDataHashFromSignedSet(ss.records), 0, 28), // truncated
+    },
   }
 }
 
 export function leafName(name: string) {
-  return `_ens.${name}`;
+  return `_ens.${name}`
 }
 
 // see: DNSClaimChecker.getDataHash()
 export function getDataHashFromSignedSet(records: Answer[]): Hex {
-  return toHex(records.reduce((a, x) => {
-    const v = packet.record(x.type).encode(x.data).subarray(2)
-    return (
-      a ^
-      BigInt(
-        keccak256(
-          encodePacked(
-            ['uint16', 'uint16', 'bytes32'],
-            [toType(x.type), v.length, keccak256(v)],
+  return toHex(
+    records.reduce((a, x) => {
+      const v = packet.record(x.type).encode(x.data).subarray(2)
+      return (
+        a ^
+        BigInt(
+          keccak256(
+            encodePacked(
+              ['uint16', 'uint16', 'bytes32'],
+              [toType(x.type), v.length, keccak256(v)],
+            ),
           ),
-        ),
+        )
       )
-    )
-  }, 0n), {size: 32});
+    }, 0n),
+    { size: 32 },
+  )
+}
+
+// see: RRUtils.computeKeytag()
+export function computeKeyTag(key: Dnskey['data']) {
+  const v = packet.dnskey.encode(key).subarray(2)
+  let keytag = 0
+  for (let i = 0; i < v.length; i++) {
+    keytag += i & 1 ? v[i] : (v[i] << 8)
+  }
+  return (keytag + (keytag >> 16)) & 0xffff
 }
 
 export const validityPeriod = 2419200
@@ -146,11 +168,11 @@ export const testRrset = ({
 export const rootKeys = ({
   expiration = EXPIRATION,
   inception = INCEPTION,
-  dummyKey = '0x',
 }: {
   expiration?: number
   inception?: number
-  dummyKey?: Hex
+  flags?: number
+  keyData?: Hex
 } = {}) => {
   const name = '.'
   const sig: Rrsig = {
@@ -171,18 +193,7 @@ export const rootKeys = ({
       signature: Buffer.from([]),
     },
   }
-  const rrs: Answer[] = [
-    {
-      name,
-      type: 'DNSKEY',
-      class: 'IN',
-      ttl: 3600,
-      data: {
-        flags: 0,
-        algorithm: 253,
-        key: Buffer.from(dummyKey.slice(2), 'hex'),
-      },
-    },
+  const rrs = [
     {
       name,
       type: 'DNSKEY',
@@ -190,10 +201,10 @@ export const rootKeys = ({
       ttl: 3600,
       data: {
         flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
-        algorithm: 253,
+        algorithm: 253, 
         key: Buffer.from('0000', 'hex'),
       },
     },
-  ]
+  ] as const satisfies Answer[]
   return { name, sig, rrs }
 }

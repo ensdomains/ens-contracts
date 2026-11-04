@@ -196,7 +196,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
             revert NoOwnerRecordFound();
         }
 
-        RRUtils.SignedSet[] memory sss = oracle.verifyRRSetNow(input);
+        RRUtils.SignedSet[] memory sss = oracle.verifyRRSetNow(input, true);
 
         // Get the first label
         uint256 offset;

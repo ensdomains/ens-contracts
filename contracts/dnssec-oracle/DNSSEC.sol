@@ -30,25 +30,28 @@ abstract contract DNSSEC {
         if (input.length == 0) {
             return (anchors, 0); // instead of revert InvalidRRSet
         }
-        RRUtils.SignedSet[] memory sss = verifyRRSetAt(input, currentTime);
+        RRUtils.SignedSet[] memory sss = verifyRRSetAt(input, currentTime, false);
         RRUtils.SignedSet memory ss = sss[sss.length - 1];
         return (ss.data, ss.inception);
     }
 
     /// @notice Convenience for `verifyRRSetAt(input, block.timestamp)`.
     function verifyRRSetNow(
-        RRSetWithSignature[] memory input
+        RRSetWithSignature[] memory input,
+        bool allowRevoked
     ) public view returns (RRUtils.SignedSet[] memory) {
-        return verifyRRSetAt(input, uint32(block.timestamp));
+        return verifyRRSetAt(input, uint32(block.timestamp), allowRevoked);
     }
 
     /// @notice Takes a chain of signed DNS records, verifies them, and returns the array of signed sets.
     ///         Reverts if the records do not form an unbroken chain of trust to the DNSSEC anchor records.
     /// @param input A list of signed RRSets.
     /// @param currentTime The Unix timestamp to validate the records at.
+    /// @param allowRevoked Unless `true`, reverts if any signed set is revoked.
     /// @return Array of signed sets.
     function verifyRRSetAt(
         RRSetWithSignature[] memory input,
-        uint256 currentTime
+        uint256 currentTime,
+        bool allowRevoked
     ) public view virtual returns (RRUtils.SignedSet[] memory);
 }
