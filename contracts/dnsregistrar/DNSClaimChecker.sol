@@ -13,9 +13,9 @@ library DNSClaimChecker {
     using RRUtils for *;
     using Buffer for Buffer.buffer;
 
-    /// @dev Compute order-independent hash of each `(dnstype, rrdata)`.
-    ///      Does not include `name` and `class` (assumed valid) and `ttl`.
-    function getDataHash(bytes memory data) internal pure returns (bytes32 hash) {
+    /// @dev Compute order-independent record hash of every `(dnstype, rrdata)`.
+    ///      Does not include `name` and `class` (assumed valid) and `ttl` (ignored).
+    function computeRecordHash(bytes memory data) internal pure returns (bytes32 hash) {
         for (
             RRUtils.RRIterator memory iter = data.iterateRRs(0);
             !iter.done();

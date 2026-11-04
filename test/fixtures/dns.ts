@@ -51,7 +51,7 @@ export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
       name: dnsEncodeName(name),
       typeCovered: toType(sig.data.typeCovered),
       inception: sig.data.inception,
-      hash: slice(getDataHashFromSignedSet(ss.records), 0, 28), // truncated
+      recordHash: slice(computeRecordHash(ss.records), 0, 28), // truncated
     },
   }
 }
@@ -60,8 +60,8 @@ export function leafName(name: string) {
   return `_ens.${name}`
 }
 
-// see: DNSClaimChecker.getDataHash()
-export function getDataHashFromSignedSet(records: Answer[]): Hex {
+// see: DNSClaimChecker.computeRecordHash()
+export function computeRecordHash(records: Answer[]): Hex {
   return toHex(
     records.reduce((a, x) => {
       const v = packet.record(x.type).encode(x.data).subarray(2)
@@ -84,16 +84,15 @@ export function getDataHashFromSignedSet(records: Answer[]): Hex {
 // see: RRUtils.computeKeytag()
 export function computeKeyTag(key: Dnskey['data']) {
   const v = packet.dnskey.encode(key).subarray(2)
-  let keytag = 0
-  for (let i = 0; i < v.length; i++) {
-    keytag += i & 1 ? v[i] : (v[i] << 8)
-  }
-  return (keytag + (keytag >> 16)) & 0xffff
+  const h = v.reduce((a, x, i) => (a += i & 1 ? x : x << 8), 0)
+  return (h + (h >> 16)) & 0xffff
 }
 
-export const validityPeriod = 2419200
 export const INCEPTION = Math.floor(Date.now() / 1000 - 15 * 60)
+
+const validityPeriod = 2419200
 export const EXPIRATION = INCEPTION + validityPeriod
+
 export const rrsetWithTexts = ({
   name,
   texts,
@@ -127,7 +126,7 @@ export const rrsetWithTexts = ({
     data: [Buffer.from(typeof text === 'string' ? text : text.value, 'ascii')],
   })),
 })
-export const testRrset = ({
+export const claimRRSet = ({
   name,
   address,
   inception = INCEPTION,
@@ -165,14 +164,14 @@ export const testRrset = ({
   ],
 })
 
-export const rootKeys = ({
+export const rootRRSet = ({
   expiration = EXPIRATION,
   inception = INCEPTION,
+  dummyKeySize = 0,
 }: {
   expiration?: number
   inception?: number
-  flags?: number
-  keyData?: Hex
+  dummyKeySize?: number
 } = {}) => {
   const name = '.'
   const sig: Rrsig = {
@@ -201,8 +200,10 @@ export const rootKeys = ({
       ttl: 3600,
       data: {
         flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
-        algorithm: 253, 
-        key: Buffer.from('0000', 'hex'),
+        algorithm: 253,
+        // dummy algorithm accepts any key
+        // keyTag is unchanged by zero padding
+        key: Buffer.alloc(dummyKeySize),
       },
     },
   ] as const satisfies Answer[]

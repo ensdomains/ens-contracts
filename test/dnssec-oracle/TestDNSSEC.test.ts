@@ -8,7 +8,7 @@ import {
   EXPIRATION,
   hexEncodeSignedSet,
   INCEPTION,
-  rootKeys,
+  rootRRSet,
 } from '../fixtures/dns.js'
 import { encodeAnchors, REAL_ANCHORS } from '../fixtures/anchors.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
@@ -173,7 +173,7 @@ describe('DNSSEC', () => {
   it('should reject signatures with non-matching algorithms', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys()
+    const baseKeys = rootRRSet()
     const keys = {
       ...baseKeys,
       rrs: baseKeys.rrs.map((rr) => ({
@@ -193,7 +193,7 @@ describe('DNSSEC', () => {
       dnssec.read.verifyRRSetNow([
         [
           hexEncodeSignedSet({
-            ...rootKeys(),
+            ...rootRRSet(),
             rrs: [
               {
                 name: '.',
@@ -218,7 +218,7 @@ describe('DNSSEC', () => {
     const { dnssec } = await loadFixture()
     await expect(
       dnssec.read.verifyRRSetNow([
-        [hexEncodeSignedSet(rootKeys({ keyData: '0x00' }))],
+        [hexEncodeSignedSet(rootRRSet({ keyData: '0x00' }))],
         false,
       ]),
     ).not.toBeReverted()
@@ -235,7 +235,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -316,7 +316,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -396,7 +396,7 @@ describe('DNSSEC', () => {
     const keyTag = computeKeyTag(data)
     const sss = await dnssec.read.verifyRRSetNow([
       [
-        hexEncodeSignedSet(rootKeys()),
+        hexEncodeSignedSet(rootRRSet()),
         hexEncodeSignedSet({
           sig: {
             name: 'test',
@@ -471,7 +471,7 @@ describe('DNSSEC', () => {
   it('should accept a root DNSKEY', async () => {
     const { dnssec } = await loadFixture()
     await expect(
-      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rootKeys())], false]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rootRRSet())], false]),
     ).not.toBeReverted()
   })
 
@@ -480,7 +480,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -521,7 +521,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'net',
@@ -562,7 +562,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'net',
@@ -603,7 +603,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'net',
@@ -644,7 +644,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -685,7 +685,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'xample',
@@ -759,7 +759,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -831,7 +831,7 @@ describe('DNSSEC', () => {
   it('should reject entries with expirations in the past', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys()
+    const baseKeys = rootRRSet()
     const keys = {
       ...baseKeys,
       sig: {
@@ -851,7 +851,7 @@ describe('DNSSEC', () => {
   it('should reject entries with inceptions in the future', async () => {
     const { dnssec } = await loadFixture()
 
-    const baseKeys = rootKeys()
+    const baseKeys = rootRRSet()
     const keys = {
       ...baseKeys,
       sig: {
@@ -888,7 +888,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',
@@ -967,7 +967,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [
-          hexEncodeSignedSet(rootKeys()),
+          hexEncodeSignedSet(rootRRSet()),
           hexEncodeSignedSet({
             sig: {
               name: 'test',

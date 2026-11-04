@@ -35,7 +35,7 @@ abstract contract DNSSEC {
         return (ss.data, ss.inception);
     }
 
-    /// @notice Convenience for `verifyRRSetAt(input, block.timestamp)`.
+    /// @notice Convenience for `verifyRRSetAt(input, block.timestamp, allowRevoked)`.
     function verifyRRSetNow(
         RRSetWithSignature[] memory input,
         bool allowRevoked
