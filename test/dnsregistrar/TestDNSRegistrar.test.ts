@@ -393,10 +393,7 @@ describe('DNSRegistrar', () => {
     const now = await connection.networkHelpers.time.latest()
     rrset.sig.data.inception = now - 120
     rrset.sig.data.expiration = now - 60
-    const proof = [
-      hexEncodeSignedSet(rootRRSet()),
-      hexEncodeSignedSet(rrset),
-    ]
+    const proof = [hexEncodeSignedSet(rootRRSet()), hexEncodeSignedSet(rrset)]
     await expect(
       dnsRegistrar.write.proveAndClaim([dnsEncodeName('foo.test'), proof]),
     ).toBeRevertedWithCustomErrorFrom(dnssec, 'SignatureExpired')

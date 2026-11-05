@@ -88,10 +88,7 @@ describe('DNSSEC', () => {
 
     const sets = test_rrsets.map(([, rrset, sig]) => ({ rrset, sig }))
 
-    const sss = await dnssec.read.verifyRRSetAt([
-      sets,
-      TEST_RRSET_TIMESTAMP
-    ])
+    const sss = await dnssec.read.verifyRRSetAt([sets, TEST_RRSET_TIMESTAMP])
 
     expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
       sets.map(({ rrset, sig }) =>
@@ -164,9 +161,9 @@ describe('DNSSEC', () => {
 
   it('should reject empty signatures', async () => {
     const { dnssec } = await loadFixture()
-    await expect(
-      dnssec.read.verifyRRSetNow([[]]),
-    ).toBeRevertedWithCustomError('InvalidRRSet')
+    await expect(dnssec.read.verifyRRSetNow([[]])).toBeRevertedWithCustomError(
+      'InvalidRRSet',
+    )
   })
 
   it('should reject signatures with non-matching algorithms', async () => {
@@ -745,7 +742,7 @@ describe('DNSSEC', () => {
 
   it('should reject entries with inceptions in the future', async () => {
     const { dnssec } = await loadFixture()
-   const rrset = rootRRSet()
+    const rrset = rootRRSet()
     rrset.sig.data.inception = Date.now() / 1000 + 15 * 60
     await expect(
       dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rrset)]]),
@@ -759,10 +756,7 @@ describe('DNSSEC', () => {
     const sig = `${sig0.slice(0, -2)}ff` as Hex // wrong
 
     await expect(
-      dnssec.read.verifyRRSetAt([
-        [{ rrset, sig }],
-        TEST_RRSET_TIMESTAMP
-      ]),
+      dnssec.read.verifyRRSetAt([[{ rrset, sig }], TEST_RRSET_TIMESTAMP]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
@@ -954,9 +948,7 @@ describe('DNSSEC', () => {
         it(name, async () => {
           const { dnssec } = await loadFixture()
           const rrsets = await fetchDNSSECOracleRRSets(name)
-          await expect(
-            dnssec.read.verifyRRSetNow([rrsets]),
-          ).not.toBeReverted()
+          await expect(dnssec.read.verifyRRSetNow([rrsets])).not.toBeReverted()
         })
       }
     })
