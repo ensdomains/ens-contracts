@@ -15,7 +15,7 @@ import {
 import {
   DNS_TYPES,
   hexEncodeSignedSet,
-  rootKeys,
+  rootRRSet,
   rrsetWithTexts,
 } from '../fixtures/dns.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
@@ -93,7 +93,7 @@ async function fixture() {
     calldata: Hex
   }) => {
     const proof = [
-      hexEncodeSignedSet(rootKeys()),
+      hexEncodeSignedSet(rootRRSet()),
       hexEncodeSignedSet(rrsetWithTexts({ name, texts })),
     ]
     const response = encodeAbiParameters(

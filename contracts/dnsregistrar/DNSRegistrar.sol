@@ -11,7 +11,7 @@ import "../resolvers/profiles/AddrResolver.sol";
 import "../utils/BytesUtils.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
-import {IDNSRegistrar} from "./IDNSRegistrar.sol";
+import {IDNSRegistrar, DNS_REGISTRAR_V0_INTERFACE_ID} from "./IDNSRegistrar.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 
 /// @dev An ENS registrar that allows the owner of a DNS name to claim the
@@ -38,47 +38,6 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
         internal _inceptions;
     /// @dev Mapping to check if registrar was a DNSRegistrar deployment.
     mapping(address registrar => bool was) public wasRegistrar;
-
-    error NoOwnerRecordFound();
-    error PermissionDenied(address caller, address owner);
-    error PreconditionNotMet();
-    error StaleProof(
-        bytes name,
-        uint16 typeCovered,
-        uint32 lastTime,
-        uint32 time
-    );
-    error DifferentProof(bytes name, uint16 typeCovered);
-    error InvalidPublicSuffix(bytes name);
-
-    struct OwnerRecord {
-        bytes name;
-        address owner;
-        address resolver;
-        uint64 ttl;
-    }
-
-    event Claim(
-        bytes32 indexed node,
-        address indexed owner,
-        bytes dnsname,
-        uint32 inception
-    );
-    event NewPublicSuffixList(address suffixes);
-
-    /// @notice A claim updated a stored inception.
-    /// @param node Namehash of the name.
-    /// @param name DNS-encoded name.
-    /// @param typeCovered DNS resource record type.
-    /// @param inception Inception time, in seconds.
-    /// @param hash Hash of record data.
-    event InceptionUpdated(
-        bytes32 indexed node,
-        bytes name,
-        uint16 indexed typeCovered,
-        uint32 inception,
-        bytes28 hash
-    );
 
     /// @param previousRegistrars Addresses of previous DNSRegistrars. The first should the prior DNSRegistrar.
     /// @param _resolver Gasless DNSSEC resolver.
@@ -160,9 +119,7 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
     ) public view override returns (bool) {
         return
             interfaceId == type(IDNSRegistrar).interfaceId ||
-            // Interface selector from prior interface:
-            // https://github.com/ensdomains/ens-contracts/blob/v1.7.0/contracts/dnsregistrar/IDNSRegistrar.sol
-            interfaceId == 0x2f435428 ||
+            interfaceId == DNS_REGISTRAR_V0_INTERFACE_ID ||
             super.supportsInterface(interfaceId);
     }
 
@@ -215,37 +172,33 @@ contract DNSRegistrar is ERC165, IDNSRegistrar {
             );
             uint32 lastInception = uint32(lastHash); // time is lower 4 bytes, hash is upper 28 bytes
             uint256 hash = uint256(
-                bytes32(bytes28(DNSClaimChecker.getDataHash(ss.data))) // clear lower 4 bytes
-            ) | ss.inception; // replace with inception
+                bytes32(bytes28(DNSClaimChecker.computeRecordHash(ss.data)))
+            ) | ss.inception; // clear lower 4 bytes and replace with inception
             if (RRUtils.serialNumberGte(lastInception, ss.inception)) {
                 // inception is same or older
                 if (((lastHash ^ hash) >> 32) == 0) {
-                    continue; // unchanged, do not update
+                    continue; // record unchanged, skip update
                 }
-                if (ss.inception != lastInception) {
-                    // inception is older
-                    revert StaleProof(
-                        ss.name,
-                        ss.typeCovered,
-                        lastInception,
-                        ss.inception
-                    );
-                } else if (i + 1 != sss.length) {
-                    // inception is same and not leaf
-                    revert DifferentProof(ss.name, ss.typeCovered);
-                }
+                revert StaleProof(
+                    ss.name,
+                    ss.typeCovered,
+                    lastInception,
+                    bytes28(bytes32(lastHash)),
+                    ss.inception,
+                    bytes28(bytes32(hash))
+                );
             }
-            _inceptions[node][ss.typeCovered] = hash;
+            _inceptions[node][ss.typeCovered] = hash; // update
             emit InceptionUpdated(
                 node,
-                ss.name,
                 ss.typeCovered,
+                ss.name,
                 ss.inception,
                 bytes28(bytes32(hash))
             );
         }
 
-        // last proof must correspond to the _ens.{name} TXT record
+        // last proof must correspond to the "_ens.{name}" TXT record
         bool found;
         (addr, found) = DNSClaimChecker.getOwnerAddress(name, ss.data);
         if (!found) {
