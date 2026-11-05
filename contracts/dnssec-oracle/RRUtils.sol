@@ -94,7 +94,6 @@ library RRUtils {
         bytes signerName;
         bytes data;
         bytes name;
-        bool revoked;
     }
 
     function readSignedSet(

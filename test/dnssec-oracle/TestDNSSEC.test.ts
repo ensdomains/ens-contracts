@@ -90,8 +90,7 @@ describe('DNSSEC', () => {
 
     const sss = await dnssec.read.verifyRRSetAt([
       sets,
-      TEST_RRSET_TIMESTAMP,
-      false,
+      TEST_RRSET_TIMESTAMP
     ])
 
     expect(sss.map((ss) => ss.data.slice(2))).toStrictEqual(
@@ -166,7 +165,7 @@ describe('DNSSEC', () => {
   it('should reject empty signatures', async () => {
     const { dnssec } = await loadFixture()
     await expect(
-      dnssec.read.verifyRRSetNow([[], false]),
+      dnssec.read.verifyRRSetNow([[]]),
     ).toBeRevertedWithCustomError('InvalidRRSet')
   })
 
@@ -183,7 +182,7 @@ describe('DNSSEC', () => {
     }
 
     await expect(
-      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)], false]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)]]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
@@ -209,7 +208,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
@@ -219,7 +217,6 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetNow([
         [hexEncodeSignedSet(rootRRSet({ dummyKeySize: 3 }))],
-        false,
       ]),
     ).not.toBeReverted()
   })
@@ -300,12 +297,11 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
-  it('should reject signatures by keys with the REVOKE bit set when allowRevoked = false', async () => {
+  it('should reject signatures by keys with the REVOKE bit set', async () => {
     const { dnssec } = await loadFixture()
     const data = {
       flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY | DNSKEY_FLAGS.REVOKE,
@@ -381,97 +377,14 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
-  })
-
-  it('should accept signatures by keys with the REVOKE bit set when allowRevoked = true', async () => {
-    const { dnssec } = await loadFixture()
-    const data = {
-      flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY | DNSKEY_FLAGS.REVOKE,
-      algorithm: 253,
-      key: Buffer.from([]),
-    }
-    const keyTag = computeKeyTag(data)
-    const sss = await dnssec.read.verifyRRSetNow([
-      [
-        hexEncodeSignedSet(rootRRSet()),
-        hexEncodeSignedSet({
-          sig: {
-            name: 'test',
-            type: 'RRSIG',
-            ttl: 0,
-            class: 'IN',
-            flush: false,
-            data: {
-              typeCovered: 'DS',
-              algorithm: 253,
-              labels: 1,
-              originalTTL: 3600,
-              expiration: EXPIRATION,
-              inception: INCEPTION,
-              keyTag: 1278,
-              signersName: '.',
-              signature: Buffer.from([]),
-            },
-          },
-          rrs: [
-            {
-              name: 'test',
-              type: 'DS',
-              class: 'IN',
-              ttl: 3600,
-              data: {
-                keyTag,
-                algorithm: 253,
-                digestType: 253,
-                digest: Buffer.from([]),
-              },
-            },
-          ],
-        }),
-        hexEncodeSignedSet({
-          sig: {
-            name: 'test',
-            type: 'RRSIG',
-            ttl: 0,
-            class: 'IN',
-            flush: false,
-            data: {
-              typeCovered: 'DNSKEY',
-              algorithm: 253,
-              labels: 1,
-              originalTTL: 3600,
-              expiration: EXPIRATION,
-              inception: INCEPTION,
-              keyTag,
-              signersName: 'test',
-              signature: Buffer.from([]),
-            },
-          },
-          rrs: [
-            {
-              name: 'test',
-              type: 'DNSKEY',
-              class: 'IN',
-              ttl: 3600,
-              data,
-            },
-          ],
-        }),
-      ],
-      true,
-    ])
-    expect(sss[0].revoked).toStrictEqual(false)
-    expect(sss[1].revoked).toStrictEqual(false)
-    expect(sss[2].revoked).toStrictEqual(true)
   })
 
   it('should accept a root DNSKEY', async () => {
     const { dnssec } = await loadFixture()
     await expect(
-      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rootRRSet())], false]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rootRRSet())]]),
     ).not.toBeReverted()
   })
 
@@ -511,7 +424,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).not.toBeReverted()
   })
@@ -552,7 +464,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('InvalidClass')
   })
@@ -593,7 +504,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('SignatureTypeMismatch')
   })
@@ -634,7 +544,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('InvalidLabelCount')
   })
@@ -675,7 +584,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('InvalidSignerName')
   })
@@ -749,7 +657,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('InvalidSignerName')
   })
@@ -823,48 +730,25 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
 
   it('should reject entries with expirations in the past', async () => {
     const { dnssec } = await loadFixture()
-
-    const baseKeys = rootRRSet()
-    const keys = {
-      ...baseKeys,
-      sig: {
-        ...baseKeys.sig,
-        data: {
-          ...baseKeys.sig.data,
-          expiration: Date.now() / 1000 - 2,
-        },
-      },
-    }
-
+    const rrset = rootRRSet()
+    rrset.sig.data.expiration = Date.now() / 1000 - 2
     await expect(
-      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)], false]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rrset)]]),
     ).toBeRevertedWithCustomError('SignatureExpired')
   })
 
   it('should reject entries with inceptions in the future', async () => {
     const { dnssec } = await loadFixture()
-
-    const baseKeys = rootRRSet()
-    const keys = {
-      ...baseKeys,
-      sig: {
-        ...baseKeys.sig,
-        data: {
-          ...baseKeys.sig.data,
-          inception: Date.now() / 1000 + 15 * 60,
-        },
-      },
-    }
-
+   const rrset = rootRRSet()
+    rrset.sig.data.inception = Date.now() / 1000 + 15 * 60
     await expect(
-      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(keys)], false]),
+      dnssec.read.verifyRRSetNow([[hexEncodeSignedSet(rrset)]]),
     ).toBeRevertedWithCustomError('SignatureNotValidYet')
   })
 
@@ -877,8 +761,7 @@ describe('DNSSEC', () => {
     await expect(
       dnssec.read.verifyRRSetAt([
         [{ rrset, sig }],
-        TEST_RRSET_TIMESTAMP,
-        false,
+        TEST_RRSET_TIMESTAMP
       ]),
     ).toBeRevertedWithCustomError('NoMatchingProof')
   })
@@ -957,7 +840,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).toBeRevertedWithCustomError('ProofNameMismatch')
   })
@@ -1036,7 +918,6 @@ describe('DNSSEC', () => {
             ],
           }),
         ],
-        false,
       ]),
     ).not.toBeReverted()
   })
@@ -1046,7 +927,7 @@ describe('DNSSEC', () => {
     const rrsets = await fetchDNSSECOracleRRSets('alg13.dnstest.dev')
 
     await expect(
-      dnssec.read.verifyRRSetNow([rrsets, false]),
+      dnssec.read.verifyRRSetNow([rrsets]),
       'both',
     ).resolves.toBeDefined()
 
@@ -1054,7 +935,7 @@ describe('DNSSEC', () => {
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 38696)),
     ])
     await expect(
-      dnssec.read.verifyRRSetNow([rrsets, false]),
+      dnssec.read.verifyRRSetNow([rrsets]),
       '38696',
     ).resolves.toBeDefined()
 
@@ -1062,7 +943,7 @@ describe('DNSSEC', () => {
       encodeAnchors(REAL_ANCHORS.filter((x) => x.data.keyTag === 20326)),
     ])
     await expect(
-      dnssec.read.verifyRRSetNow([rrsets, false]),
+      dnssec.read.verifyRRSetNow([rrsets]),
       '20326',
     ).rejects.toThrow()
   })
@@ -1074,7 +955,7 @@ describe('DNSSEC', () => {
           const { dnssec } = await loadFixture()
           const rrsets = await fetchDNSSECOracleRRSets(name)
           await expect(
-            dnssec.read.verifyRRSetNow([rrsets, false]),
+            dnssec.read.verifyRRSetNow([rrsets]),
           ).not.toBeReverted()
         })
       }

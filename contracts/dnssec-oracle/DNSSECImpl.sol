@@ -75,8 +75,7 @@ contract DNSSECImpl is DNSSEC, Ownable {
     /// @inheritdoc DNSSEC
     function verifyRRSetAt(
         RRSetWithSignature[] memory input,
-        uint256 currentTime,
-        bool allowRevoked
+        uint256 currentTime
     ) public view override returns (RRUtils.SignedSet[] memory sss) {
         if (input.length == 0) {
             revert InvalidRRSet();
@@ -89,9 +88,6 @@ contract DNSSECImpl is DNSSEC, Ownable {
                 proof,
                 uint32(currentTime)
             );
-            if (!allowRevoked && ss.revoked) {
-                revert NoMatchingProof(ss.signerName);
-            }
             proof = ss.data;
             sss[i] = ss;
         }
@@ -278,7 +274,9 @@ contract DNSSECImpl is DNSSEC, Ownable {
         // signed by the associated key, then the resolver MUST consider this
         // key permanently invalid for all purposes except for validating the
         // revocation.
-        rrset.revoked = (dnskey.flags & RRUtils.DNSKEY_FLAG_REVOKE) != 0;
+        if (dnskey.flags & RRUtils.DNSKEY_FLAG_REVOKE != 0) {
+            return false;
+        }
 
         Algorithm algorithm = algorithms[dnskey.algorithm];
         if (address(algorithm) == address(0)) {
