@@ -87,7 +87,7 @@ interface IDNSRegistrar {
     ) external;
 
     /// @notice Get the latest inception time and hash of a claim by record type.
-    /// @dev `recordHash` is computed from `bytes28(DNSClaimChecker.getDataHash())`.
+    /// @dev `recordHash` is computed from `bytes28(DNSClaimChecker.computeRecordHash())`.
     /// @param name DNS-encoded name to query.
     /// @param typeCovered DNS resource record type.
     /// @return inception Inception time, in seconds.

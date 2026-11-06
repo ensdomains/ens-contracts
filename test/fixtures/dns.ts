@@ -8,9 +8,10 @@ import {
   type Address,
   encodePacked,
   keccak256,
-  toHex,
   slice,
   namehash,
+  zeroHash,
+  concat,
 } from 'viem'
 import { dnsEncodeName } from './dnsEncodeName.js'
 
@@ -62,23 +63,20 @@ export function leafName(name: string) {
 
 // see: DNSClaimChecker.computeRecordHash()
 export function computeRecordHash(records: Answer[]): Hex {
-  return toHex(
-    records.reduce((a, x) => {
-      const v = packet.record(x.type).encode(x.data).subarray(2)
-      return (
-        a ^
-        BigInt(
-          keccak256(
-            encodePacked(
-              ['uint16', 'uint16', 'bytes32'],
-              [toType(x.type), v.length, keccak256(v)],
-            ),
+  return records.reduce<Hex>((a, x) => {
+    const v = packet.record(x.type).encode(x.data).subarray(2)
+    return keccak256(
+      concat([
+        a,
+        keccak256(
+          encodePacked(
+            ['uint16', 'uint16', 'bytes32'],
+            [toType(x.type), v.length, keccak256(v)],
           ),
-        )
-      )
-    }, 0n),
-    { size: 32 },
-  )
+        ),
+      ]),
+    )
+  }, zeroHash)
 }
 
 // see: RRUtils.computeKeytag()

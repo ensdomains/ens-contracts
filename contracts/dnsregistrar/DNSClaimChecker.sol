@@ -13,7 +13,7 @@ library DNSClaimChecker {
     using RRUtils for *;
     using Buffer for Buffer.buffer;
 
-    /// @dev Compute order-independent record hash of every `(dnstype, rrdata)`.
+    /// @dev Compute hash of every record's `dnstype` and `rrdata`.
     ///      Does not include `name` and `class` (assumed valid) and `ttl` (ignored).
     function computeRecordHash(bytes memory data) internal pure returns (bytes32 hash) {
         for (
@@ -29,7 +29,9 @@ library DNSClaimChecker {
             assembly {
                 mstore(0, header)
                 mstore(32, rdataHash)
-                hash := xor(hash, keccak256(28, 36))
+                mstore(32, keccak256(28, 36))
+                mstore(0, hash)
+                hash := keccak256(0, 64)
             }
         }
     }

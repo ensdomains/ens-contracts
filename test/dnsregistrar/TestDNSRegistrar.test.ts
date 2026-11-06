@@ -7,13 +7,14 @@ import {
   zeroHash,
   type Address,
 } from 'viem'
-
+import type { Answer } from 'dns-packet'
 import {
   DNS_TYPES,
   hexEncodeSignedSet,
   leafName,
   rootRRSet,
   claimRRSet,
+  computeRecordHash,
 } from '../fixtures/dns.js'
 import { dnsEncodeName } from '../fixtures/dnsEncodeName.js'
 import { dnssecFixture } from '../fixtures/dnssecFixture.js'
@@ -79,6 +80,32 @@ async function fixture() {
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 describe('DNSRegistrar', () => {
+  describe('computeRecordHash()', () => {
+    const A: Answer = {
+      name: 'a',
+      class: 'A',
+      ttl: 1,
+      type: 'TXT',
+      data: [Buffer.from('a')],
+    }
+    const B: Answer = { ...A, data: [Buffer.from('bb')] }
+
+    it('ignores name, class, ttl', () =>
+      expect(computeRecordHash([A])).toStrictEqual(
+        computeRecordHash([{ ...A, name: 'b', class: 'B', ttl: 2 }]),
+      ))
+    it('unique', () =>
+      expect(computeRecordHash([A])).not.toStrictEqual(computeRecordHash([B])))
+    it('order-dependent', () =>
+      expect(computeRecordHash([A, B])).not.toStrictEqual(
+        computeRecordHash([B, A]),
+      ))
+    it('handles duplicates', () =>
+      expect(computeRecordHash([B, B, A])).not.toStrictEqual(
+        computeRecordHash([A]),
+      ))
+  })
+
   it('sets constructor variables correctly', async () => {
     const { dnsRegistrar, dnssec, ensRegistry } = await loadFixture()
 
