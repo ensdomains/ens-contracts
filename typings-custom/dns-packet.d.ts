@@ -115,4 +115,5 @@ declare module 'dns-packet' {
 
 declare module 'dns-packet/types' {
   function toString(type: number): string
+  function toType(name: string): number;
 }
