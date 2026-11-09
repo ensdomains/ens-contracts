@@ -2,7 +2,15 @@ import { artifacts, deployScript } from '@rocketh'
 import { isAddressEqual, zeroAddress, type Address } from 'viem'
 
 export default deployScript(
-  async ({ deploy, get, getOrNull, read, execute: write, namedAccounts }) => {
+  async ({
+    deploy,
+    get,
+    getOrNull,
+    read,
+    execute: write,
+    namedAccounts,
+    namedSigners,
+  }) => {
     const { deployer, owner } = namedAccounts
 
     const registry = get<(typeof artifacts.ENSRegistry)['abi']>('ENSRegistry')
@@ -51,9 +59,11 @@ export default deployScript(
       return
     }
 
-    // Set DNSRegistrar as controller of Root
-    const rootOwner = await read(root, { functionName: 'owner' })
-    if (isAddressEqual(rootOwner, owner)) {
+    // Set DNSRegistrar as controller of Root (if possible)
+    if (
+      namedSigners.owner.type !== 'remote' &&
+      isAddressEqual(await read(root, { functionName: 'owner' }), owner)
+    ) {
       console.log('  - Setting DNSRegistrar as controller of Root')
       await write(root, {
         functionName: 'setController',

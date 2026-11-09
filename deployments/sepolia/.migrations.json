@@ -34,5 +34,8 @@
   "DefaultReverseResolver v1.0.0": 1750303141,
   "MigrationHelper v1.0.0": 1750303167,
   "BatchGatewayProvider v1.0.0": 1754525030,
-  "UniversalResolver v1.0.1": 1754525042
+  "UniversalResolver v1.0.1": 1754525042,
+  "DNSSECImpl v1.1.0": 11951435,
+  "OffchainDNSResolver v1.0.1": 12100648,
+  "DNSRegistrar:contract v1.0.1": 12100650
 }
