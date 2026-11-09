@@ -1,5 +1,5 @@
 import { artifacts, deployScript } from '@rocketh'
-import { getAddress, zeroAddress, type Address } from 'viem'
+import { isAddressEqual, zeroAddress, type Address } from 'viem'
 
 export default deployScript(
   async ({ deploy, get, getOrNull, read, execute: write, namedAccounts }) => {
@@ -16,30 +16,24 @@ export default deployScript(
     >('SimplePublicSuffixList')
 
     console.log('  - Searching for old registrars...')
-    let oldRegistrarAddress: Address | undefined =
-      getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')?.address
+    let oldRegistrarAddress =
+      getOrNull<(typeof artifacts.DNSRegistrar)['abi']>('DNSRegistrar')
+        ?.address ?? zeroAddress
     const oldRegistrars: Address[] = []
-    if (oldRegistrarAddress) {
-      while (true) {
-        oldRegistrars.push(oldRegistrarAddress)
-        try {
-          oldRegistrarAddress = await read(
-            {
-              address: oldRegistrarAddress,
-              abi: artifacts.DNSRegistrar.abi,
-            },
-            { functionName: 'previousRegistrar' },
-          )
-          if (oldRegistrarAddress === zeroAddress) break
-        } catch {
-          break
-        }
-      }
+    while (oldRegistrarAddress !== zeroAddress) {
+      oldRegistrars.push(oldRegistrarAddress)
+      oldRegistrarAddress = await read(
+        {
+          address: oldRegistrarAddress,
+          abi: artifacts.DNSRegistrar.abi,
+        },
+        { functionName: 'previousRegistrar' },
+      ).catch(() => zeroAddress)
     }
     console.log(`  - Found ${oldRegistrars.length} old registrars`)
-    if (oldRegistrars.length) {
-      console.table(oldRegistrars)
-    }
+    oldRegistrars.forEach((x, i) => {
+      console.log(`    ${i + 1}. ${x}`)
+    })
 
     const dnsRegistrar = await deploy('DNSRegistrar', {
       account: deployer,
@@ -58,11 +52,8 @@ export default deployScript(
     }
 
     // Set DNSRegistrar as controller of Root
-    const rootOwner = await read(root, {
-      functionName: 'owner',
-    }).then((v) => getAddress(v as Address))
-
-    if (rootOwner === getAddress(owner)) {
+    const rootOwner = await read(root, { functionName: 'owner' })
+    if (isAddressEqual(rootOwner, owner)) {
       console.log('  - Setting DNSRegistrar as controller of Root')
       await write(root, {
         functionName: 'setController',
@@ -76,7 +67,7 @@ export default deployScript(
     }
   },
   {
-    id: 'DNSRegistrar:contract v1.0.0',
+    id: 'DNSRegistrar:contract v1.0.1',
     tags: ['category:dnsregistrar', 'DNSRegistrar', 'DNSRegistrar:contract'],
     dependencies: [
       'ENSRegistry',

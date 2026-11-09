@@ -15,7 +15,7 @@ export default deployScript(
     })
   },
   {
-    id: 'OffchainDNSResolver v1.0.0',
+    id: 'OffchainDNSResolver v1.0.1',
     tags: ['category:dnsregistrar', 'OffchainDNSResolver'],
     dependencies: ['ENSRegistry', 'DNSSECImpl'],
   },
