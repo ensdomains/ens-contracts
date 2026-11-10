@@ -15,7 +15,7 @@ import { optimism } from 'viem/chains'
 import { serializeErc6492Signature } from 'viem'
 import { deployUniversalSigValidator } from '../fixtures/universalSigValidator.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 const coinType = evmChainIdToCoinType(optimism.id)
 

@@ -22,7 +22,7 @@ export async function getUniversalSigValidatorAddress(): Promise<`0x${string}`> 
 }
 
 export async function deployUniversalSigValidator() {
-  const connection = await hre.network.connect()
+  const connection = await hre.network.create()
   const testClient = await connection.viem.getTestClient()
   const publicClient = await connection.viem.getPublicClient()
   const [walletClient] = await connection.viem.getWalletClients()

@@ -4,7 +4,7 @@ import type { NewTaskActionFunction } from 'hardhat/types/tasks'
 import { archivedDeploymentPath } from '../hardhat.config.js'
 
 const taskArchiveScan: NewTaskActionFunction = async (_, hre) => {
-  const { networkName } = await hre.network.connect()
+  const { networkName } = await hre.network.create()
   const network = networkName
 
   const deployments = await hre.artifacts.getAllBuildInfoIds()

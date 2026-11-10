@@ -5,7 +5,7 @@ import { getAccounts } from '../fixtures/utils.js'
 
 const placeholderAddr = padHex('0x1234', { size: 20 })
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {

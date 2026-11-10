@@ -1,7 +1,7 @@
 import hre from 'hardhat'
 import { type Hex, stringToHex, toHex, zeroAddress, zeroHash } from 'viem'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   return connection.viem.deployContract('TestHexUtils')

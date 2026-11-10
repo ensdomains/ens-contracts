@@ -2,7 +2,7 @@ import hre from 'hardhat'
 import { readFileSync } from 'node:fs'
 import { FEATURES, makeFeature } from './features.js'
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 
 async function fixture() {
   return connection.viem.deployContract('DummyShapeshiftResolver')

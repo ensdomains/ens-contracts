@@ -279,7 +279,7 @@ export const onERC721ReceivedTests = (
     })
 
     it('Allows burning other fuses if CAN_UNWRAP has been burnt, but resets fuses if expired', async () => {
-      const { baseRegistrar, ensRegistry, nameWrapper, accounts, testClient } =
+      const { baseRegistrar, ensRegistry, nameWrapper, accounts } =
         await loadFixture()
 
       await ensRegistry.write.setOwner([namehash(name), accounts[1].address])
@@ -296,10 +296,7 @@ export const onERC721ReceivedTests = (
         }),
       ])
 
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(GRACE_PERIOD + 1n * DAY)
 
       await expectOwnerOf(name).on(ensRegistry).toBe(nameWrapper)
 

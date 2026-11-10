@@ -19,7 +19,7 @@ import { type KnownProfile, makeResolutions } from '../utils/resolutions.js'
 const testName = 'test.eth'
 const l2CoinType = COIN_TYPE_DEFAULT | 12345n // any evm chain
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const loadFixture = async () => connection.networkHelpers.loadFixture(fixture)
 
 async function fixture() {

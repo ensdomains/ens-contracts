@@ -4,10 +4,7 @@ pragma solidity >=0.8.4;
 import "../ResolverBase.sol";
 import "./IDataResolver.sol";
 
-abstract contract DataResolver is
-    IDataResolver,
-    ResolverBase
-{
+abstract contract DataResolver is IDataResolver, ResolverBase {
     mapping(uint64 => mapping(bytes32 node => mapping(string key => bytes data)))
         private versionable_dataStore;
 

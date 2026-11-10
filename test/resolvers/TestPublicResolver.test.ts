@@ -28,7 +28,7 @@ import {
 
 const targetNode = namehash('eth')
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 
 async function fixture() {
@@ -826,7 +826,7 @@ describe('PublicResolver', () => {
   })
 
   describe('data', () => {
-    const dataKey = 'my-data-key';
+    const dataKey = 'my-data-key'
     const data1 = '0x746f6d207761732068657265'
 
     it('permits setting data by owner', async () => {
@@ -844,7 +844,7 @@ describe('PublicResolver', () => {
       await expect(
         publicResolver.read.data([targetNode, dataKey]),
       ).resolves.toEqual(data1)
-    })  
+    })
 
     it('forbids setting data if not owner', async () => {
       const { publicResolver } = await loadFixture()
@@ -855,7 +855,7 @@ describe('PublicResolver', () => {
         }),
       ).toBeRevertedWithoutReason()
     })
-  });
+  })
 
   describe('contenthash', () => {
     const contenthash1 = padHex('0x01', { dir: 'left', size: 32 })

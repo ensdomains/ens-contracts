@@ -28,6 +28,9 @@ contract RootSecurityController is Ownable, ERC165 {
     /// @param label The labelhash of the TLD to disable.
     function disableTLD(bytes32 label) external onlyOwner {
         root.setSubnodeOwner(label, address(this));
-        ens.setResolver(keccak256(abi.encodePacked(ROOT_NODE, label)), address(0));
+        ens.setResolver(
+            keccak256(abi.encodePacked(ROOT_NODE, label)),
+            address(0)
+        );
     }
 }
