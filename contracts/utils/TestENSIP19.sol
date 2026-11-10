@@ -30,6 +30,12 @@ contract TestENSIP19 {
         return ENSIP19.chainFromCoinType(coinType);
     }
 
+    function coinTypeFromChain(
+        uint32 chainId
+    ) external pure returns (uint256) {
+        return ENSIP19.coinTypeFromChain(chainId);
+    }
+
     function isEVMCoinType(uint256 coinType) external pure returns (bool) {
         return ENSIP19.isEVMCoinType(coinType);
     }
