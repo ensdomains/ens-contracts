@@ -1,0 +1,14 @@
+[profile.default]
+src = "contracts"
+test = "test"
+out = "out"
+libs = ["node_modules", "lib"]
+remappings = [
+    "forge-std/=lib/forge-std/src/",
+    "@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/",
+    "@openzeppelin/contracts-v5/=node_modules/@openzeppelin/contracts-v5/",
+    "@unruggable/gateways/=node_modules/@unruggable/gateways/contracts/",
+    "clones-with-immutable-args/=node_modules/clones-with-immutable-args/"
+]
+optimizer = true
+optimizer_runs = 200
