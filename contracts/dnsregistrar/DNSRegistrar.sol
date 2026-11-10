@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import "@ensdomains/buffer/contracts/Buffer.sol";
 import "../dnssec-oracle/DNSSEC.sol";
 import "../dnssec-oracle/RRUtils.sol";
@@ -11,12 +11,16 @@ import "../resolvers/profiles/AddrResolver.sol";
 import "../utils/BytesUtils.sol";
 import "./DNSClaimChecker.sol";
 import "./PublicSuffixList.sol";
-import "./IDNSRegistrar.sol";
+import {IDNSRegistrar, DNS_REGISTRAR_V0_INTERFACE_ID} from "./IDNSRegistrar.sol";
 import {NameCoder} from "../utils/NameCoder.sol";
 
 /// @dev An ENS registrar that allows the owner of a DNS name to claim the
 ///      corresponding name in ENS.
-contract DNSRegistrar is IDNSRegistrar, IERC165 {
+///
+/// Inception times are stored per name per type with a hash of the record data:
+///     `uint256 hash := (uint256(keccak256(data)) << 32) + uint32(inception)`
+///
+contract DNSRegistrar is ERC165, IDNSRegistrar {
     using BytesUtils for bytes;
     using Buffer for Buffer.buffer;
     using RRUtils for *;
@@ -29,49 +33,11 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     PublicSuffixList public suffixes;
     address public immutable previousRegistrar;
     address public immutable resolver;
-    // A mapping of the most recent signatures seen for each type of each claimed domain.
-    mapping(bytes32 node => mapping(uint16 typeCovered => uint32 time))
+    /// @dev Mapping from `(node, typeCovered)` to the last hashed inception.
+    mapping(bytes32 node => mapping(uint16 typeCovered => uint256 hash))
         internal _inceptions;
-    /// @dev A mapping to check if registrar was a previous DNSRegistrar deployment.
+    /// @dev Mapping to check if registrar was a DNSRegistrar deployment.
     mapping(address registrar => bool was) public wasRegistrar;
-
-    error NoOwnerRecordFound();
-    error PermissionDenied(address caller, address owner);
-    error PreconditionNotMet();
-    error StaleProof(
-        bytes name,
-        uint16 typeCovered,
-        uint32 lastTime,
-        uint32 time
-    );
-    error InvalidPublicSuffix(bytes name);
-
-    struct OwnerRecord {
-        bytes name;
-        address owner;
-        address resolver;
-        uint64 ttl;
-    }
-
-    event Claim(
-        bytes32 indexed node,
-        address indexed owner,
-        bytes dnsname,
-        uint32 inception
-    );
-    event NewPublicSuffixList(address suffixes);
-
-    /// @notice A claim updated a stored inception.
-    /// @param node Namehash of the name.
-    /// @param name DNS-encoded name.
-    /// @param typeCovered DNS resource record type.
-    /// @param inception Inception time, in seconds.
-    event InceptionUpdated(
-        bytes32 indexed node,
-        bytes name,
-        uint16 indexed typeCovered,
-        uint32 inception
-    );
 
     /// @param previousRegistrars Addresses of previous DNSRegistrars. The first should the prior DNSRegistrar.
     /// @param _resolver Gasless DNSSEC resolver.
@@ -149,27 +115,32 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
     }
 
     function supportsInterface(
-        bytes4 interfaceID
-    ) external pure override returns (bool) {
+        bytes4 interfaceId
+    ) public view override returns (bool) {
         return
-            interfaceID == type(IERC165).interfaceId ||
-            interfaceID == type(IDNSRegistrar).interfaceId;
+            interfaceId == type(IDNSRegistrar).interfaceId ||
+            interfaceId == DNS_REGISTRAR_V0_INTERFACE_ID ||
+            super.supportsInterface(interfaceId);
     }
 
     /// @inheritdoc IDNSRegistrar
     function getInception(
         bytes calldata name,
         uint16 typeCovered
-    ) public view returns (uint32 inception) {
-        (, inception) = _inceptionForType(name, typeCovered);
+    ) public view returns (uint32 inception, bytes28 recordHash) {
+        (, uint256 hash) = _inceptionForType(name, typeCovered);
+        inception = uint32(hash);
+        recordHash = bytes28(bytes32(hash));
     }
 
     /// @inheritdoc IDNSRegistrar
-    function inceptions(bytes32 node) external view returns (uint32 inception) {
+    function inceptions(bytes32 node) external view returns (uint32) {
         return
-            _inceptionWithFallback(
-                node,
-                NameCoder.namehash(node, LABELHASH_PREFIX)
+            uint32(
+                _leafInceptionWithFallback(
+                    node,
+                    NameCoder.namehash(node, LABELHASH_PREFIX)
+                )
             );
     }
 
@@ -195,30 +166,39 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         RRUtils.SignedSet memory ss;
         for (uint256 i; i < sss.length; ++i) {
             ss = sss[i];
-            (bytes32 node, uint32 last) = _inceptionForType(
+            (bytes32 node, uint256 lastHash) = _inceptionForType(
                 ss.name,
                 ss.typeCovered
             );
-            if (ss.inception != last) {
-                if (!RRUtils.serialNumberGte(ss.inception, last)) {
-                    revert StaleProof(
-                        ss.name,
-                        ss.typeCovered,
-                        last,
-                        ss.inception
-                    );
+            uint32 lastInception = uint32(lastHash); // time is lower 4 bytes, hash is upper 28 bytes
+            uint256 hash = uint256(
+                bytes32(bytes28(DNSClaimChecker.computeRecordHash(ss.data)))
+            ) | ss.inception; // clear lower 4 bytes and replace with inception
+            if (RRUtils.serialNumberGte(lastInception, ss.inception)) {
+                // inception is same or older
+                if (((lastHash ^ hash) >> 32) == 0) {
+                    continue; // record unchanged, skip update
                 }
-                _inceptions[node][ss.typeCovered] = ss.inception;
-                emit InceptionUpdated(
-                    node,
+                revert StaleProof(
                     ss.name,
                     ss.typeCovered,
-                    ss.inception
+                    lastInception,
+                    bytes28(bytes32(lastHash)),
+                    ss.inception,
+                    bytes28(bytes32(hash))
                 );
             }
+            _inceptions[node][ss.typeCovered] = hash; // update
+            emit InceptionUpdated(
+                node,
+                ss.typeCovered,
+                ss.name,
+                ss.inception,
+                bytes28(bytes32(hash))
+            );
         }
 
-        // last proof must correspond to the _ens.{name} TXT record
+        // last proof must correspond to the "_ens.{name}" TXT record
         bool found;
         (addr, found) = DNSClaimChecker.getOwnerAddress(name, ss.data);
         if (!found) {
@@ -272,37 +252,37 @@ contract DNSRegistrar is IDNSRegistrar, IERC165 {
         return node;
     }
 
-    /// @dev Determine the last inception time for record type.
+    /// @dev Determine the last inception hash for record type.
     function _inceptionForType(
         bytes memory name,
         uint16 typeCovered
-    ) internal view returns (bytes32 node, uint32 inception) {
+    ) internal view returns (bytes32 node, uint256 inceptionHash) {
         (bytes32 labelHash, uint256 offset) = NameCoder.readLabel(name, 0);
         bytes32 parentNode;
         if (labelHash != bytes32(0)) {
             parentNode = NameCoder.namehash(name, offset);
             node = NameCoder.namehash(parentNode, labelHash);
         }
-        inception = typeCovered == RRUtils.DNSTYPE_TXT &&
+        inceptionHash = typeCovered == RRUtils.DNSTYPE_TXT &&
             labelHash == LABELHASH_PREFIX
-            ? _inceptionWithFallback(parentNode, node)
+            ? _leafInceptionWithFallback(parentNode, node)
             : _inceptions[node][typeCovered];
     }
 
-    /// @dev Determine the last inception time for `_ens.{name}` TXT.
+    /// @dev Determine the last inception hash for `_ens.{name}` TXT.
     ///      Checks previous registrar if value is unset.
     /// @param parentNode Namehash of `name`.
     /// @param node Namehash of `_ens.{name}`.
-    function _inceptionWithFallback(
+    function _leafInceptionWithFallback(
         bytes32 parentNode,
         bytes32 node
-    ) internal view returns (uint32 inception) {
-        inception = _inceptions[node][RRUtils.DNSTYPE_TXT];
-        if (inception == 0 && previousRegistrar != address(0)) {
+    ) internal view returns (uint256 inceptionHash) {
+        inceptionHash = _inceptions[node][RRUtils.DNSTYPE_TXT];
+        if (inceptionHash == 0 && previousRegistrar != address(0)) {
             try DNSRegistrar(previousRegistrar).inceptions(parentNode) returns (
                 uint32 t
             ) {
-                inception = t;
+                inceptionHash = t; // only inception
             } catch {}
         }
     }

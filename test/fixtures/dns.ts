@@ -1,10 +1,36 @@
 import { SignedSet } from '@ensdomains/dnsprovejs'
-import type { Answer, Rrsig } from 'dns-packet'
-import { bytesToHex, type Address } from 'viem'
+import { toType } from 'dns-packet/types'
+import packet from 'dns-packet'
+import type { Answer, Dnskey, Rrsig } from 'dns-packet'
+import {
+  bytesToHex,
+  type Hex,
+  type Address,
+  encodePacked,
+  keccak256,
+  slice,
+  namehash,
+  zeroHash,
+  concat,
+} from 'viem'
+import { dnsEncodeName } from './dnsEncodeName.js'
 
 export type RRSet = {
   rrs: Answer[]
   sig: Rrsig
+}
+
+/// see: RRUtils.sol
+export const DNS_TYPES = {
+  TXT: 16,
+  DS: 43,
+  DNSKEY: 48,
+} as const
+
+for (const [k, x] of Object.entries(DNS_TYPES)) {
+  if (toType(k) !== x) {
+    throw new Error(`DNS_TYPES: ${k} != ${x}`)
+  }
 }
 
 // see: RRUtils.sol
@@ -16,15 +42,55 @@ export const DNSKEY_FLAGS = {
 
 export const hexEncodeSignedSet = ({ rrs, sig }: RRSet) => {
   const ss = new SignedSet(rrs, sig)
+  let { name } = ss.records[0] // valid rrs have same name
+  if (name === '.') name = ''
   return {
     rrset: bytesToHex(ss.toWire()),
     sig: bytesToHex(ss.signature.data.signature),
+    event: {
+      node: namehash(name),
+      name: dnsEncodeName(name),
+      typeCovered: toType(sig.data.typeCovered),
+      inception: sig.data.inception,
+      recordHash: slice(computeRecordHash(ss.records), 0, 28), // truncated
+    },
   }
 }
 
-export const validityPeriod = 2419200
+export function leafName(name: string) {
+  return `_ens.${name}`
+}
+
+// see: DNSClaimChecker.computeRecordHash()
+export function computeRecordHash(records: Answer[]): Hex {
+  return records.reduce<Hex>((a, x) => {
+    const v = packet.record(x.type).encode(x.data).subarray(2)
+    return keccak256(
+      concat([
+        a,
+        keccak256(
+          encodePacked(
+            ['uint16', 'uint16', 'bytes32'],
+            [toType(x.type), v.length, keccak256(v)],
+          ),
+        ),
+      ]),
+    )
+  }, zeroHash)
+}
+
+// see: RRUtils.computeKeytag()
+export function computeKeyTag(key: Dnskey['data']) {
+  const v = packet.dnskey.encode(key).subarray(2)
+  const h = v.reduce((a, x, i) => (a += i & 1 ? x : x << 8), 0)
+  return (h + (h >> 16)) & 0xffff
+}
+
 export const INCEPTION = Math.floor(Date.now() / 1000 - 15 * 60)
+
+const validityPeriod = 2419200
 export const EXPIRATION = INCEPTION + validityPeriod
+
 export const rrsetWithTexts = ({
   name,
   texts,
@@ -58,7 +124,7 @@ export const rrsetWithTexts = ({
     data: [Buffer.from(typeof text === 'string' ? text : text.value, 'ascii')],
   })),
 })
-export const testRrset = ({
+export const claimRRSet = ({
   name,
   address,
   inception = INCEPTION,
@@ -87,7 +153,7 @@ export const testRrset = ({
   },
   rrs: [
     {
-      name: `_ens.${name}`,
+      name: leafName(name),
       type: 'TXT',
       class: 'IN',
       ttl: 3600,
@@ -96,12 +162,14 @@ export const testRrset = ({
   ],
 })
 
-export const rootKeys = ({
+export const rootRRSet = ({
   expiration = EXPIRATION,
   inception = INCEPTION,
+  dummyKeySize = 0,
 }: {
   expiration?: number
   inception?: number
+  dummyKeySize?: number
 } = {}) => {
   const name = '.'
   const sig: Rrsig = {
@@ -122,21 +190,7 @@ export const rootKeys = ({
       signature: Buffer.from([]),
     },
   }
-  const rrs: Answer[] = [
-    {
-      name,
-      type: 'DNSKEY',
-      class: 'IN',
-      ttl: 3600,
-      data: { flags: 0, algorithm: 253, key: Buffer.from('0000', 'hex') },
-    },
-    {
-      name,
-      type: 'DNSKEY',
-      class: 'IN',
-      ttl: 3600,
-      data: { flags: 0, algorithm: 253, key: Buffer.from('1112', 'hex') },
-    },
+  const rrs = [
     {
       name,
       type: 'DNSKEY',
@@ -145,9 +199,11 @@ export const rootKeys = ({
       data: {
         flags: DNSKEY_FLAGS.SEP | DNSKEY_FLAGS.ZONE_KEY,
         algorithm: 253,
-        key: Buffer.from('0000', 'hex'),
+        // dummy algorithm accepts any key
+        // keyTag is unchanged by zero padding
+        key: Buffer.alloc(dummyKeySize),
       },
     },
-  ]
+  ] as const satisfies Answer[]
   return { name, sig, rrs }
 }

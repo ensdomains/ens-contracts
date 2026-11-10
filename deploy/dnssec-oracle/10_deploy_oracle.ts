@@ -85,15 +85,19 @@ export default deployScript(
       }
     }
 
-    if (!isAddressEqual(owner, deployer)) {
-      console.log('  - Transferring ownership to owner account')
-      await write(dnssec, {
-        functionName: 'transferOwnership',
-        args: [owner],
-        account: deployer,
-      })
-    } else {
-      console.warn('  - WARN: DNSSEC should be transferred to DAO')
+    // transfer to dao (if possible)
+    const currentOwner = await read(dnssec, { functionName: 'owner' })
+    if (!isAddressEqual(currentOwner, owner)) {
+      if (isAddressEqual(currentOwner, deployer)) {
+        console.log('  - Transferring ownership to owner account')
+        await write(dnssec, {
+          functionName: 'transferOwnership',
+          args: [owner],
+          account: deployer,
+        })
+      } else {
+        console.warn('  - WARN: DNSSEC should be transferred to DAO')
+      }
     }
 
     console.log('  - DNSSEC Oracle deployment completed successfully')
