@@ -225,6 +225,5 @@
             "stateMutability": "nonpayable",
             "type": "function"
         }
-    ],
-    "buildInfoId": "unknown"
+    ]
 }
