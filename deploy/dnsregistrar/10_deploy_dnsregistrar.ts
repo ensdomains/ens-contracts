@@ -60,17 +60,14 @@ export default deployScript(
     }
 
     // Set DNSRegistrar as controller of Root (if possible)
-    if (
-      namedSigners.owner.type !== 'remote' &&
-      isAddressEqual(await read(root, { functionName: 'owner' }), owner)
-    ) {
+    try {
       console.log('  - Setting DNSRegistrar as controller of Root')
       await write(root, {
         functionName: 'setController',
         args: [dnsRegistrar.address, true],
         account: owner,
       })
-    } else {
+    } catch {
       console.warn(
         `  - WARN: ${owner} is not the owner of the root; you will need to call setController('${dnsRegistrar.address}', true) manually`,
       )
