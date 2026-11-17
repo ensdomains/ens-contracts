@@ -857,5 +857,6 @@
     "blockHash": "0x103de2243b0e0bf8a0ffe45bda0a779d1bdd76f9ae8399a9b715390ea7f84cf8",
     "blockNumber": "0x1904048",
     "transactionIndex": "0xd9"
-  }
+  },
+  "buildInfoId": "solc-0_8_26-c49f849950a5b879848359029dbf76bd373ab1be"
 }

@@ -250,5 +250,6 @@
     "blockHash": "0x562060c695821cf6ca690bfba7b20add60c964dafa50e81b358ecc157b5ebe30",
     "blockNumber": "0x174b67e",
     "transactionIndex": "0x129"
-  }
+  },
+  "buildInfoId": "unknown"
 }
