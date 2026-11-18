@@ -13,7 +13,7 @@ type SeedArgs = {
 }
 
 const taskSeed: NewTaskActionFunction<SeedArgs> = async ({ name }, hre) => {
-  const { viem } = await hre.network.connect()
+  const { viem } = await hre.network.create()
   const { parsed: parsedFile, error } = dotenv.config({
     path: './.env',
     encoding: 'utf8',

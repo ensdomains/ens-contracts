@@ -10,7 +10,6 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 /// @dev Acts as a pass-through for the base registrar, but with the ability for
 ///      security controllers to disable registrar controllers.
 contract RegistrarSecurityController is Controllable, ERC165 {
-
     /// @notice The registrar this controller manages.
     BaseRegistrarImplementation public registrar;
 
@@ -39,14 +38,18 @@ contract RegistrarSecurityController is Controllable, ERC165 {
 
     /// @notice Transfers ownership of the registrar.
     /// @param newOwner The new owner for the registrar.
-    function transferRegistrarOwnership(address newOwner) public virtual onlyOwner {
+    function transferRegistrarOwnership(
+        address newOwner
+    ) public virtual onlyOwner {
         registrar.transferOwnership(newOwner);
     }
 
     /// @notice Removes a registrar controller in emergencies.
     /// @dev Callable only by security controllers.
     /// @param controller The registrar controller to remove.
-    function disableRegistrarController(address controller) external onlyController {
+    function disableRegistrarController(
+        address controller
+    ) external onlyController {
         registrar.removeController(controller);
     }
 }

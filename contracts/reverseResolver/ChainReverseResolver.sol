@@ -21,7 +21,7 @@ import {ENSIP19} from "../utils/ENSIP19.sol";
 ///
 contract ChainReverseResolver is
     AbstractReverseResolver,
-	IVerifiableResolver,
+    IVerifiableResolver,
     GatewayFetchTarget,
     Ownable
 {
@@ -67,15 +67,15 @@ contract ChainReverseResolver is
             super.supportsInterface(interfaceId);
     }
 
-	/// @inheritdoc IVerifiableResolver
+    /// @inheritdoc IVerifiableResolver
     function verifierMetadata(
         bytes memory name
     ) external view returns (address verifier, string[] memory gateways) {
-		 (bytes memory a, uint256 ct) = ENSIP19.parse(name);
-		 if (a.length == 20 && ct == coinType) {
-			return (address(gatewayVerifier), gatewayURLs);
-		 }
-	}
+        (bytes memory a, uint256 ct) = ENSIP19.parse(name);
+        if (a.length == 20 && ct == coinType) {
+            return (address(gatewayVerifier), gatewayURLs);
+        }
+    }
 
     /// @notice Set gateway URLs.
     /// @param gateways The new gateway URLs.

@@ -135,8 +135,6 @@ execSync(
     stdio: 'inherit',
     env: {
       ...process.env,
-      NODE_OPTIONS:
-        '--experimental-loader ts-node/esm/transpile-only --no-warnings',
       IMPERSONATION_PROXY_ENABLED: '1',
     },
   },

@@ -550,7 +550,7 @@ export const setSubnodeRecordTests = (
     })
 
     it('Rewrapping a name that had PCC burned, but has now expired is possible', async () => {
-      const { nameWrapper, actions, accounts, baseRegistrar, testClient } =
+      const { nameWrapper, actions, accounts, baseRegistrar } =
         await loadNameWrapperFixture()
 
       await actions.registerSetupAndWrapName({
@@ -596,8 +596,7 @@ export const setSubnodeRecordTests = (
       expect(fuses).toEqual(PARENT_CANNOT_CONTROL)
 
       // Advance time so the subname expires, but not the parent
-      await testClient.increaseTime({ seconds: Number(DAY / 2n + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY / 2n + 1n)
 
       const [, fusesAfter, expiryAfter] = await nameWrapper.read.getData([
         toNameId(subname),
@@ -619,14 +618,8 @@ export const setSubnodeRecordTests = (
     })
 
     it('Expired subnames should still be protected by CANNOT_CREATE_SUBDOMAIN on the parent', async () => {
-      const {
-        nameWrapper,
-        actions,
-        accounts,
-        baseRegistrar,
-        testClient,
-        publicClient,
-      } = await loadNameWrapperFixture()
+      const { nameWrapper, actions, accounts, baseRegistrar, publicClient } =
+        await loadNameWrapperFixture()
 
       const sublabel2 = 'sub2'
 
@@ -672,8 +665,7 @@ export const setSubnodeRecordTests = (
         .toBeRevertedWithCustomError('OperationProhibited')
         .withArgs([namehash(`${sublabel2}.${name}`)])
 
-      await testClient.increaseTime({ seconds: Number(DAY / 2n + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY / 2n + 1n)
 
       const timestamp = await publicClient.getBlock().then((b) => b.timestamp)
 

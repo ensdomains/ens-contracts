@@ -47,10 +47,9 @@ export const isWrappedTests = (
     })
 
     it('identifies an expired .eth name as unwrapped', async () => {
-      const { nameWrapper, testClient } = await loadFixture()
+      const { nameWrapper } = await loadFixture()
 
-      await testClient.increaseTime({ seconds: Number(1n * DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(1n * DAY + 1n)
 
       await expect(
         nameWrapper.read.isWrapped([namehash(name)]) as Promise<boolean>,
@@ -110,7 +109,7 @@ export const isWrappedTests = (
     })
 
     it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
-      const { nameWrapper, actions, accounts, testClient, parentExpiry } =
+      const { nameWrapper, actions, accounts, parentExpiry } =
         await loadFixture()
 
       const subname = `sub.${name}`
@@ -125,10 +124,7 @@ export const isWrappedTests = (
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[0])
 
-      await testClient.increaseTime({
-        seconds: Number(DAY + GRACE_PERIOD + 101n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY + GRACE_PERIOD + 101n)
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(zeroAccount)
       await expect(
@@ -173,10 +169,9 @@ export const isWrappedTests = (
     })
 
     it('identifies an expired .eth name as unwrapped', async () => {
-      const { nameWrapper, testClient } = await loadFixture()
+      const { nameWrapper } = await loadFixture()
 
-      await testClient.increaseTime({ seconds: Number(1n * DAY + 1n) })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(1n * DAY + 1n)
 
       await expect(
         nameWrapper.read.isWrapped([
@@ -247,7 +242,7 @@ export const isWrappedTests = (
     })
 
     it('identifies an expired wrapped subname with PCC burnt as unwrapped', async () => {
-      const { nameWrapper, actions, accounts, testClient, parentExpiry } =
+      const { nameWrapper, actions, accounts, parentExpiry } =
         await loadFixture()
 
       await actions.setSubnodeOwner.onNameWrapper({
@@ -260,10 +255,7 @@ export const isWrappedTests = (
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(accounts[0])
 
-      await testClient.increaseTime({
-        seconds: Number(DAY + GRACE_PERIOD + 101n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY + GRACE_PERIOD + 101n)
 
       await expectOwnerOf(subname).on(nameWrapper).toBe(zeroAccount)
       await expect(

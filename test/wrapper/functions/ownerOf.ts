@@ -24,17 +24,14 @@ export const ownerOfTests = (loadFixture: LoadNameWrapperFixture) => {
     })
 
     it('Returns 0 when owner is expired', async () => {
-      const { nameWrapper, actions, testClient } = await loadFixture()
+      const { nameWrapper, actions, networkHelpers } = await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CAN_DO_EVERYTHING,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(1n * DAY + GRACE_PERIOD + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(1n * DAY + GRACE_PERIOD + 1n)
 
       await expectOwnerOf(name).on(nameWrapper).toBe(zeroAccount)
     })

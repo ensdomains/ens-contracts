@@ -75,7 +75,7 @@ const test_rrsets = [
   ],
 ] as const
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const accounts = await getAccounts(connection)
 function fixture() {
   return dnssecFixture(connection)

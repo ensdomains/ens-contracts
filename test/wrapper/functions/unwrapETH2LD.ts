@@ -41,7 +41,8 @@ export const unwrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
     })
 
     it('Does not allows the previous owner to unwrap when the name has expired.', async () => {
-      const { nameWrapper, accounts, testClient, actions } = await loadFixture()
+      const { nameWrapper, accounts, actions, networkHelpers } =
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
@@ -50,10 +51,7 @@ export const unwrapETH2LDTests = (loadFixture: LoadNameWrapperFixture) =>
 
       await expectOwnerOf(name).on(nameWrapper).toBe(accounts[0])
 
-      await testClient.increaseTime({
-        seconds: Number(DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(DAY + 1n)
 
       await expect(
         nameWrapper.write.unwrapETH2LD([

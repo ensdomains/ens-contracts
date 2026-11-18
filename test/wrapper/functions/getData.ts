@@ -43,7 +43,7 @@ export const getDataTests = (
     })
 
     it('clears fuses when domain is expired', async () => {
-      const { baseRegistrar, nameWrapper, accounts, actions, testClient } =
+      const { baseRegistrar, nameWrapper, accounts, actions } =
         await loadFixture()
 
       const initialFuses = PARENT_CANNOT_CONTROL | CANNOT_UNWRAP
@@ -63,10 +63,7 @@ export const getDataTests = (
         expiry: MAX_EXPIRY,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(DAY + 1n + GRACE_PERIOD),
-      })
-      await testClient.mine({ blocks: 1 })
+      await connection.networkHelpers.time.increase(DAY + 1n + GRACE_PERIOD)
 
       const [, fuses, expiry] = await nameWrapper.read.getData([
         toNameId(subname),

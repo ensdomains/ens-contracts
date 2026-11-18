@@ -22,7 +22,7 @@ function exponentialReduceFloatingPoint(startPrice: number, days: number) {
   return 0
 }
 
-const connection = await hre.network.connect()
+const connection = await hre.network.create()
 const publicClient = await connection.viem.getPublicClient()
 const accounts = await getAccounts(connection)
 

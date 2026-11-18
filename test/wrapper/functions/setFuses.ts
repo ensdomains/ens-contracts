@@ -110,17 +110,15 @@ export const setFusesTests = (loadFixture: LoadNameWrapperFixture) => {
     })
 
     it('cannot burn fuses as the previous owner of a .eth when the name has expired', async () => {
-      const { nameWrapper, actions, accounts, testClient } = await loadFixture()
+      const { nameWrapper, actions, accounts, networkHelpers } =
+        await loadFixture()
 
       await actions.registerSetupAndWrapName({
         label,
         fuses: CANNOT_UNWRAP,
       })
 
-      await testClient.increaseTime({
-        seconds: Number(GRACE_PERIOD + 1n * DAY + 1n),
-      })
-      await testClient.mine({ blocks: 1 })
+      await networkHelpers.time.increase(GRACE_PERIOD + 1n * DAY + 1n)
 
       await expect(nameWrapper.write.setFuses([namehash(name), CANNOT_UNWRAP]))
         .toBeRevertedWithCustomError('Unauthorised')

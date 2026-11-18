@@ -36,7 +36,7 @@ const proxyFactory = '0x4e1DCf7AD4e460CfD30791CCC4F9c8a4f820ec67'
 const fallbackHandler = '0xfd0732Dc9E303f09fCEf3a7388Ad10A83459Ec99'
 
 const taskCreateL2Safe: NewTaskActionFunction = async (_, hre) => {
-  const { viem, networkConfig } = await hre.network.connect()
+  const { viem, networkConfig } = await hre.network.create()
   const networkType = networkConfig.chainType === 'l1' ? 'mainnet' : 'testnet'
   const { expectedSafeAddress, owners, threshold, salt } =
     safeConfig[networkType]
