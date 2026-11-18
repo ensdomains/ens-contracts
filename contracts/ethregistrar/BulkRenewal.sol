@@ -44,8 +44,8 @@ contract BulkRenewal is IBulkRenewal {
             );
             unchecked {
                 ++i;
-                total += (price.base + price.premium);
             }
+            total += (price.base + price.premium);
         }
     }
 
