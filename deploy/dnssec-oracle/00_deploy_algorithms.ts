@@ -16,6 +16,12 @@ export default deployScript(
       args: [],
     })
 
+    await deploy('RSASHA512Algorithm', {
+      account: deployer,
+      artifact: artifacts.RSASHA512Algorithm,
+      args: [],
+    })
+
     await deploy('P256SHA256Algorithm', {
       account: deployer,
       artifact: artifacts.P256SHA256Algorithm,
@@ -37,6 +43,7 @@ export default deployScript(
       'dnssec-algorithms',
       'RSASHA1Algorithm',
       'RSASHA256Algorithm',
+      'RSASHA512Algorithm',
       'P256SHA256Algorithm',
       'DummyAlgorithm',
     ],
