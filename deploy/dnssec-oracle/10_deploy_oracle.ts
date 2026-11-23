@@ -15,6 +15,7 @@ export default deployScript(
       5: 'RSASHA1Algorithm',
       7: 'RSASHA1Algorithm',
       8: 'RSASHA256Algorithm',
+      10: 'RSASHA512Algorithm',
       13: 'P256SHA256Algorithm',
     }
     const digests: Record<number, string> = {
