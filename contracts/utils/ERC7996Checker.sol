@@ -18,7 +18,7 @@ library ERC7996Checker {
         assembly ("memory-safe") {
             mstore(0x00, selector)
             // clear the low-order bits, which may be dirty (eg. `bytes4(keccak256(...))`)
-            mstore(0x04, and(featureId, shl(224, 0xffffffff)))
+            mstore(0x04, shl(224, shr(224, featureId)))
             // read returndata only after the call, since Yul evaluates arguments right-to-left
             success := staticcall(30000, target, 0x00, 0x24, 0x00, 0x20)
             returnSize := returndatasize()
