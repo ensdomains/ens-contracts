@@ -12,16 +12,18 @@ library ERC7996Checker {
     ) internal view returns (bool supported) {
         // modified from: https://github.com/OpenZeppelin/openzeppelin-contracts/blob/release-v5.7/contracts/utils/introspection/ERC165Checker.sol#L130
         bytes4 selector = IERC7996.supportsFeature.selector;
+        bool success;
+        uint256 returnSize;
+        uint256 returnValue;
         assembly ("memory-safe") {
             mstore(0x00, selector)
-            mstore(0x04, featureId)
-            supported := and(
-                staticcall(30000, target, 0x00, 0x24, 0x00, 0x20), // call was successful
-                and(
-                    gt(returndatasize(), 0x1F), // we have at least 32 bytes of returndata
-                    iszero(iszero(mload(0x00))) // the first 32 bytes of returndata are non-zero
-                )
-            )
+            // clear the low-order bits, which may be dirty (eg. `bytes4(keccak256(...))`)
+            mstore(0x04, shl(224, shr(224, featureId)))
+            // read returndata only after the call, since Yul evaluates arguments right-to-left
+            success := staticcall(30000, target, 0x00, 0x24, 0x00, 0x20)
+            returnSize := returndatasize()
+            returnValue := mload(0x00)
         }
+        return success && returnSize >= 0x20 && returnValue > 0;
     }
 }
